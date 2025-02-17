@@ -1,8 +1,21 @@
+// tailwind.config.js
+const {heroui} = require("@heroui/theme");
+
 /** @type {import('tailwindcss').Config} */
-export default {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+module.exports = {
+  content: [
+    // single component styles
+    // "./node_modules/@heroui/theme/dist/components/button.js",
+    "./node_modules/@heroui/theme/dist/components/**/*.js",
+    // or you can use a glob pattern (multiple component styles)
+    // './node_modules/@heroui/theme/dist/components/(button|snippet|code|input|modal).js'
+  ],
   theme: {
     extend: {},
   },
-  plugins: [],
+  darkMode: "class",
+  plugins: [
+    heroui({
+      
+    })],
 };
