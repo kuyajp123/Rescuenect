@@ -1,14 +1,15 @@
-import * as React from "react";
-import Test from "./setting/Test";
-
-// 1. import `HeroUIProvider` component
-import {HeroUIProvider} from "@heroui/system";
-
-export default function App() {
-  // 2. Wrap HeroUIProvider at the root of your app
+import React from "react";
+import { Button } from "@heroui/button";
+``
+function App() {
   return (
-    <HeroUIProvider>
-      <Test />
-    </HeroUIProvider>
+<div>
+  hello
+  <Button >
+    click
+  </Button>
+</div>
   );
 }
+
+export default App;
