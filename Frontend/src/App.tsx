@@ -1,14 +1,11 @@
-import React from "react";
-import { Button } from "@heroui/button";
-``
+import {Card, CardBody} from "@heroui/react";
+import Test from "./pages/Test";
+
 function App() {
   return (
-<div>
-  hello
-  <Button >
-    click
-  </Button>
-</div>
+  <div>
+    <Test />
+  </div>
   );
 }
 
