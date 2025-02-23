@@ -14,6 +14,10 @@ module.exports = {
     extend: {
       colors: {
         highlight: "#F39C12",
+        blank: "#D4D4D8",
+      },
+      fontFamily: {
+        sans: ["Poppins", "sans-serif", "arial"],
       },
     },
   },
@@ -38,7 +42,6 @@ module.exports = {
           }
         },
         dark: {
-          layout: {},
           colors: {
             primary_plain: "#14723C",
             secondary_plain: "#2a6186",

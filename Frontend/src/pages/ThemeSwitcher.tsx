@@ -1,5 +1,7 @@
 import {useTheme} from "@heroui/use-theme";
 import { Button } from "@heroui/react";
+import PrimaryButton from "@/components/PrimaryButton";
+PrimaryButton
 
 export const ThemeSwitcher = () => {
   const { theme, setTheme } = useTheme()
@@ -7,8 +9,8 @@ export const ThemeSwitcher = () => {
   return (
     <div>
       The current theme is: {theme}
-      <Button className="bg-primary_plain" onClick={() => setTheme('light')}>Light Mode</Button>
-      <Button className="primary text-white" onClick={() => setTheme('dark')}>Dark Mode</Button>
+      <PrimaryButton className="primary rounded-full" onClick={() => setTheme('light')}>Light Mode</PrimaryButton>
+      <PrimaryButton className="primary text-white" onClick={() => setTheme('dark')}>Dark Mode</PrimaryButton>
     </div>
   )
 };
