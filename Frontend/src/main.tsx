@@ -10,9 +10,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <HeroUIProvider>
       <BrowserRouter>
-        <main className="dark:bg-bg">
           <App />
-        </main>
       </BrowserRouter>
     </HeroUIProvider>
   </React.StrictMode>,

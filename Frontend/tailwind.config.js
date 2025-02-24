@@ -17,7 +17,19 @@ module.exports = {
         blank: "#D4D4D8",
       },
       fontFamily: {
-        sans: ["Poppins", "sans-serif", "arial"],
+        sans: ["Poppins", "sans-serif",  "ui-sans-serif", "system-ui", "sans-serif", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"],
+      },
+      fontSize: {
+        // TEXT CONTENT:
+        // xs: 0.75rem;, non important text (12px)
+        // sm: 0.875rem;, small text content (14px)
+        // base: "1rem", default(16px)
+
+        // TEXT HEADER:
+        // 2xl: "1.5rem", header title (24px)
+        // xl: "1.25rem", name title (20px)
+
+        
       },
     },
   },
