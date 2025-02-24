@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+body{
+    height: 100vh;
+    width: 100%;
+    /* border: 1px solid red; */
+}
+
 .primary{
     background: linear-gradient(to bottom right, #14723C 0%, #00A35A 90%, #00A35A 100%);
 }
