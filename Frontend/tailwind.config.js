@@ -11,13 +11,11 @@ module.exports = {
     "./node_modules/@heroui/theme/dist/components/**/*.js",
   ],
   theme: {
+
     extend: {
       colors: {
         highlight: "#F39C12",
         blank: "#D4D4D8",
-      },
-      fontFamily: {
-        sans: ["Poppins", "sans-serif",  "ui-sans-serif", "system-ui", "sans-serif", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"],
       },
       fontSize: {
         // TEXT CONTENT:
@@ -26,7 +24,7 @@ module.exports = {
         // base: "1rem", default(16px)
 
         // TEXT HEADER:
-        // 2xl: "1.5rem", header title (24px)
+        // '2xl': "1.5rem", header title (24px)
         // xl: "1.25rem", name title (20px)
 
         
@@ -69,6 +67,6 @@ module.exports = {
           }
         },
       }
-    })
-],
+    }),
+  ],
 }

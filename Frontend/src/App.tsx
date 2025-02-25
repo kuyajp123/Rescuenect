@@ -1,29 +1,13 @@
 import Test from "./pages/Test";
 import { ThemeSwitcher } from "./pages/ThemeSwitcher";
 
-// const child = {
-//   height: "100%",
-//   width: "100%",
-//   display: "flex",
-//   justifyContent: "center",
-//   alignItems: "center",
-//   border: "1px solid red",
-// };
-
-// const parent = {
-//   height: "100%",
-//   width: "100%",
-//   display: "flex",
-//   justifyContent: "center",
-//   alignItems: "center",
-//   border: "1px solid red",
-// };
-
 function App() {
   return (
-  <div className="font-sans container">
-    <ThemeSwitcher />
-    <div className="container">
+  <div className="font-poppins container h-full">  
+    <div>
+      <ThemeSwitcher />
+    </div>
+    <div className="container h-full text-3xl border-secondary border-2">
       <Test />
       asdasd
     </div>
