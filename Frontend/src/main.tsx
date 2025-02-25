@@ -1,5 +1,5 @@
 import './styles/globals.css'
-// import './styles/font.css'
+import './styles/font.css'
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";

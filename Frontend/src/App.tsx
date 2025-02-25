@@ -3,13 +3,14 @@ import { ThemeSwitcher } from "./pages/ThemeSwitcher";
 
 function App() {
   return (
-  <div className="font-poppins container h-full">  
-    <div>
+  <div className="bg-bg dark:bg-bg h-screen flex flex-col w-full">  
+    <div className="flex justify-end items-center gap-3 w-full">
       <ThemeSwitcher />
     </div>
-    <div className="container h-full text-3xl border-secondary border-2">
-      <Test />
-      asdasd
+    <div className="flex-grow w-full">
+      <div className="flex justify-center items-center h-full">
+        <Test />
+      </div>
     </div>
   </div>
   );
