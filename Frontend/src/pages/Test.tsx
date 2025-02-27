@@ -1,10 +1,10 @@
 import React from 'react'
-import {Card, CardBody} from "@heroui/react";
+// import {Card, CardBody} from "@heroui/react";
 
 const Test = () => {
   return (
-    <div className='flex justify-center items-center h-auto w-auto bg-bg dark:bg-bg p-20 border'>
-      <Card className='bg-card dark:bg-card dark:shadow-none text-text_color dark:text-text_color_dark'
+    <div className='flex justify-center items-center h-auto w-auto bg-bg dark:bg-bg p-20 gap-3'>
+      {/* <Card className='bg-card dark:bg-card dark:shadow-none text-text_color dark:text-text_color_dark'
       radius='md'
       >
         <CardBody>
@@ -12,9 +12,9 @@ const Test = () => {
           <br />
           <p className='text-xl'>Theme</p>
           <br />
-          <p>Dark mode</p>
+          <p className=''>Dark mode</p>
         </CardBody>
-      </Card>
+      </Card> */}
     </div>
   )
 }

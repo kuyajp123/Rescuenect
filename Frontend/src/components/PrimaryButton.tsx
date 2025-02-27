@@ -10,7 +10,6 @@ interface PrimaryButtonProps extends ButtonProps {
 const PrimaryButton: React.FC<PrimaryButtonProps & ButtonProps> = ({ children, className = "", ...props }) => {
   return (
     <Button
-    
       className={`primary rounded text-white dark:text-white" ${className}`}
       {...props}
     >

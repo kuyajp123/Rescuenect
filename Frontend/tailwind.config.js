@@ -32,8 +32,8 @@ module.exports = {
         // xl: "1.25rem", header name (20px)
 
         // HEADLINE:
-        
-
+        // '6xl': "4rem", headline title (60px)
+        // '4xl': "2.25rem", section title (36px)
       },
     },
   },
@@ -66,9 +66,9 @@ module.exports = {
             // background
             // bg: "#333333",
             bg: "#171717",
-            bg_hover: "#2a2a2a",
+            bg_hover: "#474747",
             // card: "#404040",
-            card: "#1f1f1f",
+            card: "#363535",
             card_hover: "#404040",
             // font
             text_color: "#E0E6ED",
