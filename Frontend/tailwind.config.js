@@ -15,7 +15,6 @@ module.exports = {
     fontSize: true,
   },
   theme: {
-
     extend: {
       colors: {
         highlight: "#F39C12",
