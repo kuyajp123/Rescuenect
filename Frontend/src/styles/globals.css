@@ -10,8 +10,12 @@
 
 body{
     font-family: 'Poppins', system-ui, Arial;
+    @apply text-sm;
+    /* background-color: lightblue; */
 }
 
+
+/* CUSTOM COLORS */
 .primary{
     background: linear-gradient(to bottom right, #14723C 0%, #00A35A 90%, #00A35A 100%);
 }
@@ -24,11 +28,38 @@ body{
     background: linear-gradient(to top, #3f4dc985 0%, #333333 90%, #333333 100%);
 }
 
-/* secondary 100% opacity */
-/* .secondary-100{
-    background: linear-gradient(to bottom right, #384CFF 0%, #F8F8FF 100%);
-} */
 
-/* body{
-    background-color: #333333;
-} */
+/* FONT POPPINS */
+@font-face {
+    font-family: 'Poppins';
+    src: url('poppins/regular/Poppins-Regular.woff2') format('woff2'),
+        url('poppins/regular/Poppins-Regular.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
+
+/* VIEWPORT */
+/* Tablets */
+@media (min-width: 768px) {
+    body {
+        @apply text-base;
+        /* background-color: lightgreen; */
+    }
+} 
+  
+/* Laptops (current) */
+@media (min-width: 1024px) {
+    body {
+        @apply text-base;
+        /* background-color: lightyellow; */
+    }
+}
+
+/* Large Screens */
+@media (min-width: 1440px) {
+    body {
+        @apply text-xl;
+        /* background-color: lightgray; */
+    }
+}

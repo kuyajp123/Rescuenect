@@ -12,7 +12,7 @@ export const ThemeSwitcher = () => {
   return (
     <div className="flex justify-end items-center gap-3 w-full">
       <SecondaryButton 
-      className="rounded-full" 
+      className="rounded-full border-blank dark:border-none" 
       onPress={handleThemeChange}
       isIconOnly
       >
