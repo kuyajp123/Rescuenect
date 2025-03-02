@@ -1,20 +1,13 @@
-import React from 'react'
-// import {Card, CardBody} from "@heroui/react";
+import { useScreenSize } from '@/utils/ScreenSizeContext';
 
 const Test = () => {
+  const { screenSize  } = useScreenSize();
+
   return (
     <div className='flex justify-center items-center h-auto w-auto bg-bg dark:bg-bg p-20 gap-3'>
-      {/* <Card className='bg-card dark:bg-card dark:shadow-none text-text_color dark:text-text_color_dark'
-      radius='md'
-      >
-        <CardBody>
-          <h1 className="text-2xl">System preferences</h1>
-          <br />
-          <p className='text-xl'>Theme</p>
-          <br />
-          <p className=''>Dark mode</p>
-        </CardBody>
-      </Card> */}
+      {screenSize == 'desktop' && 'You are using desktop!'}
+      {screenSize == 'tablet' && 'You are using tablet!'}
+      {screenSize == 'mobile' && 'You are using mobile!'}
     </div>
   )
 }
