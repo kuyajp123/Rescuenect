@@ -47,7 +47,6 @@ module.exports = {
             secondary_plain: "#3498DB",
             tertiary: "#455b6e",
             // background
-            // bg: "#F8F8FF",
             bg: "#f5f5f5",
             bg_hover: "#e4e4e4",
             card: "#FFFFFF",
@@ -63,10 +62,8 @@ module.exports = {
             secondary_plain: "#2a6186",
             tertiary: "#2C3E50",
             // background
-            // bg: "#333333",
             bg: "#171717",
             bg_hover: "#1f1f1f",
-            // card: "#404040",
             card: "#121212",
             card_hover: "#1f1f1f",
             // font

@@ -11,7 +11,9 @@ const ScreenSizeProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     const updateScreenSize = () => {
-      if (window.innerWidth > 768) {
+      if (window.innerWidth > 1440) {
+        setScreenSize('large_screen')
+      } else if (window.innerWidth > 768) {
         setScreenSize('desktop');
       } else if (window.innerWidth > 576) {
         setScreenSize('tablet');

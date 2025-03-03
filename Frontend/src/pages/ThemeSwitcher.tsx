@@ -1,6 +1,8 @@
 import {useTheme} from "@heroui/use-theme";
 import { SunIcon, MoonIcon } from "@heroicons/react/24/outline";
 import SecondaryButton from "@/components/SecondaryButton";
+import PrimaryButton from "@/components/PrimaryButton";
+
 
 export const ThemeSwitcher = () => {
   const { theme, setTheme } = useTheme();

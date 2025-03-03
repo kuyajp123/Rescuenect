@@ -20,6 +20,10 @@ body{
     background: linear-gradient(to bottom right, #14723C 0%, #00A35A 90%, #00A35A 100%);
 }
 
+.dark .primary {
+    background: linear-gradient(90deg, rgba(28,73,47,1) 0%, rgba(10,83,50,1) 100%);
+}
+
 .secondary{
     background: linear-gradient(to top, #384cff85 0%, #F8F8FF 90%, #F8F8FF 100%);
 }

@@ -1,17 +1,20 @@
-// src/components/PrimaryButton.tsx
 import React from "react";
 import { Button, ButtonProps } from "@heroui/react";
-
+import { useScreenSize } from "@/utils/ScreenSizeContext";
 
 interface PrimaryButtonProps extends ButtonProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 const PrimaryButton: React.FC<PrimaryButtonProps & ButtonProps> = ({ children, className = "", ...props }) => {
+  const { screenSize  } = useScreenSize();
 
   return (
     <Button
-      className={`primary rounded text-white dark:text-white" ${className}`}
+    className={`primary dark:primary rounded text-[#f2f2f2] dark:text-content_text
+      ${screenSize === 'large_screen' ? 'text-base ' : 'text-sm'}
+      ${className}
+    `}
       {...props}
     >
       {children}
