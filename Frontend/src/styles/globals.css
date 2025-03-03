@@ -10,7 +10,7 @@
 
 body{
     font-family: 'Poppins', system-ui, Arial;
-    @apply text-sm;
+    @apply text-sm text-content_text;
     /* background-color: lightblue; */
 }
 

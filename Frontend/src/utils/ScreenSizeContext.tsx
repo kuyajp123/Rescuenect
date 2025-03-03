@@ -22,7 +22,7 @@ const ScreenSizeProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     window.addEventListener('resize', updateScreenSize);
     
-    updateScreenSize(); // ✅ Call once to set the initial value
+    updateScreenSize();
 
     return () => window.removeEventListener('resize', updateScreenSize);
   }, []);

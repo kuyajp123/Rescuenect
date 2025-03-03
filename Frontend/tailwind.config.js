@@ -51,7 +51,7 @@ module.exports = {
             bg: "#f5f5f5",
             bg_hover: "#e4e4e4",
             card: "#FFFFFF",
-            card_hover: "#f5f5f5",
+            card_hover: "#e4e4e4",
             // font
             text_color: "#2C3E50",
             content_text: "#000000",
@@ -65,13 +65,13 @@ module.exports = {
             // background
             // bg: "#333333",
             bg: "#171717",
-            bg_hover: "#474747",
+            bg_hover: "#1f1f1f",
             // card: "#404040",
-            card: "#363535",
-            card_hover: "#404040",
+            card: "#121212",
+            card_hover: "#1f1f1f",
             // font
             text_color: "#E0E6ED",
-            content_text: "#FFFFFF",
+            content_text: "#F2F2F2",
           }
         },
       }
