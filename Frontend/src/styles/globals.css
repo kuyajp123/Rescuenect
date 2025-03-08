@@ -36,8 +36,8 @@ body{
 /* FONT POPPINS */
 @font-face {
     font-family: 'Poppins';
-    src: url('poppins/regular/Poppins-Regular.woff2') format('woff2'),
-        url('poppins/regular/Poppins-Regular.woff') format('woff');
+    src: url('font/regular/Poppins-Regular.woff2') format('woff2'),
+        url('font/regular/Poppins-Regular.woff') format('woff');
     font-weight: normal;
     font-style: normal;
 }
