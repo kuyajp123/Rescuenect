@@ -5,7 +5,7 @@ const cookieParser = require('cookie-parser');
 const PORT = process.env.PORT;
 app.use(cookieParser());
 
-import './services/passport';
+import './auth/passport';
 import router from './routes/auth';
 import { verifyToken } from './middleware/verifyToken';
 import errorHandler from './middleware/errorHandler';
@@ -14,21 +14,37 @@ app.use(express.json());
 app.use('/', router);
 
 interface CustomRequest extends Request {
-  userid: string,
+  googleID: string;
   email: string,
-  name: string
+  firstName: string,
+  lastName: string,
+  name: string,
+  birthDate: string,
+  picture: string
 }
 
-app.get('/', (req, res, next) => {
-  verifyToken(req as CustomRequest, res, next).catch(next);
-})
-
 // Protected Route Example
-app.get('/dashboard', (req: any, res, next) => {
-  verifyToken(req as CustomRequest, req, next)
-  res.send(`Welcome ${req.user.name}`);
-  console.log(req.user);
+app.get('/dashboard', async (req: any, res, next) => {
+  await verifyToken(req as CustomRequest, res, next);
+
+  res.send(`Welcome <br>
+    user ID: ${req.user.userID}
+    <br>
+    email: ${req.user.email}
+    <br>
+    first name: ${req.user.firstName}
+    <br>
+    last name: ${req.user.lastName}
+    <br>
+    whole name: ${req.user.name}
+    <br>
+    birth day: ${req.user.birthDate}
+    <br>
+    picture: ${req.user.picture}
+    `);
 });
+
+app.get('/', (req: any, res: any) => res.send("hello world"));
 
 app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
   errorHandler(err, req, res, next);

@@ -4,10 +4,13 @@ import jwt from 'jsonwebtoken';
 require('dotenv').config();
 
 interface CustomRequest extends Request {
-    googleID: string;
-    email: string;
-    firstName: string;
-    lastName: string;
+    googleID: string,
+    email: string,
+    firstName: string,
+    lastName: string,
+    name: string,
+    birthDate: string,
+    picture: string
 }
 export const createToken = async (req: CustomRequest, res: Response, next: NextFunction) => {
     const JWT_SECRET = process.env.JWT_SECRET!
@@ -20,9 +23,7 @@ export const createToken = async (req: CustomRequest, res: Response, next: NextF
 
     const userID = req.googleID;
     const email = req.email;
-    const firstName = req.firstName;
-    const lastName = req.lastName;
-    const name = firstName.concat(' ', lastName);
+    const name = req.name;
 
     let token: string = '';
     let refreshToken: string = '';
@@ -32,7 +33,11 @@ export const createToken = async (req: CustomRequest, res: Response, next: NextF
             {
                 userID: userID,
                 email: email,
-                name: name
+                firstName: req.firstName,
+                lastName: req.lastName,
+                name: name,
+                birthDate: req.birthDate,
+                picture: req.picture
             },
             JWT_SECRET,
             { expiresIn: '1h' }
@@ -42,7 +47,11 @@ export const createToken = async (req: CustomRequest, res: Response, next: NextF
             {
                 userID: userID,
                 email: email,
-                name: name
+                firstName: req.firstName,
+                lastName: req.lastName,
+                name: name,
+                birthDate: req.birthDate,
+                picture: req.picture
             },
             REFERESH_TOKEN,
             { expiresIn: '1h' }
@@ -55,10 +64,8 @@ export const createToken = async (req: CustomRequest, res: Response, next: NextF
     .status(200)
     .cookie('token', token, { httpOnly: true })
     .cookie('refreshToken', refreshToken, { httpOnly: true })
-    .json({ success: true,  message: 'Login successful' })
+    // .json({ success: true,  message: 'Login successful' })
 
-    console.log(token, refreshToken);
-
-    next();
+    // console.log(token, refreshToken);
     
 }

@@ -43,36 +43,14 @@ const verifyCallback: VerifyCallback = (accessToken, refreshToken, profile: any,
         email: profile.emails[0].value,
         firstName: firstName,
         lastName: lastName,
+        name: profile.displayName,
         birthDate: birthDate,
         picture: profile.photos[0].value
     }
 
-    console.log({ user })
+    // console.log({ user })
 
-    const token = jwt.sign(
-    { 
-        id: profile.id, 
-        name: profile.displayName, 
-        email: profile.emails?.[0].value 
-    },
-        JWT_SECRET,
-        { expiresIn: '1h' }
-    );
-
-    const newToken = jwt.sign({
-        id: profile.id, 
-        name: profile.displayName, 
-        email: profile.emails?.[0].value 
-    },
-        REFERESH_TOKEN,
-        { expiresIn: '30d' }
-    );
-
-    if(!token || !newToken){
-        done(new Error('Something went wrong'), null);
-    }
-
-    done(null, { user, token, newToken });
+    done(null, { user });
 };
 
 passport.use(new GoogleStrategy(googleStrategyOptions, verifyCallback));
