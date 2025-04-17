@@ -1,5 +1,4 @@
 import passport from "passport";
-import jwt from 'jsonwebtoken';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 require('dotenv').config();
 
