@@ -2,10 +2,10 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 require('dotenv').config();
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
-const JWT_SECRET = process.env.JWT_SECRET
-const REFERESH_TOKEN = process.env.REFERESH_TOKEN
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!
+const JWT_SECRET = process.env.JWT_SECRET!
+const REFERESH_TOKEN = process.env.REFERESH_TOKEN!
 
 if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET){
     throw new Error('google strategy options not provided!');

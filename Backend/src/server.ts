@@ -1,14 +1,22 @@
 import express, { Application, Request, Response, NextFunction } from 'express'
+import passport from 'passport';
 const app: Application = express();
 require('dotenv').config()
 const cookieParser = require('cookie-parser');
 const PORT = process.env.PORT;
 app.use(cookieParser());
+import cors from 'cors';
 
 import './auth/passport';
 import router from './routes/auth';
 import { verifyToken } from './middleware/verifyToken';
 import errorHandler from './middleware/errorHandler';
+
+app.use(cors({
+  origin: 'http://localhost:5173',
+  // origin: "*",
+  credentials: true,
+}));
 
 app.use(express.json());
 app.use('/', router);
