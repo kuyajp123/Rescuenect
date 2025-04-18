@@ -1,11 +1,11 @@
 import express from 'express'
-const router = express.Router();
+const authRouter = express.Router();
 import passport from 'passport';
 import { verifyToken } from '../middleware/verifyToken';
-
 import { createToken } from '../controllers/createToken';
+const FRONTEND_URL = process.env.FRONTEND_URL!;
 
-router.get('/auth/google', passport.authenticate('google', { 
+authRouter.get('/auth/google', passport.authenticate('google', { 
     scope: [
     'profile',  
     'email',  
@@ -25,7 +25,7 @@ interface CustomRequest extends express.Request {
     picture: string
 }
 
-router.get('/auth/google/callback', passport.authenticate('google', { session: false }), 
+authRouter.get('/auth/google/callback', passport.authenticate('google', { session: false }), 
     async (req, res, next) => {
         try {
             const { user } = req.user as any;
@@ -42,7 +42,8 @@ router.get('/auth/google/callback', passport.authenticate('google', { session: f
             await createToken(req as CustomRequest, res, next);
             await verifyToken(req as CustomRequest, res, next);
 
-            res.redirect('/dashboard');
+            res.redirect(`${FRONTEND_URL}/profile`);
+            // res.redirect(`http://localhost:4000/dashboard`);
 
         } catch (error) {
             next(error);
@@ -53,4 +54,4 @@ router.get('/auth/google/callback', passport.authenticate('google', { session: f
 
 
 
-export default router;
+export default authRouter;

@@ -1,26 +1,20 @@
-import Test from './pages/Test';
+import { Route, Routes, Link } from 'react-router-dom'
+import LoginPage from './pages/LoginPage';
 import { ThemeSwitcher } from './pages/ThemeSwitcher';
-import SecondaryButton from './components/SecondaryButton';
-const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+import Profile from './pages/Profile';
 
 function App() {
 
   return (
-      <div className="bg-bg dark:bg-bg text-content_text dark:text-content_text h-screen flex flex-col w-full">
-        <div className="flex justify-end items-center gap-3 ">
-          <ThemeSwitcher />
-        </div>
-        <div className="flex items-center justify-center flex-col gap-11 w-full">
-          <div className="flex justify-center items-center h-full">
-            <Test />
-            <SecondaryButton 
-            onPress={() => {
-              window.open(`${VITE_BACKEND_URL}/auth/google`, '_self');
-            }}
-            >Google login</SecondaryButton>
-          </div>
-        </div>
+    <div className='bg-bg dark:bg-bg h-screen w-full flex flex-col'>
+      <ThemeSwitcher />
+      <div className="flex-1">
+        <Routes>
+          <Route path="/" element={<LoginPage />} />
+          <Route path="/profile" element={<Profile />} />
+        </Routes>
       </div>
+    </div>
   );
 }
 

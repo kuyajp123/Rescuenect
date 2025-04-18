@@ -10,7 +10,7 @@ interface CustomRequest extends Request {
 
 export const verifyToken = async (req: CustomRequest, res: Response, next: NextFunction) => {
     const token = req.cookies.token;
-    const JWT_SECRET = process.env.JWT_SECRET!;
+    const JWT_SECRET = process.env.JWT_SECRET! 
 
     try {
         if (!token) {

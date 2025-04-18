@@ -1,7 +1,7 @@
-import express, { Response, Request, NextFunction } from "express";
-const app = express();
+import { Response, Request, NextFunction } from "express";
 import jwt from 'jsonwebtoken';
 require('dotenv').config();
+
 
 interface CustomRequest extends Request {
     googleID: string,
