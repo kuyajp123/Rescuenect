@@ -5,13 +5,13 @@ require('dotenv').config();
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!
 const JWT_SECRET = process.env.JWT_SECRET!
-const REFERESH_TOKEN = process.env.REFERESH_TOKEN!
+const JWT_REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_TOKEN_SECRET!
 
 if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET){
     throw new Error('google strategy options not provided!');
 }
 
-if ( !JWT_SECRET || !REFERESH_TOKEN ){
+if ( !JWT_SECRET || !JWT_REFRESH_TOKEN_SECRET ){
     throw new Error('UNAUTHORIZED access');
 }
 

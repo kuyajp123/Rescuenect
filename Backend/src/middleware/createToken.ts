@@ -2,7 +2,6 @@ import { Response, Request, NextFunction } from "express";
 import jwt from 'jsonwebtoken';
 require('dotenv').config();
 
-
 interface CustomRequest extends Request {
     googleID: string,
     email: string,
@@ -14,14 +13,14 @@ interface CustomRequest extends Request {
 }
 export const createToken = async (req: CustomRequest, res: Response, next: NextFunction) => {
     const JWT_SECRET = process.env.JWT_SECRET!
-    const REFERESH_TOKEN = process.env.REFERESH_TOKEN!
+    const JWT_REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_TOKEN_SECRET!
 
-    if ( !JWT_SECRET || !REFERESH_TOKEN ){
+    if ( !JWT_SECRET || !JWT_REFRESH_TOKEN_SECRET ){
         res.status(500).json({ success: false, message: 'JWT not provided' });
         next(new Error('JWT_SECRET or REFERESH_TOKEN is not provided'));
     }
 
-    const userID = req.googleID;
+    const userid = req.googleID;
     const email = req.email;
     const name = req.name;
 
@@ -31,7 +30,7 @@ export const createToken = async (req: CustomRequest, res: Response, next: NextF
     try {
         token = jwt.sign(
             {
-                userID: userID,
+                userid: userid,
                 email: email,
                 firstName: req.firstName,
                 lastName: req.lastName,
@@ -45,7 +44,7 @@ export const createToken = async (req: CustomRequest, res: Response, next: NextF
 
         refreshToken = jwt.sign(
             {
-                userID: userID,
+                userid: userid,
                 email: email,
                 firstName: req.firstName,
                 lastName: req.lastName,
@@ -53,7 +52,7 @@ export const createToken = async (req: CustomRequest, res: Response, next: NextF
                 birthDate: req.birthDate,
                 picture: req.picture
             },
-            REFERESH_TOKEN,
+            JWT_REFRESH_TOKEN_SECRET,
             { expiresIn: '30d' }
         )
     } catch (error) {
@@ -62,8 +61,8 @@ export const createToken = async (req: CustomRequest, res: Response, next: NextF
 
     res
     .status(200)
-    .cookie('token', token, { httpOnly: true, maxAge: 60 * 60 * 1000 })
-    .cookie('refreshToken', refreshToken, { httpOnly: true, maxAge: 60 * 60 * 24 * 30 * 1000 })
+    .cookie('token', token, { httpOnly: true, maxAge: 60 * 60 * 1000 }) // 1 hour
+    .cookie('refreshToken', refreshToken, { httpOnly: true, maxAge: 60 * 60 * 24 * 30 * 1000 }) // 30 days
     // .json({ success: true,  message: 'Login successful' })
     
 }

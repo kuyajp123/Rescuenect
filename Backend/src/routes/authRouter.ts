@@ -1,8 +1,8 @@
-import express from 'express'
+import express, { Request, Response, NextFunction } from 'express'
 const authRouter = express.Router();
 import passport from 'passport';
 import { verifyToken } from '../middleware/verifyToken';
-import { createToken } from '../controllers/createToken';
+import { createToken } from '../middleware/createToken';
 const FRONTEND_URL = process.env.FRONTEND_URL!;
 
 authRouter.get('/auth/google', passport.authenticate('google', { 
@@ -26,22 +26,21 @@ interface CustomRequest extends express.Request {
 }
 
 authRouter.get('/auth/google/callback', passport.authenticate('google', { session: false }), 
-    async (req, res, next) => {
+    async (req: Request, res: Response, next: NextFunction) => {
+        const CustomReq = req as CustomRequest;
         try {
-            const { user } = req.user as any;
+            const { user } = CustomReq.user as any;
 
-            (req as CustomRequest).googleID = user.googleID;
-            (req as CustomRequest).email = user.email;
-            (req as CustomRequest).firstName = user.firstName;
-            (req as CustomRequest).lastName = user.lastName;
-            (req as CustomRequest).name = user.name;
-            (req as CustomRequest).birthDate = user.birthDate;
-            (req as CustomRequest).picture = user.picture;
+            CustomReq.googleID = user.googleID;
+            CustomReq.email = user.email;
+            CustomReq.firstName = user.firstName;
+            CustomReq.lastName = user.lastName;
+            CustomReq.name = user.name;
+            CustomReq.birthDate = user.birthDate;
+            CustomReq.picture = user.picture;
             
-            await createToken(req as CustomRequest, res, next);
-
+            await createToken(CustomReq, res, next);
             res.redirect(`${FRONTEND_URL}/profile`);
-            // res.redirect(`http://localhost:4000/dashboard`);
 
         } catch (error) {
             next(error);

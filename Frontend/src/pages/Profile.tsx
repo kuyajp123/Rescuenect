@@ -27,13 +27,16 @@ const Profile = () => {
             try {
                 const response = await axios.get<User>(`${VITE_BACKEND_URL}/profile`, { withCredentials: true });
                 if (response.status === 200) {
-                    setUser(response.data);
                     setIsLoggedIn(true);
+                    setIsLoading(false);
+                    setUser(response.data);
                 } else {
                     setIsLoggedIn(false);
+                    setIsLoading(false);
                 }
             } catch (error) {
                 setIsLoggedIn(false);
+                setIsLoading(false);
             } finally {
                 setIsLoading(false);
             }
@@ -62,7 +65,7 @@ const Profile = () => {
     }
 
   return (
-    <div className='bg-bg dark:bg-bg h-full w-full text-content_text dark:text-content_text flex items-center justify-center flex-col gap-16'>
+    <div className='bg-bg dark:bg-bg h-full w-full text-content_text dark:text-content_text flex items-center justify-center flex-col gap-5'>
         <div>
             <br />
             {/* <strong>User ID:</strong> {user?.data.userID}<br /> */}
@@ -79,6 +82,9 @@ const Profile = () => {
             }}>
             Log out
             </PrimaryButton>
+        </div>
+        <div className='text-sm text-gray-500 dark:text-gray-500'>
+            Created by John Paul Naag.
         </div>
     </div>
   )

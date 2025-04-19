@@ -11,7 +11,7 @@ const SecondaryButton: React.FC<PrimaryButtonProps & ButtonProps> = ({ children,
   
   return (
     <Button
-      className={`rounded text-content_text dark:text-content_text border-text_color dark:border-default-400 
+      className={`rounded text-content_text dark:text-content_text border-default-600 dark:border-default-400 
         ${screenSize === 'large_screen' ? 'text-base' : 'text-sm'}
         ${className}`
       }
@@ -26,6 +26,7 @@ const SecondaryButton: React.FC<PrimaryButtonProps & ButtonProps> = ({ children,
 
 export default SecondaryButton
 
+//props:
 //Default height in icon: h-4
 //Default import in icon: "@heroicons/react/20/solid"; size of 20x20
 //props to use in icon: startContent, endContent
