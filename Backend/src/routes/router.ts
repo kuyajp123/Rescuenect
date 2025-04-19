@@ -1,5 +1,5 @@
 import express, { Request } from "express";
-import { userProfile } from "../controllers/userProfile";
+import { verifyToken } from "../middleware/verifyToken";
 const router = express.Router();
 
 interface CustomRequest extends Request {
@@ -12,9 +12,18 @@ interface CustomRequest extends Request {
     picture: string;
 }
 
-router.use("/profile", async (req: Request, res) => {
+import  userProfile  from "../controllers/userProfile";
+router.get("/profile", async (req, res) => {
+    await verifyToken(req as CustomRequest, res, (error) => {
+        if (error) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+    });
     const customReq = req as CustomRequest;
     await userProfile(customReq, res);
 });
+
+import logout from "../controllers/logOut";
+router.get("/logout", logout);
 
 export default router;

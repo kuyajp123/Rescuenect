@@ -7,7 +7,7 @@ app.use(cookieParser());
 import cors from 'cors';
 
 import './auth/passport';
-import authRouter from './routes/auth';
+import authRouter from './routes/authRouter';
 import router from './routes/router';
 import errorHandler from './middleware/errorHandler';
 

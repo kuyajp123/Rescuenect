@@ -9,18 +9,20 @@ interface CustomRequest extends Request {
 }
 
 export const verifyToken = async (req: CustomRequest, res: Response, next: NextFunction) => {
-    const token = req.cookies.token;
+    const token = req.cookies.token!;
+    const refreshToken = req.cookies.refreshToken!;
     const JWT_SECRET = process.env.JWT_SECRET! 
 
     try {
         if (!token) {
-            console.log("invalid token");
+            return res.status(401).json({ message: "Unauthorized" });
+        } else if (!refreshToken) {
+            return res.status(401).json({ message: "Refresh token not found" });
         }
         if (!JWT_SECRET) {
             console.log("invalid JWT_SECRET");
         }
         const decoded = jwt.verify(token as string, JWT_SECRET) as JwtPayload;
-
         req.user = decoded;
 
     } catch (error) {

@@ -29,7 +29,6 @@ authRouter.get('/auth/google/callback', passport.authenticate('google', { sessio
     async (req, res, next) => {
         try {
             const { user } = req.user as any;
-            // console.log({ user });
 
             (req as CustomRequest).googleID = user.googleID;
             (req as CustomRequest).email = user.email;
@@ -40,7 +39,6 @@ authRouter.get('/auth/google/callback', passport.authenticate('google', { sessio
             (req as CustomRequest).picture = user.picture;
             
             await createToken(req as CustomRequest, res, next);
-            await verifyToken(req as CustomRequest, res, next);
 
             res.redirect(`${FRONTEND_URL}/profile`);
             // res.redirect(`http://localhost:4000/dashboard`);

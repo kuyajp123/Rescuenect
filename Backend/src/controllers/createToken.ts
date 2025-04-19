@@ -54,7 +54,7 @@ export const createToken = async (req: CustomRequest, res: Response, next: NextF
                 picture: req.picture
             },
             REFERESH_TOKEN,
-            { expiresIn: '1h' }
+            { expiresIn: '30d' }
         )
     } catch (error) {
         next(error);
@@ -62,10 +62,8 @@ export const createToken = async (req: CustomRequest, res: Response, next: NextF
 
     res
     .status(200)
-    .cookie('token', token, { httpOnly: true })
-    .cookie('refreshToken', refreshToken, { httpOnly: true })
+    .cookie('token', token, { httpOnly: true, maxAge: 60 * 60 * 1000 })
+    .cookie('refreshToken', refreshToken, { httpOnly: true, maxAge: 60 * 60 * 24 * 30 * 1000 })
     // .json({ success: true,  message: 'Login successful' })
-
-    // console.log(token, refreshToken);
     
 }
