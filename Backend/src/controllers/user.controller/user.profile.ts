@@ -1,5 +1,5 @@
 import { Response, Request } from "express";
-import User from "../models/user";
+import User from "../../models/user";
 import jwt from "jsonwebtoken";
 
 interface tokenType extends Request {

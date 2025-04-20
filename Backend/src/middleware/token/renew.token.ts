@@ -13,7 +13,7 @@ interface tokenType extends Request {
     picture: string
 }
 
-const renewToken = async (req: tokenType, res: Response, next: NextFunction) => {
+export const renewToken = async (req: tokenType, res: Response, next: NextFunction) => {
   const JWT_REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_TOKEN_SECRET!;
   const JWT_SECRET = process.env.JWT_SECRET!;
   const refreshToken = req.cookies.refreshToken;

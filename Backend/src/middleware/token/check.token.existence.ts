@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 
-const checkTokenExisitence = (req: Request, res: Response, next: NextFunction) => {
+export const checkTokenExistence = (req: Request, res: Response, next: NextFunction) => {
     const token = req.cookies.token!;
     const JWT_SECRET = process.env.JWT_SECRET!;
     const refreshToken = req.cookies.refreshToken!;
@@ -58,4 +58,4 @@ const checkTokenExisitence = (req: Request, res: Response, next: NextFunction) =
     }
 }
 
-export default checkTokenExisitence;
+export default checkTokenExistence;

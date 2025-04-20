@@ -56,3 +56,5 @@ export const createToken = async (req: googleAuth, res: Response, next: NextFunc
     }
     
 }
+
+export default createToken;

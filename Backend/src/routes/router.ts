@@ -1,5 +1,6 @@
 import express, { Request, Response, RequestHandler } from "express";
 const router = express.Router();
+import { checkTokenExisitence, renewToken, verifyToken } from '@/middleware';
 
 interface tokenType extends Request {
     googleID: string;
@@ -11,16 +12,13 @@ interface tokenType extends Request {
     picture: string;
 }
 
-import verifyToken from "../middleware/verify.token";
 router.get("/verifyToken", verifyToken as RequestHandler);
 
-import  userProfile  from "../controllers/user.profile";
+import { userProfile } from "@/controllers";
 router.get("/profile", verifyToken as RequestHandler, async (req, res: Response) => {
     await userProfile(req as tokenType, res);
 });
 
-import renewToken from "../middleware/renew.token";
-import checkTokenExisitence from "../middleware/check.token.exisitence";
 router.get("/renewToken", checkTokenExisitence, renewToken as RequestHandler, verifyToken as RequestHandler);
 
 import logout from "../controllers/logout";
