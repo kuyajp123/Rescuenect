@@ -1,7 +1,7 @@
 import express, { Request, Response, RequestHandler } from "express";
 const router = express.Router();
 
-interface CustomRequest extends Request {
+interface tokenType extends Request {
     googleID: string;
     email: string;
     firstName: string;
@@ -11,16 +11,17 @@ interface CustomRequest extends Request {
     picture: string;
 }
 
-import { verifyToken } from "../middleware/verifyToken";
+import verifyToken from "../middleware/verify.token";
 router.get("/verifyToken", verifyToken as RequestHandler);
 
-import  userProfile  from "../controllers/userProfile";
+import  userProfile  from "../controllers/user.profile";
 router.get("/profile", verifyToken as RequestHandler, async (req, res: Response) => {
-    await userProfile(req as CustomRequest, res);
+    await userProfile(req as tokenType, res);
 });
 
-import renewToken from "../middleware/renewToken";
-router.get("/renewToken", renewToken as RequestHandler);
+import renewToken from "../middleware/renew.token";
+import checkTokenExisitence from "../middleware/check.token.exisitence";
+router.get("/renewToken", checkTokenExisitence, renewToken as RequestHandler, verifyToken as RequestHandler);
 
 import logout from "../controllers/logout";
 router.get("/logout", logout);

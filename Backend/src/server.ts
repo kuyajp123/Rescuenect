@@ -5,11 +5,14 @@ const cookieParser = require('cookie-parser');
 const PORT = process.env.PORT;
 app.use(cookieParser());
 import cors from 'cors';
+import connectDB from './database/db';
+
+connectDB();
 
 import './auth/passport';
-import authRouter from './routes/authRouter';
+import authRouter from './routes/auth.router';
 import router from './routes/router';
-import errorHandler from './middleware/errorHandler';
+import errorHandler from './middleware/error.handler';
 
 app.use(cors({
   origin: process.env.FRONTEND_URL!,

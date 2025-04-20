@@ -34,7 +34,7 @@ const googleStrategyOptions: GoogleStrategyOptions = {
 const verifyCallback: VerifyCallback = (accessToken, refreshToken, profile: any, done) => {
     // Implementation here
     const firstName = profile._json.given_name;
-    const lastName = profile._json.family_name;
+    const lastName = profile._json.family_name ? profile._json.family_name : null;
     const birthDate = profile._json.birthdays ? profile._json[0].date : null;
 
     const user = {
@@ -42,7 +42,7 @@ const verifyCallback: VerifyCallback = (accessToken, refreshToken, profile: any,
         email: profile.emails[0].value,
         firstName: firstName,
         lastName: lastName,
-        name: profile.displayName,
+        name: profile.displayName ? profile.displayName : null,
         birthDate: birthDate,
         picture: profile.photos[0].value
     }

@@ -7,7 +7,7 @@ interface User {
     success: boolean;
     message: string;
     data: {
-        userID: string;
+        userid: string;
         email: string;
         name: string;
         firstName: string;
@@ -68,7 +68,7 @@ const Profile = () => {
     <div className='bg-bg dark:bg-bg h-full w-full text-content_text dark:text-content_text flex items-center justify-center flex-col gap-5'>
         <div>
             <br />
-            {/* <strong>User ID:</strong> {user?.data.userID}<br /> */}
+            {/* <strong>User ID:</strong> {user?.data.userid}<br /> */}
             <strong>Email:</strong> {user?.data.email}<br />
             <strong>First Name:</strong> {user?.data.firstName}<br />
             <strong>Last Name:</strong> {user?.data.lastName}<br />

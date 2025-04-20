@@ -1,8 +1,8 @@
 import express, { Request, Response, NextFunction } from 'express'
 const authRouter = express.Router();
 import passport from 'passport';
-import { verifyToken } from '../middleware/verifyToken';
-import { createToken } from '../middleware/createToken';
+import { createToken } from '../middleware/create.token';
+import insertUser from '../controllers/user.controller/insert.user';
 const FRONTEND_URL = process.env.FRONTEND_URL!;
 
 authRouter.get('/auth/google', passport.authenticate('google', { 
@@ -15,7 +15,7 @@ authRouter.get('/auth/google', passport.authenticate('google', {
  }
 ));
 
-interface CustomRequest extends express.Request {
+interface googleAuth extends express.Request {
     googleID: string;
     email: string,
     firstName: string,
@@ -27,28 +27,25 @@ interface CustomRequest extends express.Request {
 
 authRouter.get('/auth/google/callback', passport.authenticate('google', { session: false }), 
     async (req: Request, res: Response, next: NextFunction) => {
-        const CustomReq = req as CustomRequest;
+        const googleData = req as googleAuth;
+
         try {
-            const { user } = CustomReq.user as any;
+            const { user } = googleData.user as any;
 
-            CustomReq.googleID = user.googleID;
-            CustomReq.email = user.email;
-            CustomReq.firstName = user.firstName;
-            CustomReq.lastName = user.lastName;
-            CustomReq.name = user.name;
-            CustomReq.birthDate = user.birthDate;
-            CustomReq.picture = user.picture;
-            
-            await createToken(CustomReq, res, next);
+            googleData.googleID = user.googleID;
+            googleData.email = user.email;
+            googleData.firstName = user.firstName;
+            googleData.lastName = user.lastName;
+            googleData.birthDate = user.birthDate;
+            googleData.picture = user.picture;
+
+            await insertUser(req as googleAuth, res, next);
+            await createToken(req as googleAuth, res, next);
             res.redirect(`${FRONTEND_URL}/profile`);
-
         } catch (error) {
             next(error);
         }
     }
 );
-
-
-
 
 export default authRouter;
