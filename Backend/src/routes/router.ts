@@ -21,7 +21,7 @@ router.get("/profile", verifyToken as RequestHandler, async (req, res: Response)
 
 router.get("/renewToken", checkTokenExisitence, renewToken as RequestHandler, verifyToken as RequestHandler);
 
-import logout from "../controllers/logout";
+import logout from "@/controllers/logout";
 router.get("/logout", logout);
 
 export default router;

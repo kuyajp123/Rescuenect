@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import { v4 as uuidv4 } from 'uuid';
 require('dotenv').config();
 const FRONTEND_URL = process.env.FRONTEND_URL!;
+import getDateNow from "@/utils/date.now";
 
 interface tokenType extends Request {
     googleID: string,
@@ -20,12 +22,24 @@ export const renewToken = async (req: tokenType, res: Response, next: NextFuncti
 
 try {
     const decoded = jwt.verify(refreshToken as string, JWT_REFRESH_TOKEN_SECRET) as JwtPayload;
-    const { userid, email, firstName, lastName, name, birthDate, picture } = decoded;
+
+    if (!decoded) {
+      res.status(401).clearCookie("refreshToken", { httpOnly: true }).redirect(FRONTEND_URL);
+      return;
+    }
+
+    const { userid } = decoded;
+    const formattedDate = getDateNow();
 
     const newAccessToken = jwt.sign(
-      { userid, email, firstName, lastName, name, birthDate, picture },
+      { 
+        id: uuidv4(),
+        issueDate: formattedDate,
+        userid,
+        role: ['user'],
+      },
       JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "1h", algorithm: 'HS256' }
     );
 
     res

@@ -10,35 +10,42 @@ interface tokenType extends Request {
     roles?: string[],
 }
 
-const verifyToken = async (req: tokenType, res: Response, next: NextFunction) => {
+export const verifyToken = async (req: tokenType, res: Response, next: NextFunction) => {
     const token = req.cookies.token!;
     const refreshToken = req.cookies.refreshToken!;
     const JWT_SECRET = process.env.JWT_SECRET!;
+    const FRONTEND_URL = process.env.FRONTEND_URL!;
 
     try {
         if (!token) {
             console.log("Unauthorized");
              res
             .status(401)
-            .clearCookie("refreshToken", { httpOnly: true })
-            .clearCookie("token", { httpOnly: true });
+            .clearCookie("token", { httpOnly: true })
+            .redirect("/renewToken");
             return;
-        } else if (!refreshToken) {
+        } 
+        
+        if (!refreshToken) {
             console.log("Refresh token not found");
              res
             .status(401)
             .clearCookie("refreshToken", { httpOnly: true })
-            .clearCookie("token", { httpOnly: true });
+            .clearCookie("token", { httpOnly: true })
+            .redirect(FRONTEND_URL);
             return;
         }
+
         if (!JWT_SECRET) {
             console.log("invalid JWT_SECRET");
             res
             .status(401)
             .clearCookie("refreshToken", { httpOnly: true })
-            .clearCookie("token", { httpOnly: true });
+            .clearCookie("token", { httpOnly: true })
+            .redirect(FRONTEND_URL);
             return;
         }
+        
         const decoded = jwt.verify(token as string, JWT_SECRET) as JwtPayload;
 
         if (!decoded) {
@@ -46,13 +53,19 @@ const verifyToken = async (req: tokenType, res: Response, next: NextFunction) =>
             res
             .status(401)
             .clearCookie("refreshToken", { httpOnly: true })
-            .clearCookie("token", { httpOnly: true });
+            .clearCookie("token", { httpOnly: true })
+            .redirect(FRONTEND_URL);
             return;
         }else{
             res.status(200);
             return next();
         }
-    } catch (error) {
+    } catch (error: any) {
+        if (error.name === "TokenExpiredError") {
+            console.log("Token has expired");
+            res.status(401).clearCookie("refreshToken", { httpOnly: true }).clearCookie("token", { httpOnly: true });
+            return;
+        }
         return next(error);
     }
 

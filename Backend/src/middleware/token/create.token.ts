@@ -1,6 +1,7 @@
 import { Response, Request, NextFunction } from "express";
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
+import getDateNow from "@/utils/date.now";
 
 interface googleAuth extends Request {
     googleID: string;
@@ -17,11 +18,7 @@ export const createToken = async (req: googleAuth, res: Response, next: NextFunc
 
     const googleID = req.googleID;
 
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const year = now.getFullYear();
-    const formattedDate = `${month}/${day}/${year}`;
+    const formattedDate = getDateNow();
 
     try {
         const token = jwt.sign(

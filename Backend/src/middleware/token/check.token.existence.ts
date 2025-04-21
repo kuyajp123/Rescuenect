@@ -45,6 +45,8 @@ export const checkTokenExistence = (req: Request, res: Response, next: NextFunct
             } else {
                 return next();
             }
+        } else {
+            return next();
         }
         
     } catch (error: any) {
