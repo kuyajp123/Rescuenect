@@ -27,9 +27,23 @@ const Profile = () => {
             try {
                 const response = await axios.get<User>(`${VITE_BACKEND_URL}/profile`, { withCredentials: true });
                 if (response.status === 200) {
-                    setIsLoggedIn(true);
-                    setIsLoading(false);
                     setUser(response.data);
+
+                    if (user){
+                        const profileImage = await axios.get<string>(`${VITE_BACKEND_URL}/image-proxy?url=${encodeURIComponent(user?.data.picture || '')}`);
+
+                        setUser({
+                            ...user,
+                            data: {
+                                ...user.data, picture: profileImage.data
+                            }
+                        });
+                        setIsLoggedIn(true);
+                        setIsLoading(false);
+                    } else {
+                        setIsLoggedIn(true);
+                        setIsLoading(false);
+                    }
                 } else {
                     setIsLoggedIn(false);
                     setIsLoading(false);
@@ -43,6 +57,7 @@ const Profile = () => {
         };
         checkLoginStatus();
     }, []);
+    
 
     if (isLoading) {
         return (
@@ -74,6 +89,7 @@ const Profile = () => {
             <strong>Last Name:</strong> {user?.data.lastName}<br />
             <strong>Birth Date:</strong> {user?.data.birthDate ? user.data.birthDate : 'secret'}<br />
             <strong>Picture:</strong> <img src={user?.data.picture} alt="User Profile" />
+            {}
         </div>
         <div>
             <PrimaryButton

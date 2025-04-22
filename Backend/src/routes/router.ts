@@ -19,6 +19,10 @@ router.get("/profile", verifyToken as RequestHandler, async (req, res: Response)
     await userProfile(req as tokenType, res);
 });
 
+import { imageProxy } from "@/middleware";
+router.get("/image-proxy", imageProxy as RequestHandler);
+
+
 router.get("/renewToken", checkTokenExisitence, renewToken as RequestHandler, verifyToken as RequestHandler);
 
 import logout from "@/controllers/logout";
