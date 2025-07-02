@@ -26,7 +26,7 @@ module.exports = {
           200: 'rgb(var(--color-primary-200)/<alpha-value>)',
           300: 'rgb(var(--color-primary-300)/<alpha-value>)',
           400: 'rgb(var(--color-primary-400)/<alpha-value>)',
-          500: 'rgb(var(--color-primary-500)/<alpha-value>)',
+          500: 'rgb(var(--color-brand-primary-500)/<alpha-value>)',
           600: 'rgb(var(--color-primary-600)/<alpha-value>)',
           700: 'rgb(var(--color-primary-700)/<alpha-value>)',
           800: 'rgb(var(--color-primary-800)/<alpha-value>)',
@@ -40,7 +40,7 @@ module.exports = {
           200: 'rgb(var(--color-secondary-200)/<alpha-value>)',
           300: 'rgb(var(--color-secondary-300)/<alpha-value>)',
           400: 'rgb(var(--color-secondary-400)/<alpha-value>)',
-          500: 'rgb(var(--color-secondary-500)/<alpha-value>)',
+          500: 'rgb(var(--color-brand-secondary-500)/<alpha-value>)',
           600: 'rgb(var(--color-secondary-600)/<alpha-value>)',
           700: 'rgb(var(--color-secondary-700)/<alpha-value>)',
           800: 'rgb(var(--color-secondary-800)/<alpha-value>)',
@@ -173,6 +173,61 @@ module.exports = {
           info: 'rgb(var(--color-indicator-info)/<alpha-value>)',
           error: 'rgb(var(--color-indicator-error)/<alpha-value>)',
         },
+        // Custom color palette - Add your custom colors here
+        brand: {
+          50: '#0EA5E9',
+          100: '#e0f2fe',
+          200: '#bae6fd',
+          300: '#7dd3fc',
+          400: '#38bdf8',
+          500: '#0EA5E9', // Main brand color
+          600: '#0284c7',
+          700: '#0369a1',
+          800: '#075985',
+          900: '#0c4a6e',
+          950: '#082f49',
+        },
+        accent: {
+          50: '#fff7ed',
+          100: '#ffedd5',
+          200: '#fed7aa',
+          300: '#fdba74',
+          400: '#fb923c',
+          500: '#DA9E22', // Main accent color
+          600: '#ea580c',
+          700: '#c2410c',
+          800: '#9a3412',
+          900: '#7c2d12',
+          950: '#431407',
+        },
+        bg: {
+          500: '#F8FAFC'
+        },
+        text: {
+          500: '#000000',
+        },
+        safe: {
+          500: '#22C55E'
+        },
+        evacuated: {
+          500: '#3B82F6'
+        },
+        affected: {
+          500: '#F97316'
+        },
+        missing: {
+          500: '#EF4444'
+        },
+        // dark mode colors
+        brand_dark: {
+          500: '#171C42'
+        },
+        bg_dark: {
+          500: '#171717'
+        },
+        text_dark: {
+          500: '#F2F2F2'
+        }
       },
       fontFamily: {
         heading: undefined,

@@ -1,3 +1,26 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom CSS Variables for Brand Colors */
+:root {
+  /* Brand Colors */
+  --color-brand-primary-500: 14 165 233; /* #0ea5e9 in RGB */
+  --color-brand-secondary-500: 218 158 34; /* #da9e22 in RGB */
+  --color-brand-light: 14 165 233; /* #0ea5e9 in RGB */
+  --color-brand-dark: 23 28 66; /* #171c42 in RGB */
+
+  /* Custom Semantic Colors */
+  --color-custom-success: 16 185 129; /* #10b981 in RGB */
+  --color-custom-warning: 245 158 11; /* #f59e0b in RGB */
+  --color-custom-error: 239 68 68; /* #ef4444 in RGB */
+  --color-custom-info: 59 130 246; /* #3b82f6 in RGB */
+}
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-brand-primary: 23 28 66; /* Lighter blue for dark mode */
+    /* --color-brand-secondary: 218 158 34; */
+  }
+}

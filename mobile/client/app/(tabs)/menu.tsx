@@ -1,9 +1,9 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-export default function HomeScreen() {
+export default function MenuScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome to the Home Screen</Text>
+      <Text style={styles.title}>Welcome to the Menu Screen</Text>
     </View>
   );
 }
