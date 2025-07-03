@@ -150,8 +150,8 @@ module.exports = {
           muted: 'rgb(var(--color-background-muted)/<alpha-value>)',
           success: 'rgb(var(--color-background-success)/<alpha-value>)',
           info: 'rgb(var(--color-background-info)/<alpha-value>)',
-          light: '#FBFBFB',
-          dark: '#181719',
+          light: '#F8FAFC', // light background
+          dark: '#171717', // dark background
         },
         indicator: {
           primary: 'rgb(var(--color-indicator-primary)/<alpha-value>)',
@@ -192,7 +192,7 @@ module.exports = {
         heading: undefined,
         body: undefined,
         mono: undefined,
-        roboto: ['Roboto', 'sans-serif'],
+        poppins: ['Poppins', 'sans-serif'],
       },
       fontWeight: {
         extrablack: '950',

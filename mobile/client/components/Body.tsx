@@ -3,6 +3,7 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import { ScrollView } from 'react-native';
 import { VStack, } from './ui/vstack';
 import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
 
 type VStackProps = ComponentProps<typeof VStack>;
 
@@ -11,10 +12,12 @@ interface ContainerProps extends VStackProps {
 }
 
 const Body = ({ children, style, ...props }: ContainerProps) => {
+  const { isDark } = useTheme();
+  
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <VStack 
-        style={[{ flex: 1, padding: 20, backgroundColor: Colors.background.light }, style]} 
+      <VStack
+        style={[{ flex: 1, padding: 20, backgroundColor: isDark ? Colors.background.dark : Colors.background.light }, style]}
         {...props} 
         >
           {children}

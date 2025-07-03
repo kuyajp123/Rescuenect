@@ -8,6 +8,12 @@
   --color-primary-500: 14 165 233; /* #0ea5e9 in RGB */
   --color-secondary-500: 218 158 34; /* #da9e22 in RGB */
 
+  /* background color */
+  --color-background-light: 248 250 252; /* #f8fafc */
+  --color-background-dark: 23 23 23; /* #171717 */
+  --color-text-light: 0 0 0; /* black */
+  --color-text-dark: 242 242 242; /* #f2f2f2 */
+
   /* Custom Semantic Colors */
   --color-success-500: 16 185 129; /* #10b981 in RGB */
   --color-warning-500: 245 158 11; /* #f59e0b in RGB */

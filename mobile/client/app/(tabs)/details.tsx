@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { Colors } from '@/constants/Colors';
 
 export default function DetailsScreen() {
   return (
@@ -13,6 +14,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: Colors.background.light,
   },
   title: {
     fontSize: 24,

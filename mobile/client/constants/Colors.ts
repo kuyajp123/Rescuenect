@@ -72,8 +72,11 @@ export const ColorCombinations = {
     border: Colors.semantic.error,
   },
   card: {
-    // background: Colors.background.primary,
-    text: Colors.text.light,
+    background: '#FFFFFF', // white background
     border: Colors.border.light,
+  },
+  card_dark: {
+    background: '#000000', // dark background
+    border: Colors.border.dark,
   },
 } as const;

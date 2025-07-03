@@ -1,10 +1,13 @@
+import { useTheme } from '@/contexts/ThemeContext';
 import { Tabs } from 'expo-router';
 import { AlignRight, House, Info, UsersRound } from 'lucide-react-native';
 import React from 'react';
 import { Platform } from 'react-native';
 import { Colors } from '../../constants/Colors';
+import { Text } from '@/components/ui/text';
 
 export default function TabLayout() {
+  const { isDark } = useTheme();
 
   return (
     <Tabs
@@ -19,6 +22,8 @@ export default function TabLayout() {
           default: {
             // Use a solid background on Android
             paddingTop: 2,
+            backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            borderTopWidth: 0,
           },
         }),
       }}>
@@ -26,14 +31,14 @@ export default function TabLayout() {
         name="home"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <House color={color} size={24} />,
+          tabBarIcon: ({ color }) => <House color={color} size={20} />,
         }}
       />
       <Tabs.Screen
         name="community"
         options={{
           title: 'Community',
-          tabBarIcon: ({ color }) => <UsersRound color={color} size={24} />,
+          tabBarIcon: ({ color }) => <UsersRound color={color} size={20} />,
         }}
       />
       {/* <Tabs.Screen
@@ -47,14 +52,14 @@ export default function TabLayout() {
         name="details"
         options={{
           title: 'Details',
-          tabBarIcon: ({ color }) => <Info color={color} size={24} />,
+          tabBarIcon: ({ color }) => <Info color={color} size={20} />,
         }}
       />
       <Tabs.Screen
         name="menu"
         options={{
           title: 'Menu',
-          tabBarIcon: ({ color }) => <AlignRight color={color} size={24} />,
+          tabBarIcon: ({ color }) => <AlignRight color={color} size={20} />,
         }}
       />
     </Tabs>
