@@ -4,10 +4,11 @@ import gluestackPlugin from '@gluestack-ui/nativewind-utils/tailwind-plugin';
 module.exports = {
   darkMode: process.env.DARK_MODE ? process.env.DARK_MODE : 'media',
   content: [
-    './src/**/*.{html,js,jsx,ts,tsx}',
-    './src/core-components/**/**/*.{html,js,jsx,ts,tsx}',
-    './src/components/**/*.{html,js,jsx,ts,tsx,mdx}',
-    './src/hooks/**/*.{html,js,jsx,ts,tsx,mdx}',
+    './app/**/*.{js,jsx,ts,tsx}',
+    './components/**/*.{js,jsx,ts,tsx}',
+    './constants/**/*.{js,jsx,ts,tsx}',
+    './contexts/**/*.{js,jsx,ts,tsx}',
+    './hooks/**/*.{js,jsx,ts,tsx}',
   ],
   presets: [require('nativewind/preset')],
   safelist: [
@@ -26,7 +27,7 @@ module.exports = {
           200: 'rgb(var(--color-primary-200)/<alpha-value>)',
           300: 'rgb(var(--color-primary-300)/<alpha-value>)',
           400: 'rgb(var(--color-primary-400)/<alpha-value>)',
-          500: 'rgb(var(--color-brand-primary-500)/<alpha-value>)',
+          500: 'rgb(var(--color-primary-500)/<alpha-value>)', // primary color
           600: 'rgb(var(--color-primary-600)/<alpha-value>)',
           700: 'rgb(var(--color-primary-700)/<alpha-value>)',
           800: 'rgb(var(--color-primary-800)/<alpha-value>)',
@@ -40,25 +41,12 @@ module.exports = {
           200: 'rgb(var(--color-secondary-200)/<alpha-value>)',
           300: 'rgb(var(--color-secondary-300)/<alpha-value>)',
           400: 'rgb(var(--color-secondary-400)/<alpha-value>)',
-          500: 'rgb(var(--color-brand-secondary-500)/<alpha-value>)',
+          500: 'rgb(var(--color-secondary-500)/<alpha-value>)', // secondary color
           600: 'rgb(var(--color-secondary-600)/<alpha-value>)',
           700: 'rgb(var(--color-secondary-700)/<alpha-value>)',
           800: 'rgb(var(--color-secondary-800)/<alpha-value>)',
           900: 'rgb(var(--color-secondary-900)/<alpha-value>)',
           950: 'rgb(var(--color-secondary-950)/<alpha-value>)',
-        },
-        tertiary: {
-          50: 'rgb(var(--color-tertiary-50)/<alpha-value>)',
-          100: 'rgb(var(--color-tertiary-100)/<alpha-value>)',
-          200: 'rgb(var(--color-tertiary-200)/<alpha-value>)',
-          300: 'rgb(var(--color-tertiary-300)/<alpha-value>)',
-          400: 'rgb(var(--color-tertiary-400)/<alpha-value>)',
-          500: 'rgb(var(--color-tertiary-500)/<alpha-value>)',
-          600: 'rgb(var(--color-tertiary-600)/<alpha-value>)',
-          700: 'rgb(var(--color-tertiary-700)/<alpha-value>)',
-          800: 'rgb(var(--color-tertiary-800)/<alpha-value>)',
-          900: 'rgb(var(--color-tertiary-900)/<alpha-value>)',
-          950: 'rgb(var(--color-tertiary-950)/<alpha-value>)',
         },
         error: {
           0: 'rgb(var(--color-error-0)/<alpha-value>)',
@@ -129,9 +117,6 @@ module.exports = {
           800: 'rgb(var(--color-typography-800)/<alpha-value>)',
           900: 'rgb(var(--color-typography-900)/<alpha-value>)',
           950: 'rgb(var(--color-typography-950)/<alpha-value>)',
-          white: '#FFFFFF',
-          gray: '#D4D4D4',
-          black: '#181718',
         },
         outline: {
           0: 'rgb(var(--color-outline-0)/<alpha-value>)',
@@ -174,32 +159,6 @@ module.exports = {
           error: 'rgb(var(--color-indicator-error)/<alpha-value>)',
         },
         // Custom color palette - Add your custom colors here
-        brand: {
-          50: '#0EA5E9',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0EA5E9', // Main brand color
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-          950: '#082f49',
-        },
-        accent: {
-          50: '#fff7ed',
-          100: '#ffedd5',
-          200: '#fed7aa',
-          300: '#fdba74',
-          400: '#fb923c',
-          500: '#DA9E22', // Main accent color
-          600: '#ea580c',
-          700: '#c2410c',
-          800: '#9a3412',
-          900: '#7c2d12',
-          950: '#431407',
-        },
         bg: {
           500: '#F8FAFC'
         },
@@ -240,6 +199,16 @@ module.exports = {
       },
       fontSize: {
         '2xs': '10px',
+        'xs': '12px',
+        'sm': '14px',
+        'base': '16px',
+        'lg': '18px',
+        'xl': '20px',
+        '2xl': '24px',
+        '3xl': '30px',
+        '4xl': '36px',
+        '5xl': '48px',
+        '6xl': '64px',
       },
       boxShadow: {
         'hard-1': '-2px 2px 8px 0px rgba(38, 38, 38, 0.20)',

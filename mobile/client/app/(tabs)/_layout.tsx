@@ -2,17 +2,15 @@ import { Tabs } from 'expo-router';
 import { AlignRight, House, Info, UsersRound } from 'lucide-react-native';
 import React from 'react';
 import { Platform } from 'react-native';
+import { Colors } from '../../constants/Colors';
 
 export default function TabLayout() {
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#0EA5E9',
+        tabBarActiveTintColor: Colors.brand.light,
         headerShown: false,
-        // how can i addjust the tab bar height?
-        // tabBarStyle: { height: 80 },
-        // tabBarStyle: { backgroundColor: 'transparent' },
         tabBarStyle: Platform.select({
           ios: {
             // Use a transparent background on iOS to show the blur effect
@@ -20,8 +18,7 @@ export default function TabLayout() {
           },
           default: {
             // Use a solid background on Android
-            height: 60,
-            paddingTop: 3,
+            paddingTop: 2,
           },
         }),
       }}>

@@ -9,7 +9,7 @@
       "tailwind.config": [
         "./tailwind.config.js"
       ]
-    }
+    },
   },
   "include": [
     "**/*.ts",
