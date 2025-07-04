@@ -100,7 +100,7 @@ export const FontSizeSwitch = ({
       marginTop: 16,
       padding: 12,
       borderRadius: 8,
-      backgroundColor: isDark ? ColorCombinations.card_dark.background : ColorCombinations.card.background,
+      backgroundColor: isDark ? ColorCombinations.card_dark.background : ColorCombinations.card.Background,
       borderColor: isDark ? '#000000' : ColorCombinations.card.border,
       borderWidth: 1,
       alignItems: 'center',

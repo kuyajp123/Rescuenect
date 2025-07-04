@@ -1,6 +1,6 @@
-import Body from '@/components/Body';
 import { FontSizeSwitch } from '@/components/FontSizeSwitch';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
+import Body from '@/components/ui/Body';
 import { Text } from '@/components/ui/text';
 import { StyleSheet } from 'react-native';
 

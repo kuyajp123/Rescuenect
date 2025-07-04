@@ -50,6 +50,27 @@ const Text = React.forwardRef<React.ComponentRef<typeof RNText>, ITextProps>(
     const baseFontSize = sizeMap[size] || 14;
     const scaledFontSize = getScaledFontSize(baseFontSize, fontMultiplier);
     
+    // Map emphasis to font family
+    const getFontFamily = () => {
+      if (bold) return 'Poppins-Bold';
+      
+      switch (emphasis) {
+        case 'light':
+          return 'Poppins-light';
+        case 'medium':
+          return 'Poppins-Medium';
+        case 'semibold':
+          return 'Poppins-Medium'; // Use Medium for semibold since you don't have SemiBold
+        case 'bold':
+          return 'Poppins-Bold';
+        case 'extrabold':
+          return 'Poppins-Bold'; // Use Bold for extrabold since you don't have ExtraBold
+        case 'normal':
+        default:
+          return 'Poppins';
+      }
+    };
+    
     return (
       <RNText
         className={textStyle({
@@ -68,7 +89,7 @@ const Text = React.forwardRef<React.ComponentRef<typeof RNText>, ITextProps>(
           { 
             color: defaultColor,
             fontSize: scaledFontSize,
-            fontFamily: 'Poppins',
+            fontFamily: getFontFamily(),
           }, 
           style
         ]}
@@ -83,3 +104,17 @@ Text.displayName = 'Text';
 
 export { Text };
 
+// The `emphasis` prop can take the following values:
+// - "normal" | "bold" | "light" | "medium" |
+// - you can use also opacity from style prop
+
+// Example usage with different base sizes
+{/* 
+  - <Text size="3xl">Large Title (3xl base)</Text>
+  - <Text size="2xl">Subtitle (2xl base)</Text>
+  - <Text size="xl">Section Header (xl base)</Text>
+  - <Text size="lg">Large Text (lg base)</Text>
+  - <Text size="md">Medium Text (md base)</Text>
+  - <Text size="sm">Small Text (sm base)</Text>
+  - <Text size="xs">Extra Small Text (xs base)</Text>
+*/}

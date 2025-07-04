@@ -1,6 +1,6 @@
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { Colors } from '@/constants/Colors';
-import { FontSizeProvider } from '@/contexts/FontSizeContext';
+import { FontSizeProvider, useFontSize } from '@/contexts/FontSizeContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -11,14 +11,18 @@ import '../global.css';
 
 // Inner component that uses the theme context
 function RootLayoutContent() {
-  const { isDark } = useTheme();
+  const { isDark, isLoading: themeLoading } = useTheme();
+  const { isLoading: fontLoading } = useFontSize();
 
   const [loaded] = useFonts({
     Poppins: require('../assets/fonts/Poppins-Regular.ttf'),
+    'Poppins-Bold': require('../assets/fonts/Poppins-Bold.ttf'),
+    'Poppins-light': require('../assets/fonts/Poppins-Light.ttf'),
+    'Poppins-Medium': require('../assets/fonts/Poppins-Medium.ttf'),
   });
 
-  if (!loaded) {
-    // Async font loading only occurs in development.
+  // Wait for fonts to load and contexts to initialize
+  if (!loaded || themeLoading || fontLoading) {
     return null;
   }
 

@@ -16,6 +16,10 @@ module.exports = {
       pattern:
         /(bg|border|text|stroke|fill)-(primary|secondary|tertiary|error|success|warning|info|typography|outline|background|indicator)-(0|50|100|200|300|400|500|600|700|800|900|950|white|gray|black|error|warning|muted|success|info|light|dark|primary)/,
     },
+    {
+      pattern:
+        /(bg|border|text)-(button-primary|button-primary-dark|button-secondary|button-secondary-dark|button-success|button-success-dark|button-error|button-error-dark|button-warning|button-warning-dark|button-text)-(default|hover|pressed|disabled|on-primary|on-secondary|on-secondary-dark|on-disabled)/,
+    },
   ],
   theme: {
     extend: {
@@ -186,6 +190,78 @@ module.exports = {
         },
         text_dark: {
           500: '#F2F2F2'
+        },
+        // Button Colors - Primary
+        'button-primary': {
+          default: 'rgb(var(--color-button-primary-default)/<alpha-value>)',
+          hover: 'rgb(var(--color-button-primary-hover)/<alpha-value>)',
+          pressed: 'rgb(var(--color-button-primary-pressed)/<alpha-value>)',
+          disabled: 'rgb(var(--color-button-primary-disabled)/<alpha-value>)',
+        },
+        'button-primary-dark': {
+          default: 'rgb(var(--color-button-primary-dark-default)/<alpha-value>)',
+          hover: 'rgb(var(--color-button-primary-dark-hover)/<alpha-value>)',
+          pressed: 'rgb(var(--color-button-primary-dark-pressed)/<alpha-value>)',
+          disabled: 'rgb(var(--color-button-primary-dark-disabled)/<alpha-value>)',
+        },
+        // Button Colors - Secondary
+        'button-secondary': {
+          default: 'rgb(var(--color-button-secondary-default)/<alpha-value>)',
+          hover: 'rgb(var(--color-button-secondary-hover)/<alpha-value>)',
+          pressed: 'rgb(var(--color-button-secondary-pressed)/<alpha-value>)',
+          disabled: 'rgb(var(--color-button-secondary-disabled)/<alpha-value>)',
+        },
+        'button-secondary-dark': {
+          default: 'rgb(var(--color-button-secondary-dark-default)/<alpha-value>)',
+          hover: 'rgb(var(--color-button-secondary-dark-hover)/<alpha-value>)',
+          pressed: 'rgb(var(--color-button-secondary-dark-pressed)/<alpha-value>)',
+          disabled: 'rgb(var(--color-button-secondary-dark-disabled)/<alpha-value>)',
+        },
+        // Button Colors - Success
+        'button-success': {
+          default: 'rgb(var(--color-button-success-default)/<alpha-value>)',
+          hover: 'rgb(var(--color-button-success-hover)/<alpha-value>)',
+          pressed: 'rgb(var(--color-button-success-pressed)/<alpha-value>)',
+          disabled: 'rgb(var(--color-button-success-disabled)/<alpha-value>)',
+        },
+        'button-success-dark': {
+          default: 'rgb(var(--color-button-success-dark-default)/<alpha-value>)',
+          hover: 'rgb(var(--color-button-success-dark-hover)/<alpha-value>)',
+          pressed: 'rgb(var(--color-button-success-dark-pressed)/<alpha-value>)',
+          disabled: 'rgb(var(--color-button-success-dark-disabled)/<alpha-value>)',
+        },
+        // Button Colors - Error
+        'button-error': {
+          default: 'rgb(var(--color-button-error-default)/<alpha-value>)',
+          hover: 'rgb(var(--color-button-error-hover)/<alpha-value>)',
+          pressed: 'rgb(var(--color-button-error-pressed)/<alpha-value>)',
+          disabled: 'rgb(var(--color-button-error-disabled)/<alpha-value>)',
+        },
+        'button-error-dark': {
+          default: 'rgb(var(--color-button-error-dark-default)/<alpha-value>)',
+          hover: 'rgb(var(--color-button-error-dark-hover)/<alpha-value>)',
+          pressed: 'rgb(var(--color-button-error-dark-pressed)/<alpha-value>)',
+          disabled: 'rgb(var(--color-button-error-dark-disabled)/<alpha-value>)',
+        },
+        // Button Colors - Warning
+        'button-warning': {
+          default: 'rgb(var(--color-button-warning-default)/<alpha-value>)',
+          hover: 'rgb(var(--color-button-warning-hover)/<alpha-value>)',
+          pressed: 'rgb(var(--color-button-warning-pressed)/<alpha-value>)',
+          disabled: 'rgb(var(--color-button-warning-disabled)/<alpha-value>)',
+        },
+        'button-warning-dark': {
+          default: 'rgb(var(--color-button-warning-dark-default)/<alpha-value>)',
+          hover: 'rgb(var(--color-button-warning-dark-hover)/<alpha-value>)',
+          pressed: 'rgb(var(--color-button-warning-dark-pressed)/<alpha-value>)',
+          disabled: 'rgb(var(--color-button-warning-dark-disabled)/<alpha-value>)',
+        },
+        // Button Text Colors
+        'button-text': {
+          'on-primary': 'rgb(var(--color-button-text-on-primary)/<alpha-value>)',
+          'on-secondary': 'rgb(var(--color-button-text-on-secondary)/<alpha-value>)',
+          'on-secondary-dark': 'rgb(var(--color-button-text-on-secondary-dark)/<alpha-value>)',
+          'on-disabled': 'rgb(var(--color-button-text-on-disabled)/<alpha-value>)',
         }
       },
       fontFamily: {

@@ -8,7 +8,7 @@
   --color-primary-500: 14 165 233; /* #0ea5e9 in RGB */
   --color-secondary-500: 218 158 34; /* #da9e22 in RGB */
 
-  /* background color */
+  /* Background Colors */
   --color-background-light: 248 250 252; /* #f8fafc */
   --color-background-dark: 23 23 23; /* #171717 */
   --color-text-light: 0 0 0; /* black */
@@ -19,12 +19,111 @@
   --color-warning-500: 245 158 11; /* #f59e0b in RGB */
   --color-error-500: 239 68 68; /* #ef4444 in RGB */
   --color-info-500: 59 130 246; /* #3b82f6 in RGB */
+
+  /* Button Colors - Primary Light Mode */
+  --color-button-primary-default: 14 165 233; /* #0ea5e9 */
+  --color-button-primary-hover: 2 132 199; /* #0284c7 */
+  --color-button-primary-pressed: 3 105 161; /* #0369a1 */
+  --color-button-primary-disabled: 148 163 184; /* #94a3b8 */
+
+  /* Button Colors - Primary Dark Mode */
+  --color-button-primary-dark-default: 37 99 235; /* #2563eb */
+  --color-button-primary-dark-hover: 59 130 246; /* #3b82f6 */
+  --color-button-primary-dark-pressed: 29 78 216; /* #1d4ed8 */
+  --color-button-primary-dark-disabled: 100 116 139; /* #64748b */
+
+  /* Button Colors - Secondary Light Mode */
+  --color-button-secondary-default: 212 212 216; /* #d4d4d8 */
+  --color-button-secondary-hover: 161 161 170; /* #a1a1aa */
+  --color-button-secondary-pressed: 113 113 122; /* #71717a */
+  --color-button-secondary-disabled: 244 244 245; /* #f4f4f5 */
+
+  /* Button Colors - Secondary Dark Mode */
+  --color-button-secondary-dark-default: 63 63 70; /* #3f3f46 */
+  --color-button-secondary-dark-hover: 82 82 91; /* #52525b */
+  --color-button-secondary-dark-pressed: 113 113 122; /* #71717a */
+  --color-button-secondary-dark-disabled: 39 39 42; /* #27272a */
+
+  /* Button Colors - Success Light Mode */
+  --color-button-success-default: 16 185 129; /* #10b981 */
+  --color-button-success-hover: 5 150 105; /* #059669 */
+  --color-button-success-pressed: 4 120 87; /* #047857 */
+  --color-button-success-disabled: 134 239 172; /* #86efac */
+
+  /* Button Colors - Success Dark Mode */
+  --color-button-success-dark-default: 16 185 129; /* #10b981 */
+  --color-button-success-dark-hover: 52 211 153; /* #34d399 */
+  --color-button-success-dark-pressed: 5 150 105; /* #059669 */
+  --color-button-success-dark-disabled: 55 65 81; /* #374151 */
+
+  /* Button Colors - Error Light Mode */
+  --color-button-error-default: 239 68 68; /* #ef4444 */
+  --color-button-error-hover: 220 38 38; /* #dc2626 */
+  --color-button-error-pressed: 185 28 28; /* #b91c1c */
+  --color-button-error-disabled: 252 165 165; /* #fca5a5 */
+
+  /* Button Colors - Error Dark Mode */
+  --color-button-error-dark-default: 239 68 68; /* #ef4444 */
+  --color-button-error-dark-hover: 248 113 113; /* #f87171 */
+  --color-button-error-dark-pressed: 220 38 38; /* #dc2626 */
+  --color-button-error-dark-disabled: 55 65 81; /* #374151 */
+
+  /* Button Colors - Warning Light Mode */
+  --color-button-warning-default: 245 158 11; /* #f59e0b */
+  --color-button-warning-hover: 217 119 6; /* #d97706 */
+  --color-button-warning-pressed: 180 83 9; /* #b45309 */
+  --color-button-warning-disabled: 254 215 170; /* #fed7aa */
+
+  /* Button Colors - Warning Dark Mode */
+  --color-button-warning-dark-default: 245 158 11; /* #f59e0b */
+  --color-button-warning-dark-hover: 251 191 36; /* #fbbf24 */
+  --color-button-warning-dark-pressed: 217 119 6; /* #d97706 */
+  --color-button-warning-dark-disabled: 55 65 81; /* #374151 */
+
+  /* Button Text Colors */
+  --color-button-text-on-primary: 255 255 255; /* #ffffff */
+  --color-button-text-on-secondary: 0 0 0; /* #000000 */
+  --color-button-text-on-secondary-dark: 242 242 242; /* #F2F2F2 */
+  --color-button-text-on-disabled: 156 163 175; /* #9ca3af */
+
+  /* Button Overlay Colors */
+  --color-button-overlay-light: 0 0 0 0.05; /* rgba(0, 0, 0, 0.05) */
+  --color-button-overlay-medium: 0 0 0 0.1; /* rgba(0, 0, 0, 0.1) */
+  --color-button-overlay-light-dark: 255 255 255 0.1; /* rgba(255, 255, 255, 0.1) */
+  --color-button-overlay-medium-dark: 255 255 255 0.15; /* rgba(255, 255, 255, 0.15) */
 }
 
 /* Dark mode overrides */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-brand-primary: 23 28 66; /* Lighter blue for dark mode */
-    /* --color-brand-secondary: 218 158 34; */
+    /* Brand Colors Dark Mode */
+    --color-primary-500: 37 99 235; /* #2563eb - Updated brand dark color */
+    --color-secondary-500: 218 158 34; /* Keep secondary color #da9e22 */
+    
+    /* Override button colors to use dark variants by default in dark mode */
+    --color-button-primary-default: var(--color-button-primary-dark-default);
+    --color-button-primary-hover: var(--color-button-primary-dark-hover);
+    --color-button-primary-pressed: var(--color-button-primary-dark-pressed);
+    --color-button-primary-disabled: var(--color-button-primary-dark-disabled);
+    
+    --color-button-secondary-default: var(--color-button-secondary-dark-default);
+    --color-button-secondary-hover: var(--color-button-secondary-dark-hover);
+    --color-button-secondary-pressed: var(--color-button-secondary-dark-pressed);
+    --color-button-secondary-disabled: var(--color-button-secondary-dark-disabled);
+    
+    --color-button-success-default: var(--color-button-success-dark-default);
+    --color-button-success-hover: var(--color-button-success-dark-hover);
+    --color-button-success-pressed: var(--color-button-success-dark-pressed);
+    --color-button-success-disabled: var(--color-button-success-dark-disabled);
+    
+    --color-button-error-default: var(--color-button-error-dark-default);
+    --color-button-error-hover: var(--color-button-error-dark-hover);
+    --color-button-error-pressed: var(--color-button-error-dark-pressed);
+    --color-button-error-disabled: var(--color-button-error-dark-disabled);
+    
+    --color-button-warning-default: var(--color-button-warning-dark-default);
+    --color-button-warning-hover: var(--color-button-warning-dark-hover);
+    --color-button-warning-pressed: var(--color-button-warning-dark-pressed);
+    --color-button-warning-disabled: var(--color-button-warning-dark-disabled);
   }
 }

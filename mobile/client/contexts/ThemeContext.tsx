@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useColorScheme } from 'react-native';
 
 export type ColorMode = 'light' | 'dark' | 'system';
 
@@ -8,6 +8,7 @@ interface ThemeContextType {
     colorMode: ColorMode;
     setColorMode: (mode: ColorMode) => void;
     isDark: boolean;
+    isLoading: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -21,6 +22,7 @@ const THEME_STORAGE_KEY = '@theme_preference';
 export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     const systemColorScheme = useColorScheme();
     const [colorMode, setColorModeState] = useState<ColorMode>('system');
+    const [isLoading, setIsLoading] = useState(true);
 
     // Load theme from AsyncStorage on mount
     useEffect(() => {
@@ -32,6 +34,8 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
                 }
             } catch (error) {
                 console.log('Error loading theme:', error);
+            } finally {
+                setIsLoading(false);
             }
         };
 
@@ -56,6 +60,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
         colorMode,
         setColorMode,
         isDark,
+        isLoading,
     };
 
     return (

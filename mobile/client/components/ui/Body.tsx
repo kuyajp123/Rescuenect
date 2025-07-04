@@ -1,14 +1,15 @@
+import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import type { ComponentProps } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { ScrollView } from 'react-native';
-import { VStack, } from './ui/vstack';
-import { Colors } from '@/constants/Colors';
-import { useTheme } from '@/contexts/ThemeContext';
+import { VStack, } from './vstack';
 
 type VStackProps = ComponentProps<typeof VStack>;
 
 interface ContainerProps extends VStackProps {
   style?: StyleProp<ViewStyle>;
+  gap?: number | string;
 }
 
 const Body = ({ children, style, ...props }: ContainerProps) => {
