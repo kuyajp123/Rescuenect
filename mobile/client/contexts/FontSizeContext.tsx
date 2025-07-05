@@ -30,6 +30,7 @@ const FONT_SCALE_MAP: Record<FontSizeScale, number> = {
 export const FontSizeProvider = ({ children }: FontSizeProviderProps) => {
   const [fontScale, setFontScaleState] = useState<FontSizeScale>('md');
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Load saved font scale on app start
   useEffect(() => {
@@ -46,6 +47,7 @@ export const FontSizeProvider = ({ children }: FontSizeProviderProps) => {
       console.error('Failed to load font scale preference:', error);
     } finally {
       setIsLoading(false);
+      setIsInitialized(true);
     }
   };
 
@@ -58,7 +60,7 @@ export const FontSizeProvider = ({ children }: FontSizeProviderProps) => {
     }
   };
 
-  const fontMultiplier = FONT_SCALE_MAP[fontScale];
+  const fontMultiplier = isInitialized ? FONT_SCALE_MAP[fontScale] : FONT_SCALE_MAP['md'];
 
   return (
     <FontSizeContext.Provider value={{ 

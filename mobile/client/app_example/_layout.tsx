@@ -75,6 +75,21 @@ function RootLayoutContent() {
           }} 
         />
         <Stack.Screen name="+not-found" />
+        <Stack.Screen 
+          name="modal-example" 
+          options={{ 
+            presentation: 'modal',
+            headerShown: false,
+            title: 'Modal Example'
+          }} 
+        />
+        <Stack.Screen 
+          name="user/[id]" 
+          options={{ 
+            headerShown: false,
+            title: 'User Profile'
+          }} 
+        />
       </Stack>
     </GluestackUIProvider>
   );

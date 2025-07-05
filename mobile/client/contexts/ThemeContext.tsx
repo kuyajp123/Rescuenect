@@ -23,6 +23,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     const systemColorScheme = useColorScheme();
     const [colorMode, setColorModeState] = useState<ColorMode>('system');
     const [isLoading, setIsLoading] = useState(true);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     // Load theme from AsyncStorage on mount
     useEffect(() => {
@@ -36,6 +37,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
                 console.log('Error loading theme:', error);
             } finally {
                 setIsLoading(false);
+                setIsInitialized(true);
             }
         };
 
@@ -44,17 +46,19 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
 
     // Save theme to AsyncStorage when it changes
     const setColorMode = async (mode: ColorMode) => {
+        // Prevent state update if component is unmounting
         try {
-            await AsyncStorage.setItem(THEME_STORAGE_KEY, mode);
             setColorModeState(mode);
+            await AsyncStorage.setItem(THEME_STORAGE_KEY, mode);
         } catch (error) {
             console.log('Error saving theme:', error);
-            setColorModeState(mode); // Still update state even if storage fails
         }
     };
 
     // Determine if we should use dark mode
-    const isDark = colorMode === 'dark' || (colorMode === 'system' && systemColorScheme === 'dark');
+    const isDark = isInitialized ? (
+        colorMode === 'dark' || (colorMode === 'system' && systemColorScheme === 'dark')
+    ) : false;
 
     const value = {
         colorMode,
