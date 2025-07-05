@@ -3,10 +3,10 @@ import { Colors } from '@/constants/Colors';
 import { FontSizeProvider, useFontSize } from '@/contexts/FontSizeContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import { Bell } from 'lucide-react-native';
+import { Stack, useRouter } from 'expo-router';
+import { Bell, ChevronLeft } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import 'react-native-reanimated';
 import '../global.css';
 
@@ -14,6 +14,7 @@ import '../global.css';
 function RootLayoutContent() {
   const { isDark, isLoading: themeLoading } = useTheme();
   const { isLoading: fontLoading } = useFontSize();
+  const router = useRouter();
   const [isReady, setIsReady] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -74,10 +75,37 @@ function RootLayoutContent() {
             headerShadowVisible: false,
             headerRight: () => (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Bell size={20} color={isDark ? Colors.text.dark : Colors.text.light} />
+                <Pressable onPress={() => { router.push('/notification'); }}>
+                  <Bell size={24} color={isDark ? Colors.text.dark : Colors.text.light} />
+                </Pressable>
               </View>
             ),
           }} 
+        />
+        <Stack.Screen 
+          name="notification" 
+          options={{ 
+            headerShown: true,
+            title: '',
+            headerTintColor: isDark ? Colors.text.dark : Colors.text.light,
+            headerStyle: { 
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerTitleStyle: { 
+              fontSize: 24, 
+              fontWeight: 'bold',
+              color: isDark ? Colors.text.dark : Colors.brand.light,
+            },
+            headerShadowVisible: false,
+            headerLeft: () => (
+              <Pressable onPress={() => { router.back(); }}>
+                <ChevronLeft size={24} color={isDark ? Colors.text.dark : Colors.text.light} />
+              </Pressable>
+            ),
+            animation: 'slide_from_right',
+            animationDuration: 150,
+            animationTypeForReplace: 'push',
+          }}
         />
         <Stack.Screen name="+not-found" />
       </Stack>

@@ -1,15 +1,13 @@
 import Body from '@/components/ui/Body';
 import { Text } from '@/components/ui/text';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 export default function HomeScreen() {
 
   return (
     <Body>
-      <View style={styles.container}>
         <Text style={styles.title}>Welcome to the Home Screen</Text>
         <Text style={styles.subtitle}>Explore the app and enjoy!</Text>
-      </View>
     </Body>
   );
 }

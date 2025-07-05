@@ -9,7 +9,7 @@ rnfe → React Native Function Component with Export
 rnc → React Native Class Component
 rnce → React Native Class Component with Export
 rncs → React Native Class Component with StyleSheet
-rnfes → React Native Function Component with StyleSheet
+rnfes → React Native Function Component with StyleSheet <-- this is default
 
 
 typograpy: {

@@ -166,8 +166,8 @@ module.exports = {
         bg: {
           500: '#F8FAFC'
         },
-        text: {
-          500: '#000000',
+        text_light: {
+          500: '#000000'
         },
         safe: {
           500: '#22C55E'

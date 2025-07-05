@@ -3,9 +3,9 @@
  * Maps Colors.ts button colors to Tailwind classes
  */
 
-export type ButtonAction = 'primary' | 'secondary' | 'success' | 'error' | 'warning';
-export type ButtonState = 'default' | 'hover' | 'pressed' | 'disabled';
-export type ButtonVariant = 'solid' | 'outline' | 'link';
+  export type ButtonAction = 'primary' | 'secondary' | 'success' | 'error' | 'warning';
+  export type ButtonState = 'default' | 'hover' | 'pressed' | 'disabled';
+  export type ButtonVariant = 'solid' | 'outline' | 'link';
 
 /**
  * Get Tailwind background color class for button
