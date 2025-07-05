@@ -31,27 +31,41 @@ export const FontSizeProvider = ({ children }: FontSizeProviderProps) => {
   const [fontScale, setFontScaleState] = useState<FontSizeScale>('md');
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Track mount status
+  useEffect(() => {
+    setIsMounted(true);
+    return () => {
+      setIsMounted(false);
+    };
+  }, []);
 
   // Load saved font scale on app start
   useEffect(() => {
+    if (!isMounted) return;
     loadFontScale();
-  }, []);
+  }, [isMounted]);
 
   const loadFontScale = async () => {
     try {
       const savedFontScale = await AsyncStorage.getItem(FONT_SIZE_STORAGE_KEY);
-      if (savedFontScale && Object.keys(FONT_SCALE_MAP).includes(savedFontScale)) {
+      if (isMounted && savedFontScale && Object.keys(FONT_SCALE_MAP).includes(savedFontScale)) {
         setFontScaleState(savedFontScale as FontSizeScale);
       }
     } catch (error) {
       console.error('Failed to load font scale preference:', error);
     } finally {
-      setIsLoading(false);
-      setIsInitialized(true);
+      if (isMounted) {
+        setIsLoading(false);
+        setIsInitialized(true);
+      }
     }
   };
 
   const setFontScale = async (scale: FontSizeScale) => {
+    if (!isMounted) return;
+    
     try {
       setFontScaleState(scale);
       await AsyncStorage.setItem(FONT_SIZE_STORAGE_KEY, scale);

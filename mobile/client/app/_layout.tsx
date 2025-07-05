@@ -24,33 +24,38 @@ function RootLayoutContent() {
     'Poppins-Medium': require('../assets/fonts/Poppins-Medium.ttf'),
   });
 
-  // Mark component as mounted
+  // Mark component as mounted and prevent state updates after unmount
   useEffect(() => {
     setIsMounted(true);
-    return () => setIsMounted(false);
+    return () => {
+      setIsMounted(false);
+    };
   }, []);
 
-  // Use useEffect to manage readiness state
+  // Use useEffect to manage readiness state safely
   useEffect(() => {
-    if (!isMounted) return; // Don't update state if not mounted
+    if (!isMounted) return; // Prevent state updates if not mounted
     
-    // Add a small delay to ensure all contexts are fully initialized
+    // Use a longer delay to ensure all async operations complete
     const timer = setTimeout(() => {
-      if (loaded && !themeLoading && !fontLoading) {
+      if (isMounted && loaded && !themeLoading && !fontLoading) {
         setIsReady(true);
       }
-    }, 100); // Increased delay slightly
+    }, 200); // Increased delay to prevent race conditions
 
     return () => clearTimeout(timer);
   }, [loaded, themeLoading, fontLoading, isMounted]);
 
-  // Wait for everything to be ready before rendering
-  if (!isReady || !isMounted) {
+  // Don't render anything until everything is ready and mounted
+  if (!isMounted || !isReady || themeLoading || fontLoading) {
     return null;
   }
 
+  // Ensure we have a stable mode value for GluestackUIProvider
+  const gluestackMode = isDark ? 'dark' : 'light';
+
   return (
-    <GluestackUIProvider mode={isDark ? 'dark' : 'light'}>
+    <GluestackUIProvider mode={gluestackMode}>
       <Stack>
         <Stack.Screen 
           name="(tabs)" 

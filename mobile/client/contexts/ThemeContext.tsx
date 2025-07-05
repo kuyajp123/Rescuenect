@@ -24,29 +24,44 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     const [colorMode, setColorModeState] = useState<ColorMode>('system');
     const [isLoading, setIsLoading] = useState(true);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
+
+    // Track mount status
+    useEffect(() => {
+        setIsMounted(true);
+        return () => {
+            setIsMounted(false);
+        };
+    }, []);
 
     // Load theme from AsyncStorage on mount
     useEffect(() => {
+        if (!isMounted) return;
+        
         const loadTheme = async () => {
             try {
                 const savedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
-                if (savedTheme && ['light', 'dark', 'system'].includes(savedTheme)) {
+                if (isMounted && savedTheme && ['light', 'dark', 'system'].includes(savedTheme)) {
                     setColorModeState(savedTheme as ColorMode);
                 }
             } catch (error) {
                 console.log('Error loading theme:', error);
             } finally {
-                setIsLoading(false);
-                setIsInitialized(true);
+                if (isMounted) {
+                    setIsLoading(false);
+                    setIsInitialized(true);
+                }
             }
         };
 
         loadTheme();
-    }, []);
+    }, [isMounted]);
 
     // Save theme to AsyncStorage when it changes
     const setColorMode = async (mode: ColorMode) => {
         // Prevent state update if component is unmounting
+        if (!isMounted) return;
+        
         try {
             setColorModeState(mode);
             await AsyncStorage.setItem(THEME_STORAGE_KEY, mode);
