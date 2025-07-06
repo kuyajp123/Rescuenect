@@ -10,15 +10,6 @@ export default function DetailsScreen() {
   return (
     <Body>
       <Text style={styles.title} className={isDark ? 'text-text_dark-500' : 'text-text_light-500'} >Welcome to the Details Screen</Text>
-      {/* <Button 
-        action='success' 
-        style={{ marginTop: 20 }} 
-        onPress={() => alert('Button Pressed')}
-        className={isDark ? 'bg-button-success-default' : 'bg-button-primary-default'}
-        >
-          <Text style={{ color: isDark ? Colors.text.dark : Colors.text.light }}>Button</Text>
-          <ChevronRight size={24} color={isDark ? Colors.text.dark : Colors.text.light} />
-        </Button> */}
 
         <Button
   variant="outline"

@@ -194,14 +194,10 @@ export const getButtonTextColor = (
 // Predefined color combinations for common UI patterns
 export const ColorCombinations = {
   primaryButton: {
-    // background: Colors.brand.primary,
     text: Colors.text.dark,
-    // border: Colors.brand.primary,
   },
   secondaryButton: {
     background: 'transparent',
-    // text: Colors.brand.primary,
-    // border: Colors.brand.primary,
   },
   successAlert: {
     background: '#dcfce7', // light green
@@ -220,5 +216,9 @@ export const ColorCombinations = {
   card_dark: {
     background: Colors.background.dark, // dark background
     border: Colors.border.dark,
+  },
+  statusTemplate: {
+    dark: '#1c1c1d',
+    light: '#ffffff',
   },
 } as const;

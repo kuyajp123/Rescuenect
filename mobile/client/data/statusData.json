@@ -1,0 +1,114 @@
+[
+  {
+    "profileImage": "https://randomuser.me/api/portraits/men/11.jpg",
+    "firstName": "John",
+    "lastName": "Doe",
+    "status": "evacuated",
+    "date": "Sept 22, 2025",
+    "time": "12:00 PM",
+    "location": "Naic Central School, Brgy. Ibayo Silangan, Naic, Cavite",
+    "longitude": "120.8101",
+    "latitude": "14.3502",
+    "description": "John Doe has been evacuated to a safe location. He is currently at Naic Central School.",
+    "image": "https://picsum.photos/200/300?grayscale",
+    "numberOfPeople": 3,
+    "contact": "123-456-7890"
+  },
+  {
+    "profileImage": "https://randomuser.me/api/portraits/women/24.jpg",
+    "firstName": "Maria",
+    "lastName": "Santos",
+    "status": "safe",
+    "date": "Sept 23, 2025",
+    "time": "08:30 AM"
+  },
+  {
+    "profileImage": "https://randomuser.me/api/portraits/men/32.jpg",
+    "firstName": "Carlos",
+    "lastName": "Reyes",
+    "status": "missing",
+    "date": "Sept 22, 2025",
+    "time": "11:45 PM",
+    "location": "Brgy. Timalan Balsahan, Naic, Cavite",
+    "longitude": "120.7699",
+    "latitude": "14.3241",
+    "contact": "0917-123-4567",
+    "image": "https://randomuser.me/api/portraits/men/32.jpg"
+  },
+  {
+    "profileImage": "https://randomuser.me/api/portraits/women/45.jpg",
+    "firstName": "Liza",
+    "lastName": "Villanueva",
+    "status": "affected",
+    "date": "Sept 21, 2025",
+    "time": "09:00 AM",
+    "description": "Her home was partially damaged by the typhoon. Currently staying with relatives."
+  },
+  {
+    "profileImage": "https://randomuser.me/api/portraits/men/66.jpg",
+    "firstName": "Joseph",
+    "lastName": "Tan",
+    "status": "safe",
+    "date": "Sept 22, 2025",
+    "time": "05:00 PM",
+    "location": "Brgy. Halang, Naic, Cavite",
+    "latitude": "14.3322",
+    "longitude": "120.7855",
+    "numberOfPeople": 1,
+    "image": "https://picsum.photos/200/300"
+  },
+  {
+    "profileImage": "https://randomuser.me/api/portraits/women/52.jpg",
+    "firstName": "Grace",
+    "lastName": "Lim",
+    "status": "evacuated",
+    "date": "Sept 23, 2025",
+    "time": "06:30 PM",
+    "location": "Naic Covered Court, Brgy. Calubcob, Naic, Cavite",
+    "longitude": "120.8000",
+    "latitude": "14.3333",
+    "description": "Grace Lim and family were safely transferred to the covered court shelter.",
+    "numberOfPeople": 4
+  },
+  {
+    "profileImage": "https://randomuser.me/api/portraits/men/73.jpg",
+    "firstName": "Michael",
+    "lastName": "Bautista",
+    "status": "affected",
+    "date": "Sept 21, 2025",
+    "time": "10:20 AM",
+    "image": "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "profileImage": "https://randomuser.me/api/portraits/women/84.jpg",
+    "firstName": "Rowena",
+    "lastName": "Garcia",
+    "status": "missing",
+    "date": "Sept 22, 2025",
+    "time": "02:00 AM",
+    "contact": "0998-765-4321",
+    "description": "Last seen in Brgy. Bagong Kalsada before the flood."
+  },
+  {
+    "profileImage": "https://randomuser.me/api/portraits/men/19.jpg",
+    "firstName": "Albert",
+    "lastName": "Navarro",
+    "status": "safe",
+    "date": "Sept 23, 2025",
+    "time": "01:10 PM",
+    "location": "Brgy. Bucana, Naic, Cavite"
+  },
+  {
+    "profileImage": "https://randomuser.me/api/portraits/women/93.jpg",
+    "firstName": "Jessica",
+    "lastName": "Cruz",
+    "status": "evacuated",
+    "date": "Sept 22, 2025",
+    "time": "07:15 PM",
+    "location": "Naic Municipal Hall, Naic, Cavite",
+    "latitude": "14.3209",
+    "longitude": "120.7651",
+    "numberOfPeople": 2,
+    "description": "Evacuated with her child due to rising floodwaters."
+  }
+]
