@@ -1,21 +1,22 @@
-import { StyleSheet } from 'react-native'
-import React from 'react'
 import Body from '@/components/ui/Body';
-import { Text } from '@/components/ui/text'
-import { Card } from '@/components/ui/Card';
+import { DonnationPostTemplate } from '@/components/ui/post-template/DonnationPostTemplate';
+import { StatusTemplate } from '@/components/ui/post-template/StatusTemplate';
+import type { StatusTemplateProps } from '@/components/ui/post-template/StatusTemplate';
+import React from 'react';
+import { StyleSheet } from 'react-native';
+import statusData from '../../data/statusData.json';
+import { CarouselScreen } from '@/components/ui/carousel/CarouselScreen';
 
 const community = () => {
   return (
-    <Body>
-      <Card>
-        <Text>Welcome to the Community Screen!</Text>
-      </Card>
-      <Card>
-        <Text>Here you can find various community resources and discussions.</Text>
-      </Card>
-      <Card>
-        <Text>Feel free to explore and engage with the community!</Text>
-      </Card>
+    <Body gap={10} style={{ padding: 0, paddingVertical: 20 }}>
+      {statusData.map((item: StatusTemplateProps, index: number) => (
+      <DonnationPostTemplate key={index} {...item} />
+      ))}
+      {statusData.map((item: StatusTemplateProps, index: number) => (
+      <StatusTemplate key={index} {...item} />
+      ))}
+
     </Body>
   )
 }

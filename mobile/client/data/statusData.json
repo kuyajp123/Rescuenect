@@ -12,7 +12,10 @@
     "description": "John Doe has been evacuated to a safe location. He is currently at Naic Central School.",
     "image": "https://picsum.photos/200/300?grayscale",
     "numberOfPeople": 3,
-    "contact": "123-456-7890"
+    "contact": "123-456-7890",
+    "category": "Relief Goods",
+    "itemName": "Bottle of Water",
+    "quantity": 50
   },
   {
     "profileImage": "https://randomuser.me/api/portraits/women/24.jpg",
@@ -20,7 +23,9 @@
     "lastName": "Santos",
     "status": "safe",
     "date": "Sept 23, 2025",
-    "time": "08:30 AM"
+    "time": "08:30 AM",
+    "category": "Consumables",
+    "itemName": "Free Electricty"
   },
   {
     "profileImage": "https://randomuser.me/api/portraits/men/32.jpg",
@@ -33,7 +38,10 @@
     "longitude": "120.7699",
     "latitude": "14.3241",
     "contact": "0917-123-4567",
-    "image": "https://randomuser.me/api/portraits/men/32.jpg"
+    "image": "https://randomuser.me/api/portraits/men/32.jpg",
+    "category": "Medical Supplies",
+    "itemName": "Medicine Kit",
+    "quantity": 10
   },
   {
     "profileImage": "https://randomuser.me/api/portraits/women/45.jpg",
@@ -42,7 +50,10 @@
     "status": "affected",
     "date": "Sept 21, 2025",
     "time": "09:00 AM",
-    "description": "Her home was partially damaged by the typhoon. Currently staying with relatives."
+    "description": "Her home was partially damaged by the typhoon. Currently staying with relatives.",
+    "category": "Baby Supplies",
+    "itemName": "Diapers",
+    "quantity": 30
   },
   {
     "profileImage": "https://randomuser.me/api/portraits/men/66.jpg",
@@ -55,7 +66,10 @@
     "latitude": "14.3322",
     "longitude": "120.7855",
     "numberOfPeople": 1,
-    "image": "https://picsum.photos/200/300"
+    "image": "https://picsum.photos/200/300",
+    "category": "Hygiene Kits",
+    "itemName": "Soap Bars and Shampoo",
+    "quantity": 211
   },
   {
     "profileImage": "https://randomuser.me/api/portraits/women/52.jpg",
@@ -68,7 +82,10 @@
     "longitude": "120.8000",
     "latitude": "14.3333",
     "description": "Grace Lim and family were safely transferred to the covered court shelter.",
-    "numberOfPeople": 4
+    "numberOfPeople": 4,
+    "category": "Relief Goods",
+    "itemName": "Canned Goods",
+    "quantity": 100
   },
   {
     "profileImage": "https://randomuser.me/api/portraits/men/73.jpg",
@@ -77,7 +94,10 @@
     "status": "affected",
     "date": "Sept 21, 2025",
     "time": "10:20 AM",
-    "image": "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80"
+    "image": "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80",
+    "category": "Clothes",
+    "itemName": "Winter Jackets",
+    "quantity": 5
   },
   {
     "profileImage": "https://randomuser.me/api/portraits/women/84.jpg",
@@ -87,7 +107,10 @@
     "date": "Sept 22, 2025",
     "time": "02:00 AM",
     "contact": "0998-765-4321",
-    "description": "Last seen in Brgy. Bagong Kalsada before the flood."
+    "description": "Last seen in Brgy. Bagong Kalsada before the flood.",
+    "category": "Shelter Materials",
+    "itemName": "Tarpaulin Sheets",
+    "quantity": 20
   },
   {
     "profileImage": "https://randomuser.me/api/portraits/men/19.jpg",
@@ -96,7 +119,10 @@
     "status": "safe",
     "date": "Sept 23, 2025",
     "time": "01:10 PM",
-    "location": "Brgy. Bucana, Naic, Cavite"
+    "location": "Brgy. Bucana, Naic, Cavite",
+    "category": "Products",
+    "itemName": "Bottled Juice",
+    "quantity": 100
   },
   {
     "profileImage": "https://randomuser.me/api/portraits/women/93.jpg",
@@ -109,6 +135,9 @@
     "latitude": "14.3209",
     "longitude": "120.7651",
     "numberOfPeople": 2,
-    "description": "Evacuated with her child due to rising floodwaters."
+    "description": "Evacuated with her child due to rising floodwaters.",
+    "category": "Supplies",
+    "itemName": "Blankets, Towels, and Sleeping Mats",
+    "quantity": 50
   }
 ]

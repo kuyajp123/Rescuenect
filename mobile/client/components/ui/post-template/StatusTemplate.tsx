@@ -33,13 +33,16 @@ export type StatusTemplateProps = {
   location?: string
   longitude?: string
   latitude?: string
-  status: string
+  status?: string
   description?: string
   image?: string
   numberOfPeople?: number
   contact?: string
   date: string
   time: string
+  category?: string
+  itemName?: string
+  quantity?: number
 }
 
 export const StatusTemplate: React.FC<StatusTemplateProps> = ({
@@ -143,18 +146,18 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
             </Box>
             
             <Box style={styles.locationContent}>
-              <Text style={styles.locationText}>
+              <Text size="xs" style={styles.locationText}>
                 {location}
               </Text>
               
               {longitude && (
-                <Text style={styles.coordinateText} size="xs" emphasis="light">
+                <Text style={styles.coordinateText} size="xs">
                   Longitude: {longitude}
                 </Text>
               )}
               
               {latitude && (
-                <Text style={styles.coordinateText} size="xs" emphasis="light">
+                <Text style={styles.coordinateText} size="xs">
                   Latitude: {latitude}
                 </Text>
               )}
@@ -230,7 +233,9 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
 const styles = StyleSheet.create({
   // Container styles
   container: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
   },
 
   // Header styles

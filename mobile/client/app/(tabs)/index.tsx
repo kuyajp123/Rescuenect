@@ -1,15 +1,31 @@
 import Body from '@/components/ui/Body';
-import type { StatusTemplateProps } from '@/components/ui/post-template/StatusTemplate';
-import { StatusTemplate } from '@/components/ui/post-template/StatusTemplate';
+import { Card } from '@/components/ui/Card';
+import { AdvancedCarousel } from '@/components/ui/carousel/AdvancedCarousel';
+import { CarouselScreen } from '@/components/ui/carousel/CarouselScreen';
+import { Text } from '@/components/ui/text';
 import React from 'react';
-import statusData from '../../data/statusData.json';
+import { View } from 'react-native';
 
 export default function HomeScreen () {
   return (
-    <Body gap={10} style={{ padding: 0, paddingVertical: 20 }}>
-      {statusData.map((item: StatusTemplateProps, index: number) => (
-      <StatusTemplate key={index} {...item} />
-      ))}
+    <View>
+      <Body gap={10} >
+      <Card>
+        <Text size="lg" emphasis="bold" style={{ textAlign: 'center' }}>
+          Welcome to Rescuenect!
+        </Text>
+        <Text size="md" style={{ textAlign: 'center', marginTop: 10 }}>
+          This is the home screen. Navigate to the tabs below to explore more.
+        </Text>
+      </Card>
+
+      {/* Featured Carousel */}
+      <AdvancedCarousel />
+
+      <CarouselScreen />
     </Body>
+
+    </View>
+    
   )
 }
