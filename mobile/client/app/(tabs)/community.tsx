@@ -5,7 +5,6 @@ import type { StatusTemplateProps } from '@/components/ui/post-template/StatusTe
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import statusData from '../../data/statusData.json';
-import { CarouselScreen } from '@/components/ui/carousel/CarouselScreen';
 
 const community = () => {
   return (

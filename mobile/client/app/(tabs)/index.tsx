@@ -1,10 +1,12 @@
 import Body from '@/components/ui/Body';
 import { Card } from '@/components/ui/Card';
 import { AdvancedCarousel } from '@/components/ui/carousel/AdvancedCarousel';
+import type { CarouselItem } from '@/components/ui/carousel/CarouselScreen';
 import { CarouselScreen } from '@/components/ui/carousel/CarouselScreen';
 import { Text } from '@/components/ui/text';
 import React from 'react';
 import { View } from 'react-native';
+import mostNeededItem from '../../data/mostNeedItem.json';
 
 export default function HomeScreen () {
   return (
@@ -18,14 +20,9 @@ export default function HomeScreen () {
           This is the home screen. Navigate to the tabs below to explore more.
         </Text>
       </Card>
-
-      {/* Featured Carousel */}
       <AdvancedCarousel />
-
-      <CarouselScreen />
+      <CarouselScreen data={mostNeededItem as CarouselItem[]} />
     </Body>
-
     </View>
-    
   )
 }
