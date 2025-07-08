@@ -1,3 +1,7 @@
+import { Avatar, AvatarFallbackText, AvatarGroup, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button/Button';
+import { Card } from '@/components/ui/Card';
+import { HStack } from '@/components/ui/hstack';
 import { Progress, ProgressFilledTrack } from "@/components/ui/progress";
 import { Text } from '@/components/ui/text';
 import { ColorCombinations, Colors } from '@/constants/Colors';
@@ -16,11 +20,18 @@ export type CarouselItem = {
   target_item: number;
 }
 
-type CarouselScreenProps = {
-  data: CarouselItem[];
+export type UserData = {
+  firstName: string;
+  lastName: string;
+  profileImage: string;
 }
 
-export const CarouselScreen = ({ data }: CarouselScreenProps) => {
+interface CarouselScreenProps {
+  data: CarouselItem[];
+  usersData?: UserData[]; // Array of user data
+}
+
+export const CarouselScreen = ({ data, usersData = [] }: CarouselScreenProps) => {
   const { isDark } = useTheme();
   
   // Helper function to format numbers with commas
@@ -42,7 +53,7 @@ export const CarouselScreen = ({ data }: CarouselScreenProps) => {
       </View>
       <View style={styles.current_item_container}>
         <Text size='lg' bold>{formatNumber(item.target_item - item.current_item)}</Text>
-        <Text size='xs' emphasis='light'>need more items</Text>
+        <Text size="2xs" emphasis='light'>need more items</Text>
       </View>
       <View>
         <Text size='2xs' bold style={{ color: isDark ? Colors.brand.dark : Colors.brand.light }}>
@@ -62,21 +73,74 @@ export const CarouselScreen = ({ data }: CarouselScreenProps) => {
   return (
     <View style={styles.container}>
       <View style={styles.title_container}>
-        <Text bold >Donation Drives</Text>
-        <Text>Your contribution can save lives</Text>
+        <Text size="lg" bold style={{ color: isDark ? Colors.brand.dark : Colors.brand.light }}>
+          Donation Drives
+        </Text>
+        <Text emphasis="medium" style={{ 
+          color: isDark ? Colors.text.dark : Colors.text.light,
+          opacity: 0.8,
+          marginTop: 4
+        }}>
+          Your contribution can save lives
+        </Text>
       </View>
-      <View style={[styles.title_container, { marginBottom: 0,}]}>
-        <Text>Most needed items:</Text>
+      <View style={[styles.title_container, { marginBottom: 0, marginTop: 10 }]}>
+        <Text size="sm" bold style={{ 
+          color: isDark ? Colors.text.dark : Colors.text.light,
+          opacity: 0.9
+        }}>
+          📦 Most needed items:
+        </Text>
       </View>
       <Carousel
         loop={false}
         width={screenWidth * 0.75} // Further reduced to show more of next item (25% peek)
-        height={150}
+        height={160} // Increased height to accommodate dynamic content
         data={data}
         scrollAnimationDuration={200}
         renderItem={renderItem}
         style={styles.carousel}
       />
+
+      <Button
+        action="primary"
+        variant="solid"
+        style={{ marginTop: 20, alignSelf: 'center' }}
+        onPress={() => alert('Donate Now')}
+      >
+        <Text style={{ color: '#ffffff' }} bold>Donate Now</Text>
+      </Button>
+
+      {usersData.length > 0 && (
+        <Card style={{ marginTop: 20 }}>
+          <HStack>
+            <Text size="sm" bold style={{ marginBottom: 10 }}>
+              👥 Recent Contributors
+            </Text>
+          </HStack>
+          <HStack style={{ gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <AvatarGroup>
+              {usersData.slice(0, 5).map((user, index) => (
+                <Avatar key={index} size="sm">
+                  <AvatarFallbackText>{user.firstName} {user.lastName}</AvatarFallbackText>
+                  <AvatarImage
+                    source={{
+                      uri: user.profileImage,
+                    }}
+                  />
+                </Avatar>
+              ))}
+            </AvatarGroup>
+            {
+            usersData.length - 5 <= 0 ? (<Text></Text>)
+            : usersData.length - 5 < 99 ? (<Text size='2xs' emphasis='light'>and other {usersData.length - 5} donators</Text>) 
+            : (<Text size='2xs' emphasis='light'>and other 99+ donators</Text>)
+            }
+            
+          </HStack>
+        </Card>
+      )}
+
     </View>
   );
 };
@@ -89,7 +153,7 @@ const styles = StyleSheet.create({
   title_container: {
     marginBottom: 20,
     gap: 5,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
   },
   carousel: {
     overflow: 'visible', // Allow items to show beyond carousel bounds
@@ -98,18 +162,21 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     borderWidth: 1,
-    marginHorizontal: 10, // Reduced margin to allow more space for peeking
+    marginHorizontal: 10,
     borderRadius: 20,
+    gap: 5,
   },
   current_item_container: {
-    marginVertical: 10,
+    marginVertical: 8, // Reduced margin for better spacing
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 5,
+    flexWrap: 'wrap', // Allow wrapping if text is too long
   },
   current_target_item_container: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: 10,
+    paddingTop: 8, // Reduced padding
+    flexWrap: 'wrap', // Allow wrapping for smaller screens
   }
 });

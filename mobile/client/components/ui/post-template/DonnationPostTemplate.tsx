@@ -1,26 +1,16 @@
 import {
   Avatar,
-  AvatarBadge,
   AvatarFallbackText,
-  AvatarImage,
+  AvatarImage
 } from "@/components/ui/avatar"
-import { Badge, BadgeIcon, BadgeText } from '@/components/ui/badge'
+import { Badge, BadgeText } from '@/components/ui/badge'
 import { Box } from '@/components/ui/box'
-import { Divider } from "@/components/ui/divider"
 import { Image } from '@/components/ui/image'
 import { Text } from '@/components/ui/text'
 import { VStack } from '@/components/ui/vstack'
 import { ColorCombinations } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
-import {
-  CircleCheck,
-  CircleQuestionMark,
-  Ellipsis,
-  Info,
-  Phone,
-  ShieldCheck,
-  Users
-} from 'lucide-react-native'
+import { Ellipsis } from 'lucide-react-native'
 import { StyleSheet } from 'react-native'
 import type { StatusTemplateProps } from './StatusTemplate'
 
@@ -77,7 +67,7 @@ export const DonnationPostTemplate = ({
             <Box style={styles.userSection}>
               <Box style={styles.avatarContainer}>
                 {profileImage && (
-                  <Avatar size='md'>
+                  <Avatar >
                   <AvatarImage
                     source={{
                       uri: profileImage,
@@ -87,14 +77,13 @@ export const DonnationPostTemplate = ({
                   <AvatarFallbackText>
                     {firstName.charAt(0)}{lastName.charAt(0)}
                   </AvatarFallbackText>
-                  <AvatarBadge style={dynamicStyles.avatarBadge} />
                 </Avatar>
                 )}
               </Box>
               
               <Box style={styles.userInfo}>
                 <Text style={styles.userName}>{firstName} {lastName}</Text>
-                <Text style={styles.timestamp} size="xs" emphasis="light">
+                <Text style={styles.timestamp} size="2xs" emphasis="light">
                   {date} • {time}
                 </Text>
               </Box>
@@ -121,13 +110,13 @@ export const DonnationPostTemplate = ({
               </Box>
               
               <Box style={styles.itemNameContent}>
-                <Text style={styles.ItemText} size="sm">
+                <Text style={styles.ItemText}>
                   {itemName}
                 </Text>
               </Box>
 
               <Box style={styles.quantityContent}>
-                <Text style={styles.ItemText} size="xs" emphasis="light">
+                <Text style={styles.ItemText} size="2xs" emphasis="light">
                   {quantity && `${quantity} items`}
                 </Text>
               </Box>
@@ -138,7 +127,7 @@ export const DonnationPostTemplate = ({
           {/* Description section */}
           {description && (
             <Box style={styles.descriptionContainer}>
-              <Text size="sm" style={styles.descriptionText}>
+              <Text style={styles.descriptionText}>
                 {description}
               </Text>
             </Box>

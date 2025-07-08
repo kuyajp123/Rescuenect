@@ -20,7 +20,7 @@ export const Button = ({
   className = '',
   isDark = false,
 }: ButtonProps) => {
-  let baseStyle = 'px-4 py-3 flex-row items-center justify-center gap-1 rounded-lg font-semibold';
+  let baseStyle = 'w-full px-4 py-3 flex-row items-center justify-center gap-1 rounded-lg font-semibold';
 
   // Action color styles (for solid variant)
   let actionStyle = '';

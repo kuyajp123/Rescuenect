@@ -112,7 +112,7 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
             
             <Box style={styles.userInfo}>
               <Text style={styles.userName}>{firstName} {lastName}</Text>
-              <Text style={styles.timestamp} size="xs" emphasis="light">
+              <Text style={styles.timestamp} size="2xs" emphasis="light">
                 {date} • {time}
               </Text>
             </Box>
@@ -146,18 +146,18 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
             </Box>
             
             <Box style={styles.locationContent}>
-              <Text size="xs" style={styles.locationText}>
+              <Text  style={styles.locationText}>
                 {location}
               </Text>
               
               {longitude && (
-                <Text style={styles.coordinateText} size="xs">
+                <Text style={styles.coordinateText} >
                   Longitude: {longitude}
                 </Text>
               )}
               
               {latitude && (
-                <Text style={styles.coordinateText} size="xs">
+                <Text style={styles.coordinateText} >
                   Latitude: {latitude}
                 </Text>
               )}
@@ -168,7 +168,7 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
         {/* Description section */}
         {description && (
           <Box style={styles.descriptionContainer}>
-            <Text size="sm" style={styles.descriptionText}>
+            <Text style={styles.descriptionText}>
               {description}
             </Text>
           </Box>

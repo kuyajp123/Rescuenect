@@ -2,8 +2,9 @@ import { Image } from '@/components/ui/image';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
+import { Text } from '@/components/ui/text';
 
 const { width } = Dimensions.get('window');
 
@@ -68,7 +69,7 @@ export const AdvancedCarousel = () => {
         
         {/* Text overlay on image */}
         <View style={styles.imageTextOverlay}>
-          <Text style={styles.overlayTitle}>{item.title}</Text>
+          <Text size='xl' style={styles.overlayTitle}>{item.title}</Text>
           <Text style={styles.overlaySubtitle}>{item.subtitle}</Text>
         </View>
       </View>
@@ -142,7 +143,7 @@ export const AdvancedCarousel = () => {
 
       {/* Current Item Text (follows carousel) */}
       <View style={styles.currentItemInfo}>
-        <Text style={[
+        <Text size='md' style={[
           styles.currentItemTitle,
           { color: isDark ? '#FFFFFF' : '#333333' }
         ]}>
@@ -211,20 +212,17 @@ const styles = StyleSheet.create({
   },
   overlayTitle: {
     color: '#FFFFFF',
-    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   overlaySubtitle: {
     color: '#FFFFFF',
-    fontSize: 14,
     opacity: 0.9,
   },
   contentContainer: {
     padding: 16,
   },
   itemDescription: {
-    fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
   },
@@ -245,13 +243,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   currentItemTitle: {
-    fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 4,
   },
   currentItemSubtitle: {
-    fontSize: 14,
     textAlign: 'center',
   },
 });

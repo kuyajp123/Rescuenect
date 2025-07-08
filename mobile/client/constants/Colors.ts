@@ -35,7 +35,7 @@ export const Colors = {
   border: {
     light: '#e4e4e7',
     medium: '#d4d4d8',
-    dark: '#3f3f46',
+    dark: '#2a2a2a',
   },
 
   // Button Interactive States
