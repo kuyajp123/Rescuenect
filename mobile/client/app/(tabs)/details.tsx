@@ -4,6 +4,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { StyleSheet, Text } from 'react-native';
 import {Colors} from '@/constants/Colors';
+import ThemeSwitcher from '@/components/ThemeSwitcher';
 
 export default function DetailsScreen() {
   const { isDark } = useTheme();
@@ -68,6 +69,7 @@ export default function DetailsScreen() {
 >
   <Text style={{ color: Colors.semantic.success }}>Solid Button</Text>
 </Button>
+    <ThemeSwitcher/>
     </Body>
   );
 }

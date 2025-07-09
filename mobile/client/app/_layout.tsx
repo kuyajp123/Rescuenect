@@ -7,6 +7,7 @@ import { Stack, useRouter } from 'expo-router';
 import { Bell, ChevronLeft } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import '../global.css';
 
@@ -115,10 +116,12 @@ function RootLayoutContent() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <FontSizeProvider>
-        <RootLayoutContent />
-      </FontSizeProvider>
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <FontSizeProvider>
+          <RootLayoutContent />
+        </FontSizeProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

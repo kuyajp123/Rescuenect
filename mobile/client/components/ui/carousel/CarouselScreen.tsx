@@ -6,8 +6,10 @@ import { Progress, ProgressFilledTrack } from "@/components/ui/progress";
 import { Text } from '@/components/ui/text';
 import { ColorCombinations, Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useRouter } from 'expo-router';
+import { ChevronRight } from 'lucide-react-native';
 import React from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
 
 // Get screen width for responsive carousel
@@ -33,6 +35,7 @@ interface CarouselScreenProps {
 
 export const CarouselScreen = ({ data, usersData = [] }: CarouselScreenProps) => {
   const { isDark } = useTheme();
+  const router = useRouter();
   
   // Helper function to format numbers with commas
   const formatNumber = (num: number) => {
@@ -84,23 +87,33 @@ export const CarouselScreen = ({ data, usersData = [] }: CarouselScreenProps) =>
           Your contribution can save lives
         </Text>
       </View>
-      <View style={[styles.title_container, { marginBottom: 0, marginTop: 10 }]}>
-        <Text size="sm" bold style={{ 
-          color: isDark ? Colors.text.dark : Colors.text.light,
-          opacity: 0.9
-        }}>
-          📦 Most needed items:
+
+      <View>
+        <Text>
+          Help us reach our goal of providing essential items to those in need. 
+          Every donation counts, no matter how small.
         </Text>
       </View>
-      <Carousel
-        loop={false}
-        width={screenWidth * 0.75} // Further reduced to show more of next item (25% peek)
-        height={160} // Increased height to accommodate dynamic content
-        data={data}
-        scrollAnimationDuration={200}
-        renderItem={renderItem}
-        style={styles.carousel}
-      />
+
+      {data.length > 0 && data.some(item => (item.target_item - item.current_item) > 0) && (
+        <View style={{ marginBottom: 0, marginTop: 10 }}>
+          <Text size="sm" bold style={{ 
+            color: isDark ? Colors.text.dark : Colors.text.light,
+            opacity: 0.9
+          }}>
+            📦 Most needed items:
+          </Text>
+          <Carousel
+            loop={false}
+            width={screenWidth * 0.75} // Further reduced to show more of next item (25% peek)
+            height={160} // Increased height to accommodate dynamic content
+            data={data}
+            scrollAnimationDuration={200}
+            renderItem={renderItem}
+            style={styles.carousel}
+          />
+        </View>
+      )}
 
       <Button
         action="primary"
@@ -112,9 +125,13 @@ export const CarouselScreen = ({ data, usersData = [] }: CarouselScreenProps) =>
       </Button>
 
       {usersData.length > 0 && (
+        <TouchableOpacity
+        onPress={() => router.push('/community')}
+        activeOpacity={1}
+        >
         <Card style={{ marginTop: 20 }}>
           <HStack>
-            <Text size="sm" bold style={{ marginBottom: 10 }}>
+            <Text size="sm" bold style={{ marginBottom: 20 }}>
               👥 Recent Contributors
             </Text>
           </HStack>
@@ -136,9 +153,12 @@ export const CarouselScreen = ({ data, usersData = [] }: CarouselScreenProps) =>
             : usersData.length - 5 < 99 ? (<Text size='2xs' emphasis='light'>and other {usersData.length - 5} donators</Text>) 
             : (<Text size='2xs' emphasis='light'>and other 99+ donators</Text>)
             }
-            
+            <View style={{ flex: 1, alignItems: 'flex-end', padding: 0 }}>
+            <ChevronRight size={24} style={{ opacity: 0.8 }} />
+            </View>
           </HStack>
         </Card>
+        </TouchableOpacity>
       )}
 
     </View>
@@ -148,12 +168,11 @@ export const CarouselScreen = ({ data, usersData = [] }: CarouselScreenProps) =>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingVertical: 40,
+    // paddingVertical: 40,
   },
   title_container: {
     marginBottom: 20,
     gap: 5,
-    paddingHorizontal: 10,
   },
   carousel: {
     overflow: 'visible', // Allow items to show beyond carousel bounds
@@ -180,3 +199,38 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap', // Allow wrapping for smaller screens
   }
 });
+
+// This component can be used in your main app file or wherever you need to display the carousel
+// Usage example:
+
+// import { CarouselScreen } from '@/components/ui/carousel/CarouselScreen';
+// import type { StatusTemplateProps } from '@/components/ui/post-template/StatusTemplate';
+// import type { CarouselItem } from '@/components/ui/carousel/CarouselScreen';
+// import statusData from '../../data/statusData.json';
+// import mostNeedItem from '../../data/mostNeedItem.json';
+
+// export default function HomeScreen () {
+//   // Extract user data from statusData for the carousel
+//   const usersData = statusData.map((item: StatusTemplateProps) => ({
+//     firstName: item.firstName,
+//     lastName: item.lastName,
+//     profileImage: item.profileImage,
+//   }));
+
+//   // Convert statusData to CarouselItem format
+//   const mostNeededItem = mostNeedItem.map((item: CarouselItem) => ({
+//     id: item.id,
+//     category: item.category,
+//     current_item: item.current_item,
+//     target_item: item.target_item,
+//   }));
+
+//   return (
+//    <Body gap={10} >
+//       <CarouselScreen 
+//         data={mostNeededItem as CarouselItem[]} 
+//         usersData={usersData}
+//       />
+//     </Body>
+//   )
+// }

@@ -1,0 +1,47 @@
+import Body from '@/components/ui/Body';
+import React, { useEffect, useState } from 'react';
+import { Text, View, StyleSheet, ActivityIndicator } from 'react-native';
+import * as Location from 'expo-location';
+
+export default function HomeScreen () {
+  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      // Ask for permission
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setErrorMsg('Permission to access location was denied');
+        return;
+      }
+
+      // Get location
+      let loc = await Location.getCurrentPositionAsync({});
+      setLocation(loc);
+    })();
+  }, []);
+
+  return (
+    <Body gap={10}style={styles.container}>
+      {errorMsg ? (
+        <Text>{errorMsg}</Text>
+      ) : location ? (
+        <Text>
+          Latitude: {location.coords.latitude}{"\n"}
+          Longitude: {location.coords.longitude}
+        </Text>
+      ) : (
+        <ActivityIndicator size="large" color="#0000ff" />
+      )}
+    </Body>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});

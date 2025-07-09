@@ -385,3 +385,20 @@ const styles = StyleSheet.create({
     paddingTop: 2,
   },
 })
+
+// This component can be used in your main app file or wherever you need to display the status template
+// Usage example:
+
+// import { StatusTemplate } from '@/components/ui/post-template/StatusTemplate';
+// import type { StatusTemplateProps } from '@/components/ui/post-template/StatusTemplate';
+// import statusData from '../../data/statusData.json';
+
+// const community = () => {
+//   return (
+//     <Body gap={10} style={{ padding: 0, paddingVertical: 20 }}>
+//       {statusData.map((item: StatusTemplateProps, index: number) => (
+//       <StatusTemplate key={index} {...item} />
+//       ))}
+//     </Body>
+//   )
+// }

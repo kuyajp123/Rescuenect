@@ -15,7 +15,6 @@ const community = () => {
       {statusData.map((item: StatusTemplateProps, index: number) => (
       <StatusTemplate key={index} {...item} />
       ))}
-
     </Body>
   )
 }

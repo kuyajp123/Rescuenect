@@ -317,3 +317,20 @@ export const DonnationPostTemplate = ({
       paddingTop: 2,
     },
   })
+
+// This component can be used in your main app file or wherever you need to display the donation post template
+// Usage example:
+
+// import { DonnationPostTemplate } from '@/components/ui/post-template/DonnationPostTemplate';
+// import type { StatusTemplateProps } from '@/components/ui/post-template/StatusTemplate';
+// import statusData from '../../data/statusData.json';
+
+// const community = () => {
+//   return (
+//     <Body gap={10} style={{ padding: 0, paddingVertical: 20 }}>
+//       {statusData.map((item: StatusTemplateProps, index: number) => (
+//       <DonnationPostTemplate key={index} {...item} />
+//       ))}
+//     </Body>
+//   )
+// }

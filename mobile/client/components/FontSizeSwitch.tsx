@@ -1,8 +1,9 @@
+import { Radio, RadioGroup, RadioIcon, RadioIndicator } from '@/components/ui/radio';
 import { Text } from '@/components/ui/text';
-import { ColorCombinations, Colors } from '@/constants/Colors';
+import { Colors } from '@/constants/Colors';
 import { FontSizeScale, useFontSize } from '@/contexts/FontSizeContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Minus, Plus, Type } from 'lucide-react-native';
+import { Circle } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -29,213 +30,196 @@ export const FontSizeSwitch = ({
   const currentIndex = fontScales.findIndex(scale => scale.scale === fontScale);
   const currentScale = fontScales[currentIndex];
 
-  const decreaseFontSize = () => {
-    if (currentIndex > 0) {
-      setFontScale(fontScales[currentIndex - 1].scale);
-    }
+  const handleRadioChange = (selectedScale: FontSizeScale) => {
+    setFontScale(selectedScale);
   };
 
-  const increaseFontSize = () => {
-    if (currentIndex < fontScales.length - 1) {
-      setFontScale(fontScales[currentIndex + 1].scale);
-    }
-  };
-
-  const styles = StyleSheet.create({
+  const getStyles = () => StyleSheet.create({
+    fullContainer: {
+      flex: 1,
+      backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+    },
     container: {
       alignItems: 'center',
-      padding: 16,
-      backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: isDark ? Colors.border.dark : Colors.border.light,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 12,
-      gap: 8,
-    },
-    buttonContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 16,
-    },
-    button: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: isDark ? Colors.background.light : Colors.background.dark,
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderWidth: 1,
-      borderColor: isDark ? Colors.border.medium : Colors.border.light,
-    },
-    disabledButton: {
-      opacity: 0.5,
     },
     currentSizeContainer: {
-      minWidth: 80,
       alignItems: 'center',
-      paddingHorizontal: 16,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+      borderRadius: 12,
+      width: '100%',
+      height: 120, // Fixed height for current size display
+      justifyContent: 'center',
     },
-    scaleContainer: {
+    sliderContainer: {
+      width: '100%',
+      marginVertical: 24,
+      height: 80, // Reduced height since no slider
+    },
+    radioGroupContainer: {
       flexDirection: 'row',
-      marginTop: 12,
-      gap: 6,
+      justifyContent: 'space-between',
+      width: '100%',
+      height: 80,
     },
-    scaleButton: {
-      paddingHorizontal: 12,
+    checkpoint: {
+      alignItems: 'center',
+      flex: 1,
+      height: 80,
+      justifyContent: 'space-between',
       paddingVertical: 8,
       borderRadius: 8,
-      borderWidth: 1,
-      borderColor: isDark ? Colors.border.dark : Colors.border.light,
-      backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
     },
-    activeScaleButton: {
-      backgroundColor: isDark ? Colors.brand.light : Colors.brand.light,
-      borderColor: isDark ? Colors.brand.light : Colors.brand.light,
+    radioContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 28,
+      height: 28,
+      marginBottom: 8,
+      borderRadius: 14,
+      backgroundColor: 'transparent',
+    },
+    checkpointLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      height: 16, // Fixed height for label
+      lineHeight: 16,
+    },
+    checkpointDescription: {
+      fontSize: 10,
+      opacity: 0.7,
+      textAlign: 'center',
+      height: 12, // Fixed height for description
+      lineHeight: 12,
     },
     previewContainer: {
-      marginTop: 16,
-      padding: 12,
-      borderRadius: 8,
-      backgroundColor: isDark ? ColorCombinations.card_dark.background : ColorCombinations.card.Background,
-      borderColor: isDark ? '#000000' : ColorCombinations.card.border,
+      width: '100%',
+      padding: 20,
+      borderRadius: 12,
+      borderColor: isDark ? Colors.border.dark : Colors.border.light,
       borderWidth: 1,
       alignItems: 'center',
+      height: 300, // Fixed height for preview section
+      justifyContent: 'flex-start',
+    },
+    previewTitle: {
+      opacity: 0.8,
+      height: 24, // Fixed height for title
+      lineHeight: 24,
+    },
+    previewTextContainer: {
+      alignItems: 'center',
+      gap: 8,
+      flex: 1,
+      justifyContent: 'center',
+      width: '100%',
     },
   });
 
-  if (variant === 'scale') {
-    return (
-      <View style={styles.container}>
-        {showLabel && (
-          <View style={styles.header}>
-            <Type size={18} color={isDark ? Colors.text.dark : Colors.text.light} />
-            <Text size="md" style={{ fontWeight: '600' }}>
-              Font Size
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.scaleContainer}>
-          {fontScales.map((scaleOption) => (
-            <TouchableOpacity
-              key={scaleOption.scale}
-              style={[
-                styles.scaleButton,
-                fontScale === scaleOption.scale && styles.activeScaleButton,
-              ]}
-              onPress={() => setFontScale(scaleOption.scale)}
-            >
-              <Text 
-                size="sm" 
-                style={{ 
-                  fontWeight: fontScale === scaleOption.scale ? 'bold' : 'normal',
-                  color: fontScale === scaleOption.scale 
-                    ? (isDark ? Colors.text.light : Colors.text.dark)
-                    : (isDark ? Colors.text.dark : Colors.text.light)
-                }}
-              >
-                {scaleOption.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.previewContainer}>
-          <Text size="sm" style={{ opacity: 0.7 }}>
-            Preview ({Math.round(fontMultiplier * 100)}%)
-          </Text>
-          <Text size="lg" style={{ marginTop: 4 }}>
-            Sample Text
-          </Text>
-        </View>
-      </View>
-    );
-  }
+  const styles = getStyles();
 
   return (
-    <View style={styles.container}>
-      {showLabel && (
-        <View style={styles.header}>
-          <Type size={18} color={isDark ? Colors.text.dark : Colors.text.light} />
-          <Text size="md" style={{ fontWeight: '600' }}>
-            Font Size
-          </Text>
-        </View>
-      )}
+    <View style={styles.fullContainer}>
+      <View style={styles.container}>
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[
-            styles.button,
-            currentIndex === 0 && styles.disabledButton,
-          ]}
-          onPress={decreaseFontSize}
-          disabled={currentIndex === 0}
-        >
-          <Minus 
-            size={20} 
-            color={isDark ? Colors.text.light : Colors.text.dark} 
-          />
-        </TouchableOpacity>
-
+        {/* Current Size Display */}
         <View style={styles.currentSizeContainer}>
-          <Text size="xl" style={{ fontWeight: 'bold' }}>
+          <Text size="2xl" style={{ fontWeight: 'bold', marginBottom: 8, textAlign: 'center' }} numberOfLines={1}>
             {currentScale.label}
           </Text>
-          <Text size="xs" style={{ opacity: 0.7, marginTop: 2 }}>
+          <Text size="md" style={{ opacity: 0.8, marginBottom: 4, textAlign: 'center' }} numberOfLines={1}>
             {currentScale.description}
           </Text>
-          <Text size="xs" style={{ opacity: 0.6, marginTop: 1 }}>
+          <Text size="sm" style={{ opacity: 0.6, textAlign: 'center' }} numberOfLines={1}>
             {Math.round(fontMultiplier * 100)}%
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={[
-            styles.button,
-            currentIndex === fontScales.length - 1 && styles.disabledButton,
-          ]}
-          onPress={increaseFontSize}
-          disabled={currentIndex === fontScales.length - 1}
-        >
-          <Plus 
-            size={20} 
-            color={isDark ? Colors.text.light : Colors.text.dark} 
-          />
-        </TouchableOpacity>
-      </View>
+        {/* Radio Button Selection */}
+        <View style={styles.sliderContainer}>
+          <RadioGroup 
+            value={fontScale} 
+            onChange={handleRadioChange}
+          >
+            <View style={styles.radioGroupContainer}>
+              {fontScales.map((scaleOption, index) => (
+                <TouchableOpacity 
+                  key={scaleOption.scale} 
+                  style={[
+                    styles.checkpoint,
+                    fontScale === scaleOption.scale && {
+                      backgroundColor: isDark 
+                        ? 'rgba(59, 130, 246, 0.1)' 
+                        : 'rgba(59, 130, 246, 0.05)'
+                    }
+                  ]}
+                  onPress={() => handleRadioChange(scaleOption.scale)}
+                  activeOpacity={0.6}
+                >
+                  <View style={styles.radioContainer}>
+                    <Radio value={scaleOption.scale} size="md">
+                      <RadioIndicator>
+                        <RadioIcon 
+                          as={Circle} 
+                          color={fontScale === scaleOption.scale 
+                            ? (isDark ? Colors.brand.light : Colors.brand.light)
+                            : 'transparent'
+                          }
+                        />
+                      </RadioIndicator>
+                    </Radio>
+                  </View>
+                  <Text 
+                    style={[
+                      styles.checkpointLabel,
+                      { 
+                        color: index === currentIndex 
+                          ? (isDark ? Colors.brand.light : Colors.brand.light)
+                          : (isDark ? Colors.text.dark : Colors.text.light),
+                        opacity: index === currentIndex ? 1 : 0.7
+                      }
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {scaleOption.label}
+                  </Text>
+                  <Text 
+                    style={[
+                      styles.checkpointDescription,
+                      { color: isDark ? Colors.text.dark : Colors.text.light }
+                    ]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {scaleOption.description}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </RadioGroup>
+        </View>
 
-      {/* Visual indicator */}
-      <View style={{ flexDirection: 'row', gap: 6, marginTop: 12 }}>
-        {fontScales.map((_, index) => (
-          <View
-            key={index}
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: index === currentIndex 
-                ? (isDark ? Colors.brand.light : Colors.brand.light)
-                : (isDark ? Colors.border.dark : Colors.border.light),
-            }}
-          />
-        ))}
-      </View>
-
-      <View style={styles.previewContainer}>
-        <Text size="sm" style={{ opacity: 0.7 }}>
-          Preview
-        </Text>
-        <Text size="md" style={{ marginTop: 4 }}>
-          Sample Text
-        </Text>
-        <Text size="lg" style={{ marginTop: 2 }}>
-          Larger Sample
-        </Text>
+        {/* Preview Section */}
+        <View style={styles.previewContainer}>
+          <Text size="lg" style={[styles.previewTitle, { fontWeight: 'bold', textAlign: 'center' }]} numberOfLines={1}>
+            Preview
+          </Text>
+          <View style={styles.previewTextContainer}>
+            <Text size="sm" numberOfLines={1} style={{ textAlign: 'center' }}>
+              Small sample text
+            </Text>
+            <Text size="md" numberOfLines={1} style={{ textAlign: 'center' }}>
+              Medium sample text
+            </Text>
+            <Text size="lg" numberOfLines={1} style={{ textAlign: 'center' }}>
+              Large sample text
+            </Text>
+            <Text size="xl" style={{ marginTop: 8, fontWeight: '600', textAlign: 'center' }} numberOfLines={1}>
+              Extra large heading
+            </Text>
+          </View>
+        </View>
       </View>
     </View>
   );

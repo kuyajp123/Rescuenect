@@ -1,14 +1,12 @@
 import Body from '@/components/ui/Body';
-import { Card } from '@/components/ui/Card';
-import { AdvancedCarousel } from '@/components/ui/carousel/AdvancedCarousel';
-import type { CarouselItem } from '@/components/ui/carousel/CarouselScreen';
-import { CarouselScreen } from '@/components/ui/carousel/CarouselScreen';
-import { Text } from '@/components/ui/text';
 import React from 'react';
-import { View } from 'react-native';
-import mostNeededItem from '../../data/mostNeedItem.json';
+import { StyleSheet } from 'react-native';
+
+import { CarouselScreen } from '@/components/ui/carousel/CarouselScreen';
 import type { StatusTemplateProps } from '@/components/ui/post-template/StatusTemplate';
+import type { CarouselItem } from '@/components/ui/carousel/CarouselScreen';
 import statusData from '../../data/statusData.json';
+import mostNeedItem from '../../data/mostNeedItem.json';
 
 export default function HomeScreen () {
   // Extract user data from statusData for the carousel
@@ -18,25 +16,29 @@ export default function HomeScreen () {
     profileImage: item.profileImage,
   }));
 
-  console.log('Users Data:', usersData);
+  // Convert statusData to CarouselItem format
+  const mostNeededItem = mostNeedItem.map((item: CarouselItem) => ({
+    id: item.id,
+    category: item.category,
+    current_item: item.current_item,
+    target_item: item.target_item,
+  }));
 
   return (
-    <View>
-      <Body gap={10} >
-      <Card>
-        <Text size="md" emphasis="bold" style={{ textAlign: 'center' }}>
-          Welcome to Rescuenect!
-        </Text>
-        <Text style={{ textAlign: 'center', marginTop: 10 }}>
-          This is the home screen. Navigate to the tabs below to explore more.
-        </Text>
-      </Card>
-      <AdvancedCarousel />
+   <Body gap={10} >
+    
       <CarouselScreen 
-        data={mostNeededItem as CarouselItem[]} 
+        data={mostNeedItem.length > 0 ? mostNeededItem as CarouselItem[] : []} 
         usersData={usersData}
       />
     </Body>
-    </View>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
