@@ -26,7 +26,6 @@ export default function HomeScreen () {
 
   return (
    <Body gap={10} >
-    
       <CarouselScreen 
         data={mostNeedItem.length > 0 ? mostNeededItem as CarouselItem[] : []} 
         usersData={usersData}

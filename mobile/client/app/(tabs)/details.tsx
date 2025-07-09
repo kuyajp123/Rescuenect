@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button/Button';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { StyleSheet, Text } from 'react-native';
-import {Colors} from '@/constants/Colors';
+import {ColorCombinations, Colors} from '@/constants/Colors';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 
 export default function DetailsScreen() {
@@ -13,18 +13,18 @@ export default function DetailsScreen() {
       <Text style={styles.title} className={isDark ? 'text-text_dark-500' : 'text-text_light-500'} >Welcome to the Details Screen</Text>
 
         <Button
-  variant="outline"
+          variant="outline"
 
-  onPress={() => alert('Outline Pressed')}
->
-  <Text
-    className={`font-semibold ${
-      isDark ? 'text-text_dark-500' : 'text-zinc-600'
-    }`}
-  >
-    Outline Button
-  </Text>
-</Button>
+          onPress={() => alert('Outline Pressed')}
+        >
+          <Text
+            className={`font-semibold ${
+              isDark ? 'text-text_dark-500' : 'text-zinc-600'
+            }`}
+          >
+            Outline Button
+          </Text>
+        </Button>
 
 <Button
   action="primary"
@@ -59,7 +59,7 @@ export default function DetailsScreen() {
   onPress={() => alert('Button Pressed')}
 >
   <Text className='dark:text-text_dark-500 text-text_light-500 '>Solid Button</Text>
-  <ChevronRight size={24} color={isDark ? '#FFFFFF' : '#000000'} />
+  <ChevronRight size={24} color={isDark ? ColorCombinations.statusTemplate.light : ColorCombinations.statusTemplate.dark} />
 </Button>
 
 <Button

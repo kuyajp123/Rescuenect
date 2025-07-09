@@ -8,7 +8,7 @@ import statusData from '../../data/statusData.json';
 
 const community = () => {
   return (
-    <Body gap={10} style={{ padding: 0, paddingVertical: 20 }}>
+    <Body gap={10} style={{ padding: 0, paddingVertical: 20 }}>``
       {statusData.map((item: StatusTemplateProps, index: number) => (
       <DonnationPostTemplate key={index} {...item} />
       ))}

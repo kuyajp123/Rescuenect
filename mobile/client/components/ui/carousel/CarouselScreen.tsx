@@ -76,7 +76,7 @@ export const CarouselScreen = ({ data, usersData = [] }: CarouselScreenProps) =>
   return (
     <View style={styles.container}>
       <View style={styles.title_container}>
-        <Text size="lg" bold style={{ color: isDark ? Colors.brand.dark : Colors.brand.light }}>
+        <Text size="lg" bold>
           Donation Drives
         </Text>
         <Text emphasis="medium" style={{ 
@@ -154,7 +154,7 @@ export const CarouselScreen = ({ data, usersData = [] }: CarouselScreenProps) =>
             : (<Text size='2xs' emphasis='light'>and other 99+ donators</Text>)
             }
             <View style={{ flex: 1, alignItems: 'flex-end', padding: 0 }}>
-            <ChevronRight size={24} style={{ opacity: 0.8 }} />
+            <ChevronRight size={24} style={{ opacity: 0.8 }} color={isDark ? ColorCombinations.statusTemplate.light : ColorCombinations.statusTemplate.dark} />
             </View>
           </HStack>
         </Card>
