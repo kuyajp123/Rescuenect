@@ -1,5 +1,8 @@
+import { Colors } from '@/constants/Colors';
+import { ChevronRight } from 'lucide-react-native';
 import React from 'react';
 import { TouchableOpacity } from 'react-native';
+import { Text } from 'react-native'
 
 type ButtonProps = {
   style?: object;
@@ -67,60 +70,194 @@ export const Button = ({
   );
 };
 
-// example usage
-{/* <Button
-  variant="outline"
-
-  onPress={() => alert('Outline Pressed')}
->
-  <Text
-    className={'dark:text-text_dark-500 text-text_light-500'}
+// Predefined Button Components
+export const OutlineButton = ({ 
+  onPress, 
+  children, 
+  isDark = false,
+  style,
+  className = ''
+}: { 
+  onPress?: () => void; 
+  children?: React.ReactNode; 
+  isDark?: boolean;
+  style?: object;
+  className?: string;
+}) => (
+  <Button
+    variant="outline"
+    onPress={onPress}
+    isDark={isDark}
+    style={style}
+    className={className}
   >
-    Outline Button
-  </Text>
-</Button>
+    <Text className={'dark:text-text_dark-500 text-text_light-500'}>
+      {children || 'Outline Button'}
+    </Text>
+  </Button>
+);
 
-<Button
-  action="primary"
-  variant="solid"
+export const PrimaryButton = ({ 
+  onPress, 
+  children, 
+  style,
+  className = ''
+}: { 
+  onPress?: () => void; 
+  children?: React.ReactNode; 
+  style?: object;
+  className?: string;
+}) => (
+  <Button
+    action="primary"
+    variant="solid"
+    style={style}
+    onPress={onPress}
+    className={className}
+  >
+    <Text className="text-white font-semibold">
+      {children || 'Primary Button'}
+    </Text>
+  </Button>
+);
+
+export const ErrorButton = ({ 
+  onPress, 
+  children, 
+  style,
+  className = ''
+}: { 
+  onPress?: () => void; 
+  children?: React.ReactNode; 
+  style?: object;
+  className?: string;
+}) => (
+  <Button
+    action="error"
+    variant="solid"
+    style={style}
+    onPress={onPress}
+    className={className}
+  >
+    <Text className="text-white font-semibold">
+      {children || 'Error Button'}
+    </Text>
+  </Button>
+);
+
+export const WarningButton = ({ 
+  onPress, 
+  children, 
+  style,
+  className = ''
+}: { 
+  onPress?: () => void; 
+  children?: React.ReactNode; 
+  style?: object;
+  className?: string;
+}) => (
+  <Button
+    action="warning"
+    variant="solid"
+    style={style}
+    onPress={onPress}
+    className={className}
+  >
+    <Text className="text-white font-semibold">
+      {children || 'Warning Button'}
+    </Text>
+  </Button>
+);
+
+export const SuccessButton = ({ 
+  onPress, 
+  children, 
+  style,
+  className = '',
+  showIcon = true
+}: { 
+  onPress?: () => void; 
+  children?: React.ReactNode; 
+  style?: object;
+  className?: string;
+  showIcon?: boolean;
+}) => (
+  <Button
+    action="success"
+    variant="solid"
+    style={{ borderRadius: 50, ...style }}
+    onPress={onPress}
+    className={className}
+  >
+    <Text className="text-white font-semibold">
+      {children || 'Success Button'}
+    </Text>
+    {showIcon && <ChevronRight size={24} color={'#FFFFFF'} />}
+  </Button>
+);
+
+export const CustomOutlineButton = ({ 
+  onPress, 
+  children, 
+  color = Colors.semantic?.success || '#4CAF50',
+  style,
+  className = ''
+}: { 
+  onPress?: () => void; 
+  children?: React.ReactNode; 
+  color?: string;
+  style?: object;
+  className?: string;
+}) => (
+  <Button
+    variant='outline'
+    style={{ borderColor: color, borderWidth: 2, ...style }}
+    onPress={onPress}
+    className={className}
+  >
+    <Text style={{ color }}>
+      {children || 'Custom Button'}
+    </Text>
+  </Button>
+);
+
+// Usage Examples:
+/*
+import { 
+  PrimaryButton, 
+  ErrorButton, 
+  WarningButton, 
+  SuccessButton, 
+  OutlineButton, 
+  CustomOutlineButton 
+} from '@/components/ui/button/Button';
+
+// Simple usage:
+<PrimaryButton onPress={() => alert('Primary pressed!')}>
+  Click Me
+</PrimaryButton>
+
+<ErrorButton onPress={() => alert('Error pressed!')}>
+  Delete Item
+</ErrorButton>
+
+<WarningButton onPress={() => alert('Warning pressed!')}>
+  Proceed with Caution
+</WarningButton>
+
+<SuccessButton onPress={() => alert('Success pressed!')} showIcon={false}>
+  Complete Action
+</SuccessButton>
+
+<OutlineButton onPress={() => alert('Outline pressed!')} isDark={true}>
+  Secondary Action
+</OutlineButton>
+
+<CustomOutlineButton 
+  onPress={() => alert('Custom pressed!')} 
+  color="#FF6B6B"
   style={{ marginTop: 20 }}
-  onPress={() => alert('Button Pressed')}
 >
-  <Text className="text-white font-semibold">Solid Button</Text>
-</Button>
-
-<Button
-  action="error"
-  variant="solid"
-  style={{ marginTop: 20 }}
-  onPress={() => alert('Button Pressed')}
->
-  <Text className="text-white font-semibold">Solid Button</Text>
-</Button>
-
-<Button
-  action="warning"
-  variant="solid"
-  style={{ marginTop: 20 }}
-  onPress={() => alert('Button Pressed')}
->
-  <Text className="text-white font-semibold">Solid Button</Text>
-</Button>
-
-<Button
-  action="success"
-  variant="solid"
-  style={{ marginTop: 20, borderRadius: 50 }}
-  onPress={() => alert('Button Pressed')}
->
-  <Text className="text-white font-semibold">Solid Button</Text>
-  <ChevronRight size={24} color={'#FFFFFF'} />
-</Button> 
-
-<Button
-  variant='outline'
-  style={{ marginTop: 20, borderColor: Colors.semantic.success, borderWidth: 2 }}
-  onPress={() => alert('Button Pressed')}
->
-  <Text style={{ color: Colors.semantic.success }}>Solid Button</Text>
-</Button> */}
+  Custom Color
+</CustomOutlineButton>
+*/

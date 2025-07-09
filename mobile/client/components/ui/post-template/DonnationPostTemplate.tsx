@@ -6,12 +6,14 @@ import {
 import { Badge, BadgeText } from '@/components/ui/badge'
 import { Box } from '@/components/ui/box'
 import { Image } from '@/components/ui/image'
+import { ImageModal } from '@/components/ui/image-modal/ImageModal'
 import { Text } from '@/components/ui/text'
 import { VStack } from '@/components/ui/vstack'
 import { ColorCombinations } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
 import { Ellipsis } from 'lucide-react-native'
-import { StyleSheet } from 'react-native'
+import React, { useState } from 'react'
+import { StyleSheet, TouchableOpacity } from 'react-native'
 import type { StatusTemplateProps } from './StatusTemplate'
 
 export const DonnationPostTemplate = ({  
@@ -19,14 +21,8 @@ export const DonnationPostTemplate = ({
     profileImage,
     firstName,
     lastName,
-    location,
-    longitude,
-    latitude,
-    status,
     description,
     image,
-    numberOfPeople,
-    contact,
     date,
     time,
     category,
@@ -34,6 +30,15 @@ export const DonnationPostTemplate = ({
     quantity
  }: StatusTemplateProps) => {
     const { isDark } = useTheme()
+    const [isImageModalVisible, setIsImageModalVisible] = useState(false)
+
+    const handleImagePress = () => {
+      setIsImageModalVisible(true)
+    }
+
+    const handleCloseModal = () => {
+      setIsImageModalVisible(false)
+    }
 
   // Dynamic styles based on theme
     const dynamicStyles = {
@@ -44,9 +49,6 @@ export const DonnationPostTemplate = ({
       },
       ellipsisIcon: {
         color: isDark ? '#A6A6A6' : '#5B5B5B',
-      },
-      avatarBadge: {
-        backgroundColor: isDark ? '#4CAF50' : '#81C784',
       },
     }
   
@@ -136,16 +138,28 @@ export const DonnationPostTemplate = ({
           {/* Image section */}
           {image && (
             <Box style={styles.imageContainer}>
-              <Image
-                className="rounded-lg"
-                size="2xl"
-                source={{ uri: image }}
-                alt={`${firstName} ${lastName} status update`}
-              />
+              <TouchableOpacity onPress={handleImagePress} activeOpacity={0.8}>
+                <Image
+                  className="rounded-lg"
+                  size="2xl"
+                  source={{ uri: image }}
+                  alt={`${firstName} ${lastName} status update`}
+                />
+              </TouchableOpacity>
             </Box>
           )}
   
         </VStack>
+        
+        {/* Image Modal */}
+        {image && (
+          <ImageModal
+            visible={isImageModalVisible}
+            imageUri={image}
+            onClose={handleCloseModal}
+            alt={`${firstName} ${lastName} status update - Full size`}
+          />
+        )}
       </Box>
     )
   }

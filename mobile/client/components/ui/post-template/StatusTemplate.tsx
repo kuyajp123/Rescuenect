@@ -1,13 +1,13 @@
 import {
   Avatar,
-  AvatarBadge,
   AvatarFallbackText,
-  AvatarImage,
+  AvatarImage
 } from "@/components/ui/avatar"
 import { Badge, BadgeIcon, BadgeText } from '@/components/ui/badge'
 import { Box } from '@/components/ui/box'
 import { Divider } from "@/components/ui/divider"
 import { Image } from '@/components/ui/image'
+import { ImageModal } from '@/components/ui/image-modal/ImageModal'
 import { Text } from '@/components/ui/text'
 import { VStack } from '@/components/ui/vstack'
 import { ColorCombinations } from '@/constants/Colors'
@@ -22,8 +22,8 @@ import {
   ShieldCheck,
   Users
 } from 'lucide-react-native'
-import React from 'react'
-import { StyleSheet } from 'react-native'
+import React, { useState } from 'react'
+import { StyleSheet, TouchableOpacity } from 'react-native'
 
 export type StatusTemplateProps = {
   style?: object
@@ -62,6 +62,15 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
   time,
 }) => {
   const { isDark } = useTheme()
+  const [isImageModalVisible, setIsImageModalVisible] = useState(false)
+
+  const handleImagePress = () => {
+    setIsImageModalVisible(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsImageModalVisible(false)
+  }
 
   // Dynamic styles based on theme
   const dynamicStyles = {
@@ -105,7 +114,6 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
                 <AvatarFallbackText>
                   {firstName.charAt(0)}{lastName.charAt(0)}
                 </AvatarFallbackText>
-                <AvatarBadge style={dynamicStyles.avatarBadge} />
               </Avatar>
               )}
             </Box>
@@ -177,12 +185,14 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
         {/* Image section */}
         {image && (
           <Box style={styles.imageContainer}>
-            <Image
-              className="rounded-lg"
-              size="2xl"
-              source={{ uri: image }}
-              alt={`${firstName} ${lastName} status update`}
-            />
+            <TouchableOpacity onPress={handleImagePress} activeOpacity={0.8}>
+              <Image
+                className="rounded-lg"
+                size="2xl"
+                source={{ uri: image }}
+                alt={`${firstName} ${lastName} status update`}
+              />
+            </TouchableOpacity>
           </Box>
         )}
 
@@ -226,6 +236,16 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
         )}
 
       </VStack>
+      
+      {/* Image Modal */}
+      {image && (
+        <ImageModal
+          visible={isImageModalVisible}
+          imageUri={image}
+          onClose={handleCloseModal}
+          alt={`${firstName} ${lastName} status update - Full size`}
+        />
+      )}
     </Box>
   )
 }

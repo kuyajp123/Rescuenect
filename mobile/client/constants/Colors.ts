@@ -3,6 +3,8 @@
  * Centralized color definitions for the entire application
  */
 
+import { icons } from "lucide-react-native";
+
 export const Colors = {
   // Brand Colors
   brand: {
@@ -36,6 +38,10 @@ export const Colors = {
     light: '#e4e4e7',
     medium: '#d4d4d8',
     dark: '#2a2a2a',
+  },
+    icons: {
+      dark: '#A6A6A6',
+      light: '#5B5B5B'
   },
 
   // Button Interactive States

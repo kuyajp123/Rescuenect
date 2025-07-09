@@ -18,7 +18,13 @@ const Body = ({ children, style, ...props }: ContainerProps) => {
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
       <VStack
-        style={[{ flex: 1, padding: 20, backgroundColor: isDark ? Colors.background.dark : Colors.background.light }, style]}
+        style={[{ 
+          flex: 1, 
+          padding: 20, 
+          backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+          paddingBottom: 40, 
+        }, 
+        style]}
         {...props} 
         >
           {children}

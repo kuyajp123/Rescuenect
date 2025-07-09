@@ -1,75 +1,21 @@
 import Body from '@/components/ui/Body';
-import { Button } from '@/components/ui/button/Button';
-import { useTheme } from '@/contexts/ThemeContext';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { StyleSheet, Text } from 'react-native';
-import {ColorCombinations, Colors} from '@/constants/Colors';
-import ThemeSwitcher from '@/components/ThemeSwitcher';
+import { DonnationPostTemplate } from '@/components/ui/post-template/DonnationPostTemplate';
+import type { StatusTemplateProps } from '@/components/ui/post-template/StatusTemplate';
+import { StatusTemplate } from '@/components/ui/post-template/StatusTemplate';
+import React from 'react';
+import { StyleSheet } from 'react-native';
+import statusData from '../../data/statusData.json';
 
 export default function DetailsScreen() {
-  const { isDark } = useTheme();
+
   return (
-    <Body>
-      <Text style={styles.title} className={isDark ? 'text-text_dark-500' : 'text-text_light-500'} >Welcome to the Details Screen</Text>
-
-        <Button
-          variant="outline"
-
-          onPress={() => alert('Outline Pressed')}
-        >
-          <Text
-            className={`font-semibold ${
-              isDark ? 'text-text_dark-500' : 'text-zinc-600'
-            }`}
-          >
-            Outline Button
-          </Text>
-        </Button>
-
-<Button
-  action="primary"
-  variant="solid"
-  style={{ marginTop: 20 }}
-  onPress={() => alert('Button Pressed')}
->
-  <Text className="text-white font-semibold">Solid Button</Text>
-</Button>
-
-<Button
-  action="error"
-  variant="solid"
-  style={{ marginTop: 20 }}
-  onPress={() => alert('Button Pressed')}
->
-  <Text className="text-white font-semibold">Solid Button</Text>
-</Button>
-
-<Button
-  action="warning"
-  variant="solid"
-  style={{ marginTop: 20 }}
-  onPress={() => alert('Button Pressed')}
->
-  <Text className="text-white font-semibold">Solid Button</Text>
-</Button>
-
-<Button
-  variant="outline"
-  style={{ marginTop: 20, borderRadius: 50 }}
-  onPress={() => alert('Button Pressed')}
->
-  <Text className='dark:text-text_dark-500 text-text_light-500 '>Solid Button</Text>
-  <ChevronRight size={24} color={isDark ? ColorCombinations.statusTemplate.light : ColorCombinations.statusTemplate.dark} />
-</Button>
-
-<Button
-  variant='outline'
-  style={{ marginTop: 20, borderColor: Colors.semantic.success, borderWidth: 2 }}
-  onPress={() => alert('Button Pressed')}
->
-  <Text style={{ color: Colors.semantic.success }}>Solid Button</Text>
-</Button>
-    <ThemeSwitcher/>
+    <Body gap={10} style={{ padding: 0, paddingVertical: 20 }}>
+      {statusData.map((item: StatusTemplateProps, index: number) => (
+      <DonnationPostTemplate key={index} {...item} />
+      ))}
+      {statusData.map((item: StatusTemplateProps, index: number) => (
+      <StatusTemplate key={index} {...item} />
+      ))}
     </Body>
   );
 }

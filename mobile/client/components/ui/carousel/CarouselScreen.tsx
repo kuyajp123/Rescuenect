@@ -126,7 +126,7 @@ export const CarouselScreen = ({ data, usersData = [] }: CarouselScreenProps) =>
 
       {usersData.length > 0 && (
         <TouchableOpacity
-        onPress={() => router.push('/community')}
+        onPress={() => router.push('/details')}
         activeOpacity={1}
         >
         <Card style={{ marginTop: 20 }}>
