@@ -76,7 +76,7 @@ export const CarouselScreen = ({ data, usersData = [] }: CarouselScreenProps) =>
   return (
     <View style={styles.container}>
       <View style={styles.title_container}>
-        <Text size="lg" bold>
+        <Text size="sm" bold>
           Donation Drives
         </Text>
         <Text emphasis="medium" style={{ 

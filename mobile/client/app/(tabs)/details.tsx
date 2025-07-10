@@ -1,21 +1,20 @@
 import Body from '@/components/ui/Body';
-import { DonnationPostTemplate } from '@/components/ui/post-template/DonnationPostTemplate';
-import type { StatusTemplateProps } from '@/components/ui/post-template/StatusTemplate';
-import { StatusTemplate } from '@/components/ui/post-template/StatusTemplate';
+import { DonationList } from '@/components/ui/post-template/DonationList';
+import { StatusList } from '@/components/ui/post-template/StatusList';
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import statusData from '../../data/statusData.json';
+statusData
+StatusList
+DonationList
 
 export default function DetailsScreen() {
 
   return (
     <Body gap={10} style={{ padding: 0, paddingVertical: 20 }}>
-      {statusData.map((item: StatusTemplateProps, index: number) => (
-      <DonnationPostTemplate key={index} {...item} />
-      ))}
-      {statusData.map((item: StatusTemplateProps, index: number) => (
-      <StatusTemplate key={index} {...item} />
-      ))}
+
+      {/* <StatusList statusUpdates={statusData} /> */}
+      {/* <DonationList donations={statusData} /> */}
     </Body>
   );
 }
