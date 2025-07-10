@@ -103,7 +103,7 @@ export const communityStatus = ({
                         </View>
                     </View>
                     <PrimaryButton onPress={() => alert('Primary pressed!')}>
-                        View all Status
+                        <Text style={{ color: '#ffffff' }} bold>View all Status</Text>
                     </PrimaryButton>
                 </View>
             </VStack>

@@ -1,8 +1,7 @@
 import { Colors } from '@/constants/Colors';
 import { ChevronRight } from 'lucide-react-native';
 import React from 'react';
-import { TouchableOpacity } from 'react-native';
-import { Text } from 'react-native'
+import { Text, TouchableOpacity } from 'react-native';
 
 type ButtonProps = {
   style?: object;
@@ -231,6 +230,7 @@ import {
   OutlineButton, 
   CustomOutlineButton 
 } from '@/components/ui/button/Button';
+import { Phone, Mail, Download, Heart, User, Settings } from 'lucide-react-native';
 
 // Simple usage:
 <PrimaryButton onPress={() => alert('Primary pressed!')}>
