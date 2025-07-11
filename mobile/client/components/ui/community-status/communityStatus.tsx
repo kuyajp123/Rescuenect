@@ -58,7 +58,7 @@ export const CommunityStatus = ({
     return (
         <View>
             <VStack space='lg'>
-                <Text>Community Status</Text>
+                <Text>Status</Text>
                 <View>
                     <View style={[
                         styles.statusContainer,

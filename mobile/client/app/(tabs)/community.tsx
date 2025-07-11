@@ -4,9 +4,10 @@ import { CommunityStatus } from '@/components/ui/community-status/CommunityStatu
 import { ListOfEvents } from '@/components/ui/data-display/ListOfEvents';
 import Body from '@/components/ui/layout/Body';
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import mostNeedItem from '../../data/mostNeedItem.json';
 import statusData from '../../data/statusData.json';
+import { Text } from '@/components/ui/text';
 
 const community = () => {
 // Calculate status counts from statusData
@@ -55,6 +56,8 @@ const community = () => {
 
   return (
    <Body gap={50} >
+      <View><Text size='3xl' bold>Community</Text></View>
+      
       <CommunityStatus
         safe={statusCounts.safe}
         evacuated={statusCounts.evacuated}

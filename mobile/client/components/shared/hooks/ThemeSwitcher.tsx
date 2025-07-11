@@ -14,29 +14,27 @@ const ThemeSwitcher = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.iconContainer}>
+    <View>
+      {/* <View style={styles.iconContainer}>
         {isDark ? <Moon size={16} color="#fff" /> : <Sun size={16} color="#333" />}
-      </View>
+      </View> */}
       <Switch
         value={isDark}
         onValueChange={toggleTheme}
         trackColor={{ false: '#767577', true: '#0ea5e9' }}
         thumbColor={isDark ? '#f4f3f4' : '#f4f3f4'}
+        style={{ height: 24, width: 48 }}
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  iconContainer: {
-    padding: 4,
-  },
+  // container: {
+  //   flexDirection: 'row',
+  //   alignItems: 'center',
+  //   gap: 8,
+  // },
 });
 
 export default ThemeSwitcher;
