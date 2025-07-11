@@ -1,7 +1,7 @@
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
-export default function createStatus() {
+export const createStatus = () => {
   return (
     <View>
       <Text>status</Text>
@@ -10,3 +10,5 @@ export default function createStatus() {
 }
 
 const styles = StyleSheet.create({})
+
+export default createStatus;

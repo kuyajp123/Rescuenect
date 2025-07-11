@@ -1,3 +1,4 @@
+import type { StatusTemplateProps } from '@/components/shared/types/components'
 import {
   Avatar,
   AvatarFallbackText,
@@ -24,27 +25,6 @@ import {
 } from 'lucide-react-native'
 import React, { useState } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
-
-export type StatusTemplateProps = {
-  style?: object
-  id?: string | number
-  profileImage: string
-  firstName: string
-  lastName: string
-  location?: string
-  longitude?: string
-  latitude?: string
-  status?: string
-  description?: string
-  image?: string
-  numberOfPeople?: number
-  contact?: string
-  date: string
-  time: string
-  category?: string
-  itemName?: string
-  quantity?: number
-}
 
 export const StatusTemplate: React.FC<StatusTemplateProps> = ({
   style,

@@ -1,4 +1,4 @@
-import Body from '@/components/ui/Body';
+import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { StyleSheet, View } from 'react-native';
 

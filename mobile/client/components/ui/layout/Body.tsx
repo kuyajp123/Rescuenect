@@ -3,7 +3,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import type { ComponentProps } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { ScrollView } from 'react-native';
-import { VStack, } from './vstack';
+import { VStack, } from '../vstack';
 
 type VStackProps = ComponentProps<typeof VStack>;
 

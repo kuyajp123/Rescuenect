@@ -1,18 +1,18 @@
-import Body from '@/components/ui/Body';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card/Card';
+import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
-import { 
-  Bell, 
-  Shield, 
-  Info, 
-  Palette, 
-  Type, 
-  ChevronRight 
+import {
+  Bell,
+  ChevronRight,
+  Info,
+  Palette,
+  Shield,
+  Type
 } from 'lucide-react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
   const { isDark } = useTheme();

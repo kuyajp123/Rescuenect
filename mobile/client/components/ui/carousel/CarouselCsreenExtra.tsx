@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallbackText, AvatarGroup, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button/Button';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card/Card';
 import { HStack } from '@/components/ui/hstack';
 import { Progress, ProgressFilledTrack } from "@/components/ui/progress";
 import { Text } from '@/components/ui/text';

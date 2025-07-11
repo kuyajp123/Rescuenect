@@ -1,3 +1,4 @@
+import type { CommunityStatusProps } from '@/components/shared/types/components';
 import { PrimaryButton } from '@/components/ui/button/Button';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
@@ -7,13 +8,6 @@ import { useRouter } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-
-export interface CommunityStatusProps {
-    safe: number | null
-    evacuated: number | null
-    affected: number | null
-    missing: number | null
-}
 
 // Status Card Component
 const StatusCard = ({ 

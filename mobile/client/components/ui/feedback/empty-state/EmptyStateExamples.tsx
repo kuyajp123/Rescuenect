@@ -1,5 +1,5 @@
-import { EmptyState } from '@/components/ui/empty-state';
-import { ListOfEvents } from '@/components/ui/volunteer-events/ListOfEvents';
+import { ListOfEvents } from '@/components/ui/data-display/ListOfEvents';
+import { EmptyState } from '@/components/ui/feedback/empty-state';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 

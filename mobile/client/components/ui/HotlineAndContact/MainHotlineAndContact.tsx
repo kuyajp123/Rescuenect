@@ -2,7 +2,7 @@ import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogHeader
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/feedback/alert-dialog";
 import { Image } from '@/components/ui/image';
 import { Text } from '@/components/ui/text';
 import { Colors } from "@/constants/Colors";
@@ -15,7 +15,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, Linking, Pressable, StyleSheet, View } from 'react-native';
 
 
-export default function MainHotlineAndContact () {
+export const MainHotlineAndContact = () => {
   const { isDark } = useTheme();
   const [showAlertDialog, setShowAlertDialog] = useState(false)
   const scaleValue = useRef(new Animated.Value(0)).current;

@@ -1,8 +1,8 @@
-import { EmptyState } from '@/components/ui/empty-state';
+import type { StatusTemplateProps } from '@/components/shared/types/components';
+import { EmptyState } from '@/components/ui/feedback/empty-state';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import type { StatusTemplateProps } from './template/StatusTemplate';
-import { StatusTemplate } from './template/StatusTemplate';
+import { StatusTemplate } from '../PostTemplate/StatusTemplate';
 
 interface StatusListProps {
   /**
@@ -85,7 +85,7 @@ STATUS LIST COMPONENT USAGE GUIDE
 
 BASIC USAGE:
 -----------
-import { StatusList } from '@/components/ui/post-template/StatusList';
+import { StatusList } from '@/components/ui/PostTemplate/StatusList';
 
 // With status updates
 <StatusList statusUpdates={statusData} />

@@ -1,9 +1,8 @@
-import Body from '@/components/ui/Body';
-import type { CarouselItem } from '@/components/ui/carousel/CarouselScreen';
+import type { CarouselItem, StatusTemplateProps } from '@/components/shared/types/components';
 import { CarouselScreen } from '@/components/ui/carousel/CarouselScreen';
 import { CommunityStatus } from '@/components/ui/community-status/CommunityStatus';
-import type { StatusTemplateProps } from '@/components/ui/post-template/template/StatusTemplate';
-import { ListOfEvents } from '@/components/ui/volunteer-events/ListOfEvents';
+import { ListOfEvents } from '@/components/ui/data-display/ListOfEvents';
+import Body from '@/components/ui/layout/Body';
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import mostNeedItem from '../../data/mostNeedItem.json';

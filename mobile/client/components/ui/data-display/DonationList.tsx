@@ -1,8 +1,8 @@
-import { EmptyState } from '@/components/ui/empty-state';
+import type { StatusTemplateProps } from '@/components/shared/types/components';
+import { EmptyState } from '@/components/ui/feedback/empty-state';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { DonnationPostTemplate } from './template/DonnationPostTemplate';
-import type { StatusTemplateProps } from './template/StatusTemplate';
+import { DonnationPostTemplate } from '../PostTemplate/DonnationPostTemplate';
 
 interface DonationListProps {
   /**
@@ -85,7 +85,7 @@ DONATION LIST COMPONENT USAGE GUIDE
 
 BASIC USAGE:
 -----------
-import { DonationList } from '@/components/ui/post-template/DonationList';
+import { DonationList } from '@/components/ui/PostTemplate/DonationList';
 
 // With donation posts
 <DonationList donations={donationData} />

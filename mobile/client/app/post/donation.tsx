@@ -1,11 +1,10 @@
-import Body from '@/components/ui/Body'
-import { StatusList } from '@/components/ui/post-template'
+import { DonationList } from '@/components/ui/data-display/DonationList'
+import Body from '@/components/ui/layout/Body'
 import React from 'react'
 import { StyleSheet } from 'react-native'
 import statusData from '../../data/statusData.json'
-import { DonationList } from '@/components/ui/post-template/DonationList'
 
-export default function status() {
+export const status = () => {
   return (
     <Body gap={10} style={{ padding: 0, paddingVertical: 20 }}>
       <DonationList donations={statusData} />
@@ -14,3 +13,5 @@ export default function status() {
 }
 
 const styles = StyleSheet.create({})
+
+export default status;

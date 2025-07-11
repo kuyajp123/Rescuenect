@@ -1,17 +1,9 @@
-import { EmptyState } from '@/components/ui/empty-state';
+import type { Event } from '@/components/shared/types/components';
+import { EmptyState } from '@/components/ui/feedback/empty-state';
 import { Text } from '@/components/ui/text';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { ImageBackground, StyleSheet, View } from 'react-native';
-
-interface Event {
-  id?: string;
-  title: string;
-  description?: string;
-  image?: any; // Changed to 'any' to accept require() imports
-  date: string;
-  location: string;
-}
 
 interface ListOfEventsProps {
   events?: Event[];

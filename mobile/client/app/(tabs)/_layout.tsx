@@ -133,7 +133,7 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
   );
 };
 
-export default function TabLayout() {
+export const TabLayout = () => {
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -227,3 +227,5 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF', // White border around FAB
   },
 });
+
+export default TabLayout;

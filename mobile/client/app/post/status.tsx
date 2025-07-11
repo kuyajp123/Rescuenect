@@ -1,10 +1,10 @@
-import Body from '@/components/ui/Body'
-import { StatusList } from '@/components/ui/post-template'
+import Body from '@/components/ui/layout/Body'
+import { StatusList } from '@/components/ui/PostTemplate'
 import React from 'react'
 import { StyleSheet } from 'react-native'
 import statusData from '../../data/statusData.json'
 
-export default function status() {
+export const status = () => {
   return (
     <Body gap={10} style={{ padding: 0, paddingVertical: 20 }}>
       <StatusList statusUpdates={statusData} />
@@ -13,3 +13,5 @@ export default function status() {
 }
 
 const styles = StyleSheet.create({})
+
+export default status;

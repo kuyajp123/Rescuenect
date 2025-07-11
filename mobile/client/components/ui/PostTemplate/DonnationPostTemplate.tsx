@@ -1,3 +1,4 @@
+import type { StatusTemplateProps } from '@/components/shared/types/components'
 import {
   Avatar,
   AvatarFallbackText,
@@ -14,7 +15,6 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { Ellipsis } from 'lucide-react-native'
 import React, { useState } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
-import type { StatusTemplateProps } from '../template/StatusTemplate'
 
 export const DonnationPostTemplate = ({  
     style,

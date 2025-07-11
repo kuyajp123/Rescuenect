@@ -1,9 +1,9 @@
-import { FontSizeSwitch } from '@/components/FontSizeSwitch';
-import ThemeSwitcher from '@/components/ThemeSwitcher';
-import Body from '@/components/ui/Body';
+import { FontSizeSwitch } from '@/components/shared/hooks/FontSizeSwitch';
+import ThemeSwitcher from '@/components/shared/hooks/ThemeSwitcher';
+import Body from '@/components/ui/layout/Body';
 import { StyleSheet } from 'react-native';
 
-export default function MenuScreen() {
+export const MenuScreen = () => {
   return (
     <Body style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
       <FontSizeSwitch />
@@ -18,3 +18,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+export default MenuScreen;

@@ -2,7 +2,7 @@ import { Stack } from 'expo-router'
 import React from 'react'
 import { StyleSheet } from 'react-native'
 
-export default function _layout() {
+export const _layout = () => {
   return (
     <Stack>
       <Stack.Screen
@@ -22,3 +22,5 @@ export default function _layout() {
 }
 
 const styles = StyleSheet.create({})
+
+export default _layout;

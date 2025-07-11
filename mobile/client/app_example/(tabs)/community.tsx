@@ -1,6 +1,6 @@
 import { ColorVerification } from '@/components/ColorVerification';
-import Body from '@/components/ui/Body';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card/Card';
+import Body from '@/components/ui/layout/Body';
 // import { Text } from '@/components/ui/text';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getButtonTailwindBg, getButtonTailwindText } from '@/utils/buttonColors';
@@ -18,7 +18,7 @@ import {
   User,
   X
 } from 'lucide-react-native';
-import { Alert, StyleSheet, TouchableOpacity, View, Text } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function CommunityScreen() {
   const { isDark } = useTheme();

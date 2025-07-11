@@ -32,9 +32,9 @@ Convert all component files to PascalCase:
 ```bash
 # Files to rename:
 communityStatus.tsx → CommunityStatus.tsx (✅ DONE)
-hotline-and-contact/ → HotlineAndContact/
-volunteer-events/ → VolunteerEvents/
-post-template/ → PostTemplate/
+hotline-and-contact/ → HotlineAndContact/ (✅ DONE)
+volunteer-events/ → VolunteerEvents/ (✅ DONE)
+post-template/ → PostTemplate/ (✅ DONE)
 ```
 
 **Action Steps:**

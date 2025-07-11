@@ -1,7 +1,8 @@
+import type { CarouselItem, UserData } from '@/components/shared/types/components';
 import { Avatar, AvatarFallbackText, AvatarGroup, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button/Button';
-import { Card } from '@/components/ui/Card';
-import { EmptyState } from '@/components/ui/empty-state/EmptyState';
+import { Card } from '@/components/ui/card/Card';
+import { EmptyState } from '@/components/ui/feedback/empty-state/EmptyState';
 import { HStack } from '@/components/ui/hstack';
 import { Progress, ProgressFilledTrack } from "@/components/ui/progress";
 import { Text } from '@/components/ui/text';
@@ -15,19 +16,6 @@ import Carousel from 'react-native-reanimated-carousel';
 
 // Get screen width for responsive carousel
 const { width: screenWidth } = Dimensions.get('window');
-
-export type CarouselItem = {
-  id: number;
-  category: string;
-  current_item: number;
-  target_item: number;
-}
-
-export type UserData = {
-  firstName: string;
-  lastName: string;
-  profileImage: string;
-}
 
 interface CarouselScreenProps {
   data: CarouselItem[];

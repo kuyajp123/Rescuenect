@@ -1,12 +1,12 @@
+import { FontSizeSwitch } from '@/components/shared/hooks/FontSizeSwitch';
+import ThemeSwitcher from '@/components/shared/hooks/ThemeSwitcher';
+import { Text } from '@/components/ui/text';
+import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import { router } from 'expo-router';
-import { ChevronRight, User, Settings, Bell, Shield, Info, FileText, Smartphone } from 'lucide-react-native';
+import { Bell, ChevronRight, FileText, Settings, Shield, Smartphone, User } from 'lucide-react-native';
 import React from 'react';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
-import { Text } from '@/components/ui/text';
-import { useTheme } from '@/contexts/ThemeContext';
-import { Colors } from '@/constants/Colors';
-import { FontSizeSwitch } from '@/components/FontSizeSwitch';
-import ThemeSwitcher from '@/components/ThemeSwitcher';
 
 export default function MenuScreen() {
   const { isDark } = useTheme();

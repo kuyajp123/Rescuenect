@@ -1,11 +1,11 @@
-import Body from '@/components/ui/Body';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card/Card';
+import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
-import { StyleSheet, View, Switch, TouchableOpacity } from 'react-native';
+import { Eye, Fingerprint, Shield } from 'lucide-react-native';
 import { useState } from 'react';
-import { Shield, Eye, Lock, Fingerprint } from 'lucide-react-native';
+import { StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 
 export default function PrivacyScreen() {
   const { isDark } = useTheme();

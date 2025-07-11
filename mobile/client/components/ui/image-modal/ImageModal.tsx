@@ -1,15 +1,9 @@
+import type { ImageModalProps } from '@/components/shared/types/components';
 import { Image } from '@/components/ui/image';
 import { useTheme } from '@/contexts/ThemeContext';
 import { X } from 'lucide-react-native';
 import React from 'react';
 import { Dimensions, Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
-
-interface ImageModalProps {
-  visible: boolean;
-  imageUri: string;
-  onClose: () => void;
-  alt?: string;
-}
 
 const { width, height } = Dimensions.get('window');
 

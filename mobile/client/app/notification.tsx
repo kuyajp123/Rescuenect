@@ -1,9 +1,9 @@
-import { StyleSheet } from 'react-native'
-import React from 'react'
-import Body from '@/components/ui/Body'
+import Body from '@/components/ui/layout/Body'
 import { Text } from '@/components/ui/text'
+import React from 'react'
+import { StyleSheet } from 'react-native'
 
-export default function notification() {
+export const notification = () => {
   return (
       <Body>
         <Text>notification</Text>
@@ -12,3 +12,5 @@ export default function notification() {
 }
 
 const styles = StyleSheet.create({})
+
+export default notification;
