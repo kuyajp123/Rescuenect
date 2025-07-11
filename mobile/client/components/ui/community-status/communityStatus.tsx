@@ -3,6 +3,7 @@ import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
 import { ColorCombinations, Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useRouter } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -51,13 +52,14 @@ const StatusCard = ({
     );
 };
 
-export const communityStatus = ({ 
+export const CommunityStatus = ({ 
     safe, 
     evacuated, 
     affected, 
     missing 
 }: CommunityStatusProps) => {
     const { isDark } = useTheme();
+    const router = useRouter();
 
     return (
         <View>
@@ -102,7 +104,7 @@ export const communityStatus = ({
                             />
                         </View>
                     </View>
-                    <PrimaryButton onPress={() => alert('Primary pressed!')}>
+                    <PrimaryButton onPress={() => router.push('post/status' as any)}>
                         <Text style={{ color: '#ffffff' }} bold>View all Status</Text>
                     </PrimaryButton>
                 </View>
@@ -157,7 +159,7 @@ const styles = StyleSheet.create({
 
 // Usage Example:
 
-// import { communityStatus as CommunityStatus } from '@/components/ui/community-status/communityStatus';
+// import { CommunityStatus } from '@/components/ui/community-status/CommunityStatus';
 // import statusData from '../../data/statusData.json';
 
 // export default function HomeScreen () {

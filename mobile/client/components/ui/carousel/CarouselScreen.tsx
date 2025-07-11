@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallbackText, AvatarGroup, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button/Button';
 import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/empty-state/EmptyState';
 import { HStack } from '@/components/ui/hstack';
 import { Progress, ProgressFilledTrack } from "@/components/ui/progress";
 import { Text } from '@/components/ui/text';
@@ -89,6 +90,16 @@ export const CarouselScreen = ({ data, usersData = [] }: CarouselScreenProps) =>
       </View>
 
       <View>
+        <EmptyState 
+          title="Support Our Cause"
+          subtitle="Join us in making a difference"
+          animationSource={require('@/assets/animations/Muslim gives alms of zakat in Ramadan 2021.json')}
+          animationSize={180}
+          autoPlay={false}
+        />
+      </View>
+
+      <View>
         <Text>
           Help us reach our goal of providing essential items to those in need. 
           Every donation counts, no matter how small.
@@ -126,7 +137,7 @@ export const CarouselScreen = ({ data, usersData = [] }: CarouselScreenProps) =>
 
       {usersData.length > 0 && (
         <TouchableOpacity
-        onPress={() => router.push('/details')}
+        onPress={() => router.push('/post/donation')}
         activeOpacity={1}
         >
         <Card style={{ marginTop: 20 }}>
@@ -171,7 +182,6 @@ const styles = StyleSheet.create({
     // paddingVertical: 40,
   },
   title_container: {
-    marginBottom: 20,
     gap: 5,
   },
   carousel: {

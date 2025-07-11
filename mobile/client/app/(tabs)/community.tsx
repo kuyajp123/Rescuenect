@@ -1,13 +1,13 @@
 import Body from '@/components/ui/Body';
 import type { CarouselItem } from '@/components/ui/carousel/CarouselScreen';
 import { CarouselScreen } from '@/components/ui/carousel/CarouselScreen';
-import { communityStatus as CommunityStatus } from '@/components/ui/community-status/communityStatus';
-import type { StatusTemplateProps } from '@/components/ui/post-template/StatusTemplate';
+import { CommunityStatus } from '@/components/ui/community-status/CommunityStatus';
+import type { StatusTemplateProps } from '@/components/ui/post-template/template/StatusTemplate';
+import { ListOfEvents } from '@/components/ui/volunteer-events/ListOfEvents';
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import mostNeedItem from '../../data/mostNeedItem.json';
 import statusData from '../../data/statusData.json';
-import { ListOfEvents } from '@/components/ui/volunteer-events/ListOfEvents';
 
 const community = () => {
 // Calculate status counts from statusData

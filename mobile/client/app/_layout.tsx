@@ -6,7 +6,7 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter } from 'expo-router';
 import { Bell, ChevronLeft } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import '../global.css';
@@ -18,6 +18,59 @@ function RootLayoutContent() {
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+
+  // Enhanced back button component
+  const BackButton = () => {
+    const [isPressed, setIsPressed] = useState(false);
+    
+    return (
+      <TouchableOpacity 
+        onPress={() => router.back()}
+        onPressIn={() => setIsPressed(true)}
+        onPressOut={() => setIsPressed(false)}
+        style={[
+          {
+            width: 'auto',
+            borderRadius: 50,
+            padding: 8,
+            backgroundColor: isPressed 
+              ? (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)')
+              : 'transparent',
+            transform: [{ scale: isPressed ? 0.95 : 1 }],
+          }
+        ]}
+        activeOpacity={0.7}
+      >
+        <ChevronLeft size={24} color={isDark ? Colors.text.dark : Colors.text.light} />
+      </TouchableOpacity>
+    );
+  };
+
+  // Enhanced notification button component
+  const NotificationButton = () => {
+    const [isPressed, setIsPressed] = useState(false);
+    
+    return (
+      <TouchableOpacity 
+        onPress={() => router.push('/notification')}
+        onPressIn={() => setIsPressed(true)}
+        onPressOut={() => setIsPressed(false)}
+        style={[
+          {
+            borderRadius: 50,
+            padding: 8,
+            backgroundColor: isPressed 
+              ? (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)')
+              : 'transparent',
+            transform: [{ scale: isPressed ? 0.95 : 1 }],
+          }
+        ]}
+        activeOpacity={0.7}
+      >
+        <Bell size={20} color={isDark ? Colors.text.dark : Colors.text.light} />
+      </TouchableOpacity>
+    );
+  };
 
   const [loaded] = useFonts({
     Poppins: require('../assets/fonts/Poppins-Regular.ttf'),
@@ -76,9 +129,7 @@ function RootLayoutContent() {
             headerShadowVisible: false,
             headerRight: () => (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Pressable onPress={() => { router.push('/notification'); }}>
-                  <Bell size={24} color={isDark ? Colors.text.dark : Colors.text.light} />
-                </Pressable>
+                <NotificationButton />
               </View>
             ),
           }} 
@@ -98,14 +149,23 @@ function RootLayoutContent() {
               color: isDark ? Colors.text.dark : Colors.brand.light,
             },
             headerShadowVisible: false,
-            headerLeft: () => (
-              <Pressable onPress={() => { router.back(); }}>
-                <ChevronLeft size={24} color={isDark ? Colors.text.dark : Colors.text.light} />
-              </Pressable>
-            ),
-            animation: 'slide_from_right',
-            animationDuration: 150,
-            animationTypeForReplace: 'push',
+            headerLeft: () => <BackButton />,
+            animation: 'none',
+            // animationDuration: 100,
+            // animationTypeForReplace: 'pop',
+          }}
+        />
+        <Stack.Screen
+          name='post'
+          options={{
+            headerShown: true,
+            title: '',
+            headerStyle: {
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerShadowVisible: false,
+            headerLeft: () => <BackButton />,
+            animation: 'none',
           }}
         />
         <Stack.Screen name="+not-found" />

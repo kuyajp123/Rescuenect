@@ -1,13 +1,13 @@
 // Main template components
-export { DonnationPostTemplate } from './DonnationPostTemplate';
-export { StatusTemplate } from './StatusTemplate';
+export { DonnationPostTemplate } from './template/DonnationPostTemplate';
+export { StatusTemplate } from './template/StatusTemplate';
 
 // List components with empty state handling
 export { DonationList } from './DonationList';
 export { StatusList } from './StatusList';
 
 // Type exports
-export type { StatusTemplateProps } from './StatusTemplate';
+export type { StatusTemplateProps } from './template/StatusTemplate';
 
 /*
 ===========================================

@@ -14,7 +14,7 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
 
   const handleFABPress = () => {
     // Navigate to status screen or show modal
-    router.push('/status' as any);
+    router.push('/createStatus' as any);
   };
 
   return (
@@ -26,7 +26,10 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
         paddingBottom: Math.max(insets.bottom, 8),
         height: 60 + insets.bottom,
       }
-    ]}>
+    ]}
+    accessibilityRole="tablist"
+    accessibilityLabel="Bottom navigation tabs"
+    >
       {state.routes.map((route: any, index: number) => {
         const { options } = descriptors[route.key];
         const label = options.tabBarLabel !== undefined
@@ -67,6 +70,30 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
           }
         };
 
+        // Get accessibility label based on route name
+        const getAccessibilityLabel = () => {
+          const baseLabels = {
+            'index': 'Home',
+            'community': 'Community',
+            'details': 'Details',
+            'menu': 'Menu'
+          };
+          
+          const baseLabel = baseLabels[route.name as keyof typeof baseLabels] || label;
+          return `${baseLabel} tab${isFocused ? ', selected' : ''}`;
+        };
+
+        const getAccessibilityHint = () => {
+          const hints = {
+            'index': 'Navigate to home screen with dashboard and overview',
+            'community': 'Navigate to community screen to see status updates and posts',
+            'details': 'Navigate to details screen for additional information',
+            'menu': 'Navigate to menu screen for app settings and options'
+          };
+          
+          return hints[route.name as keyof typeof hints] || `Navigate to ${label} screen`;
+        };
+
         return (
           <TouchableOpacity
             key={route.key}
@@ -77,6 +104,10 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
               (route.name === 'community') && styles.tabItemBeforeFAB,
               (route.name === 'details') && styles.tabItemAfterFAB,
             ]}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isFocused }}
+            accessibilityLabel={getAccessibilityLabel()}
+            accessibilityHint={getAccessibilityHint()}
           >
             {getIcon()}
           </TouchableOpacity>
@@ -92,6 +123,9 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
             backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light,
           }
         ]}
+        accessibilityRole="button"
+        accessibilityLabel="Add status update"
+        accessibilityHint="Opens status update screen to post your safety status"
       >
         <Plus color="#FFFFFF" size={24} />
       </TouchableOpacity>
@@ -125,7 +159,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="status"
+        name="createStatus"
           options={{
           title: 'Status',
           tabBarIcon: ({ color }) => <Plus color={color} size={20} />,

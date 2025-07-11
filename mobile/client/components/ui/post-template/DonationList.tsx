@@ -1,8 +1,8 @@
 import { EmptyState } from '@/components/ui/empty-state';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { DonnationPostTemplate } from './DonnationPostTemplate';
-import type { StatusTemplateProps } from './StatusTemplate';
+import { DonnationPostTemplate } from './template/DonnationPostTemplate';
+import type { StatusTemplateProps } from './template/StatusTemplate';
 
 interface DonationListProps {
   /**
@@ -40,9 +40,10 @@ export const DonationList: React.FC<DonationListProps> = ({
         <EmptyState 
           title={emptyTitle}
           subtitle={emptySubtitle}
-          animationSource={require('@/assets/animations/comming soon.json')}
+          animationSource={require('@/assets/animations/not-found.json')}
           animationSize={170}
           containerStyle={styles.emptyStateContainer}
+          autoPlay={false}
         />
       </View>
     );
@@ -52,7 +53,7 @@ export const DonationList: React.FC<DonationListProps> = ({
     <View style={[styles.container, containerStyle]}>
       {donations.map((donation, index) => (
         <DonnationPostTemplate 
-          key={donation.date + donation.time + index} 
+          key={donation.id} 
           {...donation}
           style={index > 0 ? styles.donationSpacing : undefined}
         />

@@ -1,10 +1,8 @@
 import { EmptyState } from '@/components/ui/empty-state';
-import { ColorCombinations } from '@/constants/Colors';
-import { useTheme } from '@/contexts/ThemeContext';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import type { StatusTemplateProps } from './StatusTemplate';
-import { StatusTemplate } from './StatusTemplate';
+import type { StatusTemplateProps } from './template/StatusTemplate';
+import { StatusTemplate } from './template/StatusTemplate';
 
 interface StatusListProps {
   /**
@@ -45,6 +43,7 @@ export const StatusList: React.FC<StatusListProps> = ({
           animationSource={require('@/assets/animations/not-found.json')}
           animationSize={120}
           containerStyle={styles.emptyStateContainer}
+          autoPlay={false}
         />
       </View>
     );
@@ -54,7 +53,7 @@ export const StatusList: React.FC<StatusListProps> = ({
     <View style={[styles.container, containerStyle]}>
       {statusUpdates.map((status, index) => (
         <StatusTemplate 
-          key={status.date + status.time + index} 
+          key={status.id} 
           {...status}
           style={index > 0 ? styles.statusSpacing : undefined}
         />
