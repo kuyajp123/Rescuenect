@@ -308,14 +308,11 @@ export const MainHotlineAndContact = () => {
       </View>
 
       {/* Disclaimer */}
-      <View style={[styles.disclaimerCard, styles.shadowCard, { 
-        backgroundColor: isDark ? '#1f2937' : '#f9fafb',
-        borderColor: isDark ? '#374151' : '#e5e7eb'
-      }]}>
-        <Text size="xs" bold style={[styles.disclaimerTitle, { color: isDark ? '#fbbf24' : '#f59e0b' }]}>
+      <View>
+        <Text size="2xs" bold style={[styles.disclaimerTitle, { color: isDark ? '#fbbf24' : '#f59e0b' }]}>
           Important Notice:
         </Text>
-        <Text size="xs" style={[styles.disclaimerText, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
+        <Text size="2xs" style={[styles.disclaimerText, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
           The contact information listed in this section has been retrieved from official government websites and publicly available resources. While we do our best to keep this information accurate and updated, changes may occur without prior notice. For the most reliable and up-to-date details, please refer directly to the official government channels.
         </Text>
       </View>
@@ -513,14 +510,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   disclaimerText: {
-    lineHeight: 20,
     textAlign: 'justify',
   },
   alertContent: {
     borderWidth: 2,
     borderRadius: 16,
     position: 'absolute',
-    top: 50,
+    top: 30,
     alignSelf: 'center',
     minWidth: 280,
   },
@@ -529,7 +525,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
-    padding: 20,
+    padding: 5,
   },
   alertIconContainer: {
     width: 32,

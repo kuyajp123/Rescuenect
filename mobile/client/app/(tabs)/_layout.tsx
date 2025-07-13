@@ -141,7 +141,7 @@ export const TabLayout = () => {
     <Tabs
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: Colors.brand.light,
+        tabBarActiveTintColor: isDark ? Colors.brand.dark : Colors.brand.light,
         headerShown: false,
       }}>
       <Tabs.Screen

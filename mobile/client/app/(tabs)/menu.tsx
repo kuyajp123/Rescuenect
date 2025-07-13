@@ -1,21 +1,34 @@
 import ThemeSwitcher from '@/components/shared/hooks/ThemeSwitcher';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button/Button';
+import { Button, HoveredButton } from '@/components/ui/button/Button';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { ColorCombinations, Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useRouter } from 'expo-router';
 import { BadgeInfo, BadgeQuestionMark, ChevronRight, LogOut, Moon, ReceiptText, Settings, Sun } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
 export const MenuScreen = () => {
-  const { isDark } = useTheme();
+  const { isDark, setColorMode } = useTheme();
+  const router = useRouter();
+
+  const toggleTheme = () => {
+    setColorMode(isDark ? 'light' : 'dark');
+  };
 
   return (
     <Body style={{ paddingHorizontal: 0 }}>
       <View>
-        <View style={{ marginLeft: 20 }}><Text size='3xl' bold>Menu</Text></View>
-        <View style={{ marginTop: 40, padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <HoveredButton 
+        onPress={() => alert('profile click')} 
+        style={{ 
+          // marginTop: 20, 
+          padding: 20, 
+          flexDirection: 'row', 
+          alignItems: 'center', 
+          justifyContent: 'space-between' 
+        }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, }}>
             <View>
               <Avatar size="lg">
@@ -39,7 +52,7 @@ export const MenuScreen = () => {
           <View>
             <ChevronRight size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
           </View>
-        </View>
+        </HoveredButton>
 
         <View style={{ marginTop: 20, marginLeft: 20}}>
           <Text emphasis='light'>System</Text>
@@ -50,14 +63,13 @@ export const MenuScreen = () => {
           borderColor: isDark 
                 ? Colors.border.dark 
                 : Colors.border.light, 
-          gap: 30, 
           marginTop: 10, 
-          padding: 20, 
           backgroundColor: isDark
                 ? ColorCombinations.statusTemplate.dark
                 : ColorCombinations.statusTemplate.light, 
           }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',}}>
+          <HoveredButton style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, }}
+            onPress={() => router.push('settings' as any)}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10,}}>
                 <Settings size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
                 <Text>Settings</Text>
@@ -65,16 +77,20 @@ export const MenuScreen = () => {
               <View>
                 <ChevronRight size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
               </View>
-          </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+          </HoveredButton>
+          <HoveredButton 
+            onPress={toggleTheme}
+            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10}}>
                 {isDark ? <Moon size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} /> : <Sun size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
                 <Text>Dark mode</Text>
               </View>
               <View>
-                <ThemeSwitcher />
+                <View style={{ pointerEvents: 'none' }}>
+                  <ThemeSwitcher />
+                </View>
               </View>
-          </View>
+          </HoveredButton>
         </View>
 
         <View style={{ marginTop: 30, marginLeft: 20}}>
@@ -87,15 +103,13 @@ export const MenuScreen = () => {
           borderColor: isDark 
                 ? Colors.border.dark 
                 : Colors.border.light, 
-          gap: 30, 
-          marginTop: 10, 
-          padding: 20, 
+          marginTop: 10,  
           marginBottom: 30,
           backgroundColor: isDark
                 ? ColorCombinations.statusTemplate.dark
                 : ColorCombinations.statusTemplate.light, 
           }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',}}>
+          <HoveredButton style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20,}}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10,}}>
                 <BadgeQuestionMark size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
                 <Text>FAQ</Text>
@@ -103,8 +117,8 @@ export const MenuScreen = () => {
               <View>
                 <ChevronRight size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
               </View>
-          </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',}}>
+          </HoveredButton>
+          <HoveredButton style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20,}}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10,}}>
                 <ReceiptText size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
                 <Text>Terms and Condition</Text>
@@ -112,8 +126,8 @@ export const MenuScreen = () => {
               <View>
                 <ChevronRight size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
               </View>
-          </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',}}>
+          </HoveredButton>
+          <HoveredButton style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20,}}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10,}}>
                 <BadgeInfo size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
                 <Text>About us</Text>
@@ -121,7 +135,7 @@ export const MenuScreen = () => {
               <View>
                 <ChevronRight size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
               </View>
-          </View>
+          </HoveredButton>
         </View>
 
         <Button variant='outline' style={{ marginHorizontal: 20, width: 'auto', borderColor: isDark ? Colors.button.errorDark.pressed : Colors.button.error.default }}>

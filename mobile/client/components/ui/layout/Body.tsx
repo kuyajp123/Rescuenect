@@ -12,7 +12,7 @@ interface ContainerProps extends VStackProps {
   gap?: number | string;
 }
 
-const Body = ({ children, style, ...props }: ContainerProps) => {
+export const Body = ({ children, style, ...props }: ContainerProps) => {
   const { isDark } = useTheme();
   
   return (

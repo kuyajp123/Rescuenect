@@ -1,7 +1,8 @@
 import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import { ChevronRight } from 'lucide-react-native';
-import React from 'react';
-import { Text, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { Text, TouchableOpacity, View, Animated } from 'react-native';
 
 type ButtonProps = {
   style?: object;
@@ -11,6 +12,7 @@ type ButtonProps = {
   children?: React.ReactNode;
   className?: string;
   isDark?: boolean; // <--- optional theme flag for outline mode
+  context?: boolean;
 };
 
 export const Button = ({
@@ -220,6 +222,79 @@ export const CustomOutlineButton = ({
   </Button>
 );
 
+export const HoveredButton = ({ children, style, onPress }: ButtonProps) => {
+  const { isDark } = useTheme();
+    const [isPressed, setIsPressed] = useState(false);
+    
+    return (
+      <TouchableOpacity 
+        onPressIn={() => setIsPressed(true)}
+        onPressOut={() => setIsPressed(false)}
+        onPress={onPress}
+        style={[
+          {
+            width: 'auto',
+            backgroundColor: isPressed 
+              ? (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)')
+              : 'transparent',
+          },
+          style
+        ]}
+        activeOpacity={1}
+      >
+        {children}
+      </TouchableOpacity>
+    );
+  };
+
+export const ToggleButton = ({ 
+  isEnabled, 
+  onToggle, 
+  style 
+}: { 
+  isEnabled: boolean; 
+  onToggle: () => void; 
+  style?: object; 
+}) => {
+  const { isDark } = useTheme();
+
+  const toggleButtonStyle = [
+    {
+      width: 50,
+      height: 30,
+      borderRadius: 15,
+      justifyContent: 'center' as const,
+      position: 'relative' as const,
+      backgroundColor: isEnabled
+        ? (isDark ? Colors.brand.dark : Colors.brand.light)
+        : (isDark ? Colors.border.dark : '#767577'),
+    },
+    style
+  ];
+
+  const toggleIndicatorStyle = {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    position: 'absolute' as const,
+    backgroundColor: isEnabled
+      ? '#f4f3f4'
+      : (isDark ? Colors.text.dark : '#f4f3f4'),
+    transform: [{ translateX: isEnabled ? 22 : 2 }],
+  };
+
+  return (
+    <TouchableOpacity 
+      style={toggleButtonStyle}
+      onPress={onToggle}
+      activeOpacity={1}
+    >
+      <View style={toggleIndicatorStyle} />
+    </TouchableOpacity>
+  );
+};
+
+
 // Usage Examples:
 /*
 import { 
@@ -228,7 +303,9 @@ import {
   WarningButton, 
   SuccessButton, 
   OutlineButton, 
-  CustomOutlineButton 
+  CustomOutlineButton,
+  ToggleButton,
+  HoveredButton
 } from '@/components/ui/button/Button';
 import { Phone, Mail, Download, Heart, User, Settings } from 'lucide-react-native';
 
@@ -260,4 +337,18 @@ import { Phone, Mail, Download, Heart, User, Settings } from 'lucide-react-nativ
 >
   Custom Color
 </CustomOutlineButton>
+
+// Toggle Button usage:
+<ToggleButton 
+  isEnabled={isToggleOn}
+  onToggle={() => setIsToggleOn(!isToggleOn)}
+/>
+
+// Hovered Button usage:
+<HoveredButton 
+  onPress={() => alert('Hovered pressed!')}
+  style={{ padding: 16 }}
+>
+  <Text>Hover Effect Button</Text>
+</HoveredButton>
 */

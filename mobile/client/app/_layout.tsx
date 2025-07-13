@@ -1,6 +1,7 @@
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { Colors } from '@/constants/Colors';
 import { FontSizeProvider, useFontSize } from '@/contexts/FontSizeContext';
+import { HighContrastProvider } from '@/contexts/HighContrastContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { useFonts } from 'expo-font';
 import { Stack, useRouter } from 'expo-router';
@@ -168,6 +169,19 @@ function RootLayoutContent() {
             animation: 'none',
           }}
         />
+        <Stack.Screen
+          name='settings'
+          options={{
+            headerShown: true,
+            title: '',
+            headerStyle: {
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerShadowVisible: false,
+            headerLeft: () => <BackButton />,
+            animation: 'none',
+          }}
+        />
         <Stack.Screen name="+not-found" />
       </Stack>
     </GluestackUIProvider>
@@ -179,7 +193,9 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <FontSizeProvider>
-          <RootLayoutContent />
+          <HighContrastProvider>
+            <RootLayoutContent />
+          </HighContrastProvider>
         </FontSizeProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

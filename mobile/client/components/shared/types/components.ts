@@ -54,3 +54,4 @@ export interface Event {
   date: string;
   location: string;
 }
+

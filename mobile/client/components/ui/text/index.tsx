@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/Colors';
 import { getScaledFontSize, useFontSize } from '@/contexts/FontSizeContext';
+import { useHighContrast } from '@/contexts/HighContrastContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { VariantProps } from '@gluestack-ui/nativewind-utils';
 import React from 'react';
@@ -8,6 +9,8 @@ import { textStyle } from './styles';
 
 type ITextProps = React.ComponentProps<typeof RNText> &
   VariantProps<typeof textStyle>;
+
+type EmphasisType = 'light' | 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold';
 
 const Text = React.forwardRef<React.ComponentRef<typeof RNText>, ITextProps>(
   function Text(
@@ -29,7 +32,11 @@ const Text = React.forwardRef<React.ComponentRef<typeof RNText>, ITextProps>(
   ) {
     const { isDark } = useTheme();
     const { fontMultiplier } = useFontSize();
+    const { getTextEmphasis } = useHighContrast();
     const defaultColor = isDark ? Colors.text.dark : Colors.text.light;
+    
+    // Apply high contrast transformation to emphasis
+    const effectiveEmphasis = getTextEmphasis(emphasis) as EmphasisType;
     
     // Map size prop to numeric values (base font sizes)
     const sizeMap: Record<string, number> = {
@@ -54,7 +61,7 @@ const Text = React.forwardRef<React.ComponentRef<typeof RNText>, ITextProps>(
     const getFontFamily = () => {
       if (bold) return 'Poppins-Bold';
       
-      switch (emphasis) {
+      switch (effectiveEmphasis) {
         case 'light':
           return 'Poppins-light';
         case 'medium':
@@ -82,7 +89,7 @@ const Text = React.forwardRef<React.ComponentRef<typeof RNText>, ITextProps>(
           sub,
           italic,
           highlight,
-          emphasis,
+          emphasis: effectiveEmphasis,
           class: className,
         })}
         style={[
