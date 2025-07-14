@@ -56,13 +56,13 @@ export const ListOfEvents = ({
             style={styles.gradientOverlay}
           >
             <View style={styles.contentContainer}>
-              <Text size='xs' emphasis='light' style={styles.eventDescription}>
+              <Text size='2xs' emphasis='light' style={styles.eventDescription}>
                 {event.description ? event.description : ''}
               </Text>
               <Text size='md' bold style={styles.eventTitle}>
                 {event.title}
               </Text>
-              <Text size='2xs' style={styles.eventDate}>
+              <Text size='2xs' emphasis='light' style={styles.eventDate}>
                 {new Date(event.date).toLocaleDateString('en-US', { 
                   weekday: 'long', 
                   year: 'numeric', 
@@ -133,17 +133,21 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   eventContainer: {
-    height: 150,
+    height: 'auto',
     marginVertical: 10,
     borderRadius: 20,
     overflow: 'hidden',
+    minHeight: 150,
+    maxHeight: 150,
   },
   backgroundImage: {
     flex: 1,
     justifyContent: 'flex-end',
+    height: '100%',
   },
   imageStyle: {
     borderRadius: 20,
+    height: '100%',
   },
   gradientOverlay: {
     flex: 1,
@@ -160,6 +164,9 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
+    maxHeight: 40,
+    overflow: 'hidden',
+    textOverflow: 'see more',
   },
   eventTitle: {
     color: 'white',

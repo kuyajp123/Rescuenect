@@ -312,7 +312,7 @@ export const MainHotlineAndContact = () => {
         <Text size="2xs" bold style={[styles.disclaimerTitle, { color: isDark ? '#fbbf24' : '#f59e0b' }]}>
           Important Notice:
         </Text>
-        <Text size="2xs" style={[styles.disclaimerText, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
+        <Text size="2xs" emphasis="light" style={[styles.disclaimerText,]}>
           The contact information listed in this section has been retrieved from official government websites and publicly available resources. While we do our best to keep this information accurate and updated, changes may occur without prior notice. For the most reliable and up-to-date details, please refer directly to the official government channels.
         </Text>
       </View>

@@ -105,7 +105,7 @@ export const CarouselScreen = ({ data, usersData = [] }: CarouselScreenProps) =>
           <Carousel
             loop={false}
             width={screenWidth * 0.75} // Further reduced to show more of next item (25% peek)
-            height={160} // Increased height to accommodate dynamic content
+            height={180} // Increased height to accommodate dynamic content
             data={data}
             scrollAnimationDuration={200}
             renderItem={renderItem}
