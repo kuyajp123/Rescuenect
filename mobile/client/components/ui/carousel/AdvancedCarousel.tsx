@@ -116,7 +116,7 @@ export const AdvancedCarousel = () => {
         <Carousel
           data={carouselData}
           width={width * 1} // Full width for better display
-          height={300}
+          height={280}
           loop
           pagingEnabled
           mode="parallax"

@@ -1,6 +1,5 @@
-let date = new Date();
-
 export const GetDateAndTime = () => {
+  const date = new Date(); // Create a new Date object each time
   const options = {
     year: 'numeric',
     month: 'long',
@@ -14,26 +13,54 @@ export const GetDateAndTime = () => {
   return formattedDate;
 };
 
-export const GetDate = () => {
-  const options = {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+type DateFormat = {
+  // Year formatting options
+  year?: 'numeric' | '2-digit';
+  
+  // Month formatting options
+  month?: 'numeric' | '2-digit' | 'long' | 'short' | 'narrow';
+  
+  // Day formatting options
+  day?: 'numeric' | '2-digit';
+  
+  // Weekday formatting options
+  weekday?: 'narrow' | 'short' | 'long';
+  
+  // Era formatting options
+  era?: 'narrow' | 'short' | 'long';
+  
+  // Timezone display options
+  timeZone?: string; // e.g., 'Asia/Manila', 'UTC', 'America/New_York'
+  timeZoneName?: 'short' | 'long' | 'shortOffset' | 'longOffset' | 'shortGeneric' | 'longGeneric';
+}
+
+export const GetDate = (format: DateFormat = {}) => {
+  const date = new Date(); // Create a new Date object each time
+  const options: Intl.DateTimeFormatOptions = {
+    year: format.year ?? 'numeric',
+    month: format.month ?? 'long',
+    day: format.day ?? 'numeric',
+    weekday: format.weekday,
+    era: format.era,
+    timeZone: format.timeZone ?? 'Asia/Manila', // Default to Philippine timezone
+    timeZoneName: format.timeZoneName,
   };
-  const formattedDate = new Intl.DateTimeFormat('en-US', options as any).format(date);
+
+  // Remove undefined values to avoid issues
+  Object.keys(options).forEach(key => {
+    if (options[key as keyof Intl.DateTimeFormatOptions] === undefined) {
+      delete options[key as keyof Intl.DateTimeFormatOptions];
+    }
+  });
+
+  const formattedDate = new Intl.DateTimeFormat('en-US', options).format(date);
 
   return formattedDate;
 }
 
-type DayFormat = 'narrow' | 'short' | 'long';
-
-export const GetDay = (format: DayFormat) => {
-  const options = {
-    weekday: format,
-  };
-  const formattedDay = new Intl.DateTimeFormat('en-US', options as any).format(date);
-
-  return formattedDay;
+// For backwards compatibility - just get the weekday
+export const GetDay = (format: 'narrow' | 'short' | 'long' = 'long') => {
+  return GetDate({ weekday: format });
 }
 
 type TimeFormat = {
@@ -64,6 +91,7 @@ type TimeFormat = {
 }
 
 export const GetTime = (format: TimeFormat = {}) => {
+  const date = new Date(); // Create a new Date object each time
   const options: Intl.DateTimeFormatOptions = {
     hour: format.hour ?? '2-digit',
     minute: format.minute ?? '2-digit',
@@ -130,3 +158,63 @@ export const GetTime = (format: TimeFormat = {}) => {
 //   timeZoneName: 'short',
 //   hour12: false 
 // }) → "14:30:45 PST"
+
+// Usage Examples for GetDate function:
+
+// Basic usage - Default format (Month Day, Year)
+// GetDate() → "July 15, 2025"
+
+// Year only
+// GetDate({ year: 'numeric' }) → "2025"
+// GetDate({ year: '2-digit' }) → "25"
+
+// Month formatting options
+// GetDate({ month: 'numeric' }) → "7"
+// GetDate({ month: '2-digit' }) → "07"
+// GetDate({ month: 'long' }) → "July"
+// GetDate({ month: 'short' }) → "Jul"
+// GetDate({ month: 'narrow' }) → "J"
+
+// Day formatting options
+// GetDate({ day: 'numeric' }) → "15"
+// GetDate({ day: '2-digit' }) → "15"
+
+// Weekday formatting options
+// GetDate({ weekday: 'long' }) → "Monday"
+// GetDate({ weekday: 'short' }) → "Mon"
+// GetDate({ weekday: 'narrow' }) → "M"
+
+// Combined formats
+// GetDate({ weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) → "Monday, July 15, 2025"
+// GetDate({ weekday: 'short', month: 'short', day: 'numeric' }) → "Mon, Jul 15"
+// GetDate({ month: 'numeric', day: 'numeric', year: '2-digit' }) → "7/15/25"
+
+// Short date formats
+// GetDate({ month: '2-digit', day: '2-digit', year: 'numeric' }) → "07/15/2025"
+// GetDate({ year: 'numeric', month: '2-digit', day: '2-digit' }) → "2025/07/15"
+
+// Different timezone examples
+// GetDate({ timeZone: 'UTC' }) → "July 15, 2025" (UTC date)
+// GetDate({ timeZone: 'America/New_York' }) → "July 14, 2025" (if Manila is ahead)
+
+// Timezone name display
+// GetDate({ timeZoneName: 'short' }) → "July 15, 2025 PST"
+// GetDate({ timeZoneName: 'long' }) → "July 15, 2025 Philippine Standard Time"
+
+// Era display (useful for historical dates)
+// GetDate({ era: 'short' }) → "July 15, 2025 AD"
+// GetDate({ era: 'long' }) → "July 15, 2025 Anno Domini"
+
+// Perfect for RescueNect emergency timestamps
+// GetDate({ 
+//   weekday: 'short', 
+//   month: 'short', 
+//   day: 'numeric', 
+//   year: 'numeric',
+//   timeZone: 'Asia/Manila' 
+// }) → "Mon, Jul 15, 2025"
+
+// GetDay function examples (backwards compatible):
+// GetDay() → "Monday"
+// GetDay('short') → "Mon"
+// GetDay('narrow') → "M"

@@ -5,6 +5,7 @@ import statusData from '@/data/statusData.json';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { CardWeather } from '@/components/ui/weather/CardWeather';
+import { AdvancedCarousel } from '@/components/ui/carousel/AdvancedCarousel';
 
 export const HomeScreen = () => {
   const { isDark } = useTheme();
@@ -25,6 +26,10 @@ export const HomeScreen = () => {
       )}
 
       <CardWeather />
+      
+      <View style={{ marginTop: 20 }}>
+        <AdvancedCarousel />
+      </View>
     </Body>
   )
 }
