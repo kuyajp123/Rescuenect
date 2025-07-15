@@ -1,3 +1,5 @@
+// import { NameHere } from '@/components/shared/types/components';
+
 export type StatusTemplateProps = {
   style?: object
   id?: string | number
@@ -55,3 +57,17 @@ export interface Event {
   location: string;
 }
 
+export interface User {
+    firstName: string;
+    lastName: string;
+    profileImage?: string;
+    date: string;
+    time: string;
+    status: string;
+}
+
+export interface LogedInUser {
+    firstName: string;
+    lastName: string;
+    profileImage?: string;
+}
