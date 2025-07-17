@@ -3,12 +3,14 @@ import { Text } from '@/components/ui/text';
 import index from '@/components/ui/weather/index';
 import { useTheme } from '@/contexts/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ImageBackground, StyleSheet, View } from 'react-native';
+import { ImageBackground, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Divider } from '../divider';
 const { PartlyCloudyDay } = index;
 
 export const CardWeather = () => {
+  const router = useRouter();
   const { isDark } = useTheme();
   const [time, setTime] = useState(GetTime());
   const [date, setDate] = useState(GetDate({ weekday: 'short', month: 'short' }));
@@ -27,7 +29,7 @@ export const CardWeather = () => {
 
   return (
     <View style={styles.container}>
-      <View>
+      <TouchableOpacity activeOpacity={1} onPress={() => {router.push('Weather' as any)}}>
         <ImageBackground
           source={require('@/assets/images/weather/image/Cloudy.png')}
           style={styles.imageBackground}
@@ -76,7 +78,7 @@ export const CardWeather = () => {
             </View>
           </LinearGradient>
         </ImageBackground>
-      </View>
+      </TouchableOpacity>
     </View>
   )
 }

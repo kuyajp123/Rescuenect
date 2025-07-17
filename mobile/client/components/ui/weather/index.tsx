@@ -164,5 +164,5 @@ export default {
     PartlyCloudyNight, 
     Rainy, 
     ThunderStorm, 
-    Windy 
+    Windy,
 };

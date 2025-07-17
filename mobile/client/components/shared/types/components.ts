@@ -71,3 +71,11 @@ export interface LogedInUser {
     lastName: string;
     profileImage?: string;
 }
+
+export type FiveDaysForecastProps = {
+    day?: string;
+    date?: string;
+    weatherCode?: number;
+    temperature?: string;
+    isNight?: boolean;
+}
