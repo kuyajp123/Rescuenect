@@ -5,8 +5,7 @@ import { CardWeather } from '@/components/ui/weather/CardWeather';
 import { useTheme } from "@/contexts/ThemeContext";
 import statusData from '@/data/statusData.json';
 import React from 'react';
-import { StyleSheet } from 'react-native';
-import { MainPage } from '@/components/ui/weather/MainPage';
+import { StyleSheet, View } from 'react-native';
 StatusIndicator
 CardWeather
 AdvancedCarousel
@@ -23,15 +22,13 @@ export const HomeScreen = () => {
 
   return (
     <Body gap={20}>
-        <CardWeather />
+      <StatusIndicator user={firstUser} logedInUser={logedInUser} />
 
-      {/* <StatusIndicator user={firstUser} logedInUser={logedInUser} />
+      <CardWeather />
 
-      
       <View style={{ marginTop: 20 }}>
         <AdvancedCarousel />
-      </View> */}
-      <MainPage />
+      </View>
     </Body>
   )
 }

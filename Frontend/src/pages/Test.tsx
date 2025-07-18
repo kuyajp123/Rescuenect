@@ -1,4 +1,4 @@
-import { useScreenSize } from '@/utils/ScreenSizeContext';
+import { useScreenSize } from '@/context/ScreenSizeContext';
 
 const Test = () => {
   const { screenSize  } = useScreenSize();

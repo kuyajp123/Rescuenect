@@ -1,5 +1,5 @@
 const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-import SecondaryButton from '@/components/SecondaryButton'
+import SecondaryButton from '@/components/button/SecondaryButton'
 
 const LoginPage = () => {
   return (

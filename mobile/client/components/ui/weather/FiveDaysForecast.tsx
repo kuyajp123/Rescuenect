@@ -1,58 +1,38 @@
-import index from '@/components/ui/weather/index';
-import { Colors } from '@/constants/Colors';
+import { getWeatherCondition, getWeatherIcons } from "@/components/helper/WeatherLogic";
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import GlassCard from '../card/GlassCard';
-import { Divider } from '../divider';
 import { Text } from '../text';
-const { 
-    ClearDay, 
-    ClearNight, 
-    Cloudy, 
-    DrizleRain, 
-    Fog, 
-    HeavyGust, 
-    PartlyCloudyDay, 
-    PartlyCloudyNight, 
-    Rainy, 
-    ThunderStorm, 
-    Windy,
-} = index;
-Divider
-Colors
 
 export type FiveDaysForecastProps = {
     day?: string;
     date?: string;
     weatherCode?: number;
     temperature?: string;
-    isNight?: boolean;
 }
 
-export const FiveDaysForecast = ({ day, date, weatherCode, temperature, isNight }: FiveDaysForecastProps) => {
+export const FiveDaysForecast = ({ day, date, weatherCode, temperature }: FiveDaysForecastProps) => {
+
+    const WeatherIcon = getWeatherIcons(weatherCode || 10000);
+    const weatherCondition = getWeatherCondition(weatherCode || 10000);
 
   return (
-    <GlassCard style={styles.forecastCard} title="5 Days Forecast" size='small'>
-        <TouchableOpacity onPress={() => alert('Navigate to 5 days forecast')}>
-            <View style={{ flexDirection: 'row', gap: 20, alignItems: 'center' }}>
-                <View style={{ alignItems: 'center', minWidth: 40 }}>
-                    <Text emphasis='light' style={{ color: '#ffffff' }}>{day}</Text>
-                    <Text bold style={{ color: '#ffffff' }}>{date}</Text>
-                </View>
-                <View>
-                    <PartlyCloudyDay width={40} height={50} />
-                </View>
-                <View style={{ minWidth: 140,  }}>
-                    <Text style={{ color: '#ffffff' }}>Partly Cloudy</Text>
-                </View>
-                <View >
-                    <Text size='lg' bold style={{ textAlign: 'right', color: '#ffffff' }}>{temperature}</Text>
-                </View>
+    <TouchableOpacity onPress={() => alert('Navigate to 5 days forecast')}>
+        <View style={{ flexDirection: 'row', gap: 20, alignItems: 'center' }}>
+            <View style={{ alignItems: 'center', minWidth: 40 }}>
+                <Text emphasis='light' style={{ color: '#ffffff' }}>{day}</Text>
+                <Text size="2xs" bold style={{ color: '#ffffff' }}>{date}</Text>
             </View>
-        </TouchableOpacity>
-
-        {/* <Divider style={{ marginVertical: 10, backgroundColor: Colors.icons.dark }} /> */}
-    </GlassCard>
+            <View>
+                <WeatherIcon width={40} height={50} />
+            </View>
+            <View style={{ minWidth: 110,  }}>
+                <Text style={{ color: '#ffffff' }}>{weatherCondition}</Text>
+            </View>
+            <View >
+                <Text size='lg' bold style={{ textAlign: 'right', color: '#ffffff' }}>{temperature}</Text>
+            </View>
+        </View>
+    </TouchableOpacity>    
   )
 }
 

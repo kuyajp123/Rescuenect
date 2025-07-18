@@ -1,24 +1,13 @@
+import { MainHotlineAndContact } from '@/components/ui/HotlineAndContact/MainHotlineAndContact';
 import Body from '@/components/ui/layout/Body';
-import React, { useState } from 'react';
-import { StyleSheet, TextInput } from 'react-native';
-import { Text } from '@/components/ui/text'
-import { useTheme } from '@/contexts/ThemeContext';
+import React from 'react';
+import { StyleSheet } from 'react-native';
 
 export const DetailsScreen = () => {
-  const [name, setName] = useState('');
-  const { isDark } = useTheme();
 
   return (
     <Body>
-      <TextInput
-      style={[styles.input, { borderColor: isDark ? '#444' : '#ccc', color: isDark ? '#fff' : '#000' }]}
-      placeholder="Enter your name"
-      placeholderTextColor={isDark ? '#888' : '#666'}
-      value={name}
-      onChangeText={setName}
-      />
-      <Text>Hello, {name}</Text>
-
+      <MainHotlineAndContact />
       
     </Body>
   );

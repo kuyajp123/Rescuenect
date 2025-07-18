@@ -31,7 +31,7 @@ export const CardWeather = () => {
     <View style={styles.container}>
       <TouchableOpacity activeOpacity={1} onPress={() => {router.push('Weather' as any)}}>
         <ImageBackground
-          source={require('@/assets/images/weather/image/Cloudy.png')}
+          source={require('@/assets/images/weather/image/CloudyDay.png')}
           style={styles.imageBackground}
           imageStyle={styles.imageStyle}
           blurRadius={20}

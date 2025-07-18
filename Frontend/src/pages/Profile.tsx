@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL!;
-import PrimaryButton from '../components/PrimaryButton'
+import PrimaryButton from '../components/button/PrimaryButton'
 
 interface User {
     success: boolean;

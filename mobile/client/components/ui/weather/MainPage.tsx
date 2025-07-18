@@ -5,11 +5,13 @@ import { Colors } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
-import { ChevronLeft, LocateFixed } from 'lucide-react-native'
+import { ChevronLeft, LocateFixed, TriangleAlert } from 'lucide-react-native'
 import React from 'react'
 import { ImageBackground, SafeAreaView, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Divider } from '../divider'
 import { FiveDaysForecast } from './FiveDaysForecast'
+import TwentyFourHourForecast from './TwentyFourHourForecast'
 
 export const MainPage = () => {
     const router = useRouter()
@@ -22,7 +24,7 @@ export const MainPage = () => {
   return (
     <View style={styles.container}>
         <ImageBackground
-            source={require('@/assets/images/weather/image/Cloudy.png')}
+            source={require('@/assets/images/weather/image/Rain.png')}
             style={styles.imageBackground}
             blurRadius={20}
             resizeMode='cover'
@@ -71,7 +73,7 @@ export const MainPage = () => {
                         
                         {/* Weather Info Section */}
                         <View style={styles.weatherInfo}>
-                            <Text size='5xl' bold style={styles.temperatureText}>
+                            <Text size='6xl' style={styles.temperatureText}>
                                 39°C
                             </Text>
                             <Text style={styles.locationText}>
@@ -84,12 +86,14 @@ export const MainPage = () => {
                             
                             {/* Notification alert */}
                             <View style={styles.cardRow}>
-                                <GlassCard 
-                                    title="Notification" 
-                                    value="Notification Alert placeholder" 
-                                    size="small"
-                                    style={{ ...styles.weatherCard, alignItems: 'flex-start', }}
-                                />
+                                <GlassCard style={{ ...styles.weatherCard, padding: 20, }} size='small'>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', width: '100%' }}>
+                                        <TriangleAlert size={20} color={Colors.text.dark} />
+                                        <Text style={{ color: Colors.text.dark, width: '89%' }}>
+                                            Weather data is not accurate, please check your internet connection.
+                                        </Text>
+                                    </View>
+                                </GlassCard>
                             </View>
                             
                             {/* First Row */}
@@ -97,13 +101,13 @@ export const MainPage = () => {
                                 <GlassCard 
                                     title="Feels Like" 
                                     value="40°C" 
-                                    size="medium"
+                                    size="small"
                                     style={styles.weatherCard}
                                 />
                                 <GlassCard 
                                     title="UV Index" 
                                     value="7" 
-                                    size="medium"
+                                    size="small"
                                     style={styles.weatherCard}
                                 />
                             </View>
@@ -113,13 +117,13 @@ export const MainPage = () => {
                                 <GlassCard 
                                     title="Humidity" 
                                     value="84%" 
-                                    size="medium"
+                                    size="small"
                                     style={styles.weatherCard}
                                 />
                                 <GlassCard 
                                     title="Cloud Cover" 
                                     value="100%" 
-                                    size="medium"
+                                    size="small"
                                     style={styles.weatherCard}
                                 />
                             </View>
@@ -129,13 +133,13 @@ export const MainPage = () => {
                                 <GlassCard 
                                     title="Chance of Rain" 
                                     value="50%" 
-                                    size="medium"
+                                    size="small"
                                     style={styles.weatherCard}
                                 />
                                 <GlassCard 
                                     title="Rain Intensity" 
                                     value="1.1 mm/h" 
-                                    size="medium"
+                                    size="small"
                                     style={styles.weatherCard}
                                 />
                             </View>
@@ -145,27 +149,44 @@ export const MainPage = () => {
                                 <GlassCard 
                                     title="Rain Acc." 
                                     value="5 mm" 
-                                    size="medium"
+                                    size="small"
                                     style={styles.weatherCard}
                                 />
                                 <GlassCard 
                                     title="Wind Speed" 
                                     value="15 km/h" 
-                                    size="medium"
+                                    size="small"
                                     style={styles.weatherCard}
                                 />
                             </View>
 
-                            {/* Large Card Example */}
+                            {/* 24-hours Forecast */}
                             <View style={styles.fullWidthCard}>
-                                <GlassCard style={styles.forecastCard} title="24-hours Forecast" size='small'>
-                                    <Text>asdasd</Text>
-                                </GlassCard>
+                                <TwentyFourHourForecast />
                             </View>
 
-                            {/* Large Card Example */}
+                            {/* 5 Days Forecast */}
                             <View style={styles.fullWidthCard}>
-                                <FiveDaysForecast />
+                                <GlassCard style={styles.forecastCard} title="5 Days Forecast" size='small'>
+                                    <View style={[styles.bottomSpacer]} />
+
+                                    <FiveDaysForecast 
+                                        day="Today"
+                                        date="Oct 1"
+                                        weatherCode={10000}
+                                        temperature="39°C"
+                                    />
+
+                                    <Divider style={{ marginVertical: 10, backgroundColor: Colors.icons.dark }} />
+
+                                    <FiveDaysForecast 
+                                        day="Thu"
+                                        date="Oct 2"
+                                        weatherCode={11000}
+                                        temperature="35°C"
+                                    />
+                                </GlassCard>    
+
                             </View>
                         </View>
                         

@@ -1,18 +1,12 @@
 import express, { Application, Request, Response, NextFunction } from 'express'
 const app: Application = express();
-require('dotenv').config()
+require('dotenv').config();
 const cookieParser = require('cookie-parser');
 const PORT = process.env.PORT;
 app.use(cookieParser());
 import cors from 'cors';
-import connectDB from './database/db';
+import userRoutes from '@/routes/users';
 
-connectDB();
-
-import './auth/passport';
-import authRouter from './routes/auth.router';
-import router from './routes/router';
-import errorHandler from './middleware/error.handler';
 
 app.use(cors({
   origin: process.env.FRONTEND_URL!,
@@ -21,13 +15,13 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.use('/', authRouter);
-app.use('/', router);
 
+app.use(express.urlencoded({ extended: true }));
+app.use('/', userRoutes);
 app.get('/', (req: any, res: any) => res.send("hello world"));
 
 app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
-  errorHandler(err, req, res, next);
+  
 });
 
 app.listen(PORT, () => {

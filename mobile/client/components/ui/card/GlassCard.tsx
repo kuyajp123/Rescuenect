@@ -11,7 +11,7 @@ export interface GlassCardProps {
   children?: React.ReactNode;
 }
 
-export const GlassCard = ({ title, value, style, size = 'medium', children }: GlassCardProps) => {
+export const GlassCard = ({ title, value, style, size = 'small', children }: GlassCardProps) => {
   const { isDark } = useTheme();
 
   const cardSize = {
@@ -40,19 +40,24 @@ export const GlassCard = ({ title, value, style, size = 'medium', children }: Gl
       },
       style
     ]}>
-      <Text 
+
+      {title && (
+        <Text 
         size={textSize[size].title}
         style={styles.titleText}
       >
         {title}
       </Text>
-      <Text 
+      )}
+      {value && (
+        <Text 
         size={textSize[size].value}
         bold
         style={styles.valueText}
       >
         {value}
       </Text>
+      )}
         {children}
     </View>
   );
