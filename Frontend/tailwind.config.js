@@ -43,8 +43,8 @@ module.exports = {
         light: {
           layout: {},
           colors: {
-            primary_plain: "#14723C",
-            secondary_plain: "#3498DB",
+            primary_plain: "#0EA5E9",
+            secondary_plain: "#DA9E22",
             tertiary: "#455b6e",
             // background
             bg: "#f5f5f5",
@@ -52,14 +52,14 @@ module.exports = {
             card: "#FFFFFF",
             card_hover: "#e4e4e4",
             // font
-            text_color: "#2C3E50",
-            content_text: "#000000",
+            text_color: "#000000",
+            content_text: "#2C3E50",
           }
         },
         dark: {
           colors: {
-            primary_plain: "#14723C",
-            secondary_plain: "#2a6186",
+            primary_plain: "#2563EB",
+            secondary_plain: "#DA9E22",
             tertiary: "#2C3E50",
             // background
             bg: "#171717",

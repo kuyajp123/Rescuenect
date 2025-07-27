@@ -1,10 +1,12 @@
-import admin from 'firebase-admin';
-import * as serviceAccount from '../../rescuenect-adminsdk.json';
+import * as admin from 'firebase-admin';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
     admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+        credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_CREDENTIALS as string)),
         projectId: 'rescuenect'
     });
 }

@@ -10,26 +10,26 @@
 
 body{
     font-family: 'Poppins', system-ui, Arial;
-    @apply text-sm text-content_text;
+    font-size: 13px;
     /* background-color: lightblue; */
 }
 
 
 /* CUSTOM COLORS */
 .primary{
-    background: linear-gradient(to bottom right, #14723C 0%, #00A35A 90%, #00A35A 100%);
+    background: linear-gradient(to bottom right, #0EA5E9 0%, #097dca 90%, #2563EB 100%);
 }
 
 .dark .primary {
-    background: linear-gradient(90deg, rgba(28,73,47,1) 0%, rgba(10,83,50,1) 100%);
+    background: linear-gradient(90deg, rgba(14,165,233,1) 0%, rgb(11, 136, 194) 100%);
 }
 
 .secondary{
-    background: linear-gradient(to top, #384cff85 0%, #F8F8FF 90%, #F8F8FF 100%);
+    background: linear-gradient(to top, #DA9E22 0%, #F8F8FF 90%, #F8F8FF 100%);
 }
 
 .dark .secondary{
-    background: linear-gradient(to top, #3f4dc985 0%, #333333 90%, #333333 100%);
+    background: linear-gradient(to top, #DA9E22 0%, #333333 90%, #333333 100%);
 }
 
 
@@ -47,7 +47,7 @@ body{
 /* Tablets */
 @media (min-width: 768px) {
     body {
-        @apply text-base;
+        font-size: 13px;
         /* background-color: lightgreen; */
     }
 } 
@@ -55,7 +55,7 @@ body{
 /* Laptops (current) */
 @media (min-width: 1024px) {
     body {
-        @apply text-base;
+        font-size: 13px;
         /* background-color: lightyellow; */
     }
 }
@@ -63,7 +63,7 @@ body{
 /* Large Screens */
 @media (min-width: 1440px) {
     body {
-        @apply text-xl;
+        font-size: 14px;
         /* background-color: lightgray; */
     }
 }

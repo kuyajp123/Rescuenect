@@ -1,12 +1,12 @@
 import React from "react";
 import { Button, ButtonProps } from "@heroui/react";
-import { useScreenSize } from "@/context/ScreenSizeContext";
+import { useScreenSize } from "@/contexts/ScreenSizeContext";
 
 interface PrimaryButtonProps extends ButtonProps {
   children: React.ReactNode
 }
 
-const PrimaryButton: React.FC<PrimaryButtonProps & ButtonProps> = ({ children, className = "", ...props }) => {
+export const PrimaryButton: React.FC<PrimaryButtonProps & ButtonProps> = ({ children, className = "", ...props }) => {
   const { screenSize  } = useScreenSize();
 
   return (
@@ -22,7 +22,7 @@ const PrimaryButton: React.FC<PrimaryButtonProps & ButtonProps> = ({ children, c
   );
 };
 
-export default PrimaryButton;
+export default { PrimaryButton };
 
 //Default height in icon: h-5
 //Default import in icon: "@heroicons/react/20/solid"; size of 20x20

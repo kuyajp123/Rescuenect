@@ -1,12 +1,12 @@
 import React from "react";
 import { Button, ButtonProps } from "@heroui/react";
-import { useScreenSize } from "@/context/ScreenSizeContext";
+import { useScreenSize } from "@/contexts/ScreenSizeContext";
 
 interface PrimaryButtonProps extends ButtonProps {
   children: React.ReactNode;
 }
 
-const SecondaryButton: React.FC<PrimaryButtonProps & ButtonProps> = ({ children, className = "", ...props }) => {
+export const SecondaryButton: React.FC<PrimaryButtonProps & ButtonProps> = ({ children, className = "", ...props }) => {
   const { screenSize  } = useScreenSize();
   
   return (
@@ -24,7 +24,7 @@ const SecondaryButton: React.FC<PrimaryButtonProps & ButtonProps> = ({ children,
   );
 };
 
-export default SecondaryButton
+export default { SecondaryButton }
 
 //props:
 //Default height in icon: h-4

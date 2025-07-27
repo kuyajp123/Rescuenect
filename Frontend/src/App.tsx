@@ -1,40 +1,25 @@
-import { ThemeSwitcher } from './components/hooks/ThemeSwitcher';
-import React, { useEffect, useState } from 'react'
-import { collection, onSnapshot, getFirestore } from "firebase/firestore";
-import { app } from "@/lib/firebase";
+import SideBar from './components/ui/sideBar/SideBar';
+import Header from './components/ui/header/Header';
+import Content from './components/ui/content/Content';
 
 function App() {
-   const [user, setUser] = useState<any[]>([]);
-  
-    useEffect(() => {
-      const db = getFirestore(app);
-      const unsubscribe = onSnapshot(collection(db, "User"), (snapshot) => {
-        const userData = snapshot.docs.map(doc => doc.data());
-        setUser(userData);
-      });
-  
-      return () => unsubscribe();
-    }, []);
 
   return (
-    <div className='bg-bg dark:bg-bg h-screen w-full flex flex-col'>
-      <ThemeSwitcher />
-
-      {user ? (
-        user.map((u) => (
-          <React.Fragment key={u.id}>
-            <div>{u.name}</div>
-            <div>{u.email}</div>
-            <div>{u.age}</div>
-            <div>--------</div>
-          </React.Fragment>
-        ))
-      ) : (
-        <div>Loading...</div>
-      )}
-
+    <div className='flex flex-row gap-4 pr-4'>
+      <div>
+        <SideBar />
+      </div>
+      
+      <div className='flex flex-col w-full'>
+        <div>
+          <Header />
+        </div>
+        <div className='flex h-full pb-4'>
+          {/* <Content /> */}
+        </div>
+      </div>
     </div>
   );
 }
-
+ 
 export default App;
