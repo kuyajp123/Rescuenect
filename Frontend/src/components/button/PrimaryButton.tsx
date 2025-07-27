@@ -11,7 +11,7 @@ export const PrimaryButton: React.FC<PrimaryButtonProps & ButtonProps> = ({ chil
 
   return (
     <Button
-    className={`primary dark:primary rounded text-[#f2f2f2] dark:text-content_text
+    className={`bg-primary dark:bg-primary rounded text-[#f2f2f2] dark:text-content_text
       ${screenSize === 'large_screen' ? 'text-base ' : 'text-sm'}
       ${className}
     `}

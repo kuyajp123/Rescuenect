@@ -14,10 +14,10 @@ const Header = () => {
         <div className='flex flex-row space-x-5 items-center p-4'>
             <ThemeSwitcher />
             <div>
-                <Bell size={20} className='inline-block mr-2' /> Notification
+                <Bell size={20} className='inline-block mr-2' />
             </div>
             <div>
-                <Settings size={20} className='inline-block mr-2' /> Settings
+                <Settings size={20} className='inline-block mr-2' />
             </div>
             <div>
                 <Avatar 

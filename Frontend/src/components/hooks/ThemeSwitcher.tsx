@@ -11,7 +11,7 @@ export const ThemeSwitcher = () => {
 
   return (
     <SecondaryButton 
-      className="rounded-full border-blank dark:border-none" 
+      className="rounded-full border-none" 
       onPress={handleThemeChange}
       isIconOnly
       >

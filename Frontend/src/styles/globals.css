@@ -1,4 +1,7 @@
-@import 'tailwindcss';
+@import "tailwindcss";
+@plugin '../hero.ts';    /* Path may need adjusting to where hero.ts is */
+@source "../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}";
+@custom-variant dark (&:is(.dark *));
 
 *{
     margin: 0;
@@ -6,62 +9,64 @@
     box-sizing: border-box;
 }
 
-body{
-    font-family: 'Poppins', system-ui, Arial;
-    font-size: 13px;
-    /* background-color: lightblue; */
+@theme {
+    --font-display: 'Poppins', system-ui, Arial;
+
+    /* light */
+    --color-primary: #0EA5E9;
+    --color-secondary: #DA9E22;
+
+    /* background */
+    --color-bg: #F8F8FF;
+    --color-bg-hover: #e4e4e4;
+
+    /* card */
+    --color-card: #FFFFFF;
+    --color-card-hover: #F0F0F0;
+
+    /* text */
+    --color-text: #000000;
+
+    /* border color */
+    --color-border: #E0E6ED;
+
+    /* ------------------  */
+
+    /* dark */
+    --color-primary-dark: #2563EB;
+    --color-secondary-dark: #DA9E22;
+
+    /* background */
+    --color-bg-dark: #171717;
+    --color-bg-hover-dark: #1f1f1f;
+
+    /* card */
+    --color-card-dark: #121212;
+    --color-card-hover-dark: #1a1a1a;
+
+    /* text */
+    --color-text-dark: #E0E6ED;
+
+    /* border color */
+    --color-border-dark: #2a2a2a;
 }
 
+@layer base {
+    body {
+        font-family: var(--font-display);
+        font-size: 13px;
+        background-color: var(--color-bg);
+        }
 
-/* CUSTOM COLORS */
-.primary{
-    background: linear-gradient(to bottom right, #0EA5E9 0%, #097dca 90%, #2563EB 100%);
+        .dark body {
+        background-color: var(--color-bg-dark);
+    }
 }
 
-.dark .primary {
-    background: linear-gradient(90deg, rgba(14,165,233,1) 0%, rgb(11, 136, 194) 100%);
-}
-
-.secondary{
-    background: linear-gradient(to top, #DA9E22 0%, #F8F8FF 90%, #F8F8FF 100%);
-}
-
-.dark .secondary{
-    background: linear-gradient(to top, #DA9E22 0%, #333333 90%, #333333 100%);
-}
-
-
-/* FONT POPPINS */
 @font-face {
     font-family: 'Poppins';
     src: url('font/Poppins-Regular.woff2') format('woff2'),
         url('font/Poppins-Regular.woff') format('woff');
     font-weight: normal;
     font-style: normal;
-}
-
-
-/* VIEWPORT */
-/* Tablets */
-@media (min-width: 768px) {
-    body {
-        font-size: 13px;
-        /* background-color: lightgreen; */
-    }
-} 
-  
-/* Laptops (current) */
-@media (min-width: 1024px) {
-    body {
-        font-size: 13px;
-        /* background-color: lightyellow; */
-    }
-}
-
-/* Large Screens */
-@media (min-width: 1440px) {
-    body {
-        font-size: 14px;
-        /* background-color: lightgray; */
-    }
 }
