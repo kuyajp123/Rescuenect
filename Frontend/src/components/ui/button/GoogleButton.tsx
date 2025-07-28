@@ -1,4 +1,4 @@
-import { SecondaryButton } from '@/components/button/SecondaryButton'
+import { SecondaryButton } from './'
 
 export const GoogleButton = () => {
   return (

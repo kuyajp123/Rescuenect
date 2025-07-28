@@ -1,6 +1,6 @@
 import {useTheme} from "@heroui/use-theme";
-import { SunIcon, MoonIcon } from "@heroicons/react/24/outline";
-import { SecondaryButton } from "@/components/button";
+import { SecondaryButton } from "@/components/ui/button";
+import { Sun, Moon } from "lucide-react";
 
 export const ThemeSwitcher = () => {
   const { theme, setTheme } = useTheme();
@@ -15,7 +15,7 @@ export const ThemeSwitcher = () => {
       onPress={handleThemeChange}
       isIconOnly
       >
-        { theme === 'light' ? <SunIcon className="h-5" /> : <MoonIcon className="h-5" /> } 
+        { theme === 'light' ? <Sun className="h-5" /> : <Moon className="h-5" /> } 
     </SecondaryButton>
   )
 };
