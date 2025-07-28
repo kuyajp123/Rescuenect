@@ -15,7 +15,7 @@ const SideBar = () => {
 
   return (
     <div className="bg-card dark:bg-card-dark w-55 h-screen flex flex-col border-border dark:border-border-dark shadow-md">
-        <div className='p-4 pl-12 mt-4 text-xl font-bold text-primary dark:text-white'>Rescuenect</div>
+        <div className='p-4 pl-12 mt-4 text-xl font-bold text-primary dark:text-white'><strong>Rescuenect</strong></div>
 
         <div className='flex flex-col'>
             <div className='mt-10'>

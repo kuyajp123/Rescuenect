@@ -11,9 +11,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@heroui/autocomplete": "^2.3.25",
     "@heroui/avatar": "^2.2.19",
+    "@heroui/divider": "^2.2.16",
     "@heroui/react": "^2.8.1",
     "@heroui/system": "^2.4.19",
+    "@heroui/table": "^2.2.23",
     "@heroui/theme": "^2.4.19",
     "@heroui/use-theme": "^2.1.10",
     "@heroui/user": "^2.2.19",

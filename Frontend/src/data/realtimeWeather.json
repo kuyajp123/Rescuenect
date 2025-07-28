@@ -1,0 +1,33 @@
+{
+  "data": {
+    "time": "2025-07-28T14:51:00Z",
+    "values": {
+      "altimeterSetting": 1016.37,
+      "cloudBase": 16,
+      "cloudCeiling": 16,
+      "cloudCover": 0,
+      "dewPoint": 20.3,
+      "freezingRainIntensity": 0,
+      "humidity": 74,
+      "precipitationProbability": 0,
+      "pressureSeaLevel": 1016.54,
+      "pressureSurfaceLevel": 1006.57,
+      "rainIntensity": 0,
+      "sleetIntensity": 0,
+      "snowIntensity": 0,
+      "temperature": 25.3,
+      "temperatureApparent": 25.3,
+      "visibility": 15.57,
+      "weatherCode": 1000,
+      "windDirection": 214,
+      "windGust": 4.6,
+      "windSpeed": 3
+    }
+  },
+  "location": {
+    "lat": 43.653480529785156,
+    "lon": -79.3839340209961,
+    "name": "Toronto, Golden Horseshoe, Ontario, Canada",
+    "type": "administrative"
+  }
+}

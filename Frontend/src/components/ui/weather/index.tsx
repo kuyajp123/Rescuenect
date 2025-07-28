@@ -1,7 +1,7 @@
 import ClearDay from '@/assets/icons/ClearDay10000.svg';
 import ClearNight from '@/assets/icons/ClearNight10001.svg';
 import Cloudy from '@/assets/icons/Cloudy1001.svg';
-import DrizleRain from '@/assets/icons/DrizzleLightRain4000_4200.svg';
+import DrizzleRain from '@/assets/icons/DrizzleLightRain4000_4200.svg';
 import Fog from '@/assets/icons/Fog2000_2100.svg';
 import HeavyGust from '@/assets/icons/HeavyGust.svg';
 import PartlyCloudyDay from '@/assets/icons/PartlyCloudyDay11010.svg';
@@ -13,14 +13,14 @@ import Windy from '@/assets/icons/Windy.svg';
 import { WeatherIconProps } from '@/components/shared/types';
 
 const iconFactory = (src: string, alt: string) => 
-  ({ height, width }: WeatherIconProps) => (
+  ({ height = 40, width = 50 }: WeatherIconProps) => (
     <img src={src} height={height} width={width} alt={alt} />
   );
 
 export const ClearDayIcon = iconFactory(ClearDay, "Clear Day Icon");
 export const ClearNightIcon = iconFactory(ClearNight, "Clear Night Icon");
 export const CloudyIcon = iconFactory(Cloudy, "Cloudy Icon");
-export const DrizleRainIcon = iconFactory(DrizleRain, "Drizzle Rain Icon");
+export const DrizzleRainIcon = iconFactory(DrizzleRain, "Drizzle Rain Icon");
 export const FogIcon = iconFactory(Fog, "Fog Icon");
 export const HeavyGustIcon = iconFactory(HeavyGust, "Heavy Gust Icon");
 export const PartlyCloudyDayIcon = iconFactory(PartlyCloudyDay, "Partly Cloudy Day Icon");

@@ -5,8 +5,8 @@ import React from 'react'
 
 const MainLayout = () => {
   return (
-    <div className='flex flex-row gap-4 pr-4 '>
-      <div>
+    <div className='flex flex-row gap-4 pr-4 h-screen'>
+      <div className='overflow-hidden'>
         <SideBar />
       </div>
       
@@ -14,7 +14,7 @@ const MainLayout = () => {
         <div>
           <Header />
         </div>
-        <div className='flex h-full pb-4'>
+        <div className='flex h-full overflow-auto pb-4'>
           <Content />
         </div>
       </div>

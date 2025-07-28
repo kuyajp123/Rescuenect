@@ -1,0 +1,15 @@
+{
+  "precipitationProbability",
+  "rainAccumulation",
+  "rainIntensity",
+  "humidity",
+  "temperature",
+  "temperatureApparent",
+  "uvIndex",
+  "windSpeed",
+  "windGust",
+  "windDirection",
+  "weatherCode",
+  "cloudCover",
+  "visibility"
+}
