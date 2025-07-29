@@ -4,6 +4,7 @@ export type WeatherIconProps = {
 };
 
 export type WeatherCardProps = {
+    key?: string | number;
     name: string;
     icon: number;
     precipitationProbability: number; // chance of rain
@@ -17,3 +18,22 @@ export type WeatherCardProps = {
     weatherCode: number; // weather condition code
     cloudCover: number; // percentage of cloud cover
 };
+
+export interface ForecastDataProps {
+  key?: string | number;
+  time: string;
+  temperature: number;
+  weatherCode: number;
+}
+
+export interface GetDateAndTimeProps {
+    date?: string;
+    year?: string;
+    month?: string;
+    weekday?: string;
+    day?: string;
+    hour?: string;
+    minute?: string;
+    second?: string;
+    hour12?: boolean;
+}

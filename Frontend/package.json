@@ -15,6 +15,7 @@
     "@heroui/avatar": "^2.2.19",
     "@heroui/divider": "^2.2.16",
     "@heroui/react": "^2.8.1",
+    "@heroui/spinner": "^2.2.21",
     "@heroui/system": "^2.4.19",
     "@heroui/table": "^2.2.23",
     "@heroui/theme": "^2.4.19",
