@@ -1,5 +1,6 @@
 import { WeatherCard, FiveDayForecastCard, DayForecastData } from "@/components/ui/weather"
 import weatherData from "@/data/phTimeZoneWeather.json"
+import realtimeWeather from "@/data/realtimeWeather.json"
 import GlassCard from "@/components/ui/card/GlassCard";
 import { Table, TableHeader, TableColumn, TableBody } from "@heroui/table";
 import { GetDateAndTime } from "@/components/helper/DateAndTime";
@@ -21,11 +22,9 @@ const Weather = () => {
     }, 1000)
   }, [])
 
-
-
   return (
     <div className="flex flex-row gap-4 h-auto w-full p-4">
-      <div className="h-180 w-full flex flex-row gap-4">
+      <div className="h-180 w-80% flex flex-row gap-4">
         <div className="flex flex-col gap-6 w-150 ">
           {/* Today */}
           <div className="flex flex-col">
@@ -35,24 +34,23 @@ const Weather = () => {
 
           {/* Realtime weather */}
         <WeatherCard
-          key={weatherData.timelines.hourly[3].time}
+          key={realtimeWeather.location.lat + " " + realtimeWeather.location.lon}
           name={"bancaan"}
-          icon={weatherData.timelines.hourly[3].values.weatherCode}
-          precipitationProbability={weatherData.timelines.hourly[3].values.precipitationProbability}
-          rainAccumulation={weatherData.timelines.hourly[3].values.rainAccumulation}
-          rainIntensity={weatherData.timelines.hourly[3].values.rainIntensity}
-          humidity={weatherData.timelines.hourly[3].values.humidity}
-          temperature={Math.round(weatherData.timelines.hourly[3].values.temperature)}
-          temperatureApparent={Math.round(weatherData.timelines.hourly[3].values.temperatureApparent)}
-          windSpeed={weatherData.timelines.hourly[3].values.windSpeed}
-          weatherCode={weatherData.timelines.hourly[3].values.weatherCode}
-          cloudCover={weatherData.timelines.hourly[3].values.cloudCover}
+          icon={realtimeWeather.data.values.weatherCode}
+          precipitationProbability={realtimeWeather.data.values.precipitationProbability}
+          rainIntensity={realtimeWeather.data.values.rainIntensity}
+          humidity={realtimeWeather.data.values.humidity}
+          temperature={Math.round(realtimeWeather.data.values.temperature)}
+          temperatureApparent={Math.round(realtimeWeather.data.values.temperatureApparent)}
+          windSpeed={realtimeWeather.data.values.windSpeed}
+          weatherCode={realtimeWeather.data.values.weatherCode}
+          cloudCover={realtimeWeather.data.values.cloudCover}
         />
 
           {/* 5 day forecast */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col mt-5 gap-6">
             <div><p><b>5-Day Forecast</b></p></div>
-            <div className="flex flex-row flex-wrap gap-3 ">
+            <div className="flex flex-row flex-wrap gap-0 ">
               <FiveDayForecastCard
                 key={weatherData.timelines.daily[0].time}
                 time={weatherData.timelines.daily[0].time}
@@ -64,7 +62,7 @@ const Weather = () => {
         </div>
         
         {/* 24 hour forecast */}
-        <div>
+        <div className="">
           <GlassCard className="flex flex-col gap-7 w-auto h-full p-4 overflow-y-auto mt-20">
             <div>
                 <p><b>24 Hour Forecast</b></p>
@@ -97,8 +95,32 @@ const Weather = () => {
         </div>
       </div>
       
-      <div className=" h-auto w-[50%] border-1"></div>
-    </div>
+      <div className="h-200 flex flex-col overflow-y-auto gap-4 pt-20 pb-4 px-5">
+          <div>
+            <p><b>Realtime weather of other group of barangay in naic.</b></p>
+          </div>
+
+          {/* 
+          * Realtime weather of other group of barangay in naic
+          * Include the div when mapping
+          */}
+          <div>
+            <WeatherCard
+              key={2}
+              name={"group 2"}
+              icon={realtimeWeather.data.values.weatherCode}
+              precipitationProbability={realtimeWeather.data.values.precipitationProbability}
+              rainIntensity={realtimeWeather.data.values.rainIntensity}
+              humidity={realtimeWeather.data.values.humidity}
+              temperature={Math.round(realtimeWeather.data.values.temperature)}
+              temperatureApparent={Math.round(realtimeWeather.data.values.temperatureApparent)}
+              windSpeed={realtimeWeather.data.values.windSpeed}
+              weatherCode={realtimeWeather.data.values.weatherCode}
+              cloudCover={realtimeWeather.data.values.cloudCover}
+            />
+          </div>
+        </div>
+      </div>
   )
 }
 

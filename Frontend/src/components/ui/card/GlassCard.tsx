@@ -18,7 +18,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
   className = "",
 }) => {
   const baseClasses = [
-    "backdrop-blur-md",
+    "backdrop-blur-sm",
     "bg-black/25",
     "dark:bg-black/8",
     "border",

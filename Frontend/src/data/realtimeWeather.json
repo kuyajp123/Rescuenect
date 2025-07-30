@@ -1,33 +1,31 @@
 {
   "data": {
-    "time": "2025-07-28T14:51:00Z",
+    "time": "2025-07-30T01:30:00Z",
     "values": {
-      "altimeterSetting": 1016.37,
-      "cloudBase": 16,
-      "cloudCeiling": 16,
-      "cloudCover": 0,
-      "dewPoint": 20.3,
+      "altimeterSetting": 1006.93,
+      "cloudBase": 0.7,
+      "cloudCeiling": 12.6,
+      "cloudCover": 96,
+      "dewPoint": 23.9,
       "freezingRainIntensity": 0,
-      "humidity": 74,
+      "humidity": 76,
       "precipitationProbability": 0,
-      "pressureSeaLevel": 1016.54,
-      "pressureSurfaceLevel": 1006.57,
+      "pressureSeaLevel": 1006.96,
+      "pressureSurfaceLevel": 998.5,
       "rainIntensity": 0,
       "sleetIntensity": 0,
       "snowIntensity": 0,
-      "temperature": 25.3,
-      "temperatureApparent": 25.3,
-      "visibility": 15.57,
-      "weatherCode": 1000,
-      "windDirection": 214,
-      "windGust": 4.6,
-      "windSpeed": 3
+      "temperature": 28.5,
+      "temperatureApparent": 32.6,
+      "visibility": 9.83,
+      "weatherCode": 1001,
+      "windDirection": 225,
+      "windGust": 14.5,
+      "windSpeed": 8.1
     }
   },
   "location": {
-    "lat": 43.653480529785156,
-    "lon": -79.3839340209961,
-    "name": "Toronto, Golden Horseshoe, Ontario, Canada",
-    "type": "administrative"
+    "lat": 14.2965,
+    "lon": 120.7925
   }
 }

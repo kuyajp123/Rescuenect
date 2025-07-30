@@ -8,17 +8,17 @@ const DayForecastData = ({ key, time, weatherCode, temperature }: ForecastDataPr
 
   return (     
     <TableRow key={key} className="h-20">
-        <TableCell>
-            {new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
-        </TableCell>
-        <TableCell>
-            {getWeatherIcons(weatherCode)({ height: 40, width: 50 })}
-        </TableCell>
-        <TableCell>{getWeatherCondition(weatherCode)}</TableCell>
-        <TableCell>{Math.round(temperature)} °C</TableCell>
-        <TableCell>
-            <ChevronRightIcon className="h-4 w-4" />
-        </TableCell>
+      <TableCell className="p-0 pr-4">
+        {new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+      </TableCell>
+      <TableCell className="px-4">
+        {getWeatherIcons(weatherCode)({ height: 40, width: 50 })}
+      </TableCell>
+      <TableCell className="px-4">{getWeatherCondition(weatherCode)}</TableCell>
+      <TableCell className="px-4">{Math.round(temperature)} °C</TableCell>
+      <TableCell className="p-0 pl-4">
+        <ChevronRightIcon className="h-5 w-5" />
+      </TableCell>
     </TableRow>
   )
 }

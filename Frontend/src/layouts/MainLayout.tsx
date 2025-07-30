@@ -1,7 +1,6 @@
 import Content from '@/components/ui/content/Content'
 import Header from '@/components/ui/header/Header'
 import SideBar from '@/components/ui/sideBar/SideBar'
-import React from 'react'
 
 const MainLayout = () => {
   return (
