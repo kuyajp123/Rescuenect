@@ -1,0 +1,31 @@
+{
+  "data": {
+    "time": "2025-07-30T09:55:00Z",
+    "values": {
+      "altimeterSetting": 1006.12,
+      "cloudBase": 0.6,
+      "cloudCeiling": null,
+      "cloudCover": 52,
+      "dewPoint": 23.8,
+      "freezingRainIntensity": 0,
+      "humidity": 79,
+      "precipitationProbability": 0,
+      "pressureSeaLevel": 1006.36,
+      "pressureSurfaceLevel": 997.44,
+      "rainIntensity": 0,
+      "sleetIntensity": 0,
+      "snowIntensity": 0,
+      "temperature": 27.8,
+      "temperatureApparent": 31.4,
+      "visibility": 12.61,
+      "weatherCode": 1101,
+      "windDirection": 225,
+      "windGust": 11.4,
+      "windSpeed": 6.6
+    }
+  },
+  "location": {
+    "lat": 14.304155,
+    "lon": 120.7762
+  }
+}

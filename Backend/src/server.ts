@@ -1,12 +1,16 @@
 import express, { Application, Request, Response, NextFunction } from 'express'
 const app: Application = express();
-require('dotenv').config();
-const cookieParser = require('cookie-parser');
-const PORT = process.env.PORT;
-app.use(cookieParser());
+import dotenv from 'dotenv';
+dotenv.config();
+import cookieParser from 'cookie-parser';
+import db from '@/db/firestoreConfig';
+import './jobs/weatherSched';
 import cors from 'cors';
-import userRoutes from '@/routes/users';
+import { weatherService } from '@/jobs/weatherSched'
 
+db;
+const PORT = process.env.PORT;
+weatherService.fetchWeatherIfNeeded();
 
 app.use(cors({
   origin: process.env.FRONTEND_URL!,
@@ -14,10 +18,10 @@ app.use(cors({
   credentials: true,
 }));
 
+app.use(cookieParser());
 app.use(express.json());
-
 app.use(express.urlencoded({ extended: true }));
-app.use('/', userRoutes);
+
 app.get('/', (req: any, res: any) => res.send("hello world"));
 
 app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
