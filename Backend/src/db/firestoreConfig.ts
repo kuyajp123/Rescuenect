@@ -8,7 +8,6 @@ try {
     if (!admin.apps.length) {
         admin.initializeApp({
             credential: admin.credential.cert(rawCreds),
-            projectId: 'lively-metrics-453114-q3'
         });
     }
     console.log('database connected successfuully');
