@@ -46,4 +46,33 @@ export class WeatherModel {
       throw new Error(`Failed to insert realtime weather data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+
+  static selectRealtimeData = async (): Promise<FirebaseFirestore.DocumentData> => {
+    const docRef = db.collection('weather').doc('central_naic').collection('realtime').doc('data');
+    const doc = await docRef.get();
+    if (!doc.exists) {
+      throw new Error('No realtime weather data found');
+    }
+    return { id: doc.id, ...doc.data() };
+  }
+
+  static selectForecastData = async (): Promise<FirebaseFirestore.DocumentData> => {
+    const collectionRef = db.collection('weather').doc('central_naic').collection('daily');
+    const snapshot = await collectionRef.get();
+    if (snapshot.empty) {
+      throw new Error('No forecast weather data found');
+    }
+    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return data;
+  }
+
+  static selectHourlyForecastData = async (): Promise<FirebaseFirestore.DocumentData> => {
+    const collectionRef = db.collection('weather').doc('central_naic').collection('hourly');
+    const snapshot = await collectionRef.get();
+    if (snapshot.empty) {
+      throw new Error('No hourly forecast weather data found');
+    }
+    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return data;
+  }
 }

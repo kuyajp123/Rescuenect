@@ -9,9 +9,11 @@ export type WeatherCardProps = {
     icon: number;
     precipitationProbability: number; // chance of rain
     rainIntensity: number;
+    rainAccumulation?: number; // total rain accumulation
     humidity: number;
     temperature: number;
     temperatureApparent: number; // feels like temperature
+    uvIndex?: number; // UV index, optional
     windSpeed: number;
     weatherCode: number; // weather condition code
     cloudCover: number; // percentage of cloud cover

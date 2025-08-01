@@ -9,6 +9,7 @@ import {
   TableCell
 } from "@heroui/table";
 import { getWeatherIcons, getWeatherCondition } from "@/components/helper/WeatherLogic";
+import { useMemo } from "react";
 
 import { WeatherCardProps } from "@/components/shared/types";
 
@@ -19,11 +20,50 @@ const WeatherCard = ({
     rainIntensity,
     humidity,
     temperature,
+    uvIndex,
     temperatureApparent,
     windSpeed,
     weatherCode,
-    cloudCover
+    cloudCover,
+    rainAccumulation
 }: WeatherCardProps) => {
+  
+  const rows = useMemo(() => {
+    const baseRows = [
+      <TableRow key="1">
+        <TableCell>Feels like:</TableCell>
+        <TableCell><p>{temperatureApparent}°C</p></TableCell>
+        <TableCell>Chance of Rain:</TableCell>
+        <TableCell><p>{precipitationProbability}%</p></TableCell>
+      </TableRow>,
+      <TableRow key="2">
+        <TableCell>Humidity:</TableCell>
+        <TableCell><p>{humidity}%</p></TableCell>
+        <TableCell>Rain intensity:</TableCell>
+        <TableCell><p>{rainIntensity} mm/h</p></TableCell>
+      </TableRow>,
+      <TableRow key="3">
+        <TableCell>Cloud:</TableCell>
+        <TableCell><p>{cloudCover}%</p></TableCell>
+        <TableCell>Wind speed:</TableCell>
+        <TableCell><p>{windSpeed} km/h</p></TableCell>
+      </TableRow>
+    ];
+
+    if (uvIndex !== undefined && uvIndex !== null || rainAccumulation !== undefined && rainAccumulation !== null) {
+      baseRows.push(
+        <TableRow key="4">
+          <TableCell><p>{uvIndex ? 'UV Index:' : ''}</p></TableCell>
+          <TableCell><p>{uvIndex ? <>{uvIndex}</> : ''}</p></TableCell>
+          <TableCell><p>{rainAccumulation ? 'Rain acc:' : ''}</p></TableCell>
+          <TableCell><p>{rainAccumulation ? <>{rainAccumulation} mm</> : ''}</p></TableCell>
+        </TableRow>
+      );
+    }
+
+    return baseRows;
+  }, [temperatureApparent, precipitationProbability, humidity, rainIntensity, cloudCover, windSpeed, uvIndex, rainAccumulation]);
+
   return (
     <Card className="w-fit h-auto">
         <CardBody className="flex flex-row gap-4 p-8">
@@ -52,26 +92,10 @@ const WeatherCard = ({
               <TableColumn>2</TableColumn>
               <TableColumn>3</TableColumn>
               <TableColumn>4</TableColumn>
+              
             </TableHeader>
             <TableBody>
-              <TableRow key="1">
-                <TableCell>Feels like:</TableCell>
-                <TableCell><p>{temperatureApparent}°C</p></TableCell>
-                <TableCell>Chance of Rain:</TableCell>
-                <TableCell><p>{precipitationProbability}%</p></TableCell>
-              </TableRow>
-              <TableRow key="2">
-                <TableCell>Humidity:</TableCell>
-                <TableCell><p>{humidity}%</p></TableCell>
-                <TableCell>Rain intensity:</TableCell>
-                <TableCell><p>{rainIntensity} mm/h</p></TableCell>
-              </TableRow>
-              <TableRow key="3">
-                <TableCell>Cloud:</TableCell>
-                <TableCell><p>{cloudCover}%</p></TableCell>
-                <TableCell>Wind speed:</TableCell>
-                <TableCell><p>{windSpeed} km/h</p></TableCell>
-              </TableRow>
+              {rows}
             </TableBody>
           </Table>
         </div>

@@ -5,8 +5,30 @@ import GlassCard from "@/components/ui/card/GlassCard";
 import { Table, TableHeader, TableColumn, TableBody } from "@heroui/table";
 import { GetDateAndTime } from "@/components/helper/DateAndTime";
 import { useState, useEffect } from "react";
+import axios from "axios";
+
 
 const Weather = () => {
+    const [data, setData] = useState<any>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/weather`);
+        setData(response.data);
+        console.log('Fetched data:', response.data);
+      } catch (error) {
+        console.error('Error fetching weather data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+
   const getTime = GetDateAndTime({ hour: 'numeric', minute: '2-digit', hour12: true })
   const getDate = GetDateAndTime({ weekday: 'short', year: 'numeric', month: 'long', day: '2-digit' })
   
@@ -17,9 +39,9 @@ const Weather = () => {
     const interval = setInterval(() => {
       setTime(GetDateAndTime({ hour: 'numeric', minute: '2-digit', hour12: true }))
       setDate(GetDateAndTime({ weekday: 'short', year: 'numeric', month: 'long', day: '2-digit' }))
-
-       return () => clearInterval(interval);
     }, 1000)
+
+    return () => clearInterval(interval);
   }, [])
 
   return (
@@ -33,34 +55,57 @@ const Weather = () => {
           </div>
 
           {/* Realtime weather */}
-        <WeatherCard
-          key={realtimeWeather.location.lat + " " + realtimeWeather.location.lon}
-          name={"bancaan"}
-          icon={realtimeWeather.data.values.weatherCode}
-          precipitationProbability={realtimeWeather.data.values.precipitationProbability}
-          rainIntensity={realtimeWeather.data.values.rainIntensity}
-          humidity={realtimeWeather.data.values.humidity}
-          temperature={Math.round(realtimeWeather.data.values.temperature)}
-          temperatureApparent={Math.round(realtimeWeather.data.values.temperatureApparent)}
-          windSpeed={realtimeWeather.data.values.windSpeed}
-          weatherCode={realtimeWeather.data.values.weatherCode}
-          cloudCover={realtimeWeather.data.values.cloudCover}
-        />
+          <div>
+            {data && data.realTimeData && data.realTimeData.data ? (
+              <WeatherCard
+                key={data.realTimeData.location.lat + data.realTimeData.location.lon}
+                name={"bancaan"}
+                icon={data.realTimeData.data.values.weatherCode}
+                precipitationProbability={data.realTimeData.data.values?.precipitationProbability}
+                rainIntensity={data.realTimeData.data.values?.rainIntensity}
+                humidity={data.realTimeData.data.values?.humidity}
+                temperature={Math.round(data.realTimeData.data.values?.temperature)}
+                temperatureApparent={Math.round(data.realTimeData.data.values?.temperatureApparent)}
+                windSpeed={data.realTimeData.data.values?.windSpeed}
+                weatherCode={data.realTimeData.data.values?.weatherCode}
+                cloudCover={data.realTimeData.data.values?.cloudCover}
+                rainAccumulation={data.realTimeData.data.values?.rainAccumulation}
+                uvIndex={data.realTimeData.data.values?.uvIndex}
+              />
+            ) : loading ? (
+              <div className="flex items-center justify-center p-8">
+                <p>Loading weather data...</p>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center p-8">
+                <p>Unable to load weather data</p>
+              </div>
+            )}
+          </div>
 
           {/* 5 day forecast */}
           <div className="flex flex-col mt-5 gap-6">
             <div><p><b>5-Day Forecast</b></p></div>
-            <div className="flex flex-row flex-wrap gap-0 ">
-              <FiveDayForecastCard
-                key={weatherData.timelines.daily[0].time}
-                time={weatherData.timelines.daily[0].time}
-                temperature={Math.round(weatherData.timelines.daily[0].values.temperatureAvg)}
-                weatherCode={weatherData.timelines.daily[0].values.weatherCodeMax}
-              />
+            <div className="flex flex-row flex-wrap gap-4 ">
+              {data && data.forecastData ? (
+                data.forecastData.map((forecast: any) => (
+                  <FiveDayForecastCard
+                    key={forecast.time}
+                    time={forecast.time}
+                    temperature={Math.round(forecast.temperatureAvg)}
+                    weatherCode={forecast.weatherCodeMax}
+                  />
+                ))
+              ) : (
+                <div className="flex items-center justify-center p-8">
+                  <p>Unable to load weather data</p>
+                </div>
+              )}
+              
             </div>
           </div>
         </div>
-        
+
         {/* 24 hour forecast */}
         <div className="">
           <GlassCard className="flex flex-col gap-7 w-auto h-full p-4 overflow-y-auto mt-20">
@@ -117,6 +162,8 @@ const Weather = () => {
               windSpeed={realtimeWeather.data.values.windSpeed}
               weatherCode={realtimeWeather.data.values.weatherCode}
               cloudCover={realtimeWeather.data.values.cloudCover}
+              rainAccumulation={realtimeWeather.data.values.rainAccumulation}
+              uvIndex={realtimeWeather.data.values.uvIndex}
             />
           </div>
         </div>

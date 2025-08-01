@@ -21,7 +21,9 @@
       "weatherCode": 1001,
       "windDirection": 225,
       "windGust": 14.5,
-      "windSpeed": 8.1
+      "windSpeed": 8.1,
+      "uvIndex": 1,
+      "rainAccumulation": 1
     }
   },
   "location": {

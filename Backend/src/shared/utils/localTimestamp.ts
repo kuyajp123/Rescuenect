@@ -27,7 +27,7 @@ export const getForecastTimestamp = () => {
   return getLocalTimestamp(FILE_PATH_FORECAST);
 }
 
-export const updateForecastlTimestamp = () => {
+export const updateForecastTimestamp = () => {
   updateLocalTimestamp(FILE_PATH_FORECAST);
 }
 

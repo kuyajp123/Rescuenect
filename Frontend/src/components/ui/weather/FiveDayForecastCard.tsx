@@ -23,7 +23,7 @@ const FiveDayForecastCard = ({ time, temperature, weatherCode }: ForecastDataPro
         if (isToday) {
             label = "Today";
         } else if (isTomorrow) {
-            label = "Tomorrow";
+            label = "Tom";
         } else {
             label = GetDateAndTime({ date: time, weekday: 'short', day: 'numeric' });
         }

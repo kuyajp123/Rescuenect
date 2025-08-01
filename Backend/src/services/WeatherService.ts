@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { 
   getForecastTimestamp, 
-  updateForecastlTimestamp,
+  updateForecastTimestamp,
   getRealtimeTimestamp,
   updateRealtimeTimestamp 
 } from '@/shared/utils/localTimestamp';
@@ -27,26 +27,26 @@ export class WeatherService {
     const oneHour = 60 * 60 * 1000;
     const thirtyMinutes = 30 * 60 * 1000;
 
+    // !forecastlastFetch || now.getTime() - forecastlastFetch.getTime() > oneHour
     if (!forecastlastFetch || now.getTime() - forecastlastFetch.getTime() > oneHour) {
       console.log('⏰ Fetching forecast data for all locations...');
 
       try {
-        updateForecastlTimestamp();
         for (const locationKey of weatherGroups) {
           const forecastUrl = getWeatherAPIEndpoints(locationKey, 'forecast');
-
           const forecastResponse = await axios.get(forecastUrl);
-
+          
           if (forecastResponse.status === 200) {
             await WeatherModel.insertForecastData(locationKey, forecastResponse.data);
-            console.log(`✅ Data saved for ${locationKey}`);
+            console.log(`✅ forecast Data saved for ${locationKey}`);
           } else {
             console.warn(`⚠️ Failed to fetch for ${locationKey}`);
           }
-
+          
           await delay(1500); // Add delay to avoid 429 error
         }
-
+        
+        updateForecastTimestamp();
         console.log('✅ All forecast data fetched successfully.');
       } catch (error) {
          console.error(`Forecast error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -56,11 +56,11 @@ export class WeatherService {
       console.log('🌤️ Using cached forecast data');
     }
 
+    // !realtimelastFetch || now.getTime() - realtimelastFetch.getTime() > thirtyMinutes
     if(!realtimelastFetch || now.getTime() - realtimelastFetch.getTime() > thirtyMinutes) {
       console.log('⏰ Fetching realtime weather data for all locations...');
 
       try {
-        updateRealtimeTimestamp();
         for (const locationKey of weatherGroups) {
           const realtimeUrl = getWeatherAPIEndpoints(locationKey, 'realtime');
           const realtimeResponse = await axios.get(realtimeUrl);
@@ -71,10 +71,11 @@ export class WeatherService {
           } else {
             console.warn(`⚠️ Failed to fetch realtime data for ${locationKey}`);
           }
-
+          
           await delay(1500); // Add delay to avoid 429 error
         }
-
+        
+        updateRealtimeTimestamp();
         console.log('✅ All realtime weather data fetched successfully.');
       } catch (error) {
          console.error(`realtime error: ${error instanceof Error ? error.message : 'Unknown error'}`);
