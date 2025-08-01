@@ -1,10 +1,10 @@
 const weatherLocations = {
-    coastalWest: '14.311667, 120.751944',
-    coastalEast: '14.333333, 120.771389',
-    centralNaic: '14.302222, 120.771944',
+    coastal_west: '14.311667, 120.751944',
+    coastal_east: '14.333333, 120.771389',
+    central_naic: '14.302222, 120.771944',
     sabang: '14.320000, 120.805833',
-    farmArea: '14.289444, 120.793889',
-    naicBoundary: '14.260278, 120.820278',
+    farm_area: '14.289444, 120.793889',
+    naic_boundary: '14.260278, 120.820278',
 };
 
 type WeatherType = 'forecast' | 'realtime';

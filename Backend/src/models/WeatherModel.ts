@@ -24,7 +24,7 @@ export class WeatherModel {
           ...day.values,
         });
       }
-      console.log('✅ Weather data inserted successfully');
+      // console.log('✅ Weather data inserted successfully');
     } catch (error) {
       console.error('Error inserting weather data:', error);
       throw new Error(`Failed to insert weather data: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -40,7 +40,7 @@ export class WeatherModel {
         localTime, 
         ...data 
       });
-      console.log('✅ Realtime weather data inserted successfully');
+      // console.log('✅ Realtime weather data inserted successfully');
     } catch (error) {
       console.error('Error inserting realtime weather data:', error);
       throw new Error(`Failed to insert realtime weather data: ${error instanceof Error ? error.message : 'Unknown error'}`);

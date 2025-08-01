@@ -6,8 +6,7 @@ import cookieParser from 'cookie-parser';
 import db from '@/db/firestoreConfig';
 import './jobs/weatherSched';
 import cors from 'cors';
-import { WeatherService } from '@/services/WeatherService';
-const weatherService = new WeatherService();
+import { weatherService } from '@/jobs/weatherSched';
 
 db;
 const PORT = process.env.PORT;

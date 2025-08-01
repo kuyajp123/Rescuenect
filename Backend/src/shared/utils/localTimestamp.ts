@@ -1,11 +1,12 @@
 import fs from 'fs';
 import path from 'path';
-const FILE_PATH = path.join(__dirname, 'last-fetch.json');
+const FILE_PATH_FORECAST = path.join(__dirname, 'forecast-timestamp.json');
+const FILE_PATH_REALTIME = path.join(__dirname, 'realtime-timestamp.json');
 
-export const getLocalTimestamp = (): Date | null => {
-  if (!fs.existsSync(FILE_PATH)) return null;
+const getLocalTimestamp = (path: any): Date | null => {
+  if (!fs.existsSync(path)) return null;
 
-  const raw = fs.readFileSync(FILE_PATH, 'utf-8');
+  const raw = fs.readFileSync(path, 'utf-8');
   if (!raw.trim()) return null; // File is empty
 
   try {
@@ -17,7 +18,25 @@ export const getLocalTimestamp = (): Date | null => {
   }
 };
 
-export const updateLocalTimestamp = () => {
+const updateLocalTimestamp = (path: any) => {
   const now = new Date().toISOString();
-  fs.writeFileSync(FILE_PATH, JSON.stringify({ lastFetch: now }));
+  fs.writeFileSync(path, JSON.stringify({ lastFetch: now }));
 };
+
+export const getForecastTimestamp = () => {
+  return getLocalTimestamp(FILE_PATH_FORECAST);
+}
+
+export const updateForecastlTimestamp = () => {
+  updateLocalTimestamp(FILE_PATH_FORECAST);
+}
+
+
+
+export const getRealtimeTimestamp = () => {
+  return getLocalTimestamp(FILE_PATH_REALTIME);
+}
+
+export const updateRealtimeTimestamp = () => {
+  updateLocalTimestamp(FILE_PATH_REALTIME);
+}

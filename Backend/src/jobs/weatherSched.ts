@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { WeatherService } from '../services/WeatherService';
+import { WeatherService } from '@/services/WeatherService';
 export const weatherService = new WeatherService();
 
 // Run every hour

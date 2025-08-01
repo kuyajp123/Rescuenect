@@ -1,54 +1,87 @@
-import { getLocalTimestamp, updateLocalTimestamp } from '@/shared/utils/localTimestamp';
+import axios from 'axios';
+import { 
+  getForecastTimestamp, 
+  updateForecastlTimestamp,
+  getRealtimeTimestamp,
+  updateRealtimeTimestamp 
+} from '@/shared/utils/localTimestamp';
 import { WeatherModel } from '@/models/WeatherModel';
 import { getWeatherAPIEndpoints } from '@/shared/functions/WeatherAPIEndpoints';
-import axios from 'axios';
+import { WeatherLocationKey } from '@/shared/types/types';
+
+const weatherGroups: WeatherLocationKey[] = [
+  'coastal_west',
+  'coastal_east',
+  'central_naic',
+  'sabang',
+  'farm_area',
+  'naic_boundary'
+];
 
 export class WeatherService {
-  private coastalWestForecast = getWeatherAPIEndpoints('coastalWest', 'forecast');
-  private coastalWestRealtime = getWeatherAPIEndpoints('coastalWest', 'realtime');
-  private coastalEastForecast = getWeatherAPIEndpoints('coastalEast', 'forecast');
-  private coastalEastRealtime = getWeatherAPIEndpoints('coastalEast', 'realtime');
-  private centralNaicForecast = getWeatherAPIEndpoints('centralNaic', 'forecast');
-  private centralNaicRealtime = getWeatherAPIEndpoints('centralNaic', 'realtime');
-  private sabangForecast = getWeatherAPIEndpoints('sabang', 'forecast');
-  private sabangRealtime = getWeatherAPIEndpoints('sabang', 'realtime');
-  private farmAreaForecast = getWeatherAPIEndpoints('farmArea', 'forecast');
-  private farmAreaRealtime = getWeatherAPIEndpoints('farmArea', 'realtime');
-  private naicBoundaryForecast = getWeatherAPIEndpoints('naicBoundary', 'forecast');
-  private naicBoundaryRealtime = getWeatherAPIEndpoints('naicBoundary', 'realtime');
-
-  private API_KEY = process.env.WEATHER_API_KEY!;
-
-  private realtimeData = `https://api.tomorrow.io/v4/weather/realtime?location=14.307235%2C%20120.772340&apikey=${this.API_KEY}`;
-
-private forecastData = `https://api.tomorrow.io/v4/weather/forecast?location=14.307235%2C%20120.772340&timesteps=1h&timesteps=1d&apikey=${this.API_KEY}`;
-
   public fetchWeatherIfNeeded = async () => {
-    const lastFetch = getLocalTimestamp();
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    const forecastlastFetch = getForecastTimestamp();
+    const realtimelastFetch = getRealtimeTimestamp();
     const now = new Date();
     const oneHour = 60 * 60 * 1000;
+    const thirtyMinutes = 30 * 60 * 1000;
 
-    // !lastFetch ||now.getTime() - lastFetch.getTime() > oneHour
-    if(!lastFetch ||now.getTime() - lastFetch.getTime() > oneHour) {
-      console.log('⏰ Fetching new weather data...');
+    if (!forecastlastFetch || now.getTime() - forecastlastFetch.getTime() > oneHour) {
+      console.log('⏰ Fetching forecast data for all locations...');
 
       try {
-        const forecastResponse = await axios.get(this.forecastData);
-        const realtimeResponse = await axios.get(this.realtimeData);
-        if (forecastResponse.status === 200 && realtimeResponse.status === 200) {
-          console.log('✅ Weather data fetched successfully');
-          const forecastData = forecastResponse.data;
-          const realtimeData = realtimeResponse.data;
-          await WeatherModel.insertForecastData('central-naic', forecastData);
-          await WeatherModel.insertRealtimeData('central-naic', realtimeData);
-          updateLocalTimestamp();
-          return { forecastData, realtimeData };        }
-      } catch (error) {
-        throw new Error(`Failed to fetch weather data: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    }else {
-      console.log('🌤️ Using cached weather data');
-    }
-  }
+        updateForecastlTimestamp();
+        for (const locationKey of weatherGroups) {
+          const forecastUrl = getWeatherAPIEndpoints(locationKey, 'forecast');
 
+          const forecastResponse = await axios.get(forecastUrl);
+
+          if (forecastResponse.status === 200) {
+            await WeatherModel.insertForecastData(locationKey, forecastResponse.data);
+            console.log(`✅ Data saved for ${locationKey}`);
+          } else {
+            console.warn(`⚠️ Failed to fetch for ${locationKey}`);
+          }
+
+          await delay(1500); // Add delay to avoid 429 error
+        }
+
+        console.log('✅ All forecast data fetched successfully.');
+      } catch (error) {
+         console.error(`Forecast error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+
+    } else {
+      console.log('🌤️ Using cached forecast data');
+    }
+
+    if(!realtimelastFetch || now.getTime() - realtimelastFetch.getTime() > thirtyMinutes) {
+      console.log('⏰ Fetching realtime weather data for all locations...');
+
+      try {
+        updateRealtimeTimestamp();
+        for (const locationKey of weatherGroups) {
+          const realtimeUrl = getWeatherAPIEndpoints(locationKey, 'realtime');
+          const realtimeResponse = await axios.get(realtimeUrl);
+
+          if (realtimeResponse.status === 200) {
+            await WeatherModel.insertRealtimeData(locationKey, realtimeResponse.data);
+            console.log(`✅ Realtime data saved for ${locationKey}`);
+          } else {
+            console.warn(`⚠️ Failed to fetch realtime data for ${locationKey}`);
+          }
+
+          await delay(1500); // Add delay to avoid 429 error
+        }
+
+        console.log('✅ All realtime weather data fetched successfully.');
+      } catch (error) {
+         console.error(`realtime error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }else{
+      console.log('🌤️ Using cached realtime data');
+    }
+
+  };
 }
