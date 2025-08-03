@@ -1,48 +1,34 @@
-import { WeatherCard, FiveDayForecastCard, DayForecastData } from "@/components/ui/weather"
-import weatherData from "@/data/phTimeZoneWeather.json"
+import { WeatherCard, DailyForecastCard, HourlyForecast } from "@/components/ui/weather"
 import realtimeWeather from "@/data/realtimeWeather.json"
-import GlassCard from "@/components/ui/card/GlassCard";
-import { Table, TableHeader, TableColumn, TableBody } from "@heroui/table";
-import { GetDateAndTime } from "@/components/helper/DateAndTime";
 import { useState, useEffect } from "react";
+import { DisplayDateAndTime } from "@/components/helper/DateAndTime";
 import axios from "axios";
-
+import GlassCard from "@/components/ui/card/GlassCard";
+import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from "@heroui/table";
+import { useWeatherStore } from "@/components/stores/useWeatherStores";
 
 const Weather = () => {
-    const [data, setData] = useState<any>(null);
-    const [loading, setLoading] = useState<boolean>(true);
+  const [time, date] = DisplayDateAndTime();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const weather = useWeatherStore((s) => s.weather);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/weather`);
-        setData(response.data);
-        console.log('Fetched data:', response.data);
-      } catch (error) {
-        console.error('Error fetching weather data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       setLoading(true);
+  //       const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/weather`);
+  //       setData(response.data);
+  //       console.log('Fetched data:', response.data);
+  //     } catch (error) {
+  //       console.error('Error fetching weather data:', error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   fetchData();
+  // }, []);
 
-
-  const getTime = GetDateAndTime({ hour: 'numeric', minute: '2-digit', hour12: true })
-  const getDate = GetDateAndTime({ weekday: 'short', year: 'numeric', month: 'long', day: '2-digit' })
-  
-  const [time, setTime] = useState<string>(getTime);
-  const [date, setDate] = useState<string>(getDate);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTime(GetDateAndTime({ hour: 'numeric', minute: '2-digit', hour12: true }))
-      setDate(GetDateAndTime({ weekday: 'short', year: 'numeric', month: 'long', day: '2-digit' }))
-    }, 1000)
-
-    return () => clearInterval(interval);
-  }, [])
 
   return (
     <div className="flex flex-row gap-4 h-auto w-full p-4">
@@ -87,16 +73,20 @@ const Weather = () => {
           <div className="flex flex-col mt-5 gap-6">
             <div><p><b>5-Day Forecast</b></p></div>
             <div className="flex flex-row flex-wrap gap-4 ">
-              {data && data.forecastData ? (
-                data.forecastData.map((forecast: any) => (
-                  <FiveDayForecastCard
-                    key={forecast.time}
-                    time={forecast.time}
-                    temperature={Math.round(forecast.temperatureAvg)}
-                    weatherCode={forecast.weatherCodeMax}
+                {data && data.forecastData ? (
+                data.forecastData.slice(1).map((forecast: any) => (
+                  <DailyForecastCard
+                  key={forecast.time}
+                  time={forecast.time}
+                  temperature={Math.round(forecast.temperatureAvg)}
+                  weatherCode={forecast.weatherCodeMax}
                   />
                 ))
-              ) : (
+                ) : loading ? (
+              <div className="flex items-center justify-center p-8">
+                <p>Loading weather data...</p>
+              </div>
+            ) : (
                 <div className="flex items-center justify-center p-8">
                   <p>Unable to load weather data</p>
                 </div>
@@ -107,9 +97,9 @@ const Weather = () => {
         </div>
 
         {/* 24 hour forecast */}
-        <div className="">
-          <GlassCard className="flex flex-col gap-7 w-auto h-full p-4 overflow-y-auto mt-20">
-            <div>
+        <div>
+          <GlassCard className="flex flex-col w-auto h-full p-4 overflow-y-auto mt-20">
+            <div className="mb-4">
                 <p><b>24 Hour Forecast</b></p>
             </div>
             <Table 
@@ -118,23 +108,34 @@ const Weather = () => {
               hideHeader 
               aria-label="Example static collection table"
             >
-            <TableHeader>
-                <TableColumn>.</TableColumn>
-                <TableColumn>.</TableColumn>
-                <TableColumn>.</TableColumn>
-                <TableColumn>.</TableColumn> 
-                <TableColumn>.</TableColumn> 
-            </TableHeader>
-            <TableBody>
-              {DayForecastData(
-                    {
-                        key: weatherData.timelines.daily[0].time,
-                        time: weatherData.timelines.daily[0].time,
-                        weatherCode: weatherData.timelines.daily[0].values.weatherCodeMax,
-                        temperature: Math.round(weatherData.timelines.hourly[0].values.temperature)
-                    }
-                )}
-            </TableBody>
+              <TableHeader>
+                  <TableColumn>.</TableColumn>
+                  <TableColumn>.</TableColumn>
+                  <TableColumn>.</TableColumn>
+                  <TableColumn>.</TableColumn> 
+                  <TableColumn>.</TableColumn> 
+              </TableHeader>
+              <TableBody>
+                {data && data.hourlyData ? 
+                  data.hourlyData.slice(0, 24).map((hourly: any) => (
+                    HourlyForecast({
+                      key: hourly.time,
+                      time: hourly.time,
+                      weatherCode: hourly.weatherCode,
+                      temperature: hourly.temperature,
+                    } as any)
+                  ))
+                  : loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center w-100">Loading hourly data...</TableCell>
+                  </TableRow>
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center w-100">Unable to load hourly data</TableCell>
+                  </TableRow>
+                )
+                }
+              </TableBody>
             </Table>
           </GlassCard>
         </div>

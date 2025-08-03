@@ -1,17 +1,38 @@
 import { useEffect, useState } from 'react';
+import { auth, provider, signInWithPopup } from '@/lib/firebaseConfig';
+// const allowedEmails = ['admin1@email.com', 'admin2@email.com'];
+
+const handleGoogleLogin = async () => {
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    // // ✅ Check if user is an authorized admin
+    // if (!allowedEmails.includes(user.email || '')) {
+    //   alert('Not authorized');
+
+    //   // Optional: sign them out immediately
+    //   await auth.signOut();
+
+    //   // Optional: redirect or block access
+    //   return;
+    // }
+
+    // ✅ Authorized - continue with your app logic
+    console.log('Authorized admin:', user.email);
+    console.log('user:', user);
+
+  } catch (err) {
+    console.error('Login failed', err);
+  }
+};
 
 const Status = () => {
-  const [data, setData] = useState('');
-
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/test`)
-      .then(res => res.json())
-      .then(json => setData(JSON.stringify(json, null, 2))) // just to display something readable
-      .catch(err => console.error('Error fetching:', err));
-  }, []);
 
   return (
-    <div>{data}</div>
+    <div>
+      <button onClick={handleGoogleLogin}>Login with Google</button>
+    </div>
   )
 }
 

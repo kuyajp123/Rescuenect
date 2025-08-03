@@ -7,7 +7,8 @@ export class WeatherController {
         try {
             const realTimeData = await WeatherModel.selectRealtimeData();
             const forecastData = await WeatherModel.selectForecastData();
-            const hourlyData = await WeatherModel.selectHourlyForecastData();
+            const hourlyData = await WeatherModel.selectHourlyData();
+
             return res.status(200).json({ realTimeData, forecastData, hourlyData });
         } catch (error) {
             next(error);

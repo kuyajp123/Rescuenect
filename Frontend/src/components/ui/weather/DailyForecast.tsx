@@ -3,7 +3,7 @@ import { getWeatherIcons, getWeatherCondition } from "@/components/helper/Weathe
 import { ForecastDataProps } from "@/components/shared/types";
 import { GetDateAndTime } from "@/components/helper/DateAndTime";
 
-const FiveDayForecastCard = ({ time, temperature, weatherCode }: ForecastDataProps) => {
+const DailyForecastCard = ({ time, temperature, weatherCode }: ForecastDataProps) => {
     const date = new Date(time);
     const today = new Date();
     const tomorrow = new Date();
@@ -35,13 +35,13 @@ const FiveDayForecastCard = ({ time, temperature, weatherCode }: ForecastDataPro
         </CardHeader>
         <CardBody className="flex flex-col items-center gap-4 justify-center">
             <h2 className="text-lg font-semibold">{temperature}°C</h2>
-            {getWeatherIcons(weatherCode)({ height: 40, width: 50 })}
+            {getWeatherIcons(weatherCode, time)({ height: 40, width: 50 })}
         </CardBody>
         <CardFooter className="flex justify-center">
-            <p className="text-xs text-gray-500">{getWeatherCondition(1000)}</p>
+            <p className="text-xs text-gray-500">{getWeatherCondition(weatherCode)}</p>
         </CardFooter>
     </Card>
   )
 }
 
-export default FiveDayForecastCard
+export default DailyForecastCard

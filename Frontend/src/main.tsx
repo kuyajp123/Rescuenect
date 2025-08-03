@@ -7,7 +7,7 @@ import { HeroUIProvider } from "@heroui/system";
 import App from "@/App";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
+  // <React.StrictMode>
     <HeroUIProvider>
       <ScreenSizeProvider>
         <main>
@@ -15,5 +15,5 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         </main>
       </ScreenSizeProvider>
     </HeroUIProvider>
-  </React.StrictMode>,
+  // </React.StrictMode>,
 );

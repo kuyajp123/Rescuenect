@@ -11,8 +11,8 @@ import ThunderStorm from '@/assets/icons/ThunderStorm8000.svg';
 import Windy from '@/assets/icons/Windy.svg';
 
 import WeatherCard from './WeatherCard';
-import FiveDayForecastCard from './FiveDayForecastCard';
-import DayForecastData from './DayForecastData';
+import DailyForecastCard from './DailyForecast';
+import HourlyForecast from './HourlyForecast';
 
 import { WeatherIconProps } from '@/components/shared/types';
 
@@ -47,4 +47,4 @@ export {
   WindyIcon
 };
 
-export { WeatherCard, FiveDayForecastCard, DayForecastData };
+export { WeatherCard, DailyForecastCard, HourlyForecast };

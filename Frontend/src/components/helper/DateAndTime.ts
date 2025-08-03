@@ -1,6 +1,7 @@
 import { GetDateAndTimeProps } from '@/components/shared/types';
+import { useState, useEffect } from 'react';
 
-export const GetDateAndTime = (
+const GetDateAndTime = (
 { 
     date,
     year, 
@@ -29,3 +30,25 @@ export const GetDateAndTime = (
 
   return formattedDate;
 }
+
+
+const DisplayDateAndTime = () => {
+    const getTime = GetDateAndTime({ hour: 'numeric', minute: '2-digit', hour12: true })
+    const getDate = GetDateAndTime({ weekday: 'short', year: 'numeric', month: 'long', day: '2-digit' })
+    
+    const [time, setTime] = useState<string>(getTime);
+    const [date, setDate] = useState<string>(getDate);
+  
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setTime(GetDateAndTime({ hour: 'numeric', minute: '2-digit', hour12: true }))
+        setDate(GetDateAndTime({ weekday: 'short', year: 'numeric', month: 'long', day: '2-digit' }))
+      }, 1000)
+  
+      return () => clearInterval(interval);
+    }, [])
+    
+    return [time, date]
+}
+
+export { GetDateAndTime, DisplayDateAndTime };

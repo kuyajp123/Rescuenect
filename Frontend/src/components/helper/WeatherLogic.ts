@@ -12,27 +12,39 @@ import {
     WindyIcon
 } from '@/components/ui/weather';
 
-export const getWeatherIcons = (code: number) => {
-    switch (code) {
-        // ☀️ Clear Day
-        case 10000:
-            return ClearDayIcon;
-        
-        // 🌙 Clear Night
-        case 10001:
-            return ClearNightIcon;
+// Helper function to determine if it's day or night
+const isDayTime = (time?: string | Date): boolean => {
+    const now = time ? new Date(time) : new Date();
+    const hour = now.getHours();
+    // Consider day time from 6 AM to 6 PM (18:00)
+    return hour >= 6 && hour < 18;
+};
 
-        // ⛅ Partly Cloudy Day
+export const getWeatherIcons = (code: number, time?: string | Date) => {
+    const isDay = isDayTime(time);
+
+    switch (code) {
+        // ☀️ Clear conditions - auto detect day/night
+        case 10000:
+        case 10001:
+        case 1000:
+            return isDay ? ClearDayIcon : ClearNightIcon;
+
+        // ⛅ Partly Cloudy conditions - auto detect day/night
         case 11000:
         case 11010:
         case 11020:
-            return PartlyCloudyDayIcon;
-        
-        // 🌙⛅ Partly Cloudy Night
         case 11001:
         case 11011:
         case 11021:
-            return PartlyCloudyNightIcon;
+        case 1100:
+        case 1101:
+        case 1102:
+            return isDay ? PartlyCloudyDayIcon : PartlyCloudyNightIcon;
+
+        // ☁️ Cloudy conditions - same for day/night
+        case 1001:
+            return CloudyIcon;
 
         // 🌫️ Fog
         case 2100:
@@ -99,6 +111,6 @@ export const getWeatherCondition = (code: number): string => {
         
         // Default fallback
         default:
-            return "Cloudy";
+            return "custom";
     }
 }
