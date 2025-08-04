@@ -9,11 +9,11 @@ const MainLayout = () => {
         <SideBar />
       </div>
       
-      <div className='flex flex-col w-full'>
+      <div className='flex flex-col h-full w-full'>
         <div>
           <Header />
         </div>
-        <div className='flex h-full overflow-auto pb-4'>
+        <div className='flex h-full overflow-auto p-0'>
           <Content />
         </div>
       </div>

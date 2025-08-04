@@ -19,7 +19,7 @@ const UrlLocation = () => {
         } else if (location.pathname === '/volunteer') {
             return 'Volunteer';
         } else {
-            return 'Rescuenect';
+            return '';
         }
     }
 };

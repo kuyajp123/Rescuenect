@@ -1,0 +1,28 @@
+import { SignInModel } from '@/models/SignInModel';
+import { Request, Response } from 'express';
+
+export class LoginController{
+    static async handleLogin (req: Request, res: Response): Promise<void> {
+        const { email, uid } = req.body;
+        const token = req.token;
+
+        try {
+            const user = await SignInModel.SignUser(email, uid);
+            if (!user) {
+                res.status(404).json({ message: 'User not found' });
+                return;
+            }
+            
+            res.status(200)
+            .cookie('token', token, { 
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+                sameSite: 'lax', // Helps with CORS
+                maxAge: 24 * 60 * 60 * 1000 // 24 hours
+            })
+            .json({ message: 'User signed in successfully', user });
+        } catch (error) {
+            res.status(500).json({ message: `Failed to sign in user: ${error}` });
+        }
+    }
+}

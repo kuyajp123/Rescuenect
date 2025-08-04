@@ -83,30 +83,4 @@ export class WeatherModel {
     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     return data;
   }
-
-  // static selectNaicWeatherData = async (): Promise<FirebaseFirestore.DocumentData> => {
-  //   const coastal_west = db.collection('weather').doc('coastal_west').collection('realtime');
-  //   const coastal_east = db.collection('weather').doc('coastal_east').collection('realtime');
-  //   const central_naic = db.collection('weather').doc('central_naic').collection('realtime');
-  //   const sabang = db.collection('weather').doc('sabang').collection('realtime');
-  //   const farm_area = db.collection('weather').doc('farm_area').collection('realtime');
-  //   const naic_boundary = db.collection('weather').doc('naic_boundary').collection('realtime');
-
-  //   const coastalWestData = await coastal_west.doc('data').get();
-  //   const coastalEastData = await coastal_east.doc('data').get();
-  //   const centralNaicData = await central_naic.doc('data').get();
-  //   const sabangData = await sabang.doc('data').get();
-  //   const farmAreaData = await farm_area.doc('data').get();
-  //   const naicBoundaryData = await naic_boundary.doc('data').get();
-    
-  //   return {
-  //     coastalWest: coastalWestData.exists ? { id: coastalWestData.id, ...coastalWestData.data() } : null,
-  //     coastalEast: coastalEastData.exists ? { id: coastalEastData.id, ...coastalEastData.data() } : null,
-  //     centralNaic: centralNaicData.exists ? { id: centralNaicData.id, ...centralNaicData.data() } : null,
-  //     sabang: sabangData.exists ? { id: sabangData.id, ...sabangData.data() } : null,
-  //     farmArea: farmAreaData.exists ? { id: farmAreaData.id, ...farmAreaData.data() } : null,
-  //     naicBoundary: naicBoundaryData.exists ? { id: naicBoundaryData.id, ...naicBoundaryData.data() } : null,
-  //   };
-
-  // }
 }

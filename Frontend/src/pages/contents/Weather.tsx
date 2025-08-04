@@ -31,14 +31,14 @@ const Weather = () => {
 
 
   return (
-    <div className="flex flex-row gap-4 h-auto w-full p-4">
-      <div className="h-180 w-80% flex flex-row gap-4">
-        <div className="flex flex-col gap-6 w-150 ">
-          {/* Today */}
-          <div className="flex flex-col">
-            <b className="text-3xl">{time}</b>
-            <span className="text-sm">{date}</span>
-          </div>
+    <div className="flex flex-col gap-4 h-full w-full p-4">
+      {/* Today */}
+      <div className="flex flex-col">
+        <b className="text-3xl">{time}</b>
+        <span className="text-sm">{date}</span>
+      </div>
+      <div className="h-full w-full flex flex-row gap-4">
+        <div className="flex flex-col gap-6 w-full ">
 
           {/* Realtime weather */}
           <div>
@@ -97,8 +97,8 @@ const Weather = () => {
         </div>
 
         {/* 24 hour forecast */}
-        <div>
-          <GlassCard className="flex flex-col w-auto h-full p-4 overflow-y-auto mt-20">
+        <div className="flex flex-col w-full h-full">
+          <GlassCard className="flex flex-col w-fit h-[600px] p-4 overflow-y-auto">
             <div className="mb-4">
                 <p><b>24 Hour Forecast</b></p>
             </div>
@@ -140,34 +140,6 @@ const Weather = () => {
           </GlassCard>
         </div>
       </div>
-      
-      <div className="h-200 flex flex-col overflow-y-auto gap-4 pt-20 pb-4 px-5">
-          <div>
-            <p><b>Realtime weather of other group of barangay in naic.</b></p>
-          </div>
-
-          {/* 
-          * Realtime weather of other group of barangay in naic
-          * Include the div when mapping
-          */}
-          <div>
-            <WeatherCard
-              key={2}
-              name={"group 2"}
-              icon={realtimeWeather.data.values.weatherCode}
-              precipitationProbability={realtimeWeather.data.values.precipitationProbability}
-              rainIntensity={realtimeWeather.data.values.rainIntensity}
-              humidity={realtimeWeather.data.values.humidity}
-              temperature={Math.round(realtimeWeather.data.values.temperature)}
-              temperatureApparent={Math.round(realtimeWeather.data.values.temperatureApparent)}
-              windSpeed={realtimeWeather.data.values.windSpeed}
-              weatherCode={realtimeWeather.data.values.weatherCode}
-              cloudCover={realtimeWeather.data.values.cloudCover}
-              rainAccumulation={realtimeWeather.data.values.rainAccumulation}
-              uvIndex={realtimeWeather.data.values.uvIndex}
-            />
-          </div>
-        </div>
       </div>
   )
 }
