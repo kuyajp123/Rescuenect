@@ -9,12 +9,23 @@ import {
   DropdownSection,
   DropdownItem,
   User,
-  Button,
 } from "@heroui/react";
-import {  useNavigate  } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { getAuth, signOut } from "firebase/auth";
 
 const Header = () => {
     const navigate = useNavigate();
+
+    const handleSignOut = async  () => {
+        const auth = getAuth();
+
+        try {
+            await signOut(auth);
+
+        } catch (error) {
+            console.error("Error signing out:", error);
+        }
+    }
 
   return (
     <div className='flex flex-row justify-between w-full'>
@@ -116,7 +127,7 @@ const Header = () => {
 
                     <DropdownSection aria-label="Help & Feedback">
                     <DropdownItem key="help_and_feedback">Help & Feedback</DropdownItem>
-                    <DropdownItem key="logout">Log Out</DropdownItem>
+                    <DropdownItem key="logout" onClick={handleSignOut}>Log Out</DropdownItem>
                     </DropdownSection>
                 </DropdownMenu>
                 </Dropdown>

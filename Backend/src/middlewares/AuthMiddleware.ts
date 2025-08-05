@@ -15,8 +15,7 @@ export class AuthMiddleware{
                 res.status(401).send('Unauthorized access');
                 return;
             }
-    
-            req.token = idToken;
+            
             next();
         } catch (error) {
             next(error);

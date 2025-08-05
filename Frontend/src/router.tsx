@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout";
 import AuthLayout from "./layouts/AuthLayout";
+import ProtectedRoute from "./contexts/ProtectedRoutes";
 
 import { 
   Status,
@@ -18,7 +19,8 @@ import AdminProfile from "./pages/profiile/AdminProfile";
 const Router = () => {
   return (
     <Routes>
-      <Route element={<MainLayout />}>
+
+      <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route path="/" element={<Status />} />
         <Route path="/weather" element={<Weather />} />
         <Route path="/earthquake" element={<Earthquake />} />

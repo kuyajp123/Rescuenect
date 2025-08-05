@@ -3,9 +3,9 @@ import { db } from '@/db/firestoreConfig';
 export class SignInModel {
     static async SignUser(email: string, uid: string) {
         try {
-        const userSnapshot = await db.collection('users').where('uid', '==', uid).get();
+        const userSnapshot = await db.collection('admin').where('uid', '==', uid).get();
         if (userSnapshot.empty) {
-            const create = await db.collection('users').doc(uid).create({ email, uid });
+            const create = await db.collection('admin').doc(uid).create({ email, uid });
 
             if (!create.writeTime) {
                 throw new Error('Failed to create user');
