@@ -13,7 +13,7 @@ const MainLayout = () => {
         <div>
           <Header />
         </div>
-        <div className='flex h-full overflow-auto p-0'>
+        <div className='flex h-full w-full overflow-auto px-30'>
           <Content />
         </div>
       </div>

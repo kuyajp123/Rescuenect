@@ -1,14 +1,9 @@
 import { create } from 'zustand';
-
-type Weather = {
-  temp: number;
-  condition: string;
-  fetchedAt: number;
-};
+import { WeatherData } from '../shared/types'
 
 type Store = {
-  weather: Weather | null;
-  setWeather: (data: Weather) => void;
+  weather: any | null;
+  setWeather: (data: any) => void;
 };
 
 export const useWeatherStore = create<Store>((set) => ({

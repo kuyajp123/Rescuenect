@@ -14,8 +14,9 @@ async function safeFetch() {
   }
 }
 
-// Run every minute
 safeFetch(); // first call
+
+// Run every minute
 cron.schedule('* * * * *', () => {
   console.log('⏰ Cron job running...');
   safeFetch(); // safe call every minute

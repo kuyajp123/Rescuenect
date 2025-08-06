@@ -3,24 +3,36 @@ import { convertToManilaTime } from '@/shared/functions/DateAndTime';
 import { WeatherData, forecastData } from '@/shared/types/types';
 
 export class WeatherModel {
-  public static insertForecastData = async (groupId: string, data: WeatherData): Promise<void> => {
+  public static insertHourlyData = async (groupId: string, data: WeatherData): Promise<void> => {
     const docRef = db.collection('weather').doc(groupId);
     const hourlyData = data.timelines.hourly;
-    const dailyData = data.timelines.daily;
 
     try {      
       // Hourly Forecast
-      const hourlyPromises: Promise<FirebaseFirestore.WriteResult>[] = hourlyData.map((hour: forecastData, index: number): Promise<FirebaseFirestore.WriteResult> => {
-        const localTime = convertToManilaTime(hour.time);
-        const paddedId = index.toString().padStart(3, '0');
-        return docRef.collection('hourly').doc(paddedId).set({
-          time: localTime,
-          ...hour.values,
-        });
-      });
+      const hourlyPromises = [];
+      for (let i = 0; i < 24; i++ ){
+          const hour = hourlyData[i];
+          const localTime = convertToManilaTime(hour.time);
+          const paddedId = i.toString().padStart(3, '0');
+
+          hourlyPromises.push(docRef.collection('hourly').doc(paddedId).set({
+            time: localTime,
+            ...hour.values,
+          }));
+      }
       
       await Promise.all(hourlyPromises);
-      
+    } catch (error) {
+      console.error('Error inserting weather data:', error);
+      throw new Error(`Failed to insert weather data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  public static insertDailyData = async (groupId: string, data: any): Promise<void> => {
+    const docRef = db.collection('weather').doc(groupId);
+    const dailyData = data.timelines.daily;
+
+    try {
       // Daily Forecast
       const dailyPromises: Promise<FirebaseFirestore.WriteResult>[] = dailyData.map((day: forecastData, index: number): Promise<FirebaseFirestore.WriteResult> => {
         const localTime: string = convertToManilaTime(day.time);
@@ -32,10 +44,9 @@ export class WeatherModel {
       });
 
       await Promise.all(dailyPromises);
-      // console.log('✅ Weather data inserted successfully');
     } catch (error) {
-      console.error('Error inserting weather data:', error);
-      throw new Error(`Failed to insert weather data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Error inserting daily weather data:', error);
+      throw new Error(`Failed to insert daily weather data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -64,11 +75,11 @@ export class WeatherModel {
     return { id: doc.id, ...doc.data() };
   }
 
-  static selectForecastData = async (): Promise<FirebaseFirestore.DocumentData> => {
+  static selectDailyData = async (): Promise<FirebaseFirestore.DocumentData> => {
     const collectionRef = db.collection('weather').doc('central_naic').collection('daily');
     const snapshot = await collectionRef.get();
     if (snapshot.empty) {
-      throw new Error('No forecast weather data found');
+      throw new Error('No daily weather data found');
     }
     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     return data;

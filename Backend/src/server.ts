@@ -11,7 +11,7 @@ db;
 const PORT = process.env.PORT;
 
 // weather data service
-// import './jobs/weatherSched';
+import './jobs/weatherSched';
 
 
 app.use(cors({

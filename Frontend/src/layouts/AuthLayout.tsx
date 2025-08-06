@@ -10,6 +10,7 @@ const AuthLayout = () => {
           <div className="relative flex items-center justify-center z-1">
             {/* <!-- ===== Common Grid Shape Start ===== --> */}
             <GridShape />
+            
             <div className="flex flex-col items-center max-w-xs">
               <div className='flex flex-col items-center mb-6 sm:mb-8'>
                 {/* <img

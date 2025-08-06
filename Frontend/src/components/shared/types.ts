@@ -37,3 +37,38 @@ export interface GetDateAndTimeProps {
     second?: string;
     hour12?: boolean;
 }
+
+//weather data types
+export type DailyData = {
+  id: string;
+  time: string;
+  altimeterSettingAvg: number;
+  altimeterSettingMax: number;
+  altimeterSettingMin: number;
+  // Add other fields if needed (you can expand this anytime)
+};
+
+export type HourlyData = {
+  time: string;
+  values: Record<string, number>; // or a more specific type if you know the structure
+  // Add other fields if needed
+};
+
+export type RealTimeData = {
+  id: string;
+  localTime: string;
+  location: {
+    lat: number;
+    lon: number;
+  };
+  data: {
+    time: string;
+    values: Record<string, number>; // or use a custom type
+  };
+};
+
+export type WeatherData = {
+  dailyData: DailyData[];
+  hourlyData: HourlyData[];
+  realTimeData: RealTimeData;
+};

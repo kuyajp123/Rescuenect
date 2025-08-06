@@ -6,13 +6,11 @@ import { create } from 'zustand';
 
 type ErrorStore = {
   message: string | null;
-  status?: number | null;
   setError: (error: string | null) => void;
 }
 
 export const useErrorStore = create<ErrorStore>((set) => ({
   message: null,
-  status: null,
   setError: (message) => set({ message: message}),
 }));
 

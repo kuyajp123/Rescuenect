@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-const FILE_PATH_FORECAST = path.join(__dirname, 'forecast-timestamp.json');
+const FILE_PATH_HOURLY = path.join(__dirname, 'hourly-timestamp.json');
 const FILE_PATH_REALTIME = path.join(__dirname, 'realtime-timestamp.json');
+const FILE_PATH_DAILY = path.join(__dirname, 'daily-timestamp.json');
 
 const getLocalTimestamp = (path: any): Date | null => {
   if (!fs.existsSync(path)) return null;
@@ -23,20 +24,32 @@ const updateLocalTimestamp = (path: any) => {
   fs.writeFileSync(path, JSON.stringify({ lastFetch: now }));
 };
 
-export const getForecastTimestamp = () => {
-  return getLocalTimestamp(FILE_PATH_FORECAST);
+
+// Hourly timestamp
+export const getHourlyTimestamp = () => {
+  return getLocalTimestamp(FILE_PATH_HOURLY);
 }
 
-export const updateForecastTimestamp = () => {
-  updateLocalTimestamp(FILE_PATH_FORECAST);
+export const updateHourlyTimestamp = () => {
+  updateLocalTimestamp(FILE_PATH_HOURLY);
 }
 
 
-
+// Realtime timestamp
 export const getRealtimeTimestamp = () => {
   return getLocalTimestamp(FILE_PATH_REALTIME);
 }
 
 export const updateRealtimeTimestamp = () => {
   updateLocalTimestamp(FILE_PATH_REALTIME);
+}
+
+
+// Daily timestamp
+export const getDailyTimestamp = () => {
+  return getLocalTimestamp(FILE_PATH_DAILY);
+}
+
+export const updateDailyTimestamp = () => {
+  updateLocalTimestamp(FILE_PATH_DAILY);
 }
