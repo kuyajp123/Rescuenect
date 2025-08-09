@@ -1,7 +1,7 @@
 import { GoogleButton } from '@/components/ui/button';
 import { useAuth } from '@/components/stores/useAuth';
 import { Navigate } from "react-router-dom";
-import { useErrorStore } from '@/components/ui/button/GoogleButton';
+import { useErrorStore } from '@/components/stores/useErrorMessage';
 
 const Login = () => {
   const userAuth = useAuth((state) => state.auth);

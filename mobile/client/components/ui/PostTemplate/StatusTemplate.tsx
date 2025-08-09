@@ -29,19 +29,19 @@ import { StyleSheet, TouchableOpacity } from 'react-native'
 export const StatusTemplate: React.FC<StatusTemplateProps> = ({
   style,
   id,
-  profileImage,
+  picture,
   firstName,
   lastName,
-  location,
-  longitude,
-  latitude,
   status,
-  description,
-  image,
-  numberOfPeople,
-  contact,
   date,
   time,
+  loc,
+  lat,
+  lng,
+  description,
+  image,
+  person,
+  contact,
 }) => {
   const { isDark } = useTheme()
   const [isImageModalVisible, setIsImageModalVisible] = useState(false)
@@ -70,12 +70,11 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
   }
 
   return (
-    <Box style={[styles.container, dynamicStyles.container, style]}>
+    <Box 
+      style={[styles.container, dynamicStyles.container, style]}
+      key={id}
+    >
       <VStack space='sm'>
-
-        {/* <Box>
-          <Text>{id}</Text>
-        </Box> */}
 
         {/* Header with menu icon */}
         <Box style={styles.header}>
@@ -90,11 +89,11 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
           {/* User info section */}
           <Box style={styles.userSection}>
             <Box style={styles.avatarContainer}>
-              {profileImage && (
+              {picture && (
                 <Avatar size='md'>
                 <AvatarImage
                   source={{
-                    uri: profileImage,
+                    uri: picture,
                   }}
                   alt={`${firstName} ${lastName}`}
                 />
@@ -134,7 +133,7 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
         </Box>
         
         {/* Location section */}
-        {location && (
+        {loc && (
           <Box style={styles.locationContainer}>
             <Box style={styles.locationIconContainer}>
               <MapPin size={16} color={dynamicStyles.ellipsisIcon.color} />
@@ -142,18 +141,18 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
             
             <Box style={styles.locationContent}>
               <Text  style={styles.locationText}>
-                {location}
+                {loc}
               </Text>
               
-              {longitude && (
+              {lng && (
                 <Text style={styles.coordinateText} >
-                  Longitude: {longitude}
+                  Longitude: {lng}
                 </Text>
               )}
               
-              {latitude && (
+              {lat && (
                 <Text style={styles.coordinateText} >
-                  Latitude: {latitude}
+                  Latitude: {lat}
                 </Text>
               )}
             </Box>
@@ -184,7 +183,7 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
         )}
 
         {/* Footer section - Number of people and contact */}
-        {(numberOfPeople || contact) && (
+        {(person || contact) && (
           <>
             <Box style={styles.footerDividerContainer}>
               <Divider />
@@ -193,13 +192,13 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
             <Box style={styles.footerMainContainer}>
               {/* People count section */}
               <Box style={styles.peopleSection}>
-                {numberOfPeople && (
+                {person && (
                   <>
                     <Box style={styles.peopleIconContainer}>
                       <Users size={16} color={dynamicStyles.ellipsisIcon.color} />
                     </Box>
                     <Box style={styles.peopleTextContainer}>
-                      <Text>{numberOfPeople} Person</Text>
+                      <Text>{person} Person</Text>
                     </Box>
                   </>
                 )}

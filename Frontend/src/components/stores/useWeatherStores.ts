@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { WeatherData } from '../shared/types'
 
 type Store = {
   weather: any | null;

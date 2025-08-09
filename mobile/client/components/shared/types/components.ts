@@ -3,16 +3,16 @@
 export type StatusTemplateProps = {
   style?: object
   id?: string | number
-  profileImage: string
+  picture: string
   firstName: string
   lastName: string
-  location?: string
-  longitude?: string
-  latitude?: string
+  loc?: string
+  lat?: number
+  lng?: number
   status?: string
   description?: string
   image?: string
-  numberOfPeople?: number
+  person?: number
   contact?: string
   date: string
   time: string

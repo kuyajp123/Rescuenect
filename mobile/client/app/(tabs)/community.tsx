@@ -43,7 +43,7 @@ const community = () => {
   const usersData = statusData.map((item: StatusTemplateProps) => ({
     firstName: item.firstName,
     lastName: item.lastName,
-    profileImage: item.profileImage,
+    profileImage: item.picture,
   }));
 
   // Convert statusData to CarouselItem format

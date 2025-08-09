@@ -2,19 +2,10 @@ import { SecondaryButton } from './'
 import { auth, provider, signInWithPopup } from '@/lib/firebaseConfig';
 import axios from 'axios';
 import { useState } from 'react';
-import { create } from 'zustand';
-
-type ErrorStore = {
-  message: string | null;
-  setError: (error: string | null) => void;
-}
-
-export const useErrorStore = create<ErrorStore>((set) => ({
-  message: null,
-  setError: (message) => set({ message: message}),
-}));
+import { useErrorStore } from '@/components/stores/useErrorMessage';
 
 export const GoogleButton = () => {
+  const setError =  useErrorStore((state) => state.setError)
   const [isLoading, setLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
@@ -38,7 +29,7 @@ export const GoogleButton = () => {
       } catch (error: any) {
         if (error.response) {
           await auth.signOut();
-          useErrorStore.getState().setError(error.response.data.message);
+          setError(error.response.data.message);
           return
         } else {
           console.error("Unknown error:", error.message);

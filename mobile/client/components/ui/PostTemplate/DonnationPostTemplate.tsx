@@ -19,7 +19,7 @@ import { StyleSheet, TouchableOpacity } from 'react-native'
 export const DonnationPostTemplate = ({  
     style,
     id,
-    profileImage,
+    picture,
     firstName,
     lastName,
     description,
@@ -54,12 +54,11 @@ export const DonnationPostTemplate = ({
     }
   
     return (
-      <Box style={[styles.container, dynamicStyles.container, style]}>
+      <Box 
+        style={[styles.container, dynamicStyles.container, style]}
+        key={id}
+      >
         <VStack space='sm'>
-
-          {/* <Box>
-            <Text>{id}</Text>
-          </Box> */}
 
           {/* Header with menu icon */}
           <Box style={styles.header}>
@@ -74,11 +73,11 @@ export const DonnationPostTemplate = ({
             {/* User info section */}
             <Box style={styles.userSection}>
               <Box style={styles.avatarContainer}>
-                {profileImage && (
+                {picture && (
                   <Avatar >
                   <AvatarImage
                     source={{
-                      uri: profileImage,
+                      uri: picture,
                     }}
                     alt={`${firstName} ${lastName}`}
                   />

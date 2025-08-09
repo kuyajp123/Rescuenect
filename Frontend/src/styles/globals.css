@@ -67,3 +67,21 @@
     font-weight: normal;
     font-style: normal;
 }
+
+::-webkit-scrollbar {
+  width: 8px; /* Adjust as needed */
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1; /* Light gray track */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888; /* Darker gray thumb */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555; /* Even darker gray on hover */
+}

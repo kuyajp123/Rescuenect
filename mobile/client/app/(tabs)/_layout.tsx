@@ -2,7 +2,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { Tabs, useRouter } from 'expo-router';
 import { AlignRight, House, Info, Plus, UsersRound } from 'lucide-react-native';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 
@@ -24,7 +24,7 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
         backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
         borderTopColor: isDark ? Colors.border.dark : Colors.border.light,
         paddingBottom: Math.max(insets.bottom, 8),
-        height: 60 + insets.bottom,
+        height: 75 + insets.bottom, // Increased height to accommodate labels
       }
     ]}
     accessibilityRole="tablist"
@@ -110,6 +110,14 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
             accessibilityHint={getAccessibilityHint()}
           >
             {getIcon()}
+            <Text style={[
+              styles.tabLabel,
+              {
+                color: isFocused ? Colors.brand.light : (isDark ? Colors.text.dark : Colors.text.light),
+              }
+            ]}>
+              {label}
+            </Text>
           </TouchableOpacity>
         );
       })}
@@ -199,6 +207,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
+  },
+  tabLabel: {
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: 'center',
   },
   tabItemBeforeFAB: {
     marginRight: 28, // Extra space before FAB

@@ -18,6 +18,12 @@ export const useAuth = create<AuthStore>((set) => ({
 }));
 
 onAuthStateChanged(firebaseAuth, (user) => {
-  useAuth.getState().setAuth(user);
-  useAuth.getState().setLoading(false); // Set loading to false once auth state is determined
+  if (user) {
+    useAuth.getState().setAuth(user);
+    useAuth.getState().setLoading(false);
+  }else {
+    useAuth.getState().setAuth(null);
+    useAuth.getState().setLoading(false);
+  }
+  useAuth.getState().setLoading(false);
 });

@@ -1,0 +1,121 @@
+[
+  {
+    "id": 1,
+    "lat": 14.3166,
+    "lng": 120.7651,
+    "name": "Naic Church (Diocesan Shrine of the Immaculate Conception)",
+    "shortDescription": "Historic 19th-century church and a notable landmark in Naic."
+  },
+  {
+    "id": 2,
+    "lat": 14.3182,
+    "lng": 120.7659,
+    "name": "Naic Plaza",
+    "shortDescription": "Central town plaza often used for community gatherings and events."
+  },
+  {
+    "id": 3,
+    "lat": 14.317,
+    "lng": 120.7693,
+    "name": "Naic Municipal Hall",
+    "shortDescription": "Local government center providing various public services."
+  },
+  {
+    "id": 4,
+    "lat": 14.3218,
+    "lng": 120.7605,
+    "name": "Naic Public Market",
+    "shortDescription": "Bustling public market for fresh produce and local goods."
+  },
+  {
+    "id": 5,
+    "lat": 14.3239,
+    "lng": 120.7552,
+    "name": "Naic Coastal Area",
+    "shortDescription": "Scenic seaside spot popular for fishing and relaxing by the shore."
+  },
+  {
+    "id": 6,
+    "lat": 14.3114,
+    "lng": 120.7715,
+    "name": "Naic National High School",
+    "shortDescription": "One of the largest public secondary schools in the municipality."
+  },
+  {
+    "id": 7,
+    "lat": 14.3096,
+    "lng": 120.7782,
+    "name": "Barangay Halang Covered Court",
+    "shortDescription": "Local covered sports court for basketball and community activities."
+  },
+  {
+    "id": 8,
+    "lat": 14.3272,
+    "lng": 120.7689,
+    "name": "San Roque Chapel",
+    "shortDescription": "Small chapel serving the local San Roque community."
+  },
+  {
+    "id": 9,
+    "lat": 14.3145,
+    "lng": 120.759,
+    "name": "Naic Elementary School",
+    "shortDescription": "Public elementary school near the center of Naic."
+  },
+  {
+    "id": 10,
+    "lat": 14.3301,
+    "lng": 120.7544,
+    "name": "Naic Fish Port",
+    "shortDescription": "Fishing port supplying fresh seafood to the local market."
+  },
+  {
+    "id": 11,
+    "lat": 14.3071,
+    "lng": 120.7678,
+    "name": "Sabang Beachfront",
+    "shortDescription": "Popular seaside area in Sabang, often visited by locals for fishing and picnics."
+  },
+  {
+    "id": 12,
+    "lat": 14.3086,
+    "lng": 120.7649,
+    "name": "Sabang Barangay Hall",
+    "shortDescription": "Local barangay hall providing public services for Sabang residents."
+  },
+  {
+    "id": 13,
+    "lat": 14.3054,
+    "lng": 120.7625,
+    "name": "Sabang Elementary School",
+    "shortDescription": "Elementary school serving the Sabang community."
+  },
+  {
+    "id": 14,
+    "lat": 14.2998,
+    "lng": 120.7597,
+    "name": "Palangue Central Elementary School",
+    "shortDescription": "One of the main elementary schools in the Palangue area."
+  },
+  {
+    "id": 15,
+    "lat": 14.2975,
+    "lng": 120.7621,
+    "name": "Palangue Covered Court",
+    "shortDescription": "Community covered court used for basketball games and barangay events."
+  },
+  {
+    "id": 16,
+    "lat": 14.2959,
+    "lng": 120.7583,
+    "name": "Palangue Barangay Hall",
+    "shortDescription": "Government office providing local services to Palangue residents."
+  },
+  {
+    "id": 17,
+    "lat": 14.3007,
+    "lng": 120.7558,
+    "name": "Palangue Public Market",
+    "shortDescription": "Small local market offering fresh produce and daily goods."
+  }
+]
