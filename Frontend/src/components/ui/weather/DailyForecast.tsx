@@ -29,7 +29,7 @@ const DailyForecastCard = ({ time, temperature, weatherCode }: ForecastDataProps
         }
 
   return (
-    <Card className="w-auto shadow-lg p-4">
+    <Card className="w-auto shadow-lg p-4 dark:border dark:border-gray-700">
         <CardHeader className="flex justify-center">
             {label}
         </CardHeader>

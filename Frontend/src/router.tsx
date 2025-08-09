@@ -5,6 +5,7 @@ import ProtectedRoute from "./security/ProtectedRoutes";
 
 import { 
   Status,
+  City,
   Weather,
   Earthquake,
   AddNotification,
@@ -22,6 +23,7 @@ const Router = () => {
 
       <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route path="/" element={<Status />} />
+        <Route path="/city" element={<City />} />
         <Route path="/weather" element={<Weather />} />
         <Route path="/earthquake" element={<Earthquake />} />
         <Route path="/add_notification" element={<AddNotification />} />

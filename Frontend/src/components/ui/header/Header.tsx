@@ -1,7 +1,6 @@
 import { ThemeSwitcher } from '@/components/hooks/ThemeSwitcher'
 import { Bell, PlusIcon, Settings } from 'lucide-react'
 import {Avatar} from "@heroui/avatar";
-import  UrlLocation from '@/components/helper/UrlLocation';
 import {
   Dropdown,
   DropdownTrigger,
@@ -30,7 +29,7 @@ const Header = () => {
   return (
     <div className='flex flex-row justify-between w-full'>
         <div className='text-xl font-bold flex items-end pb-4'>
-            {UrlLocation()}
+            {/* {UrlLocation()} */}
         </div>
 
         <div className='flex flex-row space-x-5 items-center p-4'>

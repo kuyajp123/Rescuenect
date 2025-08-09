@@ -16,15 +16,15 @@ const Weather = () => {
     data.realtime.length === 0;
 
   return (
-    <div className="flex flex-col h-full w-full items-center">
+    <div className="flex flex-col h-full w-full items-center p-4">
       {/* Today */}
-        <div className="flex flex-col lg:w-[85%] sm:w-[100%] md:[w-[90%] w-full gap-4">
+        <div className="flex flex-col w-full max-w-7xl gap-4">
           <div className="flex flex-col">
-            <b className="text-3xl">{time}</b>
+            <b className="text-2xl sm:text-3xl">{time}</b>
             <span className="text-sm">{date}</span>
           </div>
-          <div className="h-full w-full flex flex-row">
-            <div className="flex flex-col gap-6 w-full">
+          <div className="h-full w-full flex flex-col xl:flex-row gap-6 ">
+            <div className="flex flex-col gap-6 w-145">
 
               {/* Realtime weather */}
               <div>
@@ -58,7 +58,8 @@ const Weather = () => {
               {/* 5 day forecast */}
               <div className="flex flex-col mt-5 gap-6">
                 <div><p><b>5-Day Forecast</b></p></div>
-                <div className="flex flex-row flex-wrap gap-4 ">
+                {/* <div className="flex flex-row gap-4"> */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {data && data.daily && data.daily.length > 0 ? (
                     data.daily.slice(1).map((forecast: any) => (
                       <DailyForecastCard
@@ -69,11 +70,11 @@ const Weather = () => {
                       />
                     ))
                     ) : loading ? (
-                  <div className="flex items-center justify-center p-8">
+                  <div className="flex items-center justify-center p-8 col-span-full">
                     <p>Loading weather data...</p>
                   </div>
                 ) : (
-                    <div className="flex items-center justify-center p-8">
+                    <div className="flex items-center justify-center p-8 col-span-full">
                       <p>Unable to load weather data</p>
                     </div>
                   )}
@@ -83,8 +84,8 @@ const Weather = () => {
             </div>
 
             {/* 24 hour forecast */}
-            <div className="flex flex-col w-full h-full">
-              <GlassCard className="flex flex-col w-fit h-[600px] p-4 overflow-y-auto">
+            <div className="flex flex-col w-full xl:w-2/5 h-full">
+              <GlassCard className="flex flex-col w-full h-[400px] xl:h-[670px] p-4 overflow-y-auto">
                 <div className="mb-4">
                     <p><b>24 Hour Forecast</b></p>
                 </div>
@@ -92,7 +93,8 @@ const Weather = () => {
                   shadow="none" 
                   removeWrapper 
                   hideHeader 
-                  aria-label="Example static collection table"
+                  aria-label="24 hour forecast table"
+                  className="min-w-0"
                 >
                   <TableHeader>
                       <TableColumn>.</TableColumn>
@@ -102,6 +104,7 @@ const Weather = () => {
                       <TableColumn>.</TableColumn> 
                   </TableHeader>
                   <TableBody>
+                    {/* dont change this component into jsx component! because heroui components is very strict when it comes to rendering. they did not access jsx component inside of their components. remain as function calls instead of jsx component. */}
                     {data && data.hourly ? 
                       data.hourly.slice(0, 24).map((hourly: any) => (
                         HourlyForecast({

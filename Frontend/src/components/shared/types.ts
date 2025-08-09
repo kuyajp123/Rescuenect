@@ -72,3 +72,21 @@ export type WeatherData = {
   hourlyData: HourlyData[];
   realTimeData: RealTimeData;
 };
+
+export type StatusTemplateProps = {
+  style?: object
+  id: string | number
+  picture: string
+  firstName: string
+  lastName: string
+  loc: string
+  lat?: number
+  lng?: number
+  status: string
+  description?: string
+  image?: string
+  person?: number
+  contact?: string
+  date: string
+  time: string
+}

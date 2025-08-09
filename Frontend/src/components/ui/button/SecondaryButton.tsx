@@ -1,18 +1,16 @@
 import React from "react";
 import { Button, ButtonProps } from "@heroui/react";
-import { useScreenSize } from "@/contexts/ScreenSizeContext";
 
 interface PrimaryButtonProps extends ButtonProps {
   children: React.ReactNode;
+  onPress?: () => void;
 }
 
 export const SecondaryButton: React.FC<PrimaryButtonProps & ButtonProps> = ({ children, className = "", ...props }) => {
-  const { screenSize  } = useScreenSize();
   
   return (
     <Button
-      className={`rounded text-content_text dark:text-content_text border-default-600 dark:border-default-400 
-        ${screenSize === 'large_screen' ? 'text-base' : 'text-sm'}
+      className={`rounded border-default-600 dark:border-default-400 
         ${className}`
       }
       {...props}

@@ -1,55 +1,62 @@
-import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-import status from '@/data/statusData.json'
+import { useState } from 'react';
+import { Select, SelectItem } from "@heroui/react";
+import { StatusCard, StatusList , Map } from '@/components/ui/status';
 
-// Fix broken marker icons in React/Vite
-const defaultIcon = new L.Icon({
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
+export const statuses = [
+  {key: "safe", label: "Safe"},
+  {key: "evacuated", label: "Evacuated"},
+  {key: "affected", label: "Affected"},
+  {key: "missing", label: "Missing"},
+  {key: "all", label: "Select all"}
+];
 
 const Status = () => {
+  const [selectedStatuses, setSelectedStatuses] = useState(new Set(["all"]));
+
   return (
-    <div style={{ height: '100%', width: '100%' }}>
-      <MapContainer
-        center={[14.2965, 120.7925]}
-        zoom={14}
-        minZoom={13}
-        style={{ height: '100%', width: '100%' }}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          
-        />
-        {status.map(stats => (
-          <Marker 
-            position={[stats.lat, stats.lng]} 
-            icon={defaultIcon}
-            key={stats.id}
-          >
-            <Popup className='custom-popup'>
-              {stats.firstName} {stats.lastName} <br /> 
-              {stats.description} <br />
-              <img src={stats.image} />
-              <strong>Location:</strong> {stats.loc} <br />
-              <strong>Date:</strong> {stats.date} <br />
-              <strong>Time:</strong> {stats.time} <br />
-              <strong>Contact:</strong> {stats.contact} <br />
-              {/* <strong>Category:</strong> {stats.category} <br />
-              <strong>Item:</strong> {stats.itemName} <br />
-              <strong>Quantity:</strong> {stats.quantity} <br /> */}
-            </Popup>
-          </Marker>
-        ))}
-      </MapContainer>
+    <div className='grid  grid-cols-[2fr_1fr] gap-4' style={{ height: '100%', width: '100%' }}>
+      <div style={{ height: '100%', width: '100%' }}>
+        <Map />
+      </div>
+      <div className='h-full grid grid-rows-[1fr_4fr]'>
+        <div className='flex flex-col justify-between'>
+          <StatusList
+            Safe={24}
+            Evacuated={12}
+            Affected={32}
+            Missing={8}
+          />
+          <div>
+            <Select
+              label="Select status"
+              placeholder="Select a status"
+              selectedKeys={selectedStatuses}
+              selectionMode="multiple"
+              onSelectionChange={(keys) => setSelectedStatuses(new Set(Array.from(keys).map(String)))}
+            >
+              {statuses.map((statuses) => (
+                <SelectItem key={statuses.key}>{statuses.label}</SelectItem>
+              ))}
+            </Select>
+          </div>
+        </div>
+        <div className='pt-4'>
+          <StatusCard
+            id={1}
+            picture="https://heroui.com/avatars/avatar-1.png"
+            firstName="Zoey"
+            lastName="Lang"
+            status="safe"
+            loc="Manila, Philippines"
+            date="Oct 22, 2025"
+            time="5:45 pm"
+            description="Frontend developer and UI/UX enthusiast. Join me on this coding adventure!"
+            image="https://heroui.com/images/hero-card-complete.jpeg"
+            person={4}
+            contact="0123-456-7890"
+          />
+        </div>
+      </div>
     </div>
   );
 };
