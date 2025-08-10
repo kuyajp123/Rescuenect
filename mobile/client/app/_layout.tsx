@@ -151,9 +151,9 @@ function RootLayoutContent() {
             },
             headerShadowVisible: false,
             headerLeft: () => <BackButton />,
-            animation: 'none',
-            // animationDuration: 100,
-            // animationTypeForReplace: 'pop',
+            animation: 'slide_from_right',
+            animationDuration: 100,
+            animationTypeForReplace: 'push',
           }}
         />
         <Stack.Screen

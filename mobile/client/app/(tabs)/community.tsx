@@ -1,6 +1,6 @@
 import type { CarouselItem, StatusTemplateProps } from '@/components/shared/types/components';
 import { CarouselScreen } from '@/components/ui/carousel/CarouselScreen';
-import { CommunityStatus } from '@/components/ui/community-status/CommunityStatus';
+import { CommunityStatus } from '@/components/ui/community-status/communityStatus';
 import { ListOfEvents } from '@/components/ui/data-display/ListOfEvents';
 import Body from '@/components/ui/layout/Body';
 import React from 'react';

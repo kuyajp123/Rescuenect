@@ -1,11 +1,12 @@
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
+import Body from '@/components/ui/layout/Body'
 
 export const createStatus = () => {
   return (
-    <View>
+    <Body>
       <Text>status</Text>
-    </View>
+    </Body>
   )
 }
 
