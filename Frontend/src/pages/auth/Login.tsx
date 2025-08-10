@@ -5,20 +5,11 @@ import { useErrorStore } from '@/components/stores/useErrorMessage';
 
 const Login = () => {
   const userAuth = useAuth((state) => state.auth);
-  const isLoading = useAuth((state) => state.isLoading);
+  const isVerifying = useAuth((state) => state.isVerifying);
   const error = useErrorStore((state) => state.message);
-  
-  // Show loading while Firebase is checking auth state
-  if (isLoading) {
-    return (
-      <div className="flex flex-col flex-1 items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-gray-900"></div>
-        <p className="mt-4 text-gray-600">Loading...</p>
-      </div>
-    );
-  }
 
-  if (userAuth) {
+  // Only redirect if user is authenticated AND not currently verifying
+  if (userAuth && !isVerifying) {
     return <Navigate to="/" replace />;
   }
   

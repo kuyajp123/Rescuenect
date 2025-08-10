@@ -1,51 +1,61 @@
 import { SecondaryButton } from './'
-import { auth, provider, signInWithPopup } from '@/lib/firebaseConfig';
+import { auth } from '@/lib/firebaseConfig';
+import { signInWithPopup, signInWithCredential, GoogleAuthProvider } from "firebase/auth";
 import axios from 'axios';
-import { useState } from 'react';
+import { useAuth } from '@/components/stores/useAuth';
 import { useErrorStore } from '@/components/stores/useErrorMessage';
+import { useNavigate } from "react-router-dom";
 
 export const GoogleButton = () => {
-  const setError =  useErrorStore((state) => state.setError)
-  const [isLoading, setLoading] = useState(false);
+  const isLoading = useAuth((state) => state.isLoading);
+  const isVerifying = useAuth((state) => state.isVerifying);
+  const navigate = useNavigate();
+  const setError = useErrorStore((state) => state.setError);
 
-  const handleGoogleLogin = async () => {
-    setLoading(true);
+const handleGoogleLogin = async () => {
+  const { setVerifying, setLoading } = useAuth.getState();
+  
+  setLoading(true);
+  setVerifying(true);
 
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+  try {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
 
-      if (user) {
-        const idToken = await user.getIdToken();
+    const popupResult = await signInWithPopup(auth, provider);
+    const credential = GoogleAuthProvider.credentialFromResult(popupResult);
+    if (!credential) throw new Error("No Google credential found");
 
-          await axios.post(`${import.meta.env.VITE_BACKEND_URL}/auth/signin`, {
-            email: user.email,
-            uid: user.uid,
-            }, { headers: { Authorization: `Bearer ${idToken}` },
-                withCredentials: true
-          });
-      }
+    const tempUser = popupResult.user;
+    const idToken = await tempUser.getIdToken();
 
-      } catch (error: any) {
-        if (error.response) {
-          await auth.signOut();
-          setError(error.response.data.message);
-          return
-        } else {
-          console.error("Unknown error:", error.message);
-        }
-      } finally {
-        setLoading(false);
-      }
-  };
+    // Backend verification
+    await axios.post(
+      `${import.meta.env.VITE_BACKEND_URL}/auth/signin`,
+      { email: tempUser.email, uid: tempUser.uid },
+      { headers: { Authorization: `Bearer ${idToken}` }, withCredentials: true }
+    );
+
+    await signInWithCredential(auth, credential);
+    navigate("/");
+  } catch (error: any) {
+    await auth.signOut();
+    console.error(error);
+    setError(error.response?.data?.message || error.message);
+  } finally {
+    setVerifying(false);
+    setLoading(false);
+  }
+};
+
 
   return (
       <SecondaryButton
-      onClick={handleGoogleLogin}
-      isDisabled={isLoading}
+      onPress={handleGoogleLogin}
+      isDisabled={isVerifying || isLoading}
       className="inline-flex items-center justify-center gap-3 py-6 text-sm font-normal text-gray-700 transition-colors border-none bg-gray-200 rounded-lg px-7 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10"
         startContent={
-        isLoading ? (
+        isVerifying || isLoading ? (
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-gray-100"></div>
             ) : (
               <svg
@@ -74,7 +84,7 @@ export const GoogleButton = () => {
             </svg>
             )
         }
-        >{isLoading ? 'Signing in...' : 'Sign in with Google'}
+        >{isVerifying || isLoading ? 'Signing in...' : 'Sign in with Google'}
       </SecondaryButton>
   )
 }

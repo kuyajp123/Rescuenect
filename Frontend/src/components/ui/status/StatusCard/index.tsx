@@ -44,9 +44,22 @@ export const StatusCard = ({
                 <h5 className="text-small tracking-tight text-default-600">{loc}</h5>
             </div>
             </div>
-            <Chip color="success" className='text-white'>{status}</Chip> { /* color="success", "priamry", "warning", "danger"  */}
+            <div>
+                {status === 'safe' &&(
+                <Chip color="success" className='text-white'>{status}</Chip>
+                )} 
+                {status === 'evacuated' &&(
+                <Chip color="primary" className='text-white'>{status}</Chip>
+                )}
+                {status === 'affected' &&(
+                <Chip color="warning" className='text-white'>{status}</Chip>
+                )}
+                {status === 'missing' &&(
+                <Chip color="danger" className='text-white'>{status}</Chip>
+                )}
+            </div>
         </CardHeader>
-        <CardBody className="px-3 py-0 text-small min-h-[100px]">
+        <CardBody className="px-3 py-0 text-small min-h-auto">
             <p>{description}</p>
             <Image
                 alt="HeroUI hero Image"
@@ -54,14 +67,22 @@ export const StatusCard = ({
                 className='mt-4'
             />
         </CardBody>
-        <CardFooter className="gap-3">
+        <CardFooter className="gap-3 h-auto">
+            {person && (
+                <>
+                <div className="flex gap-1">
+                    <p className="font-semibold text-default-400 text-small">{person}</p>
+                    <p className=" text-default-400 text-small">Person</p>
+                </div>
+                </>
+            )}
             <div className="flex gap-1">
-            <p className="font-semibold text-default-400 text-small">{person}</p>
-            <p className=" text-default-400 text-small">Person</p>
-            </div>
-            <div className="flex gap-1">
-            <Phone size={20} className="text-default-400" />
-            <p className="text-default-400 text-small">{contact}</p>
+            {contact && (
+                <>
+                    <Phone size={20} className="text-default-400" />
+                    <p className="text-default-400 text-small">{contact}</p>
+                </>
+            )}
             </div>
         </CardFooter>
     </Card>

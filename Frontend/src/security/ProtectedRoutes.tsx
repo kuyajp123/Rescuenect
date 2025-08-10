@@ -1,8 +1,6 @@
 // components/ProtectedRoute.tsx
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/components/stores/useAuth';
-import { getAuth, signOut } from "firebase/auth";
-import { useEffect } from 'react';
 
 type Props = {
   children: React.ReactNode;
@@ -11,25 +9,20 @@ type Props = {
 export default function ProtectedRoute({ children }: Props) {
   const userAuth = useAuth((state) => state.auth);
   const isLoading = useAuth((state) => state.isLoading);
+  const isVerifying = useAuth((state) => state.isVerifying);
 
-    useEffect(() => {
-    const auth = getAuth();
-
-    if (!userAuth && !isLoading) {
-      signOut(auth).catch((error) => {
-        console.error('Error signing out:', error);
-      });
-    }
-  }, [userAuth, isLoading]);
-
-  // Show loading spinner while Firebase is checking auth state
-  if (isLoading) {
+  // Show loading spinner while Firebase OR backend is verifying
+  if (isLoading || isVerifying) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+        <p className="mt-4 text-gray-600">
+          {isVerifying ? 'Verifying account...' : 'Loading...'}
+        </p>
       </div>
     );
   }
 
-  return userAuth ? children : <Navigate to="/auth/login" replace />;
+  // Only allow access if user is authenticated AND not currently verifying
+  return (userAuth && !isVerifying) ? children : <Navigate to="/auth/login" replace />;
 }

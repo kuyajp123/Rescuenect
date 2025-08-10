@@ -90,3 +90,39 @@ export type StatusTemplateProps = {
   date: string
   time: string
 }
+
+// Define the data structure for map markers
+export interface MapMarkerData {
+  id: number | string;
+  lat: number;
+  lng: number;
+  [key: string]: any; // Allow additional properties
+}
+
+// Define props for the Map component
+export interface MapProps {
+  // Required props
+  data: MapMarkerData[];
+  
+  // Optional props with defaults
+  center?: [number, number];
+  zoom?: number;
+  minZoom?: number;
+  maxZoom?: number;
+  height?: string;
+  width?: string;
+  
+  // Customization props
+  markerType?: 'status' | 'default';
+  tileLayerUrl?: string;
+  attribution?: string;
+  
+  // Popup customization
+  renderPopup?: (item: MapMarkerData) => React.ReactNode;
+  popupType?: 'default' | 'coordinates' | 'custom';
+  showCoordinates?: boolean;
+  
+  // Event handlers
+  onMarkerClick?: (item: MapMarkerData) => void;
+  className?: string;
+}
