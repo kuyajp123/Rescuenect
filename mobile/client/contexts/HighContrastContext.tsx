@@ -13,7 +13,7 @@ const HighContrastContext = createContext<HighContrastContextType | undefined>(u
 
 const HIGH_CONTRAST_STORAGE_KEY = 'high-contrast-mode';
 
-export const HighContrastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const HighContrastProvider: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const [isHighContrast, setIsHighContrast] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 

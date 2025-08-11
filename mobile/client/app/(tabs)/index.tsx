@@ -6,7 +6,6 @@ import statusData from '@/data/statusData.json';
 import React, { useMemo } from 'react';
 import { View } from 'react-native';
 
-
 export const HomeScreen = React.memo(() => {
   const firstUser = useMemo(() => statusData[10], []);
   const logedInUser = useMemo(() => ({
@@ -16,14 +15,14 @@ export const HomeScreen = React.memo(() => {
   }), []);
 
   return (
-      <Body gap={20}>
-        <StatusIndicator user={firstUser} logedInUser={logedInUser} />
-        <CardWeather />
+    <Body gap={20}>
+      <StatusIndicator user={firstUser} logedInUser={logedInUser} />
+      <CardWeather />
 
-        <View style={{ marginTop: 20 }}>
-          <AdvancedCarousel />
-        </View>
-      </Body>
+      <View style={{ marginTop: 20 }}>
+        <AdvancedCarousel />
+      </View>
+    </Body>
   )
 })
 

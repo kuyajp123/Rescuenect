@@ -1,4 +1,4 @@
-import { HoveredButton, PrimaryButton } from '@/components/ui/button/Button'
+import { HoveredButton, IconButton, PrimaryButton } from '@/components/ui/button/Button'
 import { GlassCard } from '@/components/ui/card/GlassCard'
 import { Text } from '@/components/ui/text'
 import { Colors } from '@/constants/Colors'
@@ -47,9 +47,9 @@ export const MainPage = () => {
             >
                         {/* Header with Back Button */}
                         <View style={[styles.header, { paddingTop: insets.top * 1.5 }]}>
-                            <HoveredButton style={styles.backButton} onPress={() => router.back()}>
+                            <IconButton style={styles.backButton} onPress={() => router.back()}>
                                 <ChevronLeft size={24} color={Colors.text.dark} />
-                            </HoveredButton>
+                            </IconButton>
                         </View>
                         
                         {/* Search Section */}

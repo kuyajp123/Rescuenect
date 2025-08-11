@@ -13,7 +13,7 @@ interface FontSizeContextType {
 const FontSizeContext = createContext<FontSizeContextType | undefined>(undefined);
 
 interface FontSizeProviderProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 const FONT_SIZE_STORAGE_KEY = '@font_size_preference';

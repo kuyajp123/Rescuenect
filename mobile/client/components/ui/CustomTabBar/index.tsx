@@ -7,13 +7,13 @@ import {
   ActionsheetItem,
   ActionsheetItemText,
 } from "@/components/ui/actionsheet";
+import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
-import { AlignRight, House, Info, Plus, UsersRound, MapPinPlus, MapPlus } from 'lucide-react-native';
-import React, { useCallback, useMemo } from 'react';
-import { StyleSheet, Text, Pressable, View } from 'react-native';
+import { AlignRight, House, Info, MapPinPlus, MapPlus, Plus, UsersRound } from 'lucide-react-native';
+import React, { useCallback } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '@/constants/Colors';
 
 export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
   const [showActionsheet, setShowActionsheet] = React.useState(false)
@@ -31,7 +31,7 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
 
   const handleCreateStatusPress = useCallback(() => {
     setShowActionsheet(false);
-    router.push('/createStatus' as any);
+    router.push('status/createStatus' as any);
   }, [router]);
 
   const handleCityNeedsPress = useCallback(() => {
@@ -62,10 +62,11 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
           : route.name;
 
         const isFocused = state.index === index;
-        const isMiddle = index === 2; // Status tab (middle position)
-
-        // Skip rendering the middle tab normally, we'll handle it with FAB
-        if (isMiddle) return null;
+        
+        // For 4 tabs, FAB should be between community (index 1) and details (index 2)
+        // So we adjust spacing for these tabs but don't skip any
+        const isBeforeFAB = index === 1; // community
+        const isAfterFAB = index === 2;  // details
 
         const onPress = () => {
           const event = navigation.emit({
@@ -123,9 +124,9 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
             onPress={onPress}
             style={[
               styles.tabItem,
-              // Add extra margin for tabs adjacent to FAB (community and details)
-              (route.name === 'community') && styles.tabItemBeforeFAB,
-              (route.name === 'details') && styles.tabItemAfterFAB,
+              // Add extra margin for tabs adjacent to FAB
+              isBeforeFAB && styles.tabItemBeforeFAB,
+              isAfterFAB && styles.tabItemAfterFAB,
             ]}
             accessibilityRole="tab"
             accessibilityState={{ selected: isFocused }}

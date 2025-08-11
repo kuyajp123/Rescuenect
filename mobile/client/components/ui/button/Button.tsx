@@ -1,8 +1,8 @@
-import { Colors } from '@/constants/Colors';
+import { Colors, ColorCombinations } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ChevronRight } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Text, TouchableOpacity, Pressable, View } from 'react-native';
+import { Text, Pressable, View } from 'react-native';
 
 type ButtonProps = {
   style?: object;
@@ -224,10 +224,11 @@ export const CustomOutlineButton = ({
 );
 
 export const HoveredButton = ({ children, style, onPress }: ButtonProps) => {
-    
+    const { isDark } = useTheme();
+
     return (
       <Pressable 
-        android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
+        android_ripple={{ color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
         onPress={onPress}
         style={[style]}
       >
@@ -235,6 +236,32 @@ export const HoveredButton = ({ children, style, onPress }: ButtonProps) => {
       </Pressable>
     );
   };
+
+export const IconButton = ({ children, onPress, style }: { children?: React.ReactNode; onPress: () => void; style?: object }) => {
+  const [isPressed, setIsPressed] = useState(false);
+  const { isDark } = useTheme();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => setIsPressed(true)}
+      onPressOut={() => setIsPressed(false)}
+      style={[
+        {
+          borderRadius: 50,
+          padding: 8,
+          backgroundColor: isPressed 
+              ? (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)')
+              : 'transparent',
+            transform: [{ scale: isPressed ? 0.95 : 1 }],
+        },
+        style
+      ]}
+    >
+      {children}
+    </Pressable>
+  );
+};
 
 export const ToggleButton = ({ 
   isEnabled, 
@@ -276,6 +303,7 @@ export const ToggleButton = ({
     <Pressable 
       style={toggleButtonStyle}
       onPress={onToggle}
+      android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
     >
       <View style={toggleIndicatorStyle} />
     </Pressable>

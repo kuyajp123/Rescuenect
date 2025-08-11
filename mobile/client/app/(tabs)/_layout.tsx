@@ -1,10 +1,9 @@
+import { CustomTabBar } from "@/components/ui/CustomTabBar";
+import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Tabs } from 'expo-router';
-import { AlignRight, House, Info, Plus, UsersRound } from 'lucide-react-native';
+import { AlignRight, House, Info, UsersRound } from 'lucide-react-native';
 import React from 'react';
-import { StyleSheet } from 'react-native';
-import { Colors } from '@/constants/Colors';
-import { CustomTabBar } from "@/components/ui/CustomTabBar";
 
 export const TabLayout = () => {
   const { isDark } = useTheme();
@@ -30,13 +29,6 @@ export const TabLayout = () => {
         options={{
           title: 'Community',
           tabBarIcon: ({ color }) => <UsersRound color={color} size={20} />,
-        }}
-      />
-      <Tabs.Screen
-        name="createStatus"
-          options={{
-          title: 'Status',
-          tabBarIcon: ({ color }) => <Plus color={color} size={20} />,
         }}
       />
       <Tabs.Screen

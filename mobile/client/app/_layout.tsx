@@ -7,8 +7,9 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter } from 'expo-router';
 import { Bell, ChevronLeft } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { IconButton } from '@/components/ui/button/Button'
 import 'react-native-reanimated';
 import '../global.css';
 
@@ -22,51 +23,23 @@ function RootLayoutContent() {
 
   // Enhanced back button component
   const BackButton = () => {
-    const [isPressed, setIsPressed] = useState(false);
-    
     return (
-      <TouchableOpacity 
+      <IconButton 
         onPress={() => router.back()}
-        onPressIn={() => setIsPressed(true)}
-        onPressOut={() => setIsPressed(false)}
-        style={[
-          styles.backButton,
-          {
-            backgroundColor: isPressed 
-              ? (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)')
-              : 'transparent',
-            transform: [{ scale: isPressed ? 0.95 : 1 }],
-          }
-        ]}
-        activeOpacity={0.7}
       >
         <ChevronLeft size={24} color={isDark ? Colors.text.dark : Colors.text.light} />
-      </TouchableOpacity>
+      </IconButton>
     );
   };
 
   // Enhanced notification button component
   const NotificationButton = () => {
-    const [isPressed, setIsPressed] = useState(false);
-    
     return (
-      <TouchableOpacity 
+      <IconButton 
         onPress={() => router.push('/notification')}
-        onPressIn={() => setIsPressed(true)}
-        onPressOut={() => setIsPressed(false)}
-        style={[
-          styles.notificationButton,
-          {
-            backgroundColor: isPressed 
-              ? (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)')
-              : 'transparent',
-            transform: [{ scale: isPressed ? 0.95 : 1 }],
-          }
-        ]}
-        activeOpacity={0.7}
       >
         <Bell size={20} color={isDark ? Colors.text.dark : Colors.text.light} />
-      </TouchableOpacity>
+      </IconButton>
     );
   };
 
@@ -85,36 +58,31 @@ function RootLayoutContent() {
     };
   }, []);
 
-  // Use useEffect to manage readiness state safely
   useEffect(() => {
-    if (!isMounted) return; // Prevent state updates if not mounted
-    
-    // Use a longer delay to ensure all async operations complete
+    if (!isMounted) return;
+
     const timer = setTimeout(() => {
       if (isMounted && loaded && !themeLoading && !fontLoading) {
         setIsReady(true);
       }
-    }, 200); // Increased delay to prevent race conditions
+    }, 200);
 
     return () => clearTimeout(timer);
   }, [loaded, themeLoading, fontLoading, isMounted]);
 
-  // Don't render anything until everything is ready and mounted
   if (!isMounted || !isReady || themeLoading || fontLoading) {
     return null;
   }
 
-  // Ensure we have a stable mode value for GluestackUIProvider
   const gluestackMode = isDark ? 'dark' : 'light';
 
   return (
     <GluestackUIProvider mode={gluestackMode}>
       <Stack 
         screenOptions={{
-          // Global screen options for better performance
           gestureEnabled: true,
           animation: 'slide_from_right',
-          animationDuration: 150, // Faster animations
+          animationDuration: 150,
         }}
       >
         <Stack.Screen 
@@ -175,6 +143,19 @@ function RootLayoutContent() {
         />
         <Stack.Screen
           name='settings'
+          options={{
+            headerShown: true,
+            title: '',
+            headerStyle: {
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerShadowVisible: false,
+            headerLeft: () => <BackButton />,
+            animation: 'none',
+          }}
+        />
+        <Stack.Screen
+          name='status'
           options={{
             headerShown: true,
             title: '',

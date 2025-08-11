@@ -14,7 +14,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 interface ThemeProviderProps {
-    children: React.ReactNode;
+    children?: React.ReactNode;
 }
 
 const THEME_STORAGE_KEY = '@theme_preference';
