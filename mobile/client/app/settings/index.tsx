@@ -12,39 +12,32 @@ import { StyleSheet, View } from 'react-native'
 
 export const index = () => {
   const { isDark } = useTheme();
-  const { isHighContrast, toggleHighContrast } = useHighContrast();
-
-  function toggleTheme(): void {
-    throw new Error('Function not implemented.')
-  }
+  const { toggleHighContrast } = useHighContrast();
 
   return (
-    <Body style={{ paddingHorizontal: 0 }}>
-      <Text size='3xl' bold style={{ marginLeft: 20, }}>Settings</Text>
+    <Body style={styles.bodyContainer}>
+      <Text size='3xl' bold style={styles.titleText}>Settings</Text>
       
       <View>
-        <View style={{ marginTop: 20, marginLeft: 20}}>
+        <View style={styles.sectionTitle}>
           <Text emphasis='light'>Accessibility</Text>
         </View>
         
-        <View style={{ 
-          borderWidth: 1, 
-          borderColor: isDark 
-                ? Colors.border.dark 
-                : Colors.border.light, 
-          marginTop: 10, 
-          backgroundColor: isDark
-                ? ColorCombinations.statusTemplate.dark
-                : ColorCombinations.statusTemplate.light, 
-          }}>
-          <HoveredButton style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, }}
+        <View style={[
+          styles.sectionContainer,
+          {
+            borderColor: isDark ? Colors.border.dark : Colors.border.light,
+            backgroundColor: isDark ? ColorCombinations.statusTemplate.dark : ColorCombinations.statusTemplate.light,
+          }
+        ]}>
+          <HoveredButton style={styles.menuButton}
             onPress={() => router.push('settings/font-size' as any)}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, width: '85%'}}>
+              <View style={styles.menuButtonContent}>
                 <AArrowUp size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-                <View style={{ width: '80%' }}>
+                <View style={styles.textContainer}>
                   <Text>Font size</Text>
-                  <Text emphasis='light' size='2xs' style={{ flexWrap: 'wrap', }}>Change the size of the text to make it easier to read.</Text>
+                  <Text emphasis='light' size='2xs' style={styles.descriptionText}>Change the size of the text to make it easier to read.</Text>
                 </View>
               </View>
               <View>
@@ -53,16 +46,16 @@ export const index = () => {
           </HoveredButton>
           <HoveredButton 
             onPress={toggleHighContrast}
-            style={{ flexDirection: 'row', alignItems: 'center', padding: 20, }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, width: '85%' }}>
+            style={styles.contrastButton}>
+              <View style={styles.menuButtonContent}>
                 <TypeOutline size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-                <View style={{ width: '80%' }}>
+                <View style={styles.textContainer}>
                   <Text>Text Contrast</Text>
-                  <Text emphasis='light' size='2xs' style={{ flexWrap: 'wrap', }}>Adjust the contrast of text to improve readability.</Text>
+                  <Text emphasis='light' size='2xs' style={styles.descriptionText}>Adjust the contrast of text to improve readability.</Text>
                 </View>
               </View>
               <View>
-                <View style={{ pointerEvents: 'none' }}>
+                <View style={styles.highContrastContainer}>
                   <HighContrastOption />
                 </View>
               </View>
@@ -76,4 +69,45 @@ export const index = () => {
 
 export default index
 
-const styles = StyleSheet.create({})
+const styles = StyleSheet.create({
+  bodyContainer: {
+    paddingHorizontal: 0,
+  },
+  titleText: {
+    marginLeft: 20,
+  },
+  sectionTitle: {
+    marginTop: 20,
+    marginLeft: 20,
+  },
+  sectionContainer: {
+    borderWidth: 1,
+    marginTop: 10,
+  },
+  menuButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+  },
+  menuButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    width: '85%',
+  },
+  textContainer: {
+    width: '80%',
+  },
+  descriptionText: {
+    flexWrap: 'wrap',
+  },
+  contrastButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+  },
+  highContrastContainer: {
+    pointerEvents: 'none',
+  },
+})

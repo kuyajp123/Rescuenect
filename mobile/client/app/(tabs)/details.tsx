@@ -8,7 +8,6 @@ export const DetailsScreen = () => {
   return (
     <Body>
       <MainHotlineAndContact />
-      
     </Body>
   );
 }

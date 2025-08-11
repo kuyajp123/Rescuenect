@@ -1,8 +1,8 @@
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ChevronRight } from 'lucide-react-native';
-import React, { useState, useEffect, useRef } from 'react';
-import { Text, TouchableOpacity, View, Animated } from 'react-native';
+import React, { useState } from 'react';
+import { Text, TouchableOpacity, Pressable, View } from 'react-native';
 
 type ButtonProps = {
   style?: object;
@@ -61,13 +61,14 @@ export const Button = ({
   }
 
   return (
-    <TouchableOpacity
+    <Pressable
       className={`${baseStyle} ${actionStyle} ${variantStyle} ${className}`}
       style={style}
       onPress={onPress}
+      android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
     >
       {children}
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
@@ -223,27 +224,15 @@ export const CustomOutlineButton = ({
 );
 
 export const HoveredButton = ({ children, style, onPress }: ButtonProps) => {
-  const { isDark } = useTheme();
-    const [isPressed, setIsPressed] = useState(false);
     
     return (
-      <TouchableOpacity 
-        onPressIn={() => setIsPressed(true)}
-        onPressOut={() => setIsPressed(false)}
+      <Pressable 
+        android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
         onPress={onPress}
-        style={[
-          {
-            width: 'auto',
-            backgroundColor: isPressed 
-              ? (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)')
-              : 'transparent',
-          },
-          style
-        ]}
-        activeOpacity={1}
+        style={[style]}
       >
         {children}
-      </TouchableOpacity>
+      </Pressable>
     );
   };
 
@@ -284,13 +273,12 @@ export const ToggleButton = ({
   };
 
   return (
-    <TouchableOpacity 
+    <Pressable 
       style={toggleButtonStyle}
       onPress={onToggle}
-      activeOpacity={1}
     >
       <View style={toggleIndicatorStyle} />
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 

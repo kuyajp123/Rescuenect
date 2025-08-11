@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlatList, StyleSheet } from 'react-native';
+import { FlatList, Pressable, StyleSheet } from 'react-native';
 import { GlassCard } from '../card/GlassCard';
 import HourlyForecastItem, { HourlyForecastItemProps } from './HourlyForecastItem';
 
@@ -39,7 +39,6 @@ export const TwentyFourHourForecast = ({ hourlyData = defaultHourlyData }: Twent
                 keyExtractor={(item, index) => `hour-${index}`}
                 horizontal={true}
                 showsHorizontalScrollIndicator={true}
-                indicatorStyle='white'
                 contentContainerStyle={styles.listContainer}
                 style={styles.flatList}
             />

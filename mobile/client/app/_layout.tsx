@@ -7,7 +7,7 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter } from 'expo-router';
 import { Bell, ChevronLeft } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import '../global.css';
@@ -30,10 +30,8 @@ function RootLayoutContent() {
         onPressIn={() => setIsPressed(true)}
         onPressOut={() => setIsPressed(false)}
         style={[
+          styles.backButton,
           {
-            width: 'auto',
-            borderRadius: 50,
-            padding: 8,
             backgroundColor: isPressed 
               ? (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)')
               : 'transparent',
@@ -57,9 +55,8 @@ function RootLayoutContent() {
         onPressIn={() => setIsPressed(true)}
         onPressOut={() => setIsPressed(false)}
         style={[
+          styles.notificationButton,
           {
-            borderRadius: 50,
-            padding: 8,
             backgroundColor: isPressed 
               ? (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)')
               : 'transparent',
@@ -112,7 +109,14 @@ function RootLayoutContent() {
 
   return (
     <GluestackUIProvider mode={gluestackMode}>
-      <Stack>
+      <Stack 
+        screenOptions={{
+          // Global screen options for better performance
+          gestureEnabled: true,
+          animation: 'slide_from_right',
+          animationDuration: 150, // Faster animations
+        }}
+      >
         <Stack.Screen 
           name="(tabs)" 
           options={{
@@ -129,7 +133,7 @@ function RootLayoutContent() {
             },
             headerShadowVisible: false,
             headerRight: () => (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={styles.headerRightContainer}>
                 <NotificationButton />
               </View>
             ),
@@ -152,7 +156,7 @@ function RootLayoutContent() {
             headerShadowVisible: false,
             headerLeft: () => <BackButton />,
             animation: 'slide_from_right',
-            animationDuration: 100,
+            animationDuration: 150,
             animationTypeForReplace: 'push',
           }}
         />
@@ -203,7 +207,7 @@ function RootLayoutContent() {
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={styles.gestureHandlerContainer}>
       <ThemeProvider>
         <FontSizeProvider>
           <HighContrastProvider>
@@ -214,3 +218,23 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  backButton: {
+    width: 'auto',
+    borderRadius: 50,
+    padding: 8,
+  },
+  notificationButton: {
+    borderRadius: 50,
+    padding: 8,
+  },
+  headerRightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  gestureHandlerContainer: {
+    flex: 1,
+  },
+});

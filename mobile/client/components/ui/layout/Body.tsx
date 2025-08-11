@@ -4,6 +4,7 @@ import type { ComponentProps } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { ScrollView } from 'react-native';
 import { VStack, } from '../vstack';
+import { StyleSheet } from 'react-native';
 
 type VStackProps = ComponentProps<typeof VStack>;
 
@@ -18,19 +19,26 @@ export const Body = ({ children, style, ...props }: ContainerProps) => {
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
       <VStack
-        style={[{ 
-          flex: 1, 
-          padding: 20, 
-          backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
-          paddingBottom: 40, 
-        }, 
-        style]}
-        {...props} 
+        style={[
+          styles.container, {
+            backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+          },
+          style
+        ]}
+        {...props}
         >
           {children}
         </VStack>
     </ScrollView>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    paddingBottom: 40,
+  },
+});
 
 export default Body;

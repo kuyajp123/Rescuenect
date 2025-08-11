@@ -1,7 +1,7 @@
 import ClearDay from '@/assets/images/weather/icons/ClearDay10000.svg';
 import ClearNight from '@/assets/images/weather/icons/ClearNight10001.svg';
 import Cloudy from '@/assets/images/weather/icons/Cloudy1001.svg';
-import DrizleRain from '@/assets/images/weather/icons/DrizzleLightRain4000_4200.svg';
+import DrizzleRain from '@/assets/images/weather/icons/DrizzleLightRain4000_4200.svg';
 import Fog from '@/assets/images/weather/icons/Fog2000_2100.svg';
 import HeavyGust from '@/assets/images/weather/icons/HeavyGust.svg';
 import PartlyCloudyDay from '@/assets/images/weather/icons/PartlyCloudyDay11010.svg';
@@ -157,7 +157,7 @@ export default {
     ClearDay, 
     ClearNight, 
     Cloudy, 
-    DrizleRain, 
+    DrizzleRain, 
     Fog, 
     HeavyGust, 
     PartlyCloudyDay, 

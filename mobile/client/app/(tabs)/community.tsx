@@ -5,8 +5,8 @@ import { ListOfEvents } from '@/components/ui/data-display/ListOfEvents';
 import Body from '@/components/ui/layout/Body';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import mostNeedItem from '../../data/mostNeedItem.json';
-import statusData from '../../data/statusData.json';
+import mostNeedItem from '@/data/mostNeedItem.json';
+import statusData from '@/data/statusData.json';
 import { Text } from '@/components/ui/text';
 
 const community = () => {
@@ -28,7 +28,6 @@ const community = () => {
         counts.missing += 1;
         break;
       default:
-        // Handle any unknown status or null/undefined status
         break;
     }
     return counts;
@@ -76,5 +75,3 @@ const community = () => {
 }
 
 export default community
-
-const styles = StyleSheet.create({})

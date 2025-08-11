@@ -1,6 +1,6 @@
 import { getWeatherCondition, getWeatherIcons } from "@/components/helper/WeatherLogic";
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '../text';
 
 export type FiveDaysForecastProps = {
@@ -16,23 +16,25 @@ export const FiveDaysForecast = ({ day, date, weatherCode, temperature }: FiveDa
     const weatherCondition = getWeatherCondition(weatherCode || 10000);
 
   return (
-    <TouchableOpacity onPress={() => alert('Navigate to 5 days forecast')}>
-        <View style={{ flexDirection: 'row', gap: 20, alignItems: 'center' }}>
-            <View style={{ alignItems: 'center', minWidth: 40 }}>
-                <Text emphasis='light' style={{ color: '#ffffff' }}>{day}</Text>
-                <Text size="2xs" bold style={{ color: '#ffffff' }}>{date}</Text>
+    <Pressable 
+    onPress={() => alert('Navigate to 5 days forecast')}
+    >
+        <View style={styles.forecastContainer}>
+            <View style={styles.dayDateContainer}>
+                <Text emphasis='light' style={styles.dayText}>{day}</Text>
+                <Text size="2xs" bold style={styles.dateText}>{date}</Text>
             </View>
             <View>
                 <WeatherIcon width={40} height={50} />
             </View>
-            <View style={{ minWidth: 110,  }}>
-                <Text style={{ color: '#ffffff' }}>{weatherCondition}</Text>
+            <View style={styles.conditionContainer}>
+                <Text style={styles.conditionText}>{weatherCondition}</Text>
             </View>
-            <View >
-                <Text size='lg' bold style={{ textAlign: 'right', color: '#ffffff' }}>{temperature}</Text>
+            <View>
+                <Text size='lg' bold style={styles.temperatureText}>{temperature}</Text>
             </View>
         </View>
-    </TouchableOpacity>    
+    </Pressable>    
   )
 }
 
@@ -43,5 +45,30 @@ const styles = StyleSheet.create({
         width: '100%',
         textAlign: 'left',
         alignItems: 'flex-start',
+    },
+    forecastContainer: {
+        flexDirection: 'row',
+        gap: 20,
+        alignItems: 'center',
+    },
+    dayDateContainer: {
+        alignItems: 'center',
+        minWidth: 40,
+    },
+    dayText: {
+        color: '#ffffff',
+    },
+    dateText: {
+        color: '#ffffff',
+    },
+    conditionContainer: {
+        minWidth: 110,
+    },
+    conditionText: {
+        color: '#ffffff',
+    },
+    temperatureText: {
+        textAlign: 'right',
+        color: '#ffffff',
     },
 })

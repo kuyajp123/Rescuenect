@@ -1,8 +1,7 @@
 import Body from '@/components/ui/layout/Body'
 import { StatusList } from '@/components/ui/PostTemplate'
 import React from 'react'
-import { StyleSheet } from 'react-native'
-import statusData from '../../data/statusData.json'
+import statusData from '@/data/statusData.json'
 
 export const status = () => {
   return (
@@ -11,7 +10,5 @@ export const status = () => {
     </Body>
   )
 }
-
-const styles = StyleSheet.create({})
 
 export default status;

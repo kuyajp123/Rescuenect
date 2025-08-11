@@ -3,9 +3,10 @@ import { StyleSheet, Text, View } from 'react-native'
 import Body from '@/components/ui/layout/Body'
 
 export const createStatus = () => {
+
   return (
     <Body>
-      <Text>status</Text>
+      <Text>status</Text>  
     </Body>
   )
 }

@@ -1,6 +1,5 @@
 import { Stack } from 'expo-router'
 import React from 'react'
-import { StyleSheet } from 'react-native'
 
 export const _layout = () => {
   return (
@@ -21,7 +20,5 @@ export const _layout = () => {
       </Stack>
   )
 }
-
-const styles = StyleSheet.create({})
 
 export default _layout;

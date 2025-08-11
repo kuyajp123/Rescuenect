@@ -1,6 +1,6 @@
 import { getWeatherCondition, getWeatherIcons } from '@/components/helper/WeatherLogic';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { GlassCard } from '../card/GlassCard';
 import { Text } from '../text';
 
@@ -15,8 +15,8 @@ export const HourlyForecastItem = ({ time, temperature, weatherCode = 10000 }: H
     const weatherCondition = getWeatherCondition(weatherCode);
 
     return (
-        <TouchableOpacity onPress={() => 
-        alert('Navigate to 24-hour forecast')}
+        <Pressable 
+        onPress={() => alert('Navigate to 24-hour forecast')}
         >
             <GlassCard style={styles.hourlyCard} size="small">
                 <View style={styles.cardContent}>
@@ -39,7 +39,7 @@ export const HourlyForecastItem = ({ time, temperature, weatherCode = 10000 }: H
                     </Text>
                 </View>
             </GlassCard>
-        </TouchableOpacity>
+        </Pressable>
     );
 };
 

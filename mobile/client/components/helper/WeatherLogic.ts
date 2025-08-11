@@ -3,7 +3,7 @@ const {
     ClearDay, 
     ClearNight, 
     Cloudy, 
-    DrizleRain, 
+    DrizzleRain, 
     Fog, 
     PartlyCloudyDay, 
     PartlyCloudyNight, 
@@ -11,47 +11,59 @@ const {
     ThunderStorm, 
 } = index;
 
-export const getWeatherIcons = (code: number) => {
+// Helper function to determine if it's day or night
+const isDayTime = (time?: string | Date): boolean => {
+    const now = time ? new Date(time) : new Date();
+    const hour = now.getHours();
+    // Consider day time from 6 AM to 6 PM (18:00)
+    return hour >= 6 && hour < 18;
+};
+
+export const getWeatherIcons = (code: number, time?: string | Date) => {
+    const isDay = isDayTime(time);
+
     switch (code) {
-        // ☀️ Clear Day
+        // ☀️ Clear conditions - auto detect day/night
         case 10000:
-            return ClearDay;
-        
-        // 🌙 Clear Night
         case 10001:
-            return ClearNight;
-        
-        // ⛅ Partly Cloudy Day
+        case 1000:
+            return isDay ? ClearDay : ClearNight;
+
+        // ⛅ Partly Cloudy conditions - auto detect day/night
         case 11000:
         case 11010:
         case 11020:
-            return PartlyCloudyDay;
-        
-        // 🌙⛅ Partly Cloudy Night
         case 11001:
         case 11011:
         case 11021:
-            return PartlyCloudyNight;
-        
+        case 1100:
+        case 1101:
+        case 1102:
+            return isDay ? PartlyCloudyDay : PartlyCloudyNight;
+
+        // ☁️ Cloudy conditions - same for day/night
+        case 1001:
+            return Cloudy;
+
         // 🌫️ Fog
         case 2100:
         case 2000:
             return Fog;
-        
+
         // 🌦️ Drizzle Rain
         case 4000:
         case 4200:
-            return DrizleRain;
-        
+            return DrizzleRain;
+
         // 🌧️ Rainy
         case 4001:
         case 4201:
             return Rainy;
-        
+
         // ⛈️ Thunderstorm
         case 8000:
             return ThunderStorm;
-        
+
         // Default fallback - return cloudy for unknown codes
         default:
             return Cloudy;

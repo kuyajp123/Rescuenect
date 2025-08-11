@@ -7,15 +7,7 @@ import { Circle } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
-interface FontSizeSwitchProps {
-  showLabel?: boolean;
-  variant?: 'buttons' | 'scale';
-}
-
-export const FontSizeSwitch = ({ 
-  showLabel = true, 
-  variant = 'buttons' 
-}: FontSizeSwitchProps) => {
+export const FontSizeSwitch = () => {
   const { fontScale, setFontScale, fontMultiplier } = useFontSize();
   const { isDark } = useTheme();
 
