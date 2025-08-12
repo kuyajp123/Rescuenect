@@ -1,4 +1,4 @@
-import { CustomTabBar } from "@/components/ui/CustomTabBar";
+import { CustomTabBar } from "@/components/ui/_layout/CustomTabBar";
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Tabs } from 'expo-router';
