@@ -11,7 +11,7 @@ export const getEnvVar = (key: string, defaultValue?: string): string => {
 
 // Type-safe environment variables
 export const env = {
-  backendUrl: getEnvVar('backendUrl', 'https://default.api.com'),
+  backendUrl: getEnvVar('backendUrl'),
   apiKey: getEnvVar('apiKey'),
   authDomain: getEnvVar('authDomain'),
   projectId: getEnvVar('projectId'),

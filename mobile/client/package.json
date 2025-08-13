@@ -11,7 +11,7 @@
     "lint": "expo lint"
   },
   "dependencies": {
-    "@expo/html-elements": "^0.4.3",
+    "@expo/html-elements": "^0.4.2",
     "@expo/vector-icons": "^14.1.0",
     "@gluestack-ui/actionsheet": "^0.2.53",
     "@gluestack-ui/alert-dialog": "^0.1.38",
@@ -20,6 +20,8 @@
     "@gluestack-ui/divider": "^0.1.10",
     "@gluestack-ui/icon": "^0.1.27",
     "@gluestack-ui/image": "^0.1.17",
+    "@gluestack-ui/input": "^0.1.38",
+    "@gluestack-ui/modal": "^0.1.41",
     "@gluestack-ui/nativewind-utils": "^1.0.26",
     "@gluestack-ui/overlay": "^0.1.22",
     "@gluestack-ui/progress": "^0.1.18",

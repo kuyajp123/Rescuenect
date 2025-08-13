@@ -175,6 +175,19 @@ function RootLayoutContent() {
             animation: 'none',
           }}
         />
+        <Stack.Screen
+          name='auth'
+          options={{
+            headerShown: false,
+            title: '',
+            headerStyle: {
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerShadowVisible: false,
+            headerLeft: () => <BackButton />,
+            animation: 'none',
+          }}
+        />
         <Stack.Screen name="+not-found" />
       </Stack>
     </GluestackUIProvider>
