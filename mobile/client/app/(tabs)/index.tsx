@@ -19,7 +19,7 @@ export const HomeScreen = React.memo(() => {
       <StatusIndicator user={firstUser} logedInUser={logedInUser} />
       <CardWeather />
 
-      <View style={{ marginTop: 20 }}>
+      <View style={{ marginTop: 20 }}>  
         <AdvancedCarousel />
       </View>
     </Body>

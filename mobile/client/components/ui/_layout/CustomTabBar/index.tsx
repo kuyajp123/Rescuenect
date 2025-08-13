@@ -21,9 +21,9 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const handleFABPress = useCallback(() => {
+  const handleFABPress = () => {
     setShowActionsheet(true);
-  }, []);
+  };
 
   const handleCloseActionsheet = useCallback(() => {
     setShowActionsheet(false);
