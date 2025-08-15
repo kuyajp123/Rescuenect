@@ -76,15 +76,21 @@ function RootLayoutContent() {
       <Stack 
         screenOptions={{
           gestureEnabled: true,
-          animation: 'slide_from_right',
-          animationDuration: 150,
         }}
       >
+        <Stack.Screen 
+          name="index" 
+          options={{
+            headerShown: false, 
+          }} 
+        />
         <Stack.Screen 
           name="(tabs)" 
           options={{
             title: 'RescueNect', 
             headerShown: true, 
+            animation: 'fade',
+            animationDuration: 500,
             headerTintColor: isDark ? Colors.text.dark : Colors.brand.light,
             headerStyle: { 
               backgroundColor: isDark ? Colors.background.dark : Colors.background.light,

@@ -5,7 +5,7 @@ export default ({ config }: { config: any }) => {
     slug: "client",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/icon.png",
+    icon: "./assets/images/logo/adaptive-icon.png",
     scheme: "client",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
@@ -14,7 +14,7 @@ export default ({ config }: { config: any }) => {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/images/adaptive-icon.png",
+        foregroundImage: "./assets/images/logo/adaptive-icon.png",
         backgroundColor: "#ffffff"
       },
       edgeToEdgeEnabled: true,
@@ -30,10 +30,15 @@ export default ({ config }: { config: any }) => {
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/splash-icon.png",
+          image: "./assets/images/logo/splash-icon-dark.png",
           imageWidth: 200,
           resizeMode: "contain",
-          backgroundColor: "#ffffff"
+          backgroundColor: "#ffffff",
+          dark: {
+            image: "./assets/images/logo/splash-icon-light.png",
+            resizeMode: "contain",
+            backgroundColor: "#000000",
+          }
         }
       ],
       "expo-font",

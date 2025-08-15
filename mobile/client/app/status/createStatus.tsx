@@ -5,7 +5,6 @@ import { Text } from '@/components/ui/text'
 
 const createStatus = () => {
 
-
   return (
     <Body>
       <Text>Firestore Example</Text>

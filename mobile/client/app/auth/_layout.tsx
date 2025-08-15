@@ -8,7 +8,8 @@ export const _layout = () => {
             name='nameAndContactForm'
             options={{
                 headerShown: false,
-                animation: 'none'
+                animation: 'slide_from_right',
+                animationDuration: 150
             }}
             />
             <Stack.Screen
@@ -16,6 +17,13 @@ export const _layout = () => {
             options={{
                 headerShown: false,
                 animation: 'none'
+            }}
+            />
+            <Stack.Screen
+            name='setupComplete'
+            options={{
+                headerShown: false,
+                animation: 'fade'
             }}
             />
         </Stack>
