@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "start:safe": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "DARK_MODE=media expo start --android",
     "ios": "DARK_MODE=media expo start --ios",
@@ -34,9 +35,11 @@
     "ajv": "^8.17.1",
     "babel-plugin-module-resolver": "^5.0.2",
     "expo": "53.0.20",
+    "expo-auth-session": "~6.2.1",
     "expo-blur": "~14.1.5",
     "expo-clipboard": "~7.1.5",
     "expo-constants": "~17.1.6",
+    "expo-crypto": "~14.1.5",
     "expo-dev-client": "~5.2.4",
     "expo-font": "~13.3.2",
     "expo-haptics": "~14.1.4",
@@ -71,7 +74,8 @@
     "react-native-svg": "15.11.2",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^3.4.17",
+    "zustand": "^5.0.7"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

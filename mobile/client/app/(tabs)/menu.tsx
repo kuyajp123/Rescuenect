@@ -8,8 +8,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
 import { BadgeInfo, BadgeQuestionMark, ChevronRight, LogOut, Moon, ReceiptText, Settings, Sun } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
-import GoogleIMG from '@/assets/images/google/google.svg'
 import { Card } from '@/components/ui/card/Card';
+import GoogleButton from '@/components/ui/button/GoogleButton';
 
 export const MenuScreen = () => {
   const { isDark, setColorMode } = useTheme();
@@ -50,12 +50,7 @@ export const MenuScreen = () => {
 
           <Card style={styles.card}>
             <Text className='text-center mb-4'>Continue with Google to save your progress</Text>
-            <Button
-            onPress={() => {router.push('auth/barangayForm' as any)}}
-            >
-              <GoogleIMG  />
-              <Text style={styles.googleButtonText}>Sign in with Google</Text>
-            </Button>
+            <GoogleButton />
           </Card>
 
         <View style={styles.sectionTitle}>
@@ -168,9 +163,6 @@ const styles = StyleSheet.create({
   },
   card: {
     margin: 20
-  },
-  googleButtonText: {
-    color: 'white'
   },
   mainContainer: { 
     flexDirection: 'row', 

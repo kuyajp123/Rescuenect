@@ -17,7 +17,7 @@ const Index = () => {
           router.replace("(tabs)" as any);
         } else {
           setLoading(false);
-          router.replace("/auth/barangayForm" as any);
+          router.replace("/auth/signIn" as any);
         }
       } catch (error) {
         console.error('Error loading saved barangay:', error);

@@ -3,6 +3,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { ChevronRight } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Text, Pressable, View } from 'react-native';
+import GoogleIMG from '@/assets/images/google/google.svg'
 
 type ButtonProps = {
   style?: object;
@@ -309,6 +310,17 @@ export const ToggleButton = ({
     </Pressable>
   );
 };
+
+export const GoogleButtonComponent = ({ onPress }: { onPress: () => void }) => {
+  return (
+    <Button
+      onPress={onPress}
+    >
+      <GoogleIMG  />
+      <Text style={{ color: 'white' }}>Sign in with Google</Text>
+    </Button>
+  )
+}
 
 
 // Usage Examples:

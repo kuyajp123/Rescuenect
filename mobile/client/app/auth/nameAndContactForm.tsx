@@ -7,10 +7,32 @@ import { Text } from '@/components/ui/text'
 import { useRouter } from 'expo-router'
 import React, { useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
+import { create } from 'zustand'
+
+type FormState = {
+  firstName: string
+  lastName: string
+  contactNumber?: string
+  setFirstName: (name: string) => void
+  setLastName: (name: string) => void
+  setContactNumber: (number: string) => void
+  reset: () => void
+}
+
+const useFormStore = create<FormState>((set) => ({
+  firstName: '',
+  lastName: '',
+  contactNumber: '',
+  setFirstName: (firstName) => set({ firstName }),
+  setLastName: (lastName) => set({ lastName }),
+  setContactNumber: (contactNumber) => set({ contactNumber }),
+  reset: () => set({ firstName: '', lastName: '', contactNumber: '' }),
+}))
+
 
 const nameAndContactForm = () => {
     const [errorMessage, setErrorMessage] = useState({ firstName: '', lastName: '', contactNumber: '' });
-    const [form, setForm] = useState({ firstName: '', lastName: '', contactNumber: '' });
+    const { firstName, lastName, contactNumber, setFirstName, setLastName, setContactNumber, reset } = useFormStore();
     const router = useRouter()
 
     // Format name with proper capitalization
@@ -67,7 +89,7 @@ const nameAndContactForm = () => {
         return numericOnly.length === 11 && numericOnly.startsWith('09');
     };
 
-    const handleInputChange = (field: keyof typeof form, value: string) => {
+    const handleInputChange = (field: 'firstName' | 'lastName' | 'contactNumber', value: string) => {
         let formattedValue = value;
         
         // Apply formatting based on field type
@@ -77,8 +99,14 @@ const nameAndContactForm = () => {
             formattedValue = formatContactNumber(value);
         }
         
-        // Update form data
-        setForm({ ...form, [field]: formattedValue });
+        // Update Zustand store based on field
+        if (field === 'firstName') {
+            setFirstName(formattedValue);
+        } else if (field === 'lastName') {
+            setLastName(formattedValue);
+        } else if (field === 'contactNumber') {
+            setContactNumber(formattedValue);
+        }
         
         // Clear error for this field when user starts typing
         if (errorMessage[field]) {
@@ -91,15 +119,15 @@ const nameAndContactForm = () => {
         const newErrors = { firstName: '', lastName: '', contactNumber: '' };
         
         // Check each field and set error messages
-        if (!form.firstName.trim()) {
+        if (!firstName.trim()) {
             newErrors.firstName = 'First name is required';
         }
-        if (!form.lastName.trim()) {
+        if (!lastName.trim()) {
             newErrors.lastName = 'Last name is required';
         }
-        if (!form.contactNumber.trim()) {
+        if (!contactNumber?.trim()) {
             newErrors.contactNumber = 'Contact number is required';
-        } else if (!isValidContactNumber(form.contactNumber)) {
+        } else if (!isValidContactNumber(contactNumber)) {
             newErrors.contactNumber = 'Please enter a valid 11-digit mobile number';
         }
         
@@ -107,25 +135,28 @@ const nameAndContactForm = () => {
         setErrorMessage(newErrors);
         
         // If all fields are valid, proceed with saving the user
-        if (form.firstName.trim() && form.lastName.trim() && isValidContactNumber(form.contactNumber)) {
+        if (firstName.trim() && lastName.trim() && contactNumber && isValidContactNumber(contactNumber)) {
             try {
                 // Convert contact number to E.164 format
-                const e164ContactNumber = convertToE164Format(form.contactNumber);
+                const e164ContactNumber = convertToE164Format(contactNumber);
                 
                 // Prepare user data
                 const userData = {
-                    firstName: form.firstName.trim(),
-                    lastName: form.lastName.trim(),
-                    contactNumber: form.contactNumber, // Original formatted number
+                    firstName: firstName.trim(),
+                    lastName: lastName.trim(),
+                    contactNumber: contactNumber, // Original formatted number
                     e164ContactNumber: e164ContactNumber, // E.164 format for Firebase
-                    fullName: `${form.firstName.trim()} ${form.lastName.trim()}`
+                    fullName: `${firstName.trim()} ${lastName.trim()}`
                 };
                 
                 // Save to AsyncStorage
                 await storage.set('@user', userData);
                 
+                // Reset the Zustand store after successful save
+                reset();
+                
                 // Navigate to main app
-                router.push('/auth/setupComplete' as any);
+                router.replace('/auth/setupComplete' as any);
             } catch (error) {
                 console.error('Error saving user data:', error);
                 setErrorMessage({ 
@@ -157,7 +188,7 @@ const nameAndContactForm = () => {
                     <InputField
                         style={styles.inputField}
                         placeholder="Juan"
-                        value={form.firstName}
+                        value={firstName}
                         onChangeText={(text) => handleInputChange('firstName', text)}
                     />
                 </Input>
@@ -177,7 +208,7 @@ const nameAndContactForm = () => {
                     <InputField
                         style={styles.inputField}
                         placeholder="Dela Cruz"
-                        value={form.lastName}
+                        value={lastName}
                         onChangeText={(text) => handleInputChange('lastName', text)}
                     />
                 </Input>
@@ -197,7 +228,7 @@ const nameAndContactForm = () => {
                     <InputField
                         style={styles.inputField}
                         placeholder="0917-123-4567"
-                        value={form.contactNumber}
+                        value={contactNumber}
                         onChangeText={(text) => handleInputChange('contactNumber', text)}
                         keyboardType="numeric"
                         maxLength={13} // XXXX-XXX-XXXX format
@@ -233,7 +264,7 @@ const styles = StyleSheet.create({
     },
     welcomeContainer: {
         position: 'absolute',
-        top: 100,
+        top: '10%',
         textAlign: 'center',
     },
     formContainer: {
@@ -266,7 +297,7 @@ const styles = StyleSheet.create({
     primaryButton: {
         width: '100%',
         position: 'absolute',
-        bottom: 200,
+        bottom: '7%',
     },
     errorText: {
         marginBottom: 8,

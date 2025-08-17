@@ -85,9 +85,16 @@ const barangayForm = () => {
             <Logo width={200} height={100} />
         </View>
         <View style={styles.container}>
-            <Text size='md' style={styles.title}>
-                Set your Barangay
-            </Text>
+            <View style={styles.title}>
+                <Text size='sm'>
+                    Set your Barangay
+                </Text>
+                {errorMessage ? (
+                <Text style={styles.errorText}>
+                    {errorMessage}
+                </Text>
+                ) : null}
+            </View>
             <Pressable 
                 style={[
                     styles.dropdownTrigger,
@@ -156,11 +163,6 @@ const barangayForm = () => {
             </Text>
         </View>
         <View style={styles.primaryButton}>
-            {errorMessage ? (
-            <Text style={styles.errorText}>
-                {errorMessage}
-            </Text>
-            ) : null}
             <PrimaryButton 
             onPress={handleSaveBarangay}>
                 Next
@@ -181,13 +183,14 @@ const styles = StyleSheet.create({
     },
     welcomeContainer: {
         position: 'absolute',
-        top: 100,
+        top: '10%',
         textAlign: 'center',
     },
     title: {
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 16,
+        display: 'flex',
+        alignItems: 'center',
+        flexDirection: 'row',
+        gap: 10,
     },
     container: {
         gap: 10,
@@ -226,7 +229,7 @@ const styles = StyleSheet.create({
     primaryButton: {
         width: '100%',
         position: 'absolute',
-        bottom: 200,
+        bottom: '7%',
     },
     errorText: {
         marginBottom: 8,

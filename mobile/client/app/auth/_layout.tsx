@@ -3,7 +3,14 @@ import { Stack } from 'expo-router'
 
 export const _layout = () => {
     return (
-        <Stack>  
+        <Stack> 
+            <Stack.Screen
+            name='signIn'
+            options={{
+                headerShown: false,
+                animation: 'none',
+            }}
+            /> 
             <Stack.Screen
             name='nameAndContactForm'
             options={{
