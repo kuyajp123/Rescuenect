@@ -52,7 +52,6 @@ export default ({ config }: { config: any }) => {
       eas: {
         projectId: "b0c098eb-8a7f-4cbd-b1ea-2e6557df75f7"
       },
-      backendUrl: "http://192.168.100.100:3000",
     },
     owner: "yajeyps"
   };

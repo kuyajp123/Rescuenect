@@ -3,7 +3,7 @@
 ../../Frontend/
 
 # Ignore backend server
-Backend/
+../Backend/
 
 # Ignore node_modules outside mobile folder
 node_modules/
@@ -35,3 +35,9 @@ tmp/
 # Ignore OS-specific junk
 .DS_Store
 Thumbs.db
+
+# native
+android
+ios
+
+vscode/

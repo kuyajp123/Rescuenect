@@ -14,7 +14,8 @@ const Index = () => {
 
         if (savedBarangay && savedUser) {
           setLoading(false);
-          router.replace("(tabs)" as any);
+          // router.replace("(tabs)" as any);
+          router.replace("auth/signIn" as any);
         } else {
           setLoading(false);
           router.replace("/auth/signIn" as any);
