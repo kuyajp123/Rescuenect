@@ -1,6 +1,6 @@
 import Logo from '@/assets/images/logo/logoVerti.svg'
+import { PrimaryButton } from '@/components/components/button/Button'
 import { storage } from '@/components/helper/storage'
-import { PrimaryButton } from '@/components/ui/button/Button'
 import { Input, InputField } from "@/components/ui/input"
 import Body from '@/components/ui/layout/Body'
 import { Text } from '@/components/ui/text'

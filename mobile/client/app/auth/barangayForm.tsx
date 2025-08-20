@@ -1,4 +1,5 @@
-import { PrimaryButton } from '@/components/ui/button/Button'
+import Logo from '@/assets/images/logo/logoVerti.svg'
+import { PrimaryButton } from '@/components/components/button/Button'
 import Body from '@/components/ui/layout/Body'
 import {
     Modal,
@@ -17,7 +18,6 @@ import { useRouter } from 'expo-router'
 import { ChevronDown, X } from 'lucide-react-native'
 import React from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
-import Logo from '@/assets/images/logo/logoVerti.svg'
 
 const barangayForm = () => {
     const router = useRouter();

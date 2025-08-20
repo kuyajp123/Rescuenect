@@ -1,4 +1,4 @@
-import { IconButton } from '@/components/ui/button/Button';
+import { IconButton } from '@/components/components/button/Button';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { Colors } from '@/constants/Colors';
 import { useFontSize } from '@/contexts/FontSizeContext';

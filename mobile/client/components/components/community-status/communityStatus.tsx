@@ -1,5 +1,5 @@
+import { PrimaryButton } from '@/components/components/button/Button';
 import type { CommunityStatusProps } from '@/components/shared/types/components';
-import { PrimaryButton } from '@/components/ui/button/Button';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
 import { ColorCombinations, Colors } from '@/constants/Colors';

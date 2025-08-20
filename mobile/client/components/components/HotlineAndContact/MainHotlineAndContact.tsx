@@ -2,7 +2,7 @@ import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogHeader
-} from "@/components/ui/feedback/alert-dialog";
+} from "@/components/ui/alert-dialog";
 import { Image } from '@/components/ui/image';
 import { Text } from '@/components/ui/text';
 import { Colors } from "@/constants/Colors";

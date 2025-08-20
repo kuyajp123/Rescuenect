@@ -1,27 +1,27 @@
+import { ImageModal } from '@/components/components/image-modal/ImageModal'
 import type { StatusTemplateProps } from '@/components/shared/types/components'
 import {
-  Avatar,
-  AvatarFallbackText,
-  AvatarImage
+    Avatar,
+    AvatarFallbackText,
+    AvatarImage
 } from "@/components/ui/avatar"
 import { Badge, BadgeIcon, BadgeText } from '@/components/ui/badge'
 import { Box } from '@/components/ui/box'
 import { Divider } from "@/components/ui/divider"
 import { Image } from '@/components/ui/image'
-import { ImageModal } from '@/components/ui/image-modal/ImageModal'
 import { Text } from '@/components/ui/text'
 import { VStack } from '@/components/ui/vstack'
 import { ColorCombinations } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
 import {
-  CircleCheck,
-  CircleQuestionMark,
-  Ellipsis,
-  Info,
-  MapPin,
-  Phone,
-  ShieldCheck,
-  Users
+    CircleCheck,
+    CircleQuestionMark,
+    Ellipsis,
+    Info,
+    MapPin,
+    Phone,
+    ShieldCheck,
+    Users
 } from 'lucide-react-native'
 import React, { useState } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'

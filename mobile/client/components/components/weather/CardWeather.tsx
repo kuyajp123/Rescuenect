@@ -1,12 +1,12 @@
+import index from '@/components/components/weather/index';
 import { GetDate, GetTime } from '@/components/helper/DateAndTime';
+import { Divider } from '@/components/ui/divider';
 import { Text } from '@/components/ui/text';
-import index from '@/components/ui/weather/index';
 import { useTheme } from '@/contexts/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ImageBackground, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Divider } from '../divider';
 const { PartlyCloudyDay } = index;
 
 export const CardWeather = () => {

@@ -1,4 +1,4 @@
-import { ToggleButton } from '@/components/ui/button/Button';
+import { ToggleButton } from '@/components/components/button/Button';
 import { useTheme } from '@/contexts/ThemeContext';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';

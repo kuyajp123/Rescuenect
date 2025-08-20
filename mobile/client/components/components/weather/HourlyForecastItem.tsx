@@ -1,8 +1,8 @@
 import { getWeatherCondition, getWeatherIcons } from '@/components/helper/WeatherLogic';
+import { Text } from '@/components/ui/text';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { GlassCard } from '../card/GlassCard';
-import { Text } from '../text';
 
 export type HourlyForecastItemProps = {
     time: string;

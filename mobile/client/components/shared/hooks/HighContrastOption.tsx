@@ -1,4 +1,4 @@
-import { ToggleButton } from '@/components/ui/button/Button';
+import { ToggleButton } from '@/components/components/button/Button';
 import { useHighContrast } from '@/contexts/HighContrastContext';
 import React from 'react';
 

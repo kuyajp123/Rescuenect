@@ -1,5 +1,5 @@
 import Body from '@/components/ui/layout/Body'
-import { StatusList } from '@/components/ui/PostTemplate'
+import { StatusList } from '@/components/components/PostTemplate'
 import React from 'react'
 import statusData from '@/data/statusData.json'
 

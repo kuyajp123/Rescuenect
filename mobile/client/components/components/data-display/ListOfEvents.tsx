@@ -1,5 +1,5 @@
 import type { Event } from '@/components/shared/types/components';
-import { EmptyState } from '@/components/ui/feedback/empty-state';
+import { EmptyState } from '@/components/components/empty-state';
 import { Text } from '@/components/ui/text';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';

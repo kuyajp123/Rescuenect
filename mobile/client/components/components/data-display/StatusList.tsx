@@ -1,5 +1,5 @@
+import { EmptyState } from '@/components/components/empty-state';
 import type { StatusTemplateProps } from '@/components/shared/types/components';
-import { EmptyState } from '@/components/ui/feedback/empty-state';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { StatusTemplate } from '../PostTemplate/StatusTemplate';

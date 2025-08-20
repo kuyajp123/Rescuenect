@@ -1,10 +1,10 @@
-import { StyleSheet, Image, View, Pressable } from 'react-native'
-import { Text } from '@/components/ui/text'
-import React from 'react'
+import { PrimaryButton } from '@/components/components/button/Button'
 import Body from '@/components/ui/layout/Body'
+import { Text } from '@/components/ui/text'
 import { useTheme } from '@/contexts/ThemeContext'
-import { PrimaryButton } from '@/components/ui/button/Button'
 import { router } from 'expo-router'
+import React from 'react'
+import { Image, StyleSheet, View } from 'react-native'
 
 const setupComplete = () => {
     const { isDark } = useTheme();

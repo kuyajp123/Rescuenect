@@ -1,7 +1,7 @@
+import { MainPage } from '@/components/components/weather/MainPage'
 import Body from '@/components/ui/layout/Body'
 import React from 'react'
 import { StyleSheet } from 'react-native'
-import { MainPage } from '@/components/ui/weather/MainPage'
 
 export const index = () => {
   return (

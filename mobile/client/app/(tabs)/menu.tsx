@@ -1,6 +1,7 @@
+import { Button, HoveredButton } from '@/components/components/button/Button';
+import GoogleButton from '@/components/components/button/GoogleButton';
+import { Card } from '@/components/components/card/Card';
 import ThemeSwitcher from '@/components/shared/hooks/ThemeSwitcher';
-import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
-import { Button, HoveredButton } from '@/components/ui/button/Button';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { ColorCombinations, Colors } from '@/constants/Colors';
@@ -8,8 +9,6 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
 import { BadgeInfo, BadgeQuestionMark, ChevronRight, LogOut, Moon, ReceiptText, Settings, Sun } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
-import { Card } from '@/components/ui/card/Card';
-import GoogleButton from '@/components/ui/button/GoogleButton';
 
 export const MenuScreen = () => {
   const { isDark, setColorMode } = useTheme();

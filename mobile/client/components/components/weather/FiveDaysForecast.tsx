@@ -1,7 +1,7 @@
 import { getWeatherCondition, getWeatherIcons } from "@/components/helper/WeatherLogic";
+import { Text } from '@/components/ui/text';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Text } from '../text';
 
 export type FiveDaysForecastProps = {
     day?: string;

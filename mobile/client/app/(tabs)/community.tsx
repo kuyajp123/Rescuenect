@@ -1,13 +1,13 @@
+import { CarouselScreen } from '@/components/components/carousel/CarouselScreen';
+import { CommunityStatus } from '@/components/components/community-status/communityStatus';
+import { ListOfEvents } from '@/components/components/data-display/ListOfEvents';
 import type { CarouselItem, StatusTemplateProps } from '@/components/shared/types/components';
-import { CarouselScreen } from '@/components/ui/carousel/CarouselScreen';
-import { CommunityStatus } from '@/components/ui/community-status/communityStatus';
-import { ListOfEvents } from '@/components/ui/data-display/ListOfEvents';
 import Body from '@/components/ui/layout/Body';
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/text';
 import mostNeedItem from '@/data/mostNeedItem.json';
 import statusData from '@/data/statusData.json';
-import { Text } from '@/components/ui/text';
+import React from 'react';
+import { View } from 'react-native';
 
 const community = () => {
 // Calculate status counts from statusData

@@ -1,8 +1,8 @@
+import { Button } from '@/components/components/button/Button';
+import { Card } from '@/components/components/card/Card';
+import { EmptyState } from '@/components/components/empty-state/EmptyState';
 import type { CarouselItem, UserData } from '@/components/shared/types/components';
 import { Avatar, AvatarFallbackText, AvatarGroup, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button/Button';
-import { Card } from '@/components/ui/card/Card';
-import { EmptyState } from '@/components/ui/feedback/empty-state/EmptyState';
 import { HStack } from '@/components/ui/hstack';
 import { Progress, ProgressFilledTrack } from "@/components/ui/progress";
 import { Text } from '@/components/ui/text';

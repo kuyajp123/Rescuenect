@@ -14,15 +14,10 @@ const GoogleButton = () => {
       hostedDomain: '', // Optional: specify a domain for G Suite
       forceCodeForRefreshToken: true, // Android only
     });
-
-    console.log("🔧 Google Sign-In configured");
-    console.log("🔧 Web Client ID:", process.env.EXPO_PUBLIC_WEB_CLIENT_ID);
-    console.log("🔧 Android Client ID:", process.env.EXPO_PUBLIC_ANDROID_CLIENT_ID);
   }, []);
 
   const handleGoogleSignIn = async () => {
     try {
-      console.log("� Starting Google Sign-In...");
       
       // Check if device supports Google Play Services
       await GoogleSignin.hasPlayServices();
@@ -54,25 +49,6 @@ const GoogleButton = () => {
       
     } catch (error: any) {
       console.error("❌ Google Sign-In error:", error);
-      
-      let errorMessage = "Authentication failed. Please try again.";
-      
-      if (error.code === 'sign_in_cancelled') {
-        console.log("ℹ️ User cancelled Google Sign-In");
-        return; // Don't show error for user cancellation
-      } else if (error.code === 'sign_in_required') {
-        errorMessage = "Sign-in required. Please try again.";
-      } else if (error.code === 'play_services_not_available') {
-        errorMessage = "Google Play Services not available on this device.";
-      } else if (error.message?.includes("DEVELOPER_ERROR")) {
-        errorMessage = "Configuration Error!\n\nThe SHA-1 certificate in Google Cloud Console doesn't match your app.\n\nPlease check the setup guide in docs/DEVELOPER_ERROR_FIX.md";
-      } else if (error.message?.includes("access_blocked")) {
-        errorMessage = "Access blocked. Please ensure:\n\n1. You're added as a test user in Google Cloud Console\n2. OAuth consent screen is properly configured\n3. App is in Testing mode";
-      } else if (error.code === "auth/account-exists-with-different-credential") {
-        errorMessage = "An account already exists with this email using a different sign-in method.";
-      }
-      
-      Alert.alert("Sign-In Error", errorMessage);
     }
   };
 

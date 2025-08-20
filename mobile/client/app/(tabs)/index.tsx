@@ -1,7 +1,7 @@
-import { AdvancedCarousel } from '@/components/ui/carousel/AdvancedCarousel';
-import { StatusIndicator } from '@/components/ui/data-display/StatusIndicator';
+import { AdvancedCarousel } from '@/components/components/carousel/AdvancedCarousel';
+import StatusIndicator from '@/components/components/data-display/StatusIndicator';
+import { CardWeather } from '@/components/components/weather/CardWeather';
 import { Body } from '@/components/ui/layout/Body';
-import { CardWeather } from '@/components/ui/weather/CardWeather';
 import statusData from '@/data/statusData.json';
 import React, { useMemo } from 'react';
 import { View } from 'react-native';

@@ -1,31 +1,17 @@
-import { useState, useEffect } from 'react';
-import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import SplashScreen from '@/components/ui/loadingScreen/SplashScreen';
+import SplashScreen from '@/components/components/loadingScreen/SplashScreen';
+import { loadSavedBarangay } from '@/components/helper/topLevelHelpers';
+import { useEffect, useState } from 'react';
+
 
 const Index = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadSavedBarangay = async () => {
-      try {
-        const savedBarangay = await AsyncStorage.getItem('@barangay');
-        const savedUser = await AsyncStorage.getItem('@user');
-
-        if (savedBarangay && savedUser) {
-          setLoading(false);
-          // router.replace("(tabs)" as any);
-          router.replace("auth/signIn" as any);
-        } else {
-          setLoading(false);
-          router.replace("/auth/signIn" as any);
-        }
-      } catch (error) {
-        console.error('Error loading saved barangay:', error);
-      }
+    const loadData = async () => {
+      await loadSavedBarangay();
+      setLoading(false);
     };
-
-    loadSavedBarangay();
+    loadData();
   }, []);
 
   return (

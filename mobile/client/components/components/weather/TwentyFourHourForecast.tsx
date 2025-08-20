@@ -1,6 +1,6 @@
 import React from 'react';
-import { FlatList, Pressable, StyleSheet } from 'react-native';
-import { GlassCard } from '../card/GlassCard';
+import { FlatList, StyleSheet } from 'react-native';
+import { GlassCard } from '../../components/card/GlassCard';
 import HourlyForecastItem, { HourlyForecastItemProps } from './HourlyForecastItem';
 
 export type TwentyFourHourForecastProps = {

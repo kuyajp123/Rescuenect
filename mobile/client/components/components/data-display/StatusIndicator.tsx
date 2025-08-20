@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/avatar";
 import { Badge, BadgeIcon, BadgeText } from "@/components/ui/badge";
 import { Box } from "@/components/ui/box";
-import { Card } from "@/components/ui/card/Card";
+import { Card } from "@/components/components/card/Card";
 import { Text } from '@/components/ui/text';
 import { ColorCombinations } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";

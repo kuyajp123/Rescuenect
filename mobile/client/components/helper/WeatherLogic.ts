@@ -1,4 +1,4 @@
-import index from '@/components/ui/weather/index';
+import index from '@/components/components/weather/index';
 const { 
     ClearDay, 
     ClearNight, 

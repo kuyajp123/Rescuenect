@@ -1,7 +1,7 @@
 import React from 'react'
 import { Image, StyleSheet, View } from 'react-native'
-import Body from '../layout/Body'
-import { Text } from '../text'
+import Body from '@/components/ui/layout/Body'
+import { Text } from '@/components/ui/text'
 
 const SplashScreen = () => {
   return (

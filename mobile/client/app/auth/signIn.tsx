@@ -1,12 +1,12 @@
 import Logo from '@/assets/images/logo/logoVerti.svg'
-import GoogleButton from '@/components/ui/button/GoogleButton'
+import GoogleButton from '@/components/components/button/GoogleButton'
 import Body from '@/components/ui/layout/Body'
 import { Text } from '@/components/ui/text'
 import { useTheme } from '@/contexts/ThemeContext'
 import { LinearGradient } from 'expo-linear-gradient'
+import { useRouter } from 'expo-router'
 import React from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
-import { useRouter } from 'expo-router'
 
 const signIn = () => {
   const router = useRouter();

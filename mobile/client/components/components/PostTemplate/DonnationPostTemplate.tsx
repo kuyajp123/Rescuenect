@@ -1,13 +1,13 @@
+import { ImageModal } from '@/components/components/image-modal/ImageModal'
 import type { StatusTemplateProps } from '@/components/shared/types/components'
 import {
-  Avatar,
-  AvatarFallbackText,
-  AvatarImage
+    Avatar,
+    AvatarFallbackText,
+    AvatarImage
 } from "@/components/ui/avatar"
 import { Badge, BadgeText } from '@/components/ui/badge'
 import { Box } from '@/components/ui/box'
 import { Image } from '@/components/ui/image'
-import { ImageModal } from '@/components/ui/image-modal/ImageModal'
 import { Text } from '@/components/ui/text'
 import { VStack } from '@/components/ui/vstack'
 import { ColorCombinations } from '@/constants/Colors'

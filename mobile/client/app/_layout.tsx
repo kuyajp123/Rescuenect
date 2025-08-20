@@ -1,4 +1,4 @@
-import RootLayoutContent from '@/components/ui/_layout/RootLayout';
+import RootLayoutContent from '@/components/components/_layout/RootLayout';
 import { FontSizeProvider } from '@/contexts/FontSizeContext';
 import { HighContrastProvider } from '@/contexts/HighContrastContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';

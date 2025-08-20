@@ -1,7 +1,7 @@
-import { DonationList } from '@/components/ui/data-display/DonationList'
+import { DonationList } from '@/components/components/data-display/DonationList'
 import Body from '@/components/ui/layout/Body'
-import React from 'react'
 import statusData from '@/data/statusData.json'
+import React from 'react'
 
 export const status = () => {
   return (
