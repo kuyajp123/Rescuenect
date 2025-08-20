@@ -18,7 +18,8 @@ export default ({ config }: { config: any }) => {
         backgroundColor: "#ffffff"
       },
       edgeToEdgeEnabled: true,
-      package: "com.yajeyps.client"
+      package: "com.yajeyps.client",
+      googleServicesFile: "./google-services.json"
     },
     web: {
       bundler: "metro",
@@ -42,7 +43,14 @@ export default ({ config }: { config: any }) => {
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
+          iosUrlScheme: "com.googleusercontent.apps.554379793893"
+        }
+      ]
     ],
     experiments: {
       typedRoutes: true
