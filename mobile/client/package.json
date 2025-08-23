@@ -34,6 +34,7 @@
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-google-signin/google-signin": "^15.0.0",
     "ajv": "^8.17.1",
+    "axios": "^1.11.0",
     "babel-plugin-module-resolver": "^5.0.2",
     "expo": "^53.0.20",
     "expo-application": "^6.1.5",
@@ -52,6 +53,7 @@
     "expo-module-scripts": "^4.1.9",
     "expo-random": "^14.0.1",
     "expo-router": "~5.1.4",
+    "expo-secure-store": "~14.2.3",
     "expo-splash-screen": "~0.30.10",
     "expo-status-bar": "~2.2.3",
     "expo-symbols": "~0.4.5",
@@ -78,8 +80,7 @@
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
     "tailwindcss": "^3.4.17",
-    "zustand": "^5.0.7",
-    "expo-secure-store": "~14.2.3"
+    "zustand": "^5.0.7"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

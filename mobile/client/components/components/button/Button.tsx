@@ -311,13 +311,24 @@ export const ToggleButton = ({
   );
 };
 
-export const GoogleButtonComponent = ({ onPress }: { onPress: () => void }) => {
+export const GoogleButtonComponent = ({ 
+  onPress, 
+  disabled = false 
+}: { 
+  onPress: () => void; 
+  disabled?: boolean; 
+}) => {
   return (
     <Button
-      onPress={onPress}
+      onPress={disabled ? undefined : onPress}
+      style={{ 
+        opacity: disabled ? 0.6 : 1 
+      }}
     >
       <GoogleIMG  />
-      <Text style={{ color: 'white' }}>Sign in with Google</Text>
+      <Text style={{ color: 'white' }}>
+        {disabled ? 'Signing in...' : 'Sign in with Google'}
+      </Text>
     </Button>
   )
 }

@@ -1,6 +1,7 @@
 import { Button, HoveredButton } from '@/components/components/button/Button';
 import GoogleButton from '@/components/components/button/GoogleButton';
 import { Card } from '@/components/components/card/Card';
+import { handleLogout } from '@/components/helper/auth';
 import ThemeSwitcher from '@/components/shared/hooks/ThemeSwitcher';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
@@ -129,7 +130,10 @@ export const MenuScreen = () => {
           </HoveredButton>
         </View>
 
-        <Button variant='outline' style={[
+        <Button 
+        onPress={handleLogout}
+        variant='outline' 
+        style={[
           styles.logoutButton,
           {
             borderColor: isDark ? Colors.button.errorDark.pressed : Colors.button.error.default

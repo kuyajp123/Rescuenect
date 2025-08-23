@@ -1,18 +1,23 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
+import dotenv from "dotenv";
+dotenv.config();
 const app = express();
-const port = 3000;
+const port = parseInt(process.env.PORT!);
+import routes from '@/router/routes';
 
 // Middleware to parse JSON
 app.use(express.json());
 app.use(cors());
 app.use(express.json());
 
-// Sample route
-app.get("/", (req: Request, res: Response) => {
-  res.send("Hello from Express + TypeScript 🚀");
+app.use('/', routes);
+
+app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
+  console.error('Error occurred:', err);
+  res.status(500).json({ error: 'Internal Server Error' });
 });
 
 app.listen(port, "0.0.0.0", () => {
-  console.log(`Server is running on http://192.168.100.100:${port}`);
+  console.log(`Server is running...`);
 });
