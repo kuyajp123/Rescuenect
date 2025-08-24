@@ -9,20 +9,10 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
     const router = useRouter();
 
     try {
-      // Set loading to true at the start
       setLoading?.(true);
-      
       await GoogleSignin.hasPlayServices();
-      
-      // Always try to sign in fresh to avoid token issues
       const userInfo = await GoogleSignin.signIn();
-      
-      // Get the ID token from the sign-in response
       const idToken = userInfo.data?.idToken;
-      
-      if (!idToken) {
-        throw new Error("No ID token received from Google Sign-In");
-      }
 
       try {
         const response = await axios.post(`${process.env.EXPO_PUBLIC_BACKEND_URL}/auth/signin`, {
@@ -38,11 +28,7 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
 
         await signInWithCustomToken(auth, response.data.token);
         await auth.currentUser?.reload();
-        
-        // Set loading to false on success
         setLoading?.(false);
-        
-        router.replace('(tabs)/' as any);
       } catch (error) {
         console.error("error:", error);
         setLoading?.(false);
@@ -94,33 +80,5 @@ export const handleLogout = async () => {
     }
     
     Alert.alert("Logout Error", "Failed to log out completely. Please try again.");
-  }
-};
-
-export const checkSignInState = async () => {
-  try {
-    // Check if user is currently signed in
-    const currentUser = await GoogleSignin.getCurrentUser();
-    const isSignedIn = currentUser !== null;
-    
-    console.log("Google Sign-In state:", isSignedIn);
-    
-    if (isSignedIn && currentUser) {
-      console.log("Current Google user:", currentUser.user?.email);
-    }
-    
-    const firebaseUser = auth.currentUser;
-    console.log("Firebase user:", firebaseUser?.email);
-    
-    return {
-      googleSignedIn: isSignedIn,
-      firebaseSignedIn: !!firebaseUser
-    };
-  } catch (error) {
-    console.error("Error checking sign-in state:", error);
-    return {
-      googleSignedIn: false,
-      firebaseSignedIn: false
-    };
   }
 };

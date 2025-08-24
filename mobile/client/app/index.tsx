@@ -1,5 +1,5 @@
-import SplashScreen from '@/components/components/loadingScreen/SplashScreen';
-import { loadSavedBarangay } from '@/components/helper/topLevelHelpers';
+import { loadUserAuth } from '@/components/helper/topLevelHelpers';
+import SplashScreen from '@/components/ui/loading/SplashScreen';
 import { useEffect, useState } from 'react';
 
 const Index = () => {
@@ -7,9 +7,10 @@ const Index = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      await loadSavedBarangay();
+      await loadUserAuth();
       setLoading(false);
     };
+    
     loadData();
   }, []);
 

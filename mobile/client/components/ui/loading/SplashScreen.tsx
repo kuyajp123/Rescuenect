@@ -3,7 +3,7 @@ import { Image, StyleSheet, View } from 'react-native'
 import Body from '@/components/ui/layout/Body'
 import { Text } from '@/components/ui/text'
 
-const SplashScreen = () => {
+export const SplashScreen = () => {
   return (
     <Body style={styles.container}>
         <View>

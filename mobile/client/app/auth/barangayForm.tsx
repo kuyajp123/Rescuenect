@@ -18,12 +18,24 @@ import { useRouter } from 'expo-router'
 import { ChevronDown, X } from 'lucide-react-native'
 import React from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { create } from 'zustand';
+
+type barangayStore = {
+  selectedBarangay: string;
+  setSelectedBarangay: (barangay: string) => void;
+};
+
+export const useBarangayStore = create<barangayStore>((set) => ({
+    selectedBarangay: '',
+    setSelectedBarangay: (barangay) => set({ selectedBarangay: barangay }),
+}));
 
 const barangayForm = () => {
     const router = useRouter();
     const { isDark } = useTheme();
     const [modalVisible, setModalVisible] = React.useState(false);
-    const [selectedBarangay, setSelectedBarangay] = React.useState('');
+    const selectedBarangay = useBarangayStore((state) => state.selectedBarangay);
+    const setSelectedBarangay = useBarangayStore((state) => state.setSelectedBarangay);
     const [errorMessage, setErrorMessage] = React.useState('');
 
     const barangays = [

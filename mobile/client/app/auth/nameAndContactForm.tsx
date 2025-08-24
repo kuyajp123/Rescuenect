@@ -4,8 +4,9 @@ import { storage } from '@/components/helper/storage'
 import { Input, InputField } from "@/components/ui/input"
 import Body from '@/components/ui/layout/Body'
 import { Text } from '@/components/ui/text'
+import { auth } from '@/lib/firebaseConfig'
 import { useRouter } from 'expo-router'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { create } from 'zustand'
 
@@ -19,7 +20,7 @@ type FormState = {
   reset: () => void
 }
 
-const useFormStore = create<FormState>((set) => ({
+export const useFormStore = create<FormState>((set) => ({
   firstName: '',
   lastName: '',
   contactNumber: '',
@@ -31,9 +32,34 @@ const useFormStore = create<FormState>((set) => ({
 
 
 const nameAndContactForm = () => {
+    const user = auth.currentUser;
     const [errorMessage, setErrorMessage] = useState({ firstName: '', lastName: '', contactNumber: '' });
     const { firstName, lastName, contactNumber, setFirstName, setLastName, setContactNumber, reset } = useFormStore();
     const router = useRouter()
+
+    // Initialize form with user data from Firebase Auth
+    useEffect(() => {
+        if (user?.displayName) {
+            // If user has a display name, set it as the default firstName
+            const displayName = user.displayName.trim();
+            
+            // Try to split display name into first and last name
+            const nameParts = displayName.split(' ');
+            if (nameParts.length > 0) {
+                setFirstName(formatName(nameParts[0]));
+                
+                // If there are multiple parts, use the rest as last name
+                if (nameParts.length > 1) {
+                    const lastName = nameParts.slice(1).join(' ');
+                    setLastName(formatName(lastName));
+                }
+            }
+        } else {
+            // If no user or no display name, ensure fields are empty
+            setFirstName('');
+            setLastName('');
+        }
+    }, [user, setFirstName, setLastName]);
 
     // Format name with proper capitalization
     const formatName = (text: string): string => {

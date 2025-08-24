@@ -1,5 +1,7 @@
+import { auth } from '@/lib/firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export const loadSavedBarangay = async () => {
     try {
@@ -8,7 +10,7 @@ export const loadSavedBarangay = async () => {
 
     if (savedBarangay && savedUser) {
         router.replace("(tabs)" as any);
-        // router.replace("auth/signIn" as any);
+        return;
     } else {
         router.replace("/auth/signIn" as any);
     }
@@ -16,3 +18,16 @@ export const loadSavedBarangay = async () => {
     console.error('Error loading saved barangay:', error);
     }
 };
+
+export const loadUserAuth = async () => {
+    const user = auth.currentUser;
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            router.replace("(tabs)" as any);
+            return;
+        } else {
+            loadSavedBarangay();
+        }
+    });
+}
