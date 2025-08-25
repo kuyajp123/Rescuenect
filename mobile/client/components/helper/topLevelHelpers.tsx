@@ -1,33 +1,19 @@
-import { auth } from '@/lib/firebaseConfig';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
-import { onAuthStateChanged } from 'firebase/auth';
+import { useAuth } from '@/components/store/useAuth';
 
-export const loadSavedBarangay = async () => {
-    try {
-    const savedBarangay = await AsyncStorage.getItem('@barangay');
-    const savedUser = await AsyncStorage.getItem('@user');
-
-    if (savedBarangay && savedUser) {
-        router.replace("(tabs)" as any);
-        return;
-    } else {
-        router.replace("/auth/signIn" as any);
-    }
-    } catch (error) {
-    console.error('Error loading saved barangay:', error);
-    }
+// Helper function to get current auth state (reusable throughout the app)
+export const getCurrentUser = () => {
+    return useAuth.getState().authUser;
 };
 
-export const loadUserAuth = async () => {
-    const user = auth.currentUser;
+// Helper function to check if user is authenticated (reusable throughout the app)
+export const isAuthenticated = () => {
+    return useAuth.getState().authUser !== null;
+};
 
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            router.replace("(tabs)" as any);
-            return;
-        } else {
-            loadSavedBarangay();
-        }
-    });
-}
+// Helper function to check if auth is loading (reusable throughout the app)
+export const isAuthLoading = () => {
+    return useAuth.getState().isLoading;
+};
+
+// Re-export the main auth initialization function for backward compatibility
+export { initializeAuth as loadUserAuth } from './firebaseAuth';

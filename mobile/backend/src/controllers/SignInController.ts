@@ -29,16 +29,20 @@ export class SignInController {
 
             // Create or get Firebase user
             let firebaseUser;
+            let isNewUser = false;
             try {
                 firebaseUser = await admin.auth().getUserByEmail(payload.email!);
-            } catch (error) {
-                // User doesn't exist, create new user
-                firebaseUser = await admin.auth().createUser({
-                    uid: payload.sub,
-                    email: payload.email,
-                    displayName: payload.name,
-                    photoURL: payload.picture,
-                });
+            } catch (error: any) {
+                if (error.code === "auth/user-not-found") {
+                    firebaseUser = await admin.auth().createUser({
+                        email: payload.email,
+                        displayName: payload.name,
+                        photoURL: payload.picture,
+                    });
+                    isNewUser = true;
+                } else {
+                    throw error; // rethrow other errors
+                }
             }
 
             // Create custom token for client
@@ -46,16 +50,20 @@ export class SignInController {
 
             // Save/update user in your database
             const userData = await SignInModel.signInUser(firebaseUser.uid, {
+                uid: firebaseUser.uid,
                 email: payload.email,
                 givenName: payload.given_name || user?.givenName,
                 familyName: payload.family_name || user?.familyName,
                 name: payload.name || user?.name,
-                photo: payload.picture || user?.photo
+                photo: payload.picture || user?.photo,
+                barangay: user?.barangay || null,
+                phoneNumber: user?.phoneNumber || null
             });
 
             res.status(200).json({ 
                 token: customToken,
-                user: userData 
+                user: userData,
+                isNewUser
             });
             return;
         } catch (error: any) {

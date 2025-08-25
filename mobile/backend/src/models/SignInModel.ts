@@ -13,6 +13,7 @@ export class SignInModel {
                 };
             } else {
                 const userData = {
+                    uid: data.uid,
                     email: data.email,
                     familyName: data.familyName,
                     givenName: data.givenName || '',

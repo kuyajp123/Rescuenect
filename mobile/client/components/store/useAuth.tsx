@@ -3,21 +3,16 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/lib/firebaseConfig';
 
 type AuthStore = {
-  signinUser: User | null;
+  authUser: User | null;
   isLoading: boolean;     // Firebase auth state loading
-  setAuth: (user: User | null) => void;
+  setAuthUser: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
 };
 
 export const useAuth = create<AuthStore>((set) => ({
-  signinUser: null,
+  authUser: null,
   isLoading: true,
-  setAuth: (user) => set({ signinUser: user }),
+  setAuthUser: (user) => set({ authUser: user }),
   setLoading: (loading) => set({ isLoading: loading }),
 }));
 
-// Always run this on auth state change
-onAuthStateChanged(auth, async (user) => {
-  useAuth.getState().setAuth(user || null);
-  useAuth.getState().setLoading(false);
-});

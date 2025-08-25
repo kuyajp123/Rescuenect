@@ -6,6 +6,7 @@ import Body from '@/components/ui/layout/Body'
 import { Text } from '@/components/ui/text'
 import { auth } from '@/lib/firebaseConfig'
 import { useRouter } from 'expo-router'
+import { convertToE164Format, formatContactNumber } from '@/components/helper/converter'
 import React, { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { create } from 'zustand'
@@ -70,44 +71,6 @@ const nameAndContactForm = () => {
             .join(' ');
     };
 
-    // Format contact number with dashes and limit to 11 digits
-    const formatContactNumber = (text: string): string => {
-        // Remove all non-numeric characters
-        const numericOnly = text.replace(/\D/g, '');
-        
-        // Limit to 11 digits
-        const limitedNumbers = numericOnly.slice(0, 11);
-        
-        // Format with dashes: XXXX-XXX-XXXX
-        if (limitedNumbers.length <= 4) {
-            return limitedNumbers;
-        } else if (limitedNumbers.length <= 7) {
-            return `${limitedNumbers.slice(0, 4)}-${limitedNumbers.slice(4)}`;
-        } else {
-            return `${limitedNumbers.slice(0, 4)}-${limitedNumbers.slice(4, 7)}-${limitedNumbers.slice(7)}`;
-        }
-    };
-
-    // Convert contact number to E.164 format (+63xxxxxxxxxx)
-    const convertToE164Format = (contactNumber: string): string => {
-        // Remove all non-numeric characters
-        const numericOnly = contactNumber.replace(/\D/g, '');
-        
-        // Convert to E.164 format
-        if (numericOnly.length === 11 && numericOnly.startsWith('09')) {
-            // Replace leading 09 with +639
-            return `+63${numericOnly.slice(1)}`;
-        } else if (numericOnly.length === 10 && numericOnly.startsWith('9')) {
-            // Add +639 prefix
-            return `+639${numericOnly}`;
-        } else if (numericOnly.length === 11 && numericOnly.startsWith('63')) {
-            // Add + prefix
-            return `+${numericOnly}`;
-        }
-        
-        // Default: assume it's a 10-digit number and add +639
-        return `+639${numericOnly}`;
-    };
 
     // Validate contact number (must be exactly 11 digits)
     const isValidContactNumber = (contactNumber: string): boolean => {
@@ -170,9 +133,8 @@ const nameAndContactForm = () => {
                 const userData = {
                     firstName: firstName.trim(),
                     lastName: lastName.trim(),
-                    contactNumber: contactNumber, // Original formatted number
-                    e164ContactNumber: e164ContactNumber, // E.164 format for Firebase
-                    fullName: `${firstName.trim()} ${lastName.trim()}`
+                    phoneNumber: contactNumber, // Original formatted number
+                    e164PhoneNumber: e164ContactNumber, // E.164 format for Firebase
                 };
                 
                 // Save to AsyncStorage

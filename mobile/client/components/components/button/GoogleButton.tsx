@@ -1,29 +1,27 @@
 import { handleGoogleSignIn } from "@/components/helper/auth";
 import { LoadingOverlay } from "@/components/ui/loading/LoadingOverlay";
 import { useLoading } from "@/hooks/useLoading";
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { useRouter } from "expo-router";
-import React, { useEffect } from "react";
+import { useNewUser } from "@/components/helper/auth";
+import React from "react";
 import { GoogleButtonComponent } from "./Button";
 
 const GoogleButton = () => {
-  const router = useRouter();
   const { isLoading, setIsLoading } = useLoading();
-
-  useEffect(() => {
-    // Configure Google Sign-In
-    console.log("🔧 Configuring Google Sign-In with:");
-    
-    GoogleSignin.configure({
-      webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
-      offlineAccess: true, 
-      hostedDomain: '', 
-      forceCodeForRefreshToken: true,
-    });
-  }, []);
+  const { setNewUser } = useNewUser();
 
   const handleSignIn = async () => {
-    await handleGoogleSignIn(setIsLoading);
+    console.log("🔘 GoogleButton: Button pressed, starting sign-in");
+    console.log("🔘 GoogleButton: isLoading state:", isLoading);
+    console.log("🔘 GoogleButton: Environment variables:", {
+      webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
+      backendUrl: process.env.EXPO_PUBLIC_BACKEND_URL
+    });
+    
+    try {
+      await handleGoogleSignIn(setIsLoading, setNewUser);
+    } catch (error) {
+      console.error("🔘 GoogleButton: Error in handleSignIn:", error);
+    }
   };
 
   return (
