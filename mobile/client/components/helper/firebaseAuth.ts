@@ -7,7 +7,6 @@ import { handleAuthNavigation, handleSignOutNavigation } from './navigation';
 // Configure Google Sign-In
 export const configureGoogleSignIn = () => {
   try {
-    console.log("🔧 Configuring Google Sign-In");
     GoogleSignin.configure({
       webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
       offlineAccess: true,
@@ -15,7 +14,6 @@ export const configureGoogleSignIn = () => {
       forceCodeForRefreshToken: true,
     });
     console.log("✅ Google Sign-In configured successfully");
-    console.log("🔑 Web Client ID:", process.env.EXPO_PUBLIC_WEB_CLIENT_ID);
   } catch (error) {
     console.error("❌ Error configuring Google Sign-In:", error);
   }
@@ -23,23 +21,14 @@ export const configureGoogleSignIn = () => {
 
 // Set up Firebase auth state listener
 export const setupAuthListener = (): Promise<void> => {
-  console.log("🔄 Setting up Firebase auth state listener");
-  
   return new Promise((resolve) => {
     let hasResolved = false;
     
     const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
-      console.log("🔥 Auth state changed:", { 
-        userExists: !!user, 
-        email: user?.email 
-      });
-      
       try {
         // Update the centralized auth store
         useAuth.getState().setAuthUser(user);
         useAuth.getState().setLoading(false);
-        
-        console.log("🧭 About to handle auth navigation");
         
         // Handle navigation based on auth state
         if (user) {

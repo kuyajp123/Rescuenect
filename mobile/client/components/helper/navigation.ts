@@ -7,6 +7,7 @@ const ROUTES = {
   AUTH: {
     SIGN_IN: '/auth/signIn',
     BARANGAY_FORM: '/auth/barangayForm',
+    NAME_AND_CONTACT_FORM: '/auth/nameAndContactForm',
   },
   TABS: '/(tabs)',
 } as const;
@@ -32,6 +33,16 @@ export const navigateToBarangayForm = () => {
   }
 };
 
+export const navigateToNameAndContactForm = () => {
+  try {
+    console.log("🧭 Navigating to name and contact form");
+    console.log("🧭 Route:", ROUTES.AUTH.NAME_AND_CONTACT_FORM);
+    router.replace(ROUTES.AUTH.NAME_AND_CONTACT_FORM);
+  } catch (error) {
+    console.error("❌ Error navigating to name and contact form:", error);
+  }
+};
+
 export const navigateToTabs = () => {
   try {
     console.log("🧭 Navigating to tabs");
@@ -52,14 +63,51 @@ export const handleAuthNavigation = async (user: any) => {
       const { newUser } = useNewUser.getState();
       console.log("👤 User authenticated, newUser state:", { newUser });
 
-      if (newUser) {
-        console.log("🆕 New user detected");
+      if (newUser === true) {
+        console.log("🆕 New user detected - going to barangay form");
         navigateToBarangayForm();
         // Reset the newUser state
         useNewUser.getState().reset();
-      } else {
-        console.log("🔄 Returning user detected");
+      } else if (newUser === false) {
+        console.log("🔄 Returning user detected - checking stored data");
+        const barangayData = await storage.get('@barangay');
+        const userData = await storage.get('@user');
+
+        console.log("📱 Storage check results:", {
+          hasBarangay: !!barangayData,
+          barangayValue: barangayData,
+          hasUserData: !!userData,
+          hasPhoneNumber: !!userData?.phoneNumber,
+          phoneNumberValue: userData?.phoneNumber
+        });
+
+        // if (!barangayData) {
+        //   console.log("❌ User is missing barangay information - redirecting to barangay form");
+        //   navigateToBarangayForm();
+        //   return; // Stop execution here
+        // }
+
+        // if (!userData?.phoneNumber) {
+        //   console.log("❌ User is missing phone number information - redirecting to contact form");
+        //   navigateToNameAndContactForm();
+        //   return; // Stop execution here
+        // }
+
+        console.log("✅ User has complete data - going to tabs");
         navigateToTabs();
+      } else {
+        console.log("❓ Undefined newUser state, checking storage for existing data");
+        // Check if user has required data in storage
+        const barangayData = await storage.get('@barangay');
+        const userData = await storage.get('@user');
+
+        if (barangayData && userData?.phoneNumber) {
+          console.log("✅ User has complete data in storage - going to tabs");
+          navigateToTabs();
+        } else {
+          console.log("❌ User missing data in storage - going to barangay form");
+          navigateToBarangayForm();
+        }
       }
     } else {
       // No authenticated user - check saved data
@@ -102,3 +150,4 @@ export const handleSignOutNavigation = () => {
   console.log("🚪 User signed out");
   navigateToSignIn();
 };
+

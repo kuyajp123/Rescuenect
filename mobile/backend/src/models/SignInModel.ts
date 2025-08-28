@@ -15,15 +15,15 @@ export class SignInModel {
                 const userData = {
                     uid: data.uid,
                     email: data.email,
-                    familyName: data.familyName,
-                    givenName: data.givenName || '',
+                    firstName: data.familyName,
+                    lastName: data.givenName || '',
                     name: data.name,
                     photo: data.photo,
                     createdAt: new Date(),
                     updatedAt: new Date(),
                 };
 
-                await userRef.set(userData);
+                await userRef.set(userData, { merge: true });
                 return {
                     id: userRef.id,
                     ...userData
@@ -32,6 +32,28 @@ export class SignInModel {
         } catch (error) {
             console.error("Error signing in user:", error);
             throw new Error("Failed to sign in user");
+        }
+    }
+
+    static async saveBarangay(uid: string, barangay: string): Promise<void> {
+        const userRef = db.collection('users').doc(uid);
+
+       try {
+            await userRef.set({ barangay }, { merge: true });
+        } catch (error: Error | any) {
+            console.error("Error saving barangay:", error);
+            throw new Error("Failed to save barangay");
+        }
+    }
+
+    static async saveUserInfo(uid: string, data: any): Promise<void> {
+        const userRef = db.collection('users').doc(uid);
+
+        try {
+            await userRef.set(data, { merge: true });
+        } catch (error: Error | any) {
+            console.error("Error saving user info:", error);
+            throw new Error("Failed to save user info");
         }
     }
 }

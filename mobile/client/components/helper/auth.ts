@@ -5,7 +5,9 @@ import { Alert } from "react-native";
 import axios from 'axios';
 import { create } from "zustand";
 import { storage } from "./storage";
-import { convertToE164Format } from '@/components/helper/converter';
+import { convertToE164Format } from '@/components/helper/commonHelpers';
+import { useAuth } from "@/components/store/useAuth";
+import { navigateToBarangayForm, navigateToNameAndContactForm } from "./navigation";
 
 interface UserState {
   newUser: boolean | null;
@@ -28,22 +30,11 @@ export const handleGoogleSignIn = async (
     
     // Check Google Play Services
     await GoogleSignin.hasPlayServices();
-    console.log("✅ Google Play Services available");
     
     // Perform Google Sign-In
     const userInfo = await GoogleSignin.signIn();
-    console.log("✅ Google Sign-In successful", { 
-      email: userInfo.data?.user.email 
-    });
     
     const idToken = userInfo.data?.idToken;
-    if (!idToken) {
-      throw new Error("No ID token received from Google Sign-In");
-    }
-
-    // Get existing user data from storage
-    const asyncBarangay = await storage.get('@barangay');
-    const asyncUser = await storage.get('@user');
 
     // Send to backend for verification and user creation/retrieval
     const response = await axios.post(`${process.env.EXPO_PUBLIC_BACKEND_URL}/auth/signin`, {
@@ -54,30 +45,44 @@ export const handleGoogleSignIn = async (
         givenName: userInfo.data?.user.givenName,
         name: userInfo.data?.user.name,
         photo: userInfo.data?.user.photo,
-        barangay: asyncBarangay ? asyncBarangay : null,
-        phoneNumber: asyncUser?.phoneNumber ? asyncUser?.phoneNumber : null
       }
     });
+
+    const hasBarangay = response.data?.user?.barangay;
+    const hasPhoneNumber = response.data?.user?.phoneNumber;
 
     console.log("✅ Backend response received", { 
       isNewUser: response.data.isNewUser,
       hasUser: !!response.data?.user,
       userKeys: response.data?.user ? Object.keys(response.data.user) : [],
-      hasBarangay: !!response.data?.barangay
+      hasBarangay: hasBarangay,
+      hasPhoneNumber: hasPhoneNumber,
+      barangayValue: response.data?.user?.barangay,
+      phoneNumberValue: response.data?.user?.phoneNumber,
     });
 
     // Set user state BEFORE Firebase auth to avoid race condition
     if (response.data.isNewUser) {
-      console.log("🆕 Setting user as new user");
       setNewUser?.(true);
     } else {
-      console.log("🔄 User is returning user");
       setNewUser?.(false);
-      
+    }
+
+    // Sign in to Firebase with custom token FIRST
+    await signInWithCustomToken(auth, response.data.token);
+    await auth.currentUser?.reload();
+    console.log("✅ Firebase authentication successful");
+
+    // Now handle navigation and data saving AFTER authentication
+    if (response.data.isNewUser) {
+      // New users will be handled by the auth state listener
+      console.log("🆕 New user - navigation will be handled by auth listener");
+    } else {
+      // Existing users - check what data they're missing
+
       // Save user data for returning users - with null checks
       const userData = response.data?.user;
       if (userData) {
-        console.log("💾 Saving user data to storage");
         
         // Only convert phone number if it exists
         let e164PhoneNumber = null;
@@ -97,8 +102,22 @@ export const handleGoogleSignIn = async (
           e164PhoneNumber: e164PhoneNumber || ''
         });
         
-        if (response.data?.barangay) {
-          await storage.set('@barangay', response.data.barangay);
+        if (response.data.user.barangay) {
+          await storage.set('@barangay', response.data.user.barangay);
+        }
+
+        if (!hasBarangay) {
+          console.log("❌ User is missing barangay information");
+          navigateToBarangayForm();
+          setLoading?.(false);
+          return;
+        }
+
+        if (!hasPhoneNumber) {
+          console.log("❌ User is missing phone number information");
+          navigateToNameAndContactForm();
+          setLoading?.(false);
+          return;
         }
         
         console.log("✅ User data saved to storage");
@@ -106,15 +125,9 @@ export const handleGoogleSignIn = async (
         console.warn("⚠️ No user data received from backend");
       }
     }
-
-    // Sign in to Firebase with custom token
-    await signInWithCustomToken(auth, response.data.token);
-    await auth.currentUser?.reload();
     
-    console.log("✅ Firebase authentication successful");
     setLoading?.(false);
-    
-    // Note: Navigation will be handled by the auth state listener in firebaseAuth.ts
+    // Note: Navigation for complete users will be handled by the auth state listener in firebaseAuth.ts
     
   } catch (error: any) {
     setLoading?.(false);
@@ -137,8 +150,6 @@ export const handleGoogleSignIn = async (
 
 export const handleLogout = async () => {
   try {
-    console.log("🚪 Starting logout process");
-    
     // Clear user data from storage
     await storage.remove('@barangay');
     await storage.remove('@user');
@@ -149,6 +160,7 @@ export const handleLogout = async () => {
     console.log("✅ Firebase sign out successful");
     
     // Sign out from Google
+    await GoogleSignin.revokeAccess();
     await GoogleSignin.signOut();
     console.log("✅ Google sign out successful");
     

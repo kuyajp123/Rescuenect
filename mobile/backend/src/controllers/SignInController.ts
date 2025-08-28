@@ -63,11 +63,56 @@ export class SignInController {
             res.status(200).json({ 
                 token: customToken,
                 user: userData,
-                isNewUser
+                isNewUser,
+                barangay: user?.barangay || null,
+                phoneNumber: user?.phoneNumber || null
             });
+
+            console.log("Backend Firebase UID:", firebaseUser.uid);
             return;
         } catch (error: any) {
             console.error('Sign-in error:', error);
+            next(error);
+        }
+    }
+
+    static async saveBarangayController(req: Request, res: Response, next: NextFunction): Promise<void> {
+        const { uid, barangay } = req.body;
+
+        if (!uid || !barangay) {
+            res.status(400).json({ message: "User ID and barangay are required" });
+            return;
+        }
+
+        try {
+            await SignInModel.saveBarangay(uid, barangay);
+            res.json({ success: true, message: "Barangay saved successfully" });
+        } catch (error: any) {
+            console.error('Error saving barangay:', error);
+            res.status(500).json({ success: false, message: "Failed to save barangay" });
+            next(error);
+        }
+    }
+
+    static async saveUserInfoController(req: Request, res: Response, next: NextFunction): Promise<void> {
+        const { uid, firstName, lastName, phoneNumber, e164PhoneNumber } = req.body;
+
+        if (!uid || !firstName || !lastName || !phoneNumber || !e164PhoneNumber) {
+            res.status(400).json({ message: "All fields are required" });
+            return;
+        }
+
+        try {
+            await SignInModel.saveUserInfo(uid, {
+                firstName,
+                lastName,
+                phoneNumber,
+                e164PhoneNumber
+            });
+            res.status(200).json({ success: true, message: "User info saved successfully" });
+        } catch (error: any) {
+            console.error('Error saving user info:', error);
+            res.status(500).json({ success: false, message: "Failed to save user info" });
             next(error);
         }
     }

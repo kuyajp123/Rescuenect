@@ -19,6 +19,8 @@ import { ChevronDown, X } from 'lucide-react-native'
 import React from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { create } from 'zustand';
+import axios from 'axios';
+import { useAuth } from '@/components/store/useAuth'
 
 type barangayStore = {
   selectedBarangay: string;
@@ -37,6 +39,16 @@ const barangayForm = () => {
     const selectedBarangay = useBarangayStore((state) => state.selectedBarangay);
     const setSelectedBarangay = useBarangayStore((state) => state.setSelectedBarangay);
     const [errorMessage, setErrorMessage] = React.useState('');
+    const { authUser, isLoading } = useAuth();
+
+    // Debug logging
+    React.useEffect(() => {
+        console.log("🏠 BarangayForm mounted", {
+            hasAuthUser: !!authUser,
+            authUserUid: authUser?.uid,
+            isLoading: isLoading
+        });
+    }, [authUser, isLoading]);
 
     const barangays = [
         { label: "Labac", value: "labac" },
@@ -78,17 +90,57 @@ const barangayForm = () => {
     };
 
     const handleSaveBarangay = async () => {
+        console.log("🔄 Starting barangay save process", {
+            selectedBarangay,
+            hasAuthUser: !!authUser,
+            authUserUid: authUser?.uid
+        });
+
         if (!selectedBarangay) {
             setErrorMessage('Please select your barangay');
             return;
         }
-        
-        try {
-            await AsyncStorage.setItem('@barangay', selectedBarangay);
-            router.push('/auth/nameAndContactForm' as any);
-        } catch (error) {
-            console.error('Error saving barangay:', error);
+
+        if (authUser) {
+            try {
+                console.log("📡 Sending barangay to backend...", {
+                    url: `${process.env.EXPO_PUBLIC_BACKEND_URL}/save/barangay`,
+                    uid: authUser.uid,
+                    barangay: selectedBarangay
+                });
+
+                const response = await axios.post(`${process.env.EXPO_PUBLIC_BACKEND_URL}/save/barangay`, {
+                    uid: authUser.uid,
+                    barangay: selectedBarangay
+                });
+
+                console.log("✅ Backend response:", response.data);
+
+                await AsyncStorage.setItem('@barangay', selectedBarangay);
+                console.log("✅ Barangay saved to local storage");
+
+                console.log("🧭 Navigating to nameAndContactForm...");
+                router.push('/auth/nameAndContactForm' as any);
+                
+            } catch (error) {
+                console.error("❌ Error saving barangay:", error);
+                if (axios.isAxiosError(error)) {
+                    console.error("❌ Axios error details:", {
+                        status: error.response?.status,
+                        data: error.response?.data,
+                        message: error.message
+                    });
+                }
+                setErrorMessage('Failed to save barangay. Please try again.');
+            }
+        } else if (isLoading) {
+            console.log("⏳ Authentication still loading, please wait...");
+            setErrorMessage('Please wait for authentication to complete.');
+        } else {
+            console.error("❌ No authenticated user found");
+            setErrorMessage('Authentication error. Please sign in again.');
         }
+        
     }
 
   return (
@@ -176,8 +228,11 @@ const barangayForm = () => {
         </View>
         <View style={styles.primaryButton}>
             <PrimaryButton 
-            onPress={handleSaveBarangay}>
-                Next
+            onPress={isLoading || !authUser ? () => {} : handleSaveBarangay}
+            style={[
+                isLoading || !authUser ? { opacity: 0.5 } : null
+            ]}>
+                {isLoading ? 'Loading...' : 'Next'}
             </PrimaryButton>
         </View>
     </Body>

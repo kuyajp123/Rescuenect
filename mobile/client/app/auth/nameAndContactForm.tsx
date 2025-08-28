@@ -4,12 +4,13 @@ import { storage } from '@/components/helper/storage'
 import { Input, InputField } from "@/components/ui/input"
 import Body from '@/components/ui/layout/Body'
 import { Text } from '@/components/ui/text'
-import { auth } from '@/lib/firebaseConfig'
+import { useAuth } from '@/components/store/useAuth'
 import { useRouter } from 'expo-router'
-import { convertToE164Format, formatContactNumber } from '@/components/helper/converter'
+import { convertToE164Format, formatContactNumber } from '@/components/helper/commonHelpers'
 import React, { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { create } from 'zustand'
+import axios from 'axios';
 
 type FormState = {
   firstName: string
@@ -33,17 +34,17 @@ export const useFormStore = create<FormState>((set) => ({
 
 
 const nameAndContactForm = () => {
-    const user = auth.currentUser;
+    const { authUser } = useAuth();
     const [errorMessage, setErrorMessage] = useState({ firstName: '', lastName: '', contactNumber: '' });
     const { firstName, lastName, contactNumber, setFirstName, setLastName, setContactNumber, reset } = useFormStore();
     const router = useRouter()
 
     // Initialize form with user data from Firebase Auth
     useEffect(() => {
-        if (user?.displayName) {
+        if (authUser?.displayName) {
             // If user has a display name, set it as the default firstName
-            const displayName = user.displayName.trim();
-            
+            const displayName = authUser.displayName.trim();
+
             // Try to split display name into first and last name
             const nameParts = displayName.split(' ');
             if (nameParts.length > 0) {
@@ -60,7 +61,7 @@ const nameAndContactForm = () => {
             setFirstName('');
             setLastName('');
         }
-    }, [user, setFirstName, setLastName]);
+    }, [authUser, setFirstName, setLastName]);
 
     // Format name with proper capitalization
     const formatName = (text: string): string => {
@@ -136,12 +137,21 @@ const nameAndContactForm = () => {
                     phoneNumber: contactNumber, // Original formatted number
                     e164PhoneNumber: e164ContactNumber, // E.164 format for Firebase
                 };
-                
+
+                const response = await axios.post(`${process.env.EXPO_PUBLIC_BACKEND_URL}/save/userInfo`, {
+                    uid: authUser?.uid,
+                    firstName: firstName.trim(),
+                    lastName: lastName.trim(),
+                    phoneNumber: contactNumber,
+                    e164PhoneNumber: e164ContactNumber
+                });
+
                 // Save to AsyncStorage
                 await storage.set('@user', userData);
                 
                 // Reset the Zustand store after successful save
                 reset();
+                console.log('User data saved successfully:', response.data);
                 
                 // Navigate to main app
                 router.replace('/auth/setupComplete' as any);
