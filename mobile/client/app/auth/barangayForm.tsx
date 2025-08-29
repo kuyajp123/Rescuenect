@@ -1,5 +1,6 @@
 import Logo from '@/assets/images/logo/logoVerti.svg'
 import { PrimaryButton } from '@/components/components/button/Button'
+import { useAuth } from '@/components/store/useAuth'
 import Body from '@/components/ui/layout/Body'
 import {
     Modal,
@@ -14,13 +15,12 @@ import { Text } from '@/components/ui/text'
 import { Colors } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import axios from 'axios'
 import { useRouter } from 'expo-router'
 import { ChevronDown, X } from 'lucide-react-native'
 import React from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
-import { create } from 'zustand';
-import axios from 'axios';
-import { useAuth } from '@/components/store/useAuth'
+import { create } from 'zustand'
 
 type barangayStore = {
   selectedBarangay: string;
@@ -137,8 +137,11 @@ const barangayForm = () => {
             console.log("⏳ Authentication still loading, please wait...");
             setErrorMessage('Please wait for authentication to complete.');
         } else {
-            console.error("❌ No authenticated user found");
-            setErrorMessage('Authentication error. Please sign in again.');
+                await AsyncStorage.setItem('@barangay', selectedBarangay);
+                console.log("✅ Barangay saved to local storage");
+
+                console.log("🧭 Navigating to nameAndContactForm...");
+                router.push('/auth/nameAndContactForm' as any);
         }
         
     }
@@ -228,9 +231,9 @@ const barangayForm = () => {
         </View>
         <View style={styles.primaryButton}>
             <PrimaryButton 
-            onPress={isLoading || !authUser ? () => {} : handleSaveBarangay}
+            onPress={isLoading ? () => {} : handleSaveBarangay}
             style={[
-                isLoading || !authUser ? { opacity: 0.5 } : null
+                isLoading ? { opacity: 0.5 } : null
             ]}>
                 {isLoading ? 'Loading...' : 'Next'}
             </PrimaryButton>

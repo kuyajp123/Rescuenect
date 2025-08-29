@@ -51,6 +51,12 @@ export default ({ config }: { config: any }) => {
           webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
           iosUrlScheme: "com.googleusercontent.apps.554379793893"
         }
+      ],
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsDownloadToken": process.env.EXPO_PUBLIC_MAPBOX_API_TOKEN
+        }
       ]
     ],
     experiments: {

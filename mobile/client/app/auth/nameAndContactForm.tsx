@@ -1,16 +1,17 @@
 import Logo from '@/assets/images/logo/logoVerti.svg'
 import { PrimaryButton } from '@/components/components/button/Button'
+import { convertToE164Format, formatContactNumber } from '@/components/helper/commonHelpers'
 import { storage } from '@/components/helper/storage'
+import { useAuth } from '@/components/store/useAuth'
 import { Input, InputField } from "@/components/ui/input"
 import Body from '@/components/ui/layout/Body'
 import { Text } from '@/components/ui/text'
-import { useAuth } from '@/components/store/useAuth'
+import axios from 'axios'
 import { useRouter } from 'expo-router'
-import { convertToE164Format, formatContactNumber } from '@/components/helper/commonHelpers'
 import React, { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { create } from 'zustand'
-import axios from 'axios';
+
 
 type FormState = {
   firstName: string
@@ -138,21 +139,29 @@ const nameAndContactForm = () => {
                     e164PhoneNumber: e164ContactNumber, // E.164 format for Firebase
                 };
 
-                const response = await axios.post(`${process.env.EXPO_PUBLIC_BACKEND_URL}/save/userInfo`, {
-                    uid: authUser?.uid,
-                    firstName: firstName.trim(),
-                    lastName: lastName.trim(),
-                    phoneNumber: contactNumber,
-                    e164PhoneNumber: e164ContactNumber
-                });
+                if (authUser) {
+                    const response = await axios.post(`${process.env.EXPO_PUBLIC_BACKEND_URL}/save/userInfo`, {
+                        uid: authUser?.uid,
+                        firstName: firstName.trim(),
+                        lastName: lastName.trim(),
+                        phoneNumber: contactNumber,
+                        e164PhoneNumber: e164ContactNumber
+                    });
 
-                // Save to AsyncStorage
-                await storage.set('@user', userData);
-                
-                // Reset the Zustand store after successful save
-                reset();
-                console.log('User data saved successfully:', response.data);
-                
+                    // Save to AsyncStorage
+                    await storage.set('@user', userData);
+                    
+                    // Reset the Zustand store after successful save
+                    reset();
+                    console.log('User data saved successfully:', response.data);
+                }else {
+                    // Save to AsyncStorage
+                    await storage.set('@user', userData);
+                    
+                    // Reset the Zustand store after successful save
+                    reset();
+                }
+
                 // Navigate to main app
                 router.replace('/auth/setupComplete' as any);
             } catch (error) {
