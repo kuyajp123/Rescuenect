@@ -4,8 +4,12 @@ import { HighContrastProvider } from '@/contexts/HighContrastContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import MapboxGL from "@rnmapbox/maps";
+import { MapProvider } from '@/contexts/MapContext';
 import 'react-native-reanimated';
 import '../global.css';
+
+MapboxGL.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_API_TOKEN!);
 
 export default function RootLayout() {
   return (
@@ -13,7 +17,9 @@ export default function RootLayout() {
       <ThemeProvider>
         <FontSizeProvider>
           <HighContrastProvider>
-            <RootLayoutContent />
+            <MapProvider>
+              <RootLayoutContent />
+            </MapProvider>
           </HighContrastProvider>
         </FontSizeProvider>
       </ThemeProvider>

@@ -165,7 +165,9 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
       {/* Actionsheet */}
       <Actionsheet isOpen={showActionsheet} onClose={handleCloseActionsheet}>
         <ActionsheetBackdrop />
-        <ActionsheetContent>
+        <ActionsheetContent style={{
+          paddingBottom: Math.max(insets.bottom + 20, 20), // Respect tab bar height + safe area
+        }}>
           <ActionsheetDragIndicatorWrapper>
             <ActionsheetDragIndicator />
           </ActionsheetDragIndicatorWrapper>

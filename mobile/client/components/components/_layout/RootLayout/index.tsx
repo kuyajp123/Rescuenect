@@ -158,7 +158,7 @@ function RootLayoutContent() {
         <Stack.Screen
           name='status'
           options={{
-            headerShown: true,
+            headerShown: false,
             title: '',
             headerStyle: {
               backgroundColor: isDark ? Colors.background.dark : Colors.background.light,

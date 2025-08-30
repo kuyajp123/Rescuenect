@@ -9,6 +9,9 @@ const ROUTES = {
     BARANGAY_FORM: '/auth/barangayForm',
     NAME_AND_CONTACT_FORM: '/auth/nameAndContactForm',
   },
+  STATUS: {
+    CREATE: '/status/createStatus',
+  },
   TABS: '/(tabs)',
 } as const;
 
@@ -53,6 +56,16 @@ export const navigateToTabs = () => {
   }
 };
 
+export const navigateToCreateStatus = () => {
+  try {
+    console.log("🧭 Navigating to create status");
+    console.log("🧭 Route:", ROUTES.STATUS.CREATE);
+    router.replace(ROUTES.STATUS.CREATE);
+  } catch (error) {
+    console.error("❌ Error navigating to create status:", error);
+  }
+};
+
 // Main navigation logic based on auth state
 export const handleAuthNavigation = async (user: any) => {
   try {
@@ -81,20 +94,9 @@ export const handleAuthNavigation = async (user: any) => {
           phoneNumberValue: userData?.phoneNumber
         });
 
-        // if (!barangayData) {
-        //   console.log("❌ User is missing barangay information - redirecting to barangay form");
-        //   navigateToBarangayForm();
-        //   return; // Stop execution here
-        // }
-
-        // if (!userData?.phoneNumber) {
-        //   console.log("❌ User is missing phone number information - redirecting to contact form");
-        //   navigateToNameAndContactForm();
-        //   return; // Stop execution here
-        // }
-
         console.log("✅ User has complete data - going to tabs");
-        navigateToTabs();
+        navigateToTabs(); // uncomment this after
+        // navigateToCreateStatus(); // temporary only
       } else {
         console.log("❓ Undefined newUser state, checking storage for existing data");
         // Check if user has required data in storage
