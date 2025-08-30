@@ -5,6 +5,12 @@
 # Ignore backend server
 ../Backend/
 
+# Ignore any tar archives (these cause permission issues)
+*.tar
+*.tar.gz
+*.tar.bz2
+backend.tar
+
 # Ignore node_modules outside mobile folder
 node_modules/
 

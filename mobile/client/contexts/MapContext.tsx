@@ -19,17 +19,17 @@ type MapProviderProps = {
 const MapContext = createContext<MapContextType | null>(null);
 
 export const MapProvider: React.FC<MapProviderProps> = ({ 
-    children, 
-    zoomLevel = 11, 
-    centerCoordinate = [120.98, 14.6], 
-    animationDuration = 300 
+  children, 
+  zoomLevel = 12, 
+  centerCoordinate = [120.7752839, 14.2919325], 
+  animationDuration = 300 
 }) => {
   const mapRef = useRef<MapboxGL.MapView | null>(null);
 
   return (
-    <MapContext.Provider value={{ mapRef, zoomLevel, centerCoordinate, animationDuration }}>
-      {children}
-    </MapContext.Provider>
+  <MapContext.Provider value={{ mapRef, zoomLevel, centerCoordinate, animationDuration }}>
+    {children}
+  </MapContext.Provider>
   );
 };
 
