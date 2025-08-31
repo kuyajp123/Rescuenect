@@ -12,11 +12,11 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss(), tsconfigPaths()],
-    // resolve: {
-    //   alias: {
-    //     '@': path.resolve(__dirname, './src')
-    //   }
-    // },
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src')
+      }
+    },
     server: {
       // host: '0.0.0.0',
       port: Number(env.VITE_PORT)

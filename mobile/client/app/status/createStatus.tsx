@@ -1,13 +1,9 @@
-import { HoveredButton } from '@/components/components/button/Button';
 import Map from '@/components/components/Map';
 import Body from '@/components/ui/layout/Body';
-import { Text } from '@/components/ui/text';
-import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export const createStatus = () => {
@@ -30,12 +26,11 @@ export const createStatus = () => {
       styles.container,
       {
         paddingTop: insets.top,
-        paddingBottom: 0,
+        paddingBottom: insets.bottom,
       }
       ]}>
-      {isMapReady && (
-        <Map />
-      )}
+
+      <Map hasBottomSheet={true} isMapReady={isMapReady} />
 
     </Body>
   );
