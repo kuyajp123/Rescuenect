@@ -1,6 +1,6 @@
 import Logo from '@/assets/images/logo/logoVerti.svg'
 import { PrimaryButton } from '@/components/components/button/Button'
-import { convertToE164Format, formatContactNumber } from '@/components/helper/commonHelpers'
+import { convertToE164Format, formatContactNumber, isValidContactNumber, formatName } from '@/components/helper/commonHelpers'
 import { storage } from '@/components/helper/storage'
 import { useAuth } from '@/components/store/useAuth'
 import { Input, InputField } from "@/components/ui/input"
@@ -64,21 +64,6 @@ const nameAndContactForm = () => {
         }
     }, [authUser, setFirstName, setLastName]);
 
-    // Format name with proper capitalization
-    const formatName = (text: string): string => {
-        return text
-            .toLowerCase()
-            .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-    };
-
-
-    // Validate contact number (must be exactly 11 digits)
-    const isValidContactNumber = (contactNumber: string): boolean => {
-        const numericOnly = contactNumber.replace(/\D/g, '');
-        return numericOnly.length === 11 && numericOnly.startsWith('09');
-    };
 
     const handleInputChange = (field: 'firstName' | 'lastName' | 'contactNumber', value: string) => {
         let formattedValue = value;

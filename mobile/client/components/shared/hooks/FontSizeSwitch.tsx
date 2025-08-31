@@ -1,11 +1,10 @@
-import { Radio, RadioGroup, RadioIcon, RadioIndicator } from '@/components/ui/radio';
+import CustomRadio from '@/components/ui/CustomRadio';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { FontSizeScale, useFontSize } from '@/contexts/FontSizeContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Circle } from 'lucide-react-native';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 export const FontSizeSwitch = () => {
   const { fontScale, setFontScale, fontMultiplier } = useFontSize();
@@ -21,9 +20,10 @@ export const FontSizeSwitch = () => {
 
   const currentIndex = fontScales.findIndex(scale => scale.scale === fontScale);
   const currentScale = fontScales[currentIndex];
+  const textValueColor = isDark ? Colors.text.dark : Colors.text.light;
 
-  const handleRadioChange = (selectedScale: FontSizeScale) => {
-    setFontScale(selectedScale);
+  const handleRadioChange = (selectedScale: string) => {
+    setFontScale(selectedScale as FontSizeScale);
   };
 
   const getStyles = () => StyleSheet.create({
@@ -47,43 +47,12 @@ export const FontSizeSwitch = () => {
     sliderContainer: {
       width: '100%',
       marginVertical: 24,
-      height: 80, // Reduced height since no slider
     },
     radioGroupContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+      flexDirection: 'column',
       width: '100%',
-      height: 80,
-    },
-    checkpoint: {
-      alignItems: 'center',
-      flex: 1,
-      height: 80,
-      justifyContent: 'space-between',
-      paddingVertical: 8,
-      borderRadius: 8,
-    },
-    radioContainer: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: 28,
-      height: 28,
-      marginBottom: 8,
-      borderRadius: 14,
-      backgroundColor: 'transparent',
-    },
-    checkpointLabel: {
-      fontSize: 12,
-      fontWeight: '600',
-      height: 16, // Fixed height for label
-      lineHeight: 16,
-    },
-    checkpointDescription: {
-      fontSize: 10,
-      opacity: 0.7,
-      textAlign: 'center',
-      height: 12, // Fixed height for description
-      lineHeight: 12,
+      gap: 8,
+      paddingVertical: 16,
     },
     previewContainer: {
       width: '100%',
@@ -92,7 +61,7 @@ export const FontSizeSwitch = () => {
       borderColor: isDark ? Colors.border.dark : Colors.border.light,
       borderWidth: 1,
       alignItems: 'center',
-      height: 300, // Fixed height for preview section
+      minHeight: 200,
       justifyContent: 'flex-start',
     },
     previewTitle: {
@@ -130,66 +99,19 @@ export const FontSizeSwitch = () => {
 
         {/* Radio Button Selection */}
         <View style={styles.sliderContainer}>
-          <RadioGroup 
-            value={fontScale} 
-            onChange={handleRadioChange}
-          >
-            <View style={styles.radioGroupContainer}>
-              {fontScales.map((scaleOption, index) => (
-                <TouchableOpacity 
-                  key={scaleOption.scale} 
-                  style={[
-                    styles.checkpoint,
-                    fontScale === scaleOption.scale && {
-                      backgroundColor: isDark 
-                        ? 'rgba(59, 130, 246, 0.1)' 
-                        : 'rgba(59, 130, 246, 0.05)'
-                    }
-                  ]}
-                  onPress={() => handleRadioChange(scaleOption.scale)}
-                  activeOpacity={0.6}
-                >
-                  <View style={styles.radioContainer}>
-                    <Radio value={scaleOption.scale} size="md">
-                      <RadioIndicator>
-                        <RadioIcon 
-                          as={Circle} 
-                          color={fontScale === scaleOption.scale 
-                            ? (isDark ? Colors.brand.light : Colors.brand.light)
-                            : 'transparent'
-                          }
-                        />
-                      </RadioIndicator>
-                    </Radio>
-                  </View>
-                  <Text 
-                    style={[
-                      styles.checkpointLabel,
-                      { 
-                        color: index === currentIndex 
-                          ? (isDark ? Colors.brand.light : Colors.brand.light)
-                          : (isDark ? Colors.text.dark : Colors.text.light),
-                        opacity: index === currentIndex ? 1 : 0.7
-                      }
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {scaleOption.label}
-                  </Text>
-                  <Text 
-                    style={[
-                      styles.checkpointDescription,
-                      { color: isDark ? Colors.text.dark : Colors.text.light }
-                    ]}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                  >
-                    {scaleOption.description}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </RadioGroup>
+          <View style={styles.radioGroupContainer}>
+            {fontScales.map((scaleOption) => (
+              <CustomRadio
+                key={scaleOption.scale}
+                label={`${scaleOption.label} - ${scaleOption.description}`}
+                value={scaleOption.scale}
+                selectedValue={fontScale}
+                onSelect={handleRadioChange}
+                isDark={isDark}
+                textValueColor={textValueColor}
+              />
+            ))}
+          </View>
         </View>
 
         {/* Preview Section */}

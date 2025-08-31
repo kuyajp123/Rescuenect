@@ -1,12 +1,13 @@
 // MapContext.tsx
-import React, { createContext, useRef, useContext } from "react";
 import MapboxGL from "@rnmapbox/maps";
+import React, { createContext, useContext, useEffect, useRef } from "react";
 
 type MapContextType = {
   mapRef: React.MutableRefObject<MapboxGL.MapView | null>;
   zoomLevel?: number;
   centerCoordinate?: [number, number];
   animationDuration?: number;
+  isContextReady: boolean;
 };
 
 type MapProviderProps = {
@@ -25,9 +26,19 @@ export const MapProvider: React.FC<MapProviderProps> = ({
   animationDuration = 300 
 }) => {
   const mapRef = useRef<MapboxGL.MapView | null>(null);
+  const [isContextReady, setIsContextReady] = React.useState(false);
+
+  useEffect(() => {
+    // Small delay to ensure the context is properly initialized
+    const timer = setTimeout(() => {
+      setIsContextReady(true);
+    }, 50);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
-  <MapContext.Provider value={{ mapRef, zoomLevel, centerCoordinate, animationDuration }}>
+  <MapContext.Provider value={{ mapRef, zoomLevel, centerCoordinate, animationDuration, isContextReady }}>
     {children}
   </MapContext.Provider>
   );

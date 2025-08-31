@@ -1,12 +1,12 @@
-import React from 'react';
-import { 
-  View, 
-  ActivityIndicator, 
-  StyleSheet,
-  Text 
-} from 'react-native';
-import { useTheme } from '@/contexts/ThemeContext';
 import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import React from 'react';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  View
+} from 'react-native';
 
 interface InlineLoadingProps {
   visible: boolean;
@@ -48,6 +48,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    height: '100%',
     padding: 10,
   },
   message: {

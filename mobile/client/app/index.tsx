@@ -27,7 +27,7 @@ const Index = () => {
     };
     
     initializeAuth();
-    // getStorage();
+    getStorage();
   }, []);
 
   if (loading) {

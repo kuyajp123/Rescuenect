@@ -1,7 +1,6 @@
 import Map from '@/components/components/Map';
+import { storage } from '@/components/helper/storage';
 import Body from '@/components/ui/layout/Body';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from "react";
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,16 +8,29 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
   const [isMapReady, setIsMapReady] = useState(false);
-  const { isDark } = useTheme();
-  const router = useRouter();
+  const [userData, setUserData] = useState<any>(null);
+
+  const getStorage = async () => {
+        const user = await storage.get('@user');
+        const barangay = await storage.get('@barangay');
+        console.log('Stored user:', user);
+        console.log('Stored barangay:', barangay);
+
+        return { user, barangay };
+      }
 
   useEffect(() => {
-    // Small delay to ensure component is fully mounted
+    // Ensure component is fully mounted and contexts are ready
     const timer = setTimeout(() => {
       setIsMapReady(true);
-    }, 100);
+    }, 1000); // Reduced from 3000ms
+
+    getStorage().then(data => {
+      setUserData(data);
+    });
 
     return () => clearTimeout(timer);
+
   }, []);
 
   return (
@@ -30,7 +42,15 @@ export const createStatus = () => {
       }
       ]}>
 
-      <Map hasBottomSheet={true} isMapReady={isMapReady} />
+      {isMapReady && 
+      <Map 
+        hasBottomSheet={true}  
+        hasMarker={true} 
+        isMapReady={isMapReady} 
+        firstName={userData.user.firstName}
+        lastName={userData.user.lastName}
+        phoneNumber={userData.user.phoneNumber}
+      />}
 
     </Body>
   );

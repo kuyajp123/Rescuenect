@@ -59,6 +59,8 @@ export const handleGoogleSignIn = async (
       hasPhoneNumber: hasPhoneNumber,
       barangayValue: response.data?.user?.barangay,
       phoneNumberValue: response.data?.user?.phoneNumber,
+      firstName: response.data?.user?.firstName,
+      secondName: response.data?.user?.lastName,
     });
 
     // Set user state BEFORE Firebase auth to avoid race condition
@@ -97,7 +99,7 @@ export const handleGoogleSignIn = async (
         
         await storage.set('@user', {
           firstName: userData.firstName || '', 
-          secondName: userData.secondName || '',
+          lastName: userData.lastName || '',
           phoneNumber: userData.phoneNumber || '',
           e164PhoneNumber: e164PhoneNumber || ''
         });

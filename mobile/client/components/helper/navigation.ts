@@ -95,8 +95,8 @@ export const handleAuthNavigation = async (user: any) => {
         });
 
         console.log("✅ User has complete data - going to tabs");
-        // navigateToTabs(); // uncomment this after
-        navigateToCreateStatus(); // temporary only
+        navigateToTabs(); // uncomment this after
+        // navigateToCreateStatus(); // temporary only
       } else {
         console.log("❓ Undefined newUser state, checking storage for existing data");
         // Check if user has required data in storage

@@ -28,6 +28,23 @@ export const formatContactNumber = (text: string): string => {
 };
 
 
+// Validate contact number (must be exactly 11 digits)
+export const isValidContactNumber = (contactNumber: string): boolean => {
+    const numericOnly = contactNumber.replace(/\D/g, '');
+    return numericOnly.length === 11 && numericOnly.startsWith('09');
+};
+
+
+// Format name with proper capitalization
+export const formatName = (text: string): string => {
+    return text
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+};
+
+
 // check network connection
 export const checkInternetConnection = async (): Promise<boolean> => {
   try {

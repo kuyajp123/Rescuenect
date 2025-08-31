@@ -79,3 +79,13 @@ export type FiveDaysForecastProps = {
     temperature?: string;
     isNight?: boolean;
 }
+
+export type StatusForm = {
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    status: string;
+    note: string;
+    shareLocation: boolean;
+    shareContact: boolean;
+};
