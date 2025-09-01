@@ -1,3 +1,4 @@
+import ImagePicker from '@/components/components/CustomImagePicker'
 import Body from '@/components/ui/layout/Body'
 import { Text } from '@/components/ui/text'
 import React from 'react'
@@ -7,6 +8,7 @@ export const notification = () => {
   return (
       <Body>
         <Text>notification</Text>
+        <ImagePicker />
       </Body>
   )
 }

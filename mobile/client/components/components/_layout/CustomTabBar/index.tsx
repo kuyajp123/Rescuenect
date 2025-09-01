@@ -1,12 +1,3 @@
-import {
-  Actionsheet,
-  ActionsheetBackdrop,
-  ActionsheetContent,
-  ActionsheetDragIndicator,
-  ActionsheetDragIndicatorWrapper,
-  ActionsheetItem,
-  ActionsheetItemText,
-} from "@/components/ui/actionsheet";
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
@@ -16,29 +7,44 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
-  const [showActionsheet, setShowActionsheet] = React.useState(false)
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
   const handleFABPress = () => {
-    setShowActionsheet(true);
+    const sheet = require("react-native-actions-sheet").SheetManager;
+    sheet.show("FAB", {
+      payload: {
+        items: actionSheetItems
+      }
+    });
   };
-
-  const handleCloseActionsheet = useCallback(() => {
-    setShowActionsheet(false);
-  }, []);
-
+  
   const handleCreateStatusPress = useCallback(() => {
-    setShowActionsheet(false);
     router.push('status/createStatus' as any);
+    const sheet = require("react-native-actions-sheet").SheetManager;
+    sheet.hide("FAB");
   }, [router]);
 
   const handleCityNeedsPress = useCallback(() => {
-    setShowActionsheet(false);
     // Add navigation to city needs page here if needed
     // router.push('/cityNeeds' as any);
   }, []);
+
+  const actionSheetItems = [
+    {
+      id: 'createStatus',
+      name: 'Create Status',
+      icon: <MapPinPlus size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+      onPress: handleCreateStatusPress,
+    },
+    {
+      id: 'cityNeeds',
+      name: 'City Needs',
+      icon: <MapPlus size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+      onPress: handleCityNeedsPress,
+    },
+  ];
 
   return (
     <View style={[
@@ -161,26 +167,6 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
       >
         <Plus color="#FFFFFF" size={24} />
       </Pressable>
-
-      {/* Actionsheet */}
-      <Actionsheet isOpen={showActionsheet} onClose={handleCloseActionsheet}>
-        <ActionsheetBackdrop />
-        <ActionsheetContent style={{
-          paddingBottom: Math.max(insets.bottom + 20, 20), // Respect tab bar height + safe area
-        }}>
-          <ActionsheetDragIndicatorWrapper>
-            <ActionsheetDragIndicator />
-          </ActionsheetDragIndicatorWrapper>
-          <ActionsheetItem onPress={handleCreateStatusPress}>
-            <MapPinPlus size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-            <ActionsheetItemText>Create Status</ActionsheetItemText>
-          </ActionsheetItem>
-          <ActionsheetItem onPress={handleCityNeedsPress}>
-            <MapPlus size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-            <ActionsheetItemText>City Needs</ActionsheetItemText>
-          </ActionsheetItem>
-        </ActionsheetContent>
-      </Actionsheet>
     </View>
   );
 };

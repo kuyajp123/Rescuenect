@@ -1,3 +1,4 @@
+import CustomImagePicker from '@/components/components/CustomImagePicker';
 import { formatContactNumber, formatName, isValidContactNumber } from '@/components/helper/commonHelpers';
 import { storage } from '@/components/helper/storage';
 import { StatusForm } from '@/components/shared/types/components';
@@ -506,6 +507,10 @@ const index = ({
                       style={[styles.textInputMultiline, { color: textValueColor }]}
                     />
 
+                    <CustomImagePicker id="map-image-picker-actionSheet" />
+
+                    <View style={{ marginVertical: 20 }}></View>
+
                     <Text>What information you want to share with community?</Text>
                     <View style={styles.toggleContainer}>
                       <Text>Share my Location</Text>
@@ -528,7 +533,7 @@ const index = ({
                     </HStack>
 
                     <Button onPress={handleSubmit}>
-                      <Text>Submit</Text>
+                      <RNText style={styles.submitText}>Submit</RNText>
                     </Button>
 
                   </VStack>
@@ -716,5 +721,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     marginVertical: 2,
+  },
+  submitText: {
+    color: 'white',
+    fontWeight: '600',
   },
 })

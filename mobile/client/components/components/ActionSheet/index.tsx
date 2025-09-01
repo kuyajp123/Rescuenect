@@ -1,15 +1,9 @@
-import {
-    Actionsheet,
-    ActionsheetBackdrop,
-    ActionsheetContent,
-    ActionsheetDragIndicator,
-    ActionsheetDragIndicatorWrapper,
-    ActionsheetItem,
-    ActionsheetItemText
-} from '@/components/ui/actionsheet';
+import { Text } from '@/components/ui/text';
+import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import React from 'react';
-import { StyleSheet } from 'react-native';
-import { create } from 'zustand';
+import { Pressable, View } from 'react-native';
+import ActionSheet, { ActionSheetRef } from "react-native-actions-sheet";
 
 export interface ActionSheetItemType {
   id: string;
@@ -18,58 +12,67 @@ export interface ActionSheetItemType {
   onPress: () => void;
 }
 
-interface ActionSheetStore {
-  isOpen: boolean;
-  items: ActionSheetItemType[];
-  showActionSheet: (items: ActionSheetItemType[]) => void;
-  hideActionSheet: () => void;
-}
-
-export const useActionSheet = create<ActionSheetStore>((set, get) => ({
-  isOpen: false,
-  items: [],
-  showActionSheet: (items) => {
-    set({ isOpen: true, items });
-  },
-  hideActionSheet: () => {
-    set({ isOpen: false, items: [] });
-  },
-}));
-
 interface ActionSheetProps {
-  isOpen?: boolean;
-  onClose?: () => void;
-  items?: ActionSheetItemType[];
+  sheetId: string;
+  payload?: {
+    items: ActionSheetItemType[];
+  };
 }
 
-export const ActionSheet = ({ isOpen, onClose, items = [] }: ActionSheetProps) => {
-  
-  return (
-    <Actionsheet isOpen={isOpen} onClose={onClose}>
-      <ActionsheetBackdrop />
-      <ActionsheetContent>
-        <ActionsheetDragIndicatorWrapper>
-          <ActionsheetDragIndicator />
-        </ActionsheetDragIndicatorWrapper>
+export const MyActionSheet = React.forwardRef<ActionSheetRef, ActionSheetProps>((props, ref) => {
+  const { isDark } = useTheme();
+  const items = props.payload?.items || [];
 
+  return (
+    <ActionSheet
+      id={props.sheetId}
+      ref={ref}
+      containerStyle={{
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        backgroundColor: isDark ? Colors.border.dark : Colors.border.light,
+        paddingTop: 12,
+        paddingHorizontal: 10,
+        paddingBottom: 20,
+      }}
+    >
+      {/* 🔹 Indicator Bar */}
+      <View style={{ alignItems: "center", marginBottom: 16 }}>
+        <View
+          style={{
+            width: 30,
+            height: 4,
+            borderRadius: 3,
+            backgroundColor: isDark ? Colors.background.light : Colors.background.dark,
+          }}
+        />
+      </View>
+
+      <View>
         {items.map((item) => (
-          <ActionsheetItem 
-            key={item.id} 
+          <Pressable
+            key={item.id}
             onPress={() => {
               item.onPress();
-              onClose?.();
+              if (ref && 'current' in ref) {
+                ref.current?.hide();
+              }
+            }}
+            android_ripple={{ color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
+            style={{
+              padding: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
             }}
           >
             {item.icon}
-            <ActionsheetItemText>{item.name}</ActionsheetItemText>
-          </ActionsheetItem>
+            <Text size='sm'>{item.name}</Text>
+          </Pressable>
         ))}
-
-      </ActionsheetContent>
-    </Actionsheet>
+      </View>
+    </ActionSheet>
   );
-};
+});
 
-export default ActionSheet;
-
-const styles = StyleSheet.create({});
+export default MyActionSheet;
