@@ -1,11 +1,12 @@
 import RootLayoutContent from '@/components/components/_layout/RootLayout';
 import { FontSizeProvider } from '@/contexts/FontSizeContext';
 import { HighContrastProvider } from '@/contexts/HighContrastContext';
+import { MapProvider } from '@/contexts/MapContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import MapboxGL from "@rnmapbox/maps";
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import MapboxGL from "@rnmapbox/maps";
-import { MapProvider } from '@/contexts/MapContext';
 import 'react-native-reanimated';
 import '../global.css';
 

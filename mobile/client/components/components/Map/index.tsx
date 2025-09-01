@@ -21,7 +21,6 @@ type MapProps = {
     hasBottomSheet?: boolean;
     isMapReady: boolean;
     hasMarker?: boolean; // simulate marker
-    styleURL?: string;
     firstName?: string;
     lastName?: string;
     phoneNumber?: string;
@@ -31,7 +30,6 @@ const index = ({
   hasBottomSheet = false,
   isMapReady = false,
   hasMarker = false,
-  // styleURL = MapboxGL.StyleURL.Street,
   firstName,
   lastName,
   phoneNumber,
@@ -50,6 +48,10 @@ const index = ({
         lastName: lastName || '',
         status: '',
         phoneNumber: phoneNumber || '',
+        lat: null,
+        lng: null,
+        loc: null,
+        image: '',
         note: '',
         shareLocation: true,
         shareContact: true,
@@ -292,15 +294,6 @@ const index = ({
                 fillExtrusionHeight: ["get", "height"],
                 fillExtrusionBase: ["get", "min_height"],
                 fillExtrusionOpacity: 0.6,
-              }}
-            />
-            {/* 🌌 Sky Layer (atmosphere effect) */}
-            <MapboxGL.SkyLayer
-              id="sky"
-              style={{
-                skyType: "atmosphere",
-                skyAtmosphereSun: [0.0, 0.0],
-                skyAtmosphereSunIntensity: 15.0,
               }}
             />
         </MapboxGL.VectorSource>

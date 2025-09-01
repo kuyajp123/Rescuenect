@@ -23,20 +23,10 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     const systemColorScheme = useColorScheme();
     const [colorMode, setColorModeState] = useState<ColorMode>('system');
     const [isLoading, setIsLoading] = useState(true);
-    const [isInitialized, setIsInitialized] = useState(false);
-    const [isMounted, setIsMounted] = useState(false);
-
-    // Track mount status
-    useEffect(() => {
-        setIsMounted(true);
-        return () => {
-            setIsMounted(false);
-        };
-    }, []);
 
     // Load theme from AsyncStorage on mount
     useEffect(() => {
-        if (!isMounted) return;
+        let isMounted = true;
         
         const loadTheme = async () => {
             try {
@@ -49,19 +39,19 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
             } finally {
                 if (isMounted) {
                     setIsLoading(false);
-                    setIsInitialized(true);
                 }
             }
         };
 
         loadTheme();
-    }, [isMounted]);
+        
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     // Save theme to AsyncStorage when it changes
     const setColorMode = async (mode: ColorMode) => {
-        // Prevent state update if component is unmounting
-        if (!isMounted) return;
-        
         try {
             setColorModeState(mode);
             await AsyncStorage.setItem(THEME_STORAGE_KEY, mode);
@@ -71,9 +61,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     };
 
     // Determine if we should use dark mode
-    const isDark = isInitialized ? (
-        colorMode === 'dark' || (colorMode === 'system' && systemColorScheme === 'dark')
-    ) : false;
+    const isDark = colorMode === 'dark' || (colorMode === 'system' && systemColorScheme === 'dark');
 
     const value = {
         colorMode,

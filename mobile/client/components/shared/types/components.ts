@@ -85,7 +85,11 @@ export type StatusForm = {
     lastName: string;
     phoneNumber: string;
     status: string;
+    lat: number | null;
+    lng: number | null;
+    loc?: string | null;
     note: string;
+    image: string;
     shareLocation: boolean;
     shareContact: boolean;
 };
