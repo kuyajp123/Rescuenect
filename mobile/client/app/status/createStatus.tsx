@@ -45,7 +45,6 @@ export const createStatus = () => {
       {isMapReady && 
       <Map 
         hasBottomSheet={true}  
-        hasMarker={true} 
         isMapReady={isMapReady} 
         firstName={userData.user.firstName}
         lastName={userData.user.lastName}

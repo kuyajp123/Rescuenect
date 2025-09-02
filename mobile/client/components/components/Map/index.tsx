@@ -13,7 +13,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import MapboxGL from "@rnmapbox/maps";
 import { router } from 'expo-router';
-import { Bookmark, ChevronLeft, Info, Map as MapIcon, Navigation, X } from 'lucide-react-native';
+import { Bookmark, ChevronLeft, ChevronUp, Info, Map as MapIcon, Navigation, X } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Platform, Text as RNText, StyleSheet, TextInput, View } from 'react-native';
 import { Button, HoveredButton, IconButton, ToggleButton } from '../button/Button';
@@ -21,7 +21,6 @@ import { Button, HoveredButton, IconButton, ToggleButton } from '../button/Butto
 type MapProps = {
     hasBottomSheet?: boolean;
     isMapReady: boolean;
-    hasMarker?: boolean; // simulate marker
     firstName?: string;
     lastName?: string;
     phoneNumber?: string;
@@ -30,13 +29,12 @@ type MapProps = {
 const index = ({ 
   hasBottomSheet = false,
   isMapReady = false,
-  hasMarker = false,
   firstName,
   lastName,
   phoneNumber,
 }: MapProps) => {
     const { isDark } = useTheme();
-    const { mapRef, zoomLevel, centerCoordinate, animationDuration, isContextReady } = useMap();
+    const { mapRef, isContextReady } = useMap();
     const [isMapMounted, setIsMapMounted] = useState(false);
     const [mapError, setMapError] = useState<string | null>(null);
     const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -44,6 +42,7 @@ const index = ({
     const [isVisible, setIsVisible] = useState(true);
     const [mapStyle, setMapStyle] = useState(MapboxGL.StyleURL.Street);
     const [showMapStyles, setShowMapStyles] = useState(false);
+    const [markerCoordinate, setMarkerCoordinate] = useState<[number, number] | null>(null);
     const [statusForm, setStatusForm] = useState<StatusForm>({
         firstName: firstName || '',
         lastName: lastName || '',
@@ -65,12 +64,11 @@ const index = ({
     const bottomSheetRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ['14%', '90%'], []);
 
-    // Keyboard handling
     useEffect(() => {
         const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (event) => {
             setKeyboardHeight(event.endCoordinates.height);
             // Expand bottom sheet when keyboard shows and ensure it's at full height
-            bottomSheetRef.current?.snapToIndex(1);
+            bottomSheetRef.current?.snapToIndex(2);
         });
 
         const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
@@ -243,6 +241,47 @@ const index = ({
         { label: 'Dark', value: MapboxGL.StyleURL.Dark }
     ], []);
 
+    // Function that triggers when user presses
+    const handlePress = useCallback((event: any) => {
+      
+      // Try to extract coordinates from the event
+      let coords;
+      
+      // Check for different possible event structures
+      if (event && event.geometry && event.geometry.coordinates) {
+        coords = event.geometry.coordinates;
+      } else if (event && event.coordinates) {
+        coords = event.coordinates;
+      } else if (event && event.nativeEvent && event.nativeEvent.coordinate) {
+        coords = [event.nativeEvent.coordinate.longitude, event.nativeEvent.coordinate.latitude];
+      } else {
+        console.error("Could not extract coordinates from event. Event keys:", Object.keys(event || {}));
+        return;
+      }
+      
+      if (!coords || coords.length !== 2) {
+        console.error("Invalid coordinates:", coords);
+        return;
+      }
+      
+      console.log("Setting marker coordinate to:", coords);
+      
+      // Set marker coordinate
+      const newMarkerCoordinate: [number, number] = [coords[0], coords[1]];
+      setMarkerCoordinate(newMarkerCoordinate);
+      
+      // Update status form with coordinates
+      setStatusForm(prev => {
+        const updated = {
+          ...prev,
+          lng: coords[0], // longitude
+          lat: coords[1]  // latitude
+        };
+        console.log("Updated status form:", updated);
+        return updated;
+      });
+    }, []);
+
     if (!isMapReady || !isMapMounted) {
         return <InlineLoading visible={true} />;
     }
@@ -254,6 +293,7 @@ const index = ({
             </View>
         );
     }
+
 
   return (
     <KeyboardAvoidingView 
@@ -272,11 +312,12 @@ const index = ({
             compassEnabled={isVisible}
             compassViewPosition={1}
             compassViewMargins={{ x: 20, y: 20 }}
+            onPress={handlePress}
         >
             <MapboxGL.Camera
-              zoomLevel={zoomLevel}
-              centerCoordinate={centerCoordinate}
-              animationDuration={animationDuration}
+              zoomLevel={12}
+              centerCoordinate={[120.7752839, 14.2919325]}
+              animationDuration={300}
               minZoomLevel={11}
               maxZoomLevel={20}
               // maxBounds={{
@@ -297,7 +338,17 @@ const index = ({
                 fillExtrusionOpacity: 0.6,
               }}
             />
-        </MapboxGL.VectorSource>
+            </MapboxGL.VectorSource>
+
+            {/* Marker that appears when user long presses */}
+            {markerCoordinate && (
+              <MapboxGL.PointAnnotation
+                id="user-marker"
+                coordinate={markerCoordinate}
+              >
+                <View style={styles.marker} />
+              </MapboxGL.PointAnnotation>
+            )}
         </MapboxGL.MapView>
 
         {isVisible && (
@@ -377,9 +428,23 @@ const index = ({
               backgroundStyle={{
                   backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
               }}
-              handleIndicatorStyle={{
-                  backgroundColor: isDark ? Colors.border.light : Colors.border.dark,
-              }}
+              handleComponent={() => (
+                  <View style={styles.handleContainer}>
+                      {markerCoordinate ? (
+                          <ChevronUp 
+                              size={24} 
+                              color={isDark ? Colors.border.light : Colors.border.dark} 
+                          />
+                      ) : (
+                          <View style={[
+                              styles.defaultHandle,
+                              {
+                                  backgroundColor: isDark ? Colors.border.light : Colors.border.dark,
+                              }
+                          ]} />
+                      )}
+                  </View>
+              )}
           >
               <BottomSheetScrollView 
                 style={styles.bottomSheetContent}
@@ -388,20 +453,27 @@ const index = ({
                 showsVerticalScrollIndicator={false}
               >
                   <VStack space="md" className="w-full">
-                    {/* simulate marker */}
-                    {hasMarker ? (
+                    {(markerCoordinate) ? (
                       <HStack style={styles.head}>
                         <VStack>
-                          <Text size='md'>Bucana Sasahan</Text>
-                          <Text emphasis='light' size='sm'>120.20340, 14.23420</Text>
+                          <Text size='md'>Location name here</Text>
+                          <Text emphasis='light' size='sm'>{`${statusForm.lng?.toFixed(6)}, ${statusForm.lat?.toFixed(6)}`}</Text>
                         </VStack>
-                        <IconButton style={styles.button} onPress={() => {}}>
+                        <IconButton style={styles.button} onPress={() => {
+                          bottomSheetRef.current?.snapToIndex(0);
+                          setMarkerCoordinate(null);
+                          setStatusForm(prev => ({
+                            ...prev,
+                            lng: null,
+                            lat: null
+                          }));
+                        }}>
                             <X size={24} color={Colors.semantic.error} />
                         </IconButton>
                     </HStack>
                     ) : (
                       <>
-                        <Text size='sm'>Long press on map to pin a marker</Text>
+                        <Text size='sm'>Click the spot where you are right now</Text>
                         <HStack style={styles.choices}>
                           <Button style={styles.buttons} onPress={() => {}}>
                             <Bookmark size={16} color={'white'} />
@@ -510,6 +582,15 @@ const index = ({
                     <CustomImagePicker id="map-image-picker-actionSheet" />
 
                     <View style={{ marginVertical: 20 }}></View>
+
+                    {markerCoordinate && (
+                      <View style={styles.markerInfoContainer}>
+                        <Text style={styles.markerInfoTitle}>Selected Location:</Text>
+                        <Text style={styles.markerInfoText}>
+                          Lat: {markerCoordinate[1].toFixed(6)}, Lng: {markerCoordinate[0].toFixed(6)}
+                        </Text>
+                      </View>
+                    )}
 
                     <Text>What information you want to share with community?</Text>
                     <View style={styles.toggleContainer}>
@@ -725,5 +806,63 @@ const styles = StyleSheet.create({
   submitText: {
     color: 'white',
     fontWeight: '600',
+  },
+  // Marker styles
+  markerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  marker: {
+    width: 20,
+    height: 20,
+    borderRadius: 20,
+    backgroundColor: '#FF0000',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  markerInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+  },
+  markerShadow: {
+    position: 'absolute',
+    top: 18,
+    width: 10,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    transform: [{ scaleX: 1.5 }],
+  },
+  markerInfoContainer: {
+    backgroundColor: 'rgba(0, 150, 255, 0.1)',
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 150, 255, 0.3)',
+  },
+  markerInfoTitle: {
+    fontWeight: '600',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  markerInfoText: {
+    fontSize: 12,
+    opacity: 0.8,
+  },
+  // Bottom sheet handle styles
+  handleContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  defaultHandle: {
+    width: 30,
+    height: 4,
+    borderRadius: 2,
   },
 })

@@ -10,21 +10,11 @@ type MapContextType = {
   isContextReady: boolean;
 };
 
-type MapProviderProps = {
-  children: React.ReactNode;
-  zoomLevel?: number;
-  centerCoordinate?: [number, number];
-  animationDuration?: number;
-};
+type MapProviderProps = { children: React.ReactNode };
 
 const MapContext = createContext<MapContextType | null>(null);
 
-export const MapProvider: React.FC<MapProviderProps> = ({ 
-  children, 
-  zoomLevel = 12, 
-  centerCoordinate = [120.7752839, 14.2919325], 
-  animationDuration = 300 
-}) => {
+export const MapProvider: React.FC<MapProviderProps> = ({ children }) => {
   const mapRef = useRef<MapboxGL.MapView | null>(null);
   const [isContextReady, setIsContextReady] = React.useState(false);
 
@@ -38,7 +28,7 @@ export const MapProvider: React.FC<MapProviderProps> = ({
   }, []);
 
   return (
-  <MapContext.Provider value={{ mapRef, zoomLevel, centerCoordinate, animationDuration, isContextReady }}>
+  <MapContext.Provider value={{ mapRef, isContextReady }}>
     {children}
   </MapContext.Provider>
   );
