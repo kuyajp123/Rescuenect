@@ -207,7 +207,7 @@ const index = ({
 
     const handleInputFocus = useCallback(() => {
         // Ensure bottom sheet is expanded when any input is focused
-        bottomSheetRef.current?.snapToIndex(1);
+        bottomSheetRef.current?.snapToIndex(2);
     }, []);
 
     const handleMapReady = useCallback(() => {
@@ -563,6 +563,7 @@ const index = ({
                       value={statusForm.phoneNumber}
                       onChangeText={handlePhoneChange}
                       onFocus={handleInputFocus}
+                      keyboardType="number-pad"
                       style={[styles.textInput, { color: textValueColor }]}
                     />
 
@@ -572,7 +573,8 @@ const index = ({
                       editable
                       multiline
                       numberOfLines={4}
-                      maxLength={500}
+                      maxLength={400}
+                      scrollEnabled
                       value={statusForm.note}
                       onChangeText={handleNoteChange}
                       onFocus={handleInputFocus}
