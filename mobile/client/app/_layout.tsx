@@ -2,7 +2,7 @@ import RootLayoutContent from '@/components/components/_layout/RootLayout';
 import '@/components/components/ActionSheet/sheets';
 import { FontSizeProvider } from '@/contexts/FontSizeContext';
 import { HighContrastProvider } from '@/contexts/HighContrastContext';
-import { MapContextNew } from '@/contexts/MapContextNew';
+import MapContext from "@/contexts/MapContext";
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import MapboxGL from "@rnmapbox/maps";
 import React from 'react';
@@ -21,9 +21,9 @@ export default function RootLayout() {
           <FontSizeProvider>
             <HighContrastProvider>
               <SheetProvider>
-                <MapContextNew>
+                <MapContext>
                   <RootLayoutContent />
-                </MapContextNew>
+                </MapContext>
               </SheetProvider>
             </HighContrastProvider>
           </FontSizeProvider>

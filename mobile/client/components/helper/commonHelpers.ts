@@ -1,4 +1,5 @@
 import * as Network from "expo-network";
+import * as Location from 'expo-location';
 
 // Convert contact number to E.164 format (+63xxxxxxxxxx)
 export const convertToE164Format = (contactNumber: string): string => {
@@ -55,3 +56,35 @@ export const checkInternetConnection = async (): Promise<boolean> => {
     return false;
   }
 };
+
+
+// Request location permission
+export const requestLocationPermission = async (): Promise<boolean> => {
+    try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        return status === "granted";
+    } catch (error) {
+        console.warn("Error requesting location permission:", error);
+        return false;
+    }
+};
+
+// Get current position once
+export const getCurrentPositionOnce = async (): Promise<Location.LocationObject | null> => {
+    try {
+        const hasPermission = await requestLocationPermission();
+        if (!hasPermission) {
+            console.warn("Location permission not granted");
+            return null;
+        }
+
+        const currentLocation = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.High,
+            distanceInterval: 1
+        });
+        return currentLocation;
+    } catch (error) {
+        console.warn("Error getting current location:", error);
+        return null;
+    }
+}

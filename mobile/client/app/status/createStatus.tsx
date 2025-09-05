@@ -1,5 +1,5 @@
 import CustomImagePicker, { useImagePickerStore } from '@/components/components/CustomImagePicker';
-import MapNew, { CustomButton, RadioField, TextInputField, ToggleField } from '@/components/components/Map/MapNew';
+import Map, { CustomButton, RadioField, TextInputField, ToggleField } from '@/components/components/Map';
 import { formatContactNumber, formatName, isValidContactNumber } from '@/components/helper/commonHelpers';
 import { storage } from '@/components/helper/storage';
 import { StatusForm } from '@/components/shared/types/components';
@@ -7,7 +7,8 @@ import { HStack } from '@/components/ui/hstack';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
-import { useCoords } from '@/contexts/MapContextNew';
+import { useCoords } from '@/contexts/MapContext';
+import * as Location from 'expo-location';
 import { Bookmark, Info, Navigation } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from 'react-native';
@@ -19,7 +20,16 @@ export const createStatus = () => {
   const { image } = useImagePickerStore();
   const [userData, setUserData] = useState<any>(null);
   const [formErrors, setFormErrors] = useState<Partial<StatusForm>>({});
-  const { coords } = useCoords();
+  const { coords, setCoords } = useCoords();
+  const savedLocation: Location.LocationObjectCoords = {
+    latitude: 14.2919325,
+    longitude: 120.7752839,
+    altitude: null,
+    accuracy: null,
+    altitudeAccuracy: null,
+    heading: null,
+    speed: null
+  }; // simulate saved location
   
   const [statusForm, setStatusForm] = useState<StatusForm>({
     firstName: '',
@@ -67,8 +77,8 @@ export const createStatus = () => {
     if (coords) {
       setStatusForm(prev => ({
         ...prev,
-        lng: coords[0],
-        lat: coords[1]
+        lng: coords.longitude,
+        lat: coords.latitude
       }));
     }
   }, [coords]);
@@ -215,6 +225,9 @@ export const createStatus = () => {
       onPress: () => {
         // Handle saved location functionality
         console.log('Open saved locations');
+        if (savedLocation) {
+          setCoords(savedLocation)
+        }
       }
     },
     {
@@ -236,7 +249,7 @@ export const createStatus = () => {
       <View key="marker-info" style={styles.markerInfoContainer}>
         <Text style={styles.markerInfoTitle}>Selected Location:</Text>
         <Text>
-          Lat: {coords[1].toFixed(6)}, Lng: {coords[0].toFixed(6)}
+          Lat: {coords.longitude.toFixed(6)} Lng: {coords.latitude.toFixed(6)}
         </Text>
       </View>
     ),
@@ -258,7 +271,7 @@ export const createStatus = () => {
         paddingBottom: insets.bottom,
       }
     ]}>
-      <MapNew 
+      <Map 
         title="Let us know your status during disaster!"
         locationDisplayLabel="Your selected location"
         showCoordinates={true}
