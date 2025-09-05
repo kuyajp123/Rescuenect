@@ -4,13 +4,12 @@ import React, { memo } from "react";
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 // Custom Radio Component - moved outside to prevent re-creation
-export const CustomRadio = memo(({ label, value, selectedValue, onSelect, isDark, textValueColor }: {
+export const CustomRadio = memo(({ label, value, selectedValue, onSelect, isDark }: {
     label: string;
     value: string;
     selectedValue: string;
     onSelect: (value: string) => void;
     isDark: boolean;
-    textValueColor: string;
 }) => {
     const isSelected = selectedValue === value;
     const brandColor = isDark ? Colors.brand.dark : Colors.brand.light;
@@ -32,15 +31,15 @@ export const CustomRadio = memo(({ label, value, selectedValue, onSelect, isDark
                     ]} />
                 )}
             </View>
-            <Text style={[
-                styles.radioLabel,
-                { color: textValueColor }
-            ]}>{label}</Text>
+            <Text size='sm'>{label}</Text>
         </TouchableOpacity>
     );
 });
 
 CustomRadio.displayName = 'CustomRadio';
+
+export { LocationRadio } from './LocationRadio';
+export { ButtonRadio } from './ButtonRadio';
 
 export default CustomRadio;
 
@@ -72,11 +71,31 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
   },
-  radioLabel: {
-    fontSize: 16,
-    fontWeight: '400',
-  },
   radioItem: {
     marginBottom: 8,
   },
 })
+
+// example usage:
+// export const RadioGroupExample = () => {
+//   const [selected, setSelected] = React.useState<string | null>(null);
+//   const options = ["Option A", "Option B", "Option C"];
+//   const isDark = false;
+//   const textValueColor = isDark ? Colors.text.dark : Colors.text.light;
+
+//   return (
+//     <View style={styles.radioGroup}>
+//       {options.map(option => (
+//         <CustomRadio
+//           key={option}
+//           label={option}
+//           value={option}
+//           selectedValue={selected}
+//           onSelect={setSelected}
+//           isDark={isDark}
+//           textValueColor={textValueColor}
+//         />
+//       ))}
+//     </View>
+//   );
+// };

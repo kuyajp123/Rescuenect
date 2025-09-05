@@ -11,8 +11,10 @@ const ROUTES = {
   },
   STATUS: {
     CREATE: '/status/createStatus',
+    CITY_NEEDS: '/status/cityNeeds',
   },
   TABS: '/(tabs)',
+  NOTIFICATION: '/notification',
 } as const;
 
 // Type-safe navigation helper functions with error handling
@@ -66,6 +68,24 @@ export const navigateToCreateStatus = () => {
   }
 };
 
+export const navigateToCityNeeds = () => {
+  try {
+    console.log("🧭 Navigating to city needs");
+    console.log("🧭 Route:", ROUTES.STATUS.CITY_NEEDS);
+    router.replace(ROUTES.STATUS.CITY_NEEDS);
+  } catch (error) {
+    console.error("❌ Error navigating to city needs:", error);
+  }
+};
+
+export const navigateToNotification = () => {
+  try {
+    router.replace(ROUTES.NOTIFICATION);
+  } catch (error) {
+    console.error("❌ Error navigating to notification:", error);
+  }
+}
+
 // Main navigation logic based on auth state
 export const handleAuthNavigation = async (user: any) => {
   try {
@@ -97,6 +117,7 @@ export const handleAuthNavigation = async (user: any) => {
         console.log("✅ User has complete data - going to tabs");
         navigateToTabs(); // uncomment this after
         // navigateToCreateStatus(); // temporary only
+        // navigateToNotification(); // temporary only
       } else {
         console.log("❓ Undefined newUser state, checking storage for existing data");
         // Check if user has required data in storage

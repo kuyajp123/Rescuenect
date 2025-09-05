@@ -57,6 +57,7 @@ export interface CustomButton {
 export interface MapNewProps {
   // Bottom sheet content customization
   title?: string;
+  label?: string;
   titleStyle?: any;
   
   // Form fields
@@ -97,7 +98,8 @@ export const useMapButtonStore = create<MapButtonStates>((set) => ({
 }));
 
 const Map = ({
-  title = "Tap the map to pin a marker",
+  title,
+  label,
   titleStyle,
   textInputFields = [],
   radioFields = [],
@@ -124,7 +126,7 @@ const Map = ({
   onLocationClear,
 }: MapNewProps) => {
     const { setIsVisible } = useMapButtonStore();
-    const { coords, mapContainer, isMapReady } = useMap();
+    const { coords, mapContainer } = useMap();
     const { setCoords } = useCoords();
     const { isDark } = useTheme();
     const [bottomSheetEnabled, setBottomSheetEnabled] = React.useState(false);
@@ -227,7 +229,7 @@ const Map = ({
                   </HStack>
                 ) : (
                   <>
-                    <Text size='sm'>{title}</Text>
+                    <Text size='sm'>{label}</Text>
                     {quickActionButtons.length > 0 && (
                       <HStack style={styles.choices}>
                         {quickActionButtons.map((button) => (

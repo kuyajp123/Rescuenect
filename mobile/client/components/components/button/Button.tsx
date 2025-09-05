@@ -14,6 +14,8 @@ type ButtonProps = {
   className?: string;
   isDark?: boolean; // <--- optional theme flag for outline mode
   context?: boolean;
+  size?: 'md' | 'lg' | 'xl';
+  justify?: 'start' | 'center' | 'end';
 };
 
 export const Button = ({
@@ -24,8 +26,17 @@ export const Button = ({
   children,
   className = '',
   isDark = false,
+  size = 'md',
+  justify = 'center',
 }: ButtonProps) => {
-  let baseStyle = 'w-full px-4 py-3 flex-row items-center justify-center gap-1 rounded-lg font-semibold';
+  let sizeStyle = 'py-3';
+  if (size === 'lg') {
+    sizeStyle = 'py-4';
+  } else if (size === 'xl') {
+    sizeStyle = 'py-6';
+  }
+
+  let baseStyle = `w-full px-4 ${sizeStyle} flex-row items-center justify-${justify} gap-1 rounded-lg font-semibold`;
 
   // Action color styles (for solid variant)
   let actionStyle = '';

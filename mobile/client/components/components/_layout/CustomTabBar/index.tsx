@@ -28,7 +28,9 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
 
   const handleCityNeedsPress = useCallback(() => {
     // Add navigation to city needs page here if needed
-    // router.push('/cityNeeds' as any);
+    router.push('status/cityNeeds' as any);
+    const sheet = require("react-native-actions-sheet").SheetManager;
+    sheet.hide("FAB");
   }, []);
 
   const actionSheetItems = [

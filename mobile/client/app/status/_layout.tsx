@@ -11,6 +11,13 @@ const _layout = () => {
             animation: 'none'
           }}
           />
+          <Stack.Screen
+          name='cityNeeds'
+          options={{
+            headerShown: false,
+            animation: 'none'
+          }}
+          />
       </Stack>
     )
 }

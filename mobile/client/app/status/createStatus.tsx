@@ -273,6 +273,7 @@ export const createStatus = () => {
     ]}>
       <Map 
         title="Let us know your status during disaster!"
+        label="Tap the map to pin a marker"
         locationDisplayLabel="Your selected location"
         showCoordinates={true}
         textInputFields={textInputFields}

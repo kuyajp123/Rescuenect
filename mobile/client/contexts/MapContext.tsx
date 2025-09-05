@@ -8,19 +8,23 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, MapIcon } from 'lucide-react-native';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { create } from 'zustand';
 
 type coordTypes = Location.LocationObjectCoords | null;
 
 interface CoordsState {
     coords: coordTypes;
+    locationCoords: coordTypes;
     setCoords: (coords: coordTypes) => void;
+    setLocationCoords: (coords: coordTypes) => void;
 }
 
 export const useCoords = create<CoordsState>((set) => ({
     coords: null,
+    locationCoords: null,
     setCoords: (coords) => set({ coords }),
+    setLocationCoords: (coords) => set({ locationCoords: coords }),
 }));
 
 type MapContextType = {
@@ -166,19 +170,8 @@ export const MapProvider = ({ children }: MapProviderProps) => {
                     coordinate={[coords.longitude, coords.latitude]}
                   >
                       <View style={styles.marker} />
-                  </MapboxGL.PointAnnotation>
-                    // <MapboxGL.PointAnnotation
-                    //     id="tap-marker"
-                    //     coordinate={[coords.longitude, coords.latitude]}
-                    // >
-                    //     <View style={styles.tapMarker}>
-                    //       <Image
-                    //         source={require('@/assets/images/marker/marker-icon-blue.png')}
-                    //         style={styles.markerImage}
-                    //         resizeMode="contain"
-                    //       />
-                    //     </View>
-                    // </MapboxGL.PointAnnotation>
+
+                    </MapboxGL.PointAnnotation>
                 )}
                 {/* <MapboxGL.PointAnnotation
                     id="user-marker"
@@ -186,7 +179,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
                 >
                     <View style={styles.marker} />
                 </MapboxGL.PointAnnotation> */}
-            </MapboxGL.MapView>
+                </MapboxGL.MapView>
             
             {isVisible && (
                 <>
