@@ -1,6 +1,5 @@
 import { Button } from '@/components/components/button/Button';
 import { Text } from '@/components/ui/text';
-import * as Location from 'expo-location';
 import React from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -8,7 +7,7 @@ type LocationOption = {
   id: string;
   label: string;
   description?: string;
-  coordinates: Location.LocationObjectCoords;
+  coordinates: [number, number]; // [lng, lat]
 };
 
 type LocationRadioProps = {
@@ -25,8 +24,8 @@ export const LocationRadio = ({
   const isSelected = selectedLocationId === option.id;
 
   // Format coordinates for display
-  const formatCoordinates = (coords: Location.LocationObjectCoords) => {
-    return `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`;
+  const formatCoordinates = (coords: [number, number]) => {
+    return `${coords[1].toFixed(4)}, ${coords[0].toFixed(4)}`; // lat, lng (coords = [lng, lat])
   };
 
   return (
@@ -62,7 +61,6 @@ Usage Examples:
 
 1. Basic location selection:
 import { LocationRadio } from '@/components/ui/CustomRadio/LocationRadio';
-import * as Location from 'expo-location';
 
 const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
 
@@ -71,29 +69,13 @@ const locationOptions = [
     id: 'bucana-sasahan',
     label: 'Bucana Sasahan',
     description: 'Main residential area',
-    coordinates: {
-      latitude: 14.2344,
-      longitude: 120.1234,
-      altitude: null,
-      accuracy: null,
-      altitudeAccuracy: null,
-      heading: null,
-      speed: null,
-    } as Location.LocationObjectCoords
+    coordinates: [120.1234, 14.2344] as [number, number] // [lng, lat]
   },
   {
     id: 'malainem-luma',
     label: 'Malainem Luma',
     // No description provided - will show coordinates
-    coordinates: {
-      latitude: 14.1234,
-      longitude: 120.0987,
-      altitude: null,
-      accuracy: null,
-      altitudeAccuracy: null,
-      heading: null,
-      speed: null,
-    } as Location.LocationObjectCoords
+    coordinates: [120.0987, 14.1234] as [number, number] // [lng, lat]
   },
 ];
 
@@ -117,7 +99,7 @@ return (
 );
 
 2. Integration with map coordinates:
-import { useCoords } from '@/contexts/MapContextNew';
+import { useCoords } from '@/contexts/MapContext';
 
 const { setCoords } = useCoords();
 
@@ -135,4 +117,19 @@ useEffect(() => {
     setCoords(locationOptions[0].coordinates);
   }
 }, []);
+
+4. Getting coordinates from selected location:
+const getSelectedCoordinates = () => {
+  if (selectedLocationId) {
+    const selectedOption = locationOptions.find(opt => opt.id === selectedLocationId);
+    return selectedOption?.coordinates || null;
+  }
+  return null;
+};
+
+// Usage
+const coords = getSelectedCoordinates();
+if (coords) {
+  console.log('Longitude:', coords[0], 'Latitude:', coords[1]);
+}
 */

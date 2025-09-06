@@ -4,14 +4,13 @@ import { storage } from '@/components/helper/storage';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import MapboxGL from '@rnmapbox/maps';
-import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, MapIcon } from 'lucide-react-native';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { create } from 'zustand';
 
-type coordTypes = Location.LocationObjectCoords | null;
+type coordTypes = [number, number] | null;
 
 interface CoordsState {
     coords: coordTypes;
@@ -22,7 +21,8 @@ interface CoordsState {
 
 export const useCoords = create<CoordsState>((set) => ({
     coords: null,
-    locationCoords: null,
+    locationCoords: [120.788432, 14.303068],
+    // locationCoords: null,
     setCoords: (coords) => set({ coords }),
     setLocationCoords: (coords) => set({ locationCoords: coords }),
 }));
@@ -44,7 +44,7 @@ const MapContext = createContext<MapContextType | undefined>(undefined);
 export const MapProvider = ({ children }: MapProviderProps) => {
   const mapRef = useRef<MapboxGL.MapView | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
-  const { coords, setCoords } = useCoords();
+  const { coords, locationCoords, setCoords } = useCoords();
   const [mapStyle, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
   const [showMapStyles, setShowMapStyles] = useState(false);
   const { isVisible } = useMapButtonStore();
@@ -85,7 +85,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
     // Function that triggers when user presses the map
     const handlePress = useCallback((event: any) => {
       // Try to extract coordinates from the event
-      let mapCoords: [number, number] | null = null;
+      let mapCoords = null;
       
       // Check for different possible event structures
       if (event && event.geometry && event.geometry.coordinates) {
@@ -107,18 +107,8 @@ export const MapProvider = ({ children }: MapProviderProps) => {
       }
       
       console.log("Setting marker coordinate to:", mapCoords);
-
-      // Convert to LocationObjectCoords format
-      const markerCoordinate: Location.LocationObjectCoords = {
-        latitude: mapCoords[1],     // mapCoords = [longitude, latitude]
-        longitude: mapCoords[0],    // mapCoords = [longitude, latitude]
-        altitude: null,
-        accuracy: null,
-        altitudeAccuracy: null,
-        heading: null,
-        speed: null,
-      };
       
+      const markerCoordinate: [number, number] = [mapCoords[0], mapCoords[1]];
       setCoords(markerCoordinate);
     }, [coords, setCoords]);
 
@@ -141,7 +131,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
                 {/* Add your default map children here */}
                 <MapboxGL.Camera
                 zoomLevel={12}
-                centerCoordinate={[120.7752839, 14.2919325]}
+                centerCoordinate={[120.7752839, 14.2919325]} // [lng, lat]
                 animationDuration={300}
                 minZoomLevel={11}
                 maxZoomLevel={20}
@@ -164,21 +154,41 @@ export const MapProvider = ({ children }: MapProviderProps) => {
                     }}
                 />
                 </MapboxGL.VectorSource>
-                {coords && (
-                  <MapboxGL.PointAnnotation
-                    id="user-marker"
-                    coordinate={[coords.longitude, coords.latitude]}
-                  >
-                      <View style={styles.marker} />
+                  {locationCoords && coords && (
+                    <>
+                      <MapboxGL.PointAnnotation
+                      id="user-marker"
+                      coordinate={locationCoords}
+                      >
+                        <View style={styles.GpsMarker} />
+                      </MapboxGL.PointAnnotation>
+                      <MapboxGL.PointAnnotation
+                        id="user-marker"
+                        coordinate={coords}
+                      >
+                          <View style={styles.tapMarker} />
 
-                    </MapboxGL.PointAnnotation>
-                )}
-                {/* <MapboxGL.PointAnnotation
-                    id="user-marker"
-                    coordinate={[coords.longitude, coords.latitude]}
-                >
-                    <View style={styles.marker} />
-                </MapboxGL.PointAnnotation> */}
+                      </MapboxGL.PointAnnotation>
+                    </>
+                  )}
+
+                  {!coords && locationCoords && (
+                    <MapboxGL.PointAnnotation
+                      id="user-marker"
+                      coordinate={locationCoords}
+                      >
+                        <View style={styles.GpsMarker} />
+                      </MapboxGL.PointAnnotation>
+                  )}
+
+                  {coords && !locationCoords && (
+                    <MapboxGL.PointAnnotation
+                      id="user-marker"
+                      coordinate={coords}
+                      >
+                        <View style={styles.tapMarker} />
+                      </MapboxGL.PointAnnotation>
+                  )}
                 </MapboxGL.MapView>
             
             {isVisible && (
@@ -285,19 +295,25 @@ const styles = StyleSheet.create({
     mapStyle: {
         flex: 1,
     },
-    tapMarker: { 
-      paddingBottom: 40, 
-      transform: [{ translateY: -20 }]
-    },
     markerImage: {
         width: 40,
         height: 40,
     },
-    marker: {
+    tapMarker: {
         width: 20,
         height: 20,
         borderRadius: 20,
         backgroundColor: Colors.brand.dark,
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    GpsMarker: {
+        width: 20,
+        height: 20,
+        borderRadius: 20,
+        backgroundColor: Colors.semantic.error,
         borderWidth: 2,
         borderColor: '#FFFFFF',
         justifyContent: 'center',
