@@ -70,7 +70,7 @@ export const requestLocationPermission = async (): Promise<boolean> => {
 };
 
 // Get current position once
-export const getCurrentPositionOnce = async (): Promise<Location.LocationObject | null> => {
+export const getCurrentPositionOnce = async (): Promise<[number, number] | null> => {
     try {
         const hasPermission = await requestLocationPermission();
         if (!hasPermission) {
@@ -82,7 +82,7 @@ export const getCurrentPositionOnce = async (): Promise<Location.LocationObject 
             accuracy: Location.Accuracy.High,
             distanceInterval: 1
         });
-        return currentLocation;
+        return [currentLocation.coords.longitude, currentLocation.coords.latitude];
     } catch (error) {
         console.warn("Error getting current location:", error);
         return null;

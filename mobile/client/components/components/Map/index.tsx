@@ -82,6 +82,9 @@ export interface MapNewProps {
   locationDisplayLabel?: string;
   showCoordinates?: boolean;
   
+  // Location tracking functions
+  stopTracking?: () => void;
+  
   // Additional props
   snapPoints?: string[];
   onLocationClear?: () => void;
@@ -122,29 +125,39 @@ const Map = ({
   ],
   locationDisplayLabel = "Location name here",
   showCoordinates = true,
+  stopTracking,
   snapPoints = ['14%', '90%'],
   onLocationClear,
 }: MapNewProps) => {
     const { setIsVisible } = useMapButtonStore();
-    const { coords, mapContainer } = useMap();
-    const { setCoords } = useCoords();
+    const { coords, mapContainer, locationCoords } = useMap();
+    const { setCoords, setLocationCoords } = useCoords();
     const { isDark } = useTheme();
     const [bottomSheetEnabled, setBottomSheetEnabled] = React.useState(false);
 
     const bottomSheetRef = useRef<BottomSheet>(null);
-    const memoizedSnapPoints = useMemo(() => snapPoints, [snapPoints]);
+    
+    // Single useMemo that handles all snap point logic
+    const memoizedSnapPoints = useMemo(() => {
+      // If both coordinates exist, use larger initial height
+      if (coords && locationCoords) {
+        return ['20%', '90%'];
+      }
+      // If only one or no coordinates, use default
+      return snapPoints;
+    }, [coords, locationCoords, snapPoints]);
 
     // Memoize computed values to prevent unnecessary re-renders
     const textValueColor = useMemo(() => isDark ? Colors.text.dark : Colors.text.light, [isDark]);
 
     // Control bottom sheet enabled state based on coords
     React.useEffect(() => {
-      if (coords) {
+      if (coords || locationCoords) {
         setBottomSheetEnabled(true);
       } else {
         setBottomSheetEnabled(false);
       }
-    }, [coords]);
+    }, [coords, locationCoords]);
 
     // Bottom Sheet callbacks
     const handleSheetChanges = useCallback((index: number) => {
@@ -164,12 +177,116 @@ const Map = ({
         onLocationClear?.();
     }, [setCoords, onLocationClear]);
 
+    const handleStopTrackingClear = useCallback(() => {
+        bottomSheetRef.current?.snapToIndex(0);
+        setLocationCoords(null);
+        stopTracking?.();
+    }, [setLocationCoords, stopTracking]);
+
     const handleInputFocus = useCallback(() => {
         // Only expand bottom sheet when input is focused if there's a marker coordinate
         if (coords) {
             bottomSheetRef.current?.snapToIndex(2);
         }
     }, [coords]);
+
+    const renderActionContents = useCallback(() => {
+      // Show both coordinates if both are available
+      if (coords && locationCoords) {
+        return (
+          <VStack space="md" style={{ width: '100%' }}>
+            {/* Tapped Location */}
+            <HStack style={styles.head}>
+              <VStack>
+                <Text size='md'>Tapped Location</Text>
+                {showCoordinates && (
+                  <Text emphasis='light' size='sm'>
+                    {`${coords[1].toFixed(6)}, ${coords[0].toFixed(6)}`}
+                  </Text>
+                )}
+              </VStack>
+              <IconButton style={styles.button} onPress={handleLocationClear}>
+                  <X size={24} color={Colors.semantic.error} />
+              </IconButton>
+            </HStack>
+            
+            {/* GPS Location */}
+              <HStack style={styles.head}>
+                <VStack>
+                  <Text size='md'>{locationDisplayLabel}</Text>
+                  {showCoordinates && locationCoords && (
+                    <Text emphasis='light' size='sm'>
+                      {`${locationCoords[1].toFixed(6)}, ${locationCoords[0].toFixed(6)}`}
+                    </Text>
+                  )}
+                </VStack>
+                <Button width='fit' style={{ width: 'auto' }} action={"error"} onPress={handleStopTrackingClear || (() => {})}>
+                    <Text>Stop</Text>
+                </Button>
+            </HStack>
+          </VStack>
+        )
+      }
+      
+      // Show only tapped coordinates if only coords is available
+      if (coords) {
+        return (
+          <HStack style={styles.head}>
+            <VStack>
+              <Text size='md'>{locationDisplayLabel}</Text>
+              {showCoordinates && coords && (
+                <Text emphasis='light' size='sm'>
+                  {`${coords[1].toFixed(6)}, ${coords[0].toFixed(6)}`}
+                </Text>
+              )}
+            </VStack>
+            <IconButton style={styles.button} onPress={handleLocationClear}>
+                <X size={24} color={Colors.semantic.error} />
+            </IconButton>
+          </HStack>
+        )
+      } 
+
+      // Show only GPS coordinates if only locationCoords is available
+      if (locationCoords) {
+        return (
+          <HStack style={styles.head}>
+            <VStack>
+              <Text size='md'>{locationDisplayLabel}</Text>
+              {showCoordinates && locationCoords && (
+                <Text emphasis='light' size='sm'>
+                  {`${locationCoords[1].toFixed(6)}, ${locationCoords[0].toFixed(6)}`}
+                </Text>
+              )}
+            </VStack>
+            <Button width='fit' style={{ width: 'auto' }} action={"error"} onPress={handleStopTrackingClear || (() => {})}>
+                <Text>Stop</Text>
+            </Button>
+          </HStack>
+        )
+      }
+
+      return (
+        <>
+          <Text size='sm'>{label}</Text>
+          {quickActionButtons.length > 0 && (
+            <HStack style={styles.choices}>
+              {quickActionButtons.map((button) => (
+                <Button 
+                  key={button.key}
+                  style={[styles.buttons, button.style]} 
+                  onPress={button.onPress}
+                >
+                  {button.icon}
+                  <RNText style={styles.textColor}>{button.label}</RNText>
+                </Button>
+              ))}
+            </HStack>
+          )}
+        </>
+      )
+
+    }, [stopTracking, coords, locationCoords, label, quickActionButtons, locationDisplayLabel, showCoordinates, handleLocationClear]);
 
   return (
     <>
@@ -194,7 +311,7 @@ const Map = ({
               }}
               handleComponent={() => (
                   <View style={styles.handleContainer}>
-                      {coords && (
+                      {(coords || locationCoords) && (
                           <View style={[
                               styles.defaultHandle,
                               {
@@ -213,46 +330,14 @@ const Map = ({
               keyboardDismissMode="interactive"
             >
               <VStack space="md" className="w-full">
-                {coords ? (
-                  <HStack style={styles.head}>
-                    <VStack>
-                      <Text size='md'>{locationDisplayLabel}</Text>
-                      {showCoordinates && coords && (
-                        <Text emphasis='light' size='sm'>
-                          {`${coords[1].toFixed(6)}, ${coords[0].toFixed(6)}`}
-                        </Text>
-                      )}
-                    </VStack>
-                    <IconButton style={styles.button} onPress={handleLocationClear}>
-                        <X size={24} color={Colors.semantic.error} />
-                    </IconButton>
-                  </HStack>
-                ) : (
-                  <>
-                    <Text size='sm'>{label}</Text>
-                    {quickActionButtons.length > 0 && (
-                      <HStack style={styles.choices}>
-                        {quickActionButtons.map((button) => (
-                          <Button 
-                            key={button.key}
-                            style={[styles.buttons, button.style]} 
-                            onPress={button.onPress}
-                          >
-                            {button.icon}
-                            <RNText style={styles.textColor}>{button.label}</RNText>
-                          </Button>
-                        ))}
-                      </HStack>
-                    )}
-                  </>
-                )}
+                {renderActionContents()}
               </VStack>
 
               {/* Dynamic Form Content */}
-              {coords && (
+              {(coords || locationCoords) && (
                 <VStack style={styles.bottomSheetForm}>
                   {/* Custom Title */}
-                  {title && coords && (
+                  {title && (coords || locationCoords) && (
                     <Text size='lg' style={[styles.bottomSheetTitle, titleStyle]}>
                       {title}
                     </Text>

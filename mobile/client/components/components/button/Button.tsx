@@ -1,9 +1,9 @@
-import { Colors, ColorCombinations } from '@/constants/Colors';
+import GoogleIMG from '@/assets/images/google/google.svg';
+import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ChevronRight } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Text, Pressable, View } from 'react-native';
-import GoogleIMG from '@/assets/images/google/google.svg'
+import { Pressable, Text, View } from 'react-native';
 
 type ButtonProps = {
   style?: object;
@@ -16,6 +16,7 @@ type ButtonProps = {
   context?: boolean;
   size?: 'md' | 'lg' | 'xl';
   justify?: 'start' | 'center' | 'end';
+  width?: 'full' | 'auto' | 'fit';
 };
 
 export const Button = ({
@@ -28,6 +29,7 @@ export const Button = ({
   isDark = false,
   size = 'md',
   justify = 'center',
+  width = 'full',
 }: ButtonProps) => {
   let sizeStyle = 'py-3';
   if (size === 'lg') {
@@ -36,7 +38,14 @@ export const Button = ({
     sizeStyle = 'py-6';
   }
 
-  let baseStyle = `w-full px-4 ${sizeStyle} flex-row items-center justify-${justify} gap-1 rounded-lg font-semibold`;
+  let widthStyle = '';
+  if (width === 'auto') {
+    widthStyle = 'w-auto';
+  } else if (width === 'fit') {
+    widthStyle = 'w-fit';
+  }
+
+  let baseStyle = ` ${widthStyle} px-4 ${sizeStyle} flex-row items-center justify-${justify} gap-1 rounded-lg font-semibold`;
 
   // Action color styles (for solid variant)
   let actionStyle = '';

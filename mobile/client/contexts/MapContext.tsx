@@ -21,8 +21,8 @@ interface CoordsState {
 
 export const useCoords = create<CoordsState>((set) => ({
     coords: null,
-    locationCoords: [120.788432, 14.303068],
-    // locationCoords: null,
+    // locationCoords: [120.788432, 14.303068],
+    locationCoords: null,
     setCoords: (coords) => set({ coords }),
     setLocationCoords: (coords) => set({ locationCoords: coords }),
 }));
@@ -31,6 +31,7 @@ type MapContextType = {
     isMapReady: boolean;
     mapContainer: React.ReactElement | null;
     coords: coordTypes;
+    locationCoords: coordTypes;
     mapStyle: MapboxGL.StyleURL;
     setMapStyle: (style: MapboxGL.StyleURL) => void;
     showMapStyles: boolean;
@@ -127,6 +128,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
                 compassViewPosition={1}
                 compassViewMargins={{ x: 20, y: 20 }}
                 onPress={handlePress}
+                
             >
                 {/* Add your default map children here */}
                 <MapboxGL.Camera
@@ -262,12 +264,13 @@ export const MapProvider = ({ children }: MapProviderProps) => {
             )}
         </View>
     );
-  }, [handlePress, coords, mapStyle, showMapStyles, isDark, isVisible]);
+  }, [handlePress, coords, locationCoords, mapStyle, showMapStyles, isDark, isVisible]);
 
     const value = {
         isMapReady,
         mapContainer,
         coords,
+        locationCoords,
         mapStyle,
         setMapStyle,
         showMapStyles,

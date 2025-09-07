@@ -9,6 +9,7 @@ import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { useCoords } from '@/contexts/MapContext';
+import useLocationTracking from '@/hooks/useLocationTracking';
 import { Bookmark, Info, Navigation } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from 'react-native';
@@ -18,7 +19,7 @@ export const createStatus = () => {
   const insets = useSafeAreaInsets();
   const { image } = useImagePickerStore();
   const [formErrors, setFormErrors] = useState<Partial<StatusForm>>({});
-  const { coords, setCoords, locationCoords } = useCoords();
+  const { coords, setCoords, locationCoords, setLocationCoords } = useCoords();
   const savedLocation: [number, number] = [120.7752839, 14.2919325]; // simulate saved location
   // const savedLocation: [number, number] | null = null; // simulate saved location
   const [locationName, setLocationName] = useState<string>('Location Name must be here'); // simulate openCage response
@@ -26,6 +27,7 @@ export const createStatus = () => {
   const [hasUserTappedMap, setHasUserTappedMap] = useState(false); // Track if user has tapped on map
   const [isManualSelection, setIsManualSelection] = useState(false); // Track if user is making manual ButtonRadio selection
   const [isGPSselection, setIsGPSselection] = useState(false); // Track if user has selected GPS option
+  const { coords: gpsCoords, startTracking, stopTracking } = useLocationTracking();
   
   const [statusForm, setStatusForm] = useState<StatusForm>({
     firstName: '',
@@ -59,6 +61,15 @@ export const createStatus = () => {
     });
 
   }, []);
+
+  // Update locationCoords when GPS coordinates are received
+  useEffect(() => {
+    if (gpsCoords) {
+      const convertedCoords: [number, number] = [gpsCoords.longitude, gpsCoords.latitude];
+      setLocationCoords(convertedCoords);
+      console.log('GPS coordinates received and set:', convertedCoords);
+    }
+  }, [gpsCoords, setLocationCoords]);
 
   // Update form coordinates and handle default selection priority
   useEffect(() => {
@@ -274,10 +285,17 @@ export const createStatus = () => {
       onPress: () => {
         // Handle location services
         console.log('Enable location services');
+        startTracking();
       }
     }
-  ], [savedLocation, setCoords]);
+  ], [savedLocation, setCoords, startTracking]);
 
+  // Custom stop tracking function that also clears locationCoords
+  const handleStopTracking = useCallback(() => {
+    stopTracking(); // Stop the GPS tracking
+    setLocationCoords(null); // Clear the GPS coordinates from map
+    console.log('GPS tracking stopped and coordinates cleared');
+  }, [stopTracking, setLocationCoords]);
 
   const handleTapLocationSelect = (value: string | [number, number]) => {
     if (Array.isArray(value) && value.length === 2) {
@@ -393,17 +411,18 @@ export const createStatus = () => {
         toggleFields={toggleFields}
         customComponents={customComponents}
         quickActionButtons={quickActionButtons}
+        stopTracking={handleStopTracking}
         primaryButton={{
           label: 'Submit',
           onPress: handleSubmit,
         }}
-        onLocationClear={() => {
-          setStatusForm(prev => ({
-            ...prev,
-            lat: null,
-            lng: null
-          }));
-        }}
+        // onLocationClear={() => {
+        //   setStatusForm(prev => ({
+        //     ...prev,
+        //     lat: null,
+        //     lng: null
+        //   }));
+        // }}
       />
     </Body>
   );
