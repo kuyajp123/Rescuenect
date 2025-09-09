@@ -15,23 +15,28 @@ type coordTypes = [number, number] | null;
 interface CoordsState {
     coords: coordTypes;
     locationCoords: coordTypes;
+    oneTimeLocationCoords: coordTypes;
     setCoords: (coords: coordTypes) => void;
     setLocationCoords: (coords: coordTypes) => void;
+    setOneTimeLocationCoords: (coords: coordTypes) => void;
 }
 
 export const useCoords = create<CoordsState>((set) => ({
     coords: null,
     // locationCoords: [120.788432, 14.303068],
     locationCoords: null,
+    oneTimeLocationCoords: null,
     setCoords: (coords) => set({ coords }),
     setLocationCoords: (coords) => set({ locationCoords: coords }),
+    setOneTimeLocationCoords: (coords) => set({ oneTimeLocationCoords: coords }),
 }));
 
 type MapContextType = {
     isMapReady: boolean;
     mapContainer: React.ReactElement | null;
     coords: coordTypes;
-    locationCoords: coordTypes;
+    // locationCoords: coordTypes;
+    oneTimeLocationCoords: coordTypes;
     mapStyle: MapboxGL.StyleURL;
     setMapStyle: (style: MapboxGL.StyleURL) => void;
     showMapStyles: boolean;
@@ -45,7 +50,7 @@ const MapContext = createContext<MapContextType | undefined>(undefined);
 export const MapProvider = ({ children }: MapProviderProps) => {
   const mapRef = useRef<MapboxGL.MapView | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
-  const { coords, locationCoords, setCoords } = useCoords();
+  const { coords, oneTimeLocationCoords, setCoords } = useCoords();
   const [mapStyle, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
   const [showMapStyles, setShowMapStyles] = useState(false);
   const { isVisible } = useMapButtonStore();
@@ -156,11 +161,11 @@ export const MapProvider = ({ children }: MapProviderProps) => {
                     }}
                 />
                 </MapboxGL.VectorSource>
-                  {locationCoords && coords && (
+                  {oneTimeLocationCoords && coords && (
                     <>
                       <MapboxGL.PointAnnotation
                       id="user-marker"
-                      coordinate={locationCoords}
+                      coordinate={oneTimeLocationCoords}
                       >
                         <View style={styles.GpsMarker} />
                       </MapboxGL.PointAnnotation>
@@ -174,16 +179,16 @@ export const MapProvider = ({ children }: MapProviderProps) => {
                     </>
                   )}
 
-                  {!coords && locationCoords && (
+                  {!coords && oneTimeLocationCoords && (
                     <MapboxGL.PointAnnotation
                       id="user-marker"
-                      coordinate={locationCoords}
+                      coordinate={oneTimeLocationCoords}
                       >
                         <View style={styles.GpsMarker} />
                       </MapboxGL.PointAnnotation>
                   )}
 
-                  {coords && !locationCoords && (
+                  {coords && !oneTimeLocationCoords && (
                     <MapboxGL.PointAnnotation
                       id="user-marker"
                       coordinate={coords}
@@ -264,13 +269,13 @@ export const MapProvider = ({ children }: MapProviderProps) => {
             )}
         </View>
     );
-  }, [handlePress, coords, locationCoords, mapStyle, showMapStyles, isDark, isVisible]);
+  }, [handlePress, coords, oneTimeLocationCoords, mapStyle, showMapStyles, isDark, isVisible]);
 
     const value = {
         isMapReady,
         mapContainer,
         coords,
-        locationCoords,
+        oneTimeLocationCoords,
         mapStyle,
         setMapStyle,
         showMapStyles,

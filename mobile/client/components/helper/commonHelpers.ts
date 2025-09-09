@@ -1,5 +1,7 @@
-import * as Network from "expo-network";
 import * as Location from 'expo-location';
+import * as Network from "expo-network";
+import { Alert } from 'react-native';
+import * as Linking from "expo-linking";
 
 // Convert contact number to E.164 format (+63xxxxxxxxxx)
 export const convertToE164Format = (contactNumber: string): string => {
@@ -72,19 +74,31 @@ export const requestLocationPermission = async (): Promise<boolean> => {
 // Get current position once
 export const getCurrentPositionOnce = async (): Promise<[number, number] | null> => {
     try {
+        console.log("Requesting location permission...");
         const hasPermission = await requestLocationPermission();
         if (!hasPermission) {
             console.warn("Location permission not granted");
+            Alert.alert(
+                "Permission Required",
+                "Please enable location in your settings to use this feature.",
+                [
+                { text: "Cancel", style: "cancel" },
+                { text: "Open Settings", onPress: () => Linking.openSettings() }
+                ]
+            );
             return null;
         }
 
+        console.log("Getting current position...");
         const currentLocation = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.High,
-            distanceInterval: 1
         });
-        return [currentLocation.coords.longitude, currentLocation.coords.latitude];
+        
+        const coords: [number, number] = [currentLocation.coords.longitude, currentLocation.coords.latitude];
+        console.log("Current position obtained:", coords);
+        return coords;
     } catch (error) {
-        console.warn("Error getting current location:", error);
+        console.error("Error getting current location:", error);
         return null;
     }
 }

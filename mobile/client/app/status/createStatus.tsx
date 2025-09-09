@@ -1,6 +1,6 @@
 import CustomImagePicker, { useImagePickerStore } from '@/components/components/CustomImagePicker';
 import Map, { CustomButton, RadioField, TextInputField, ToggleField } from '@/components/components/Map';
-import { formatContactNumber, formatName, isValidContactNumber } from '@/components/helper/commonHelpers';
+import { formatContactNumber, formatName, getCurrentPositionOnce, isValidContactNumber } from '@/components/helper/commonHelpers';
 import { storage } from '@/components/helper/storage';
 import { StatusForm } from '@/components/shared/types/components';
 import { ButtonRadio } from '@/components/ui/CustomRadio';
@@ -19,7 +19,7 @@ export const createStatus = () => {
   const insets = useSafeAreaInsets();
   const { image } = useImagePickerStore();
   const [formErrors, setFormErrors] = useState<Partial<StatusForm>>({});
-  const { coords, setCoords, locationCoords, setLocationCoords } = useCoords();
+  const { coords, setCoords, oneTimeLocationCoords, setOneTimeLocationCoords } = useCoords();
   const savedLocation: [number, number] = [120.7752839, 14.2919325]; // simulate saved location
   // const savedLocation: [number, number] | null = null; // simulate saved location
   const [locationName, setLocationName] = useState<string>('Location Name must be here'); // simulate openCage response
@@ -27,7 +27,7 @@ export const createStatus = () => {
   const [hasUserTappedMap, setHasUserTappedMap] = useState(false); // Track if user has tapped on map
   const [isManualSelection, setIsManualSelection] = useState(false); // Track if user is making manual ButtonRadio selection
   const [isGPSselection, setIsGPSselection] = useState(false); // Track if user has selected GPS option
-  const { coords: gpsCoords, startTracking, stopTracking } = useLocationTracking();
+  const { coords: gpsCoords } = useLocationTracking();
   
   const [statusForm, setStatusForm] = useState<StatusForm>({
     firstName: '',
@@ -66,10 +66,10 @@ export const createStatus = () => {
   useEffect(() => {
     if (gpsCoords) {
       const convertedCoords: [number, number] = [gpsCoords.longitude, gpsCoords.latitude];
-      setLocationCoords(convertedCoords);
+      setOneTimeLocationCoords(convertedCoords);
       console.log('GPS coordinates received and set:', convertedCoords);
     }
-  }, [gpsCoords, setLocationCoords]);
+  }, [gpsCoords, setOneTimeLocationCoords]);
 
   // Update form coordinates and handle default selection priority
   useEffect(() => {
@@ -115,19 +115,19 @@ export const createStatus = () => {
 
   // Handle GPS availability (secondary priority)
   useEffect(() => {
-    if (locationCoords) {
+    if (oneTimeLocationCoords) {
       // If no user tap and no current selection, GPS can be default
       if (!hasUserTappedMap && selectedCoords[0] === 0 && selectedCoords[1] === 0) {
-        setSelectedCoords(locationCoords);
+        setSelectedCoords(oneTimeLocationCoords);
         setStatusForm(prev => ({
           ...prev,
-          lng: locationCoords[0],
-          lat: locationCoords[1]
+          lng: oneTimeLocationCoords[0],
+          lat: oneTimeLocationCoords[1]
         }));
-        console.log('GPS set as default location:', locationCoords);
+        console.log('GPS set as default location:', oneTimeLocationCoords);
       }
     }
-  }, [locationCoords, hasUserTappedMap, selectedCoords]);
+  }, [oneTimeLocationCoords, hasUserTappedMap, selectedCoords]);
 
   // Update image when image picker store changes
   useEffect(() => {
@@ -157,7 +157,8 @@ export const createStatus = () => {
     if (formErrors[field]) {
       setFormErrors(prev => ({
         ...prev,
-        [field]: undefined
+        [field]: undefined,
+        errMessage: '',
       }));
     }
   }, [formErrors]);
@@ -182,6 +183,7 @@ export const createStatus = () => {
       errors.phoneNumber = 'Please enter a valid mobile number';
     }
     if (Object.keys(errors).length > 0) {
+      errors.errMessage = 'Please fill out all required fields.';
       setFormErrors(errors);
       return;
     }
@@ -282,20 +284,29 @@ export const createStatus = () => {
       key: 'location-services',
       label: 'Turn on location',
       icon: <Navigation size={16} color={'white'} />,
-      onPress: () => {
-        // Handle location services
-        console.log('Enable location services');
-        startTracking();
+      onPress: async () => {
+        // Handle one-time location fetch
+        console.log('Fetching current location...');
+        try {
+          const currentCoords = await getCurrentPositionOnce();
+          if (currentCoords) {
+            setOneTimeLocationCoords(currentCoords);
+            console.log('Current location set:', currentCoords);
+          } else {
+            console.warn('Failed to get current location');
+          }
+        } catch (error) {
+          console.error('Error getting current location:', error);
+        }
       }
     }
-  ], [savedLocation, setCoords, startTracking]);
+  ], [savedLocation, setCoords, setOneTimeLocationCoords]);
 
-  // Custom stop tracking function that also clears locationCoords
+  // Custom stop tracking function that also clears oneTimeLocationCoords
   const handleStopTracking = useCallback(() => {
-    stopTracking(); // Stop the GPS tracking
-    setLocationCoords(null); // Clear the GPS coordinates from map
+    setOneTimeLocationCoords(null); // Clear the GPS coordinates from map
     console.log('GPS tracking stopped and coordinates cleared');
-  }, [stopTracking, setLocationCoords]);
+  }, [setOneTimeLocationCoords]);
 
   const handleTapLocationSelect = (value: string | [number, number]) => {
     if (Array.isArray(value) && value.length === 2) {
@@ -336,7 +347,7 @@ export const createStatus = () => {
     <View key="spacer" style={{ marginVertical: 20 }} />,
 
     // Show ButtonRadio choice when user has both tapped location AND GPS available
-    hasUserTappedMap && locationCoords && coords ? (
+    hasUserTappedMap && oneTimeLocationCoords && coords ? (
       <View key="location-options">
         <Text style={{ marginBottom: 10, fontWeight: 'bold' }}>Choose your location:</Text>
         
@@ -355,27 +366,27 @@ export const createStatus = () => {
         <ButtonRadio
           key="gps-location"
           label="Current Location (GPS)"
-          subLabel={locationCoords}
-          value={locationCoords}
-          selectedValue={isGPSselection ? locationCoords : [0, 0]}
+          subLabel={oneTimeLocationCoords}
+          value={oneTimeLocationCoords}
+          selectedValue={isGPSselection ? oneTimeLocationCoords : [0, 0]}
           onSelect={handleGPSLocationSelect}
           style={{ marginBottom: 8 }}
         />
       </View>
     ) : (
       // Show simple coordinate display when only one location source
-      (coords || locationCoords) && (
+      (coords || oneTimeLocationCoords) && (
         <View key="marker-info" style={styles.markerInfoContainer}>
           <Text style={styles.markerInfoTitle}>
             {hasUserTappedMap ? 'Tapped Location:' : 
-             locationCoords && !coords ? 'GPS Location:' : 
+             oneTimeLocationCoords && !coords ? 'GPS Location:' : 
              'Selected Location:'}
           </Text>
           <Text>
             {coords ? 
               `Lat: ${coords[1].toFixed(6)}, Lng: ${coords[0].toFixed(6)}` :
-              locationCoords ? 
-              `Lat: ${locationCoords[1].toFixed(6)}, Lng: ${locationCoords[0].toFixed(6)}` :
+              oneTimeLocationCoords ? 
+              `Lat: ${oneTimeLocationCoords[1].toFixed(6)}, Lng: ${oneTimeLocationCoords[0].toFixed(6)}` :
               'No location selected'
             }
           </Text>
@@ -391,7 +402,7 @@ export const createStatus = () => {
         All information entered here will remain visible to the admin for detailed status tracking.
       </Text>
     </HStack>,
-  ].filter(Boolean), [coords, locationCoords, selectedCoords, handleTapLocationSelect, handleGPSLocationSelect, hasUserTappedMap]);
+  ].filter(Boolean), [coords, oneTimeLocationCoords, selectedCoords, handleTapLocationSelect, handleGPSLocationSelect, hasUserTappedMap]);
 
   return (
     <Body style={[
@@ -416,13 +427,16 @@ export const createStatus = () => {
           label: 'Submit',
           onPress: handleSubmit,
         }}
-        // onLocationClear={() => {
-        //   setStatusForm(prev => ({
-        //     ...prev,
-        //     lat: null,
-        //     lng: null
-        //   }));
-        // }}
+        onLocationClear={() => {
+          setStatusForm(prev => ({
+            ...prev,
+            lat: null,
+            lng: null
+          }));
+
+          setCoords(null);
+        }}
+        errMessage={formErrors.errMessage || ''}
       />
     </Body>
   );

@@ -64,6 +64,7 @@ export interface MapNewProps {
   textInputFields?: TextInputField[];
   radioFields?: RadioField[];
   toggleFields?: ToggleField[];
+  errMessage?: string;
   
   // Custom components
   customComponents?: React.ReactNode[];
@@ -128,10 +129,10 @@ const Map = ({
   stopTracking,
   snapPoints = ['14%', '90%'],
   onLocationClear,
+  errMessage = '',
 }: MapNewProps) => {
     const { setIsVisible } = useMapButtonStore();
-    const { coords, mapContainer, locationCoords } = useMap();
-    const { setCoords, setLocationCoords } = useCoords();
+    const { coords, mapContainer, oneTimeLocationCoords } = useMap();
     const { isDark } = useTheme();
     const [bottomSheetEnabled, setBottomSheetEnabled] = React.useState(false);
 
@@ -140,24 +141,24 @@ const Map = ({
     // Single useMemo that handles all snap point logic
     const memoizedSnapPoints = useMemo(() => {
       // If both coordinates exist, use larger initial height
-      if (coords && locationCoords) {
+      if (coords && oneTimeLocationCoords) {
         return ['20%', '90%'];
       }
       // If only one or no coordinates, use default
       return snapPoints;
-    }, [coords, locationCoords, snapPoints]);
+    }, [coords, oneTimeLocationCoords, snapPoints]);
 
     // Memoize computed values to prevent unnecessary re-renders
     const textValueColor = useMemo(() => isDark ? Colors.text.dark : Colors.text.light, [isDark]);
 
     // Control bottom sheet enabled state based on coords
     React.useEffect(() => {
-      if (coords || locationCoords) {
+      if (coords || oneTimeLocationCoords) {
         setBottomSheetEnabled(true);
       } else {
         setBottomSheetEnabled(false);
       }
-    }, [coords, locationCoords]);
+    }, [coords, oneTimeLocationCoords]);
 
     // Bottom Sheet callbacks
     const handleSheetChanges = useCallback((index: number) => {
@@ -173,15 +174,13 @@ const Map = ({
 
     const handleLocationClear = useCallback(() => {
         bottomSheetRef.current?.snapToIndex(0);
-        setCoords(null);
         onLocationClear?.();
-    }, [setCoords, onLocationClear]);
+    }, [onLocationClear]);
 
-    const handleStopTrackingClear = useCallback(() => {
+    const handleClearOneTimeLocation = useCallback(() => {
         bottomSheetRef.current?.snapToIndex(0);
-        setLocationCoords(null);
         stopTracking?.();
-    }, [setLocationCoords, stopTracking]);
+    }, [stopTracking]);
 
     const handleInputFocus = useCallback(() => {
         // Only expand bottom sheet when input is focused if there's a marker coordinate
@@ -192,7 +191,7 @@ const Map = ({
 
     const renderActionContents = useCallback(() => {
       // Show both coordinates if both are available
-      if (coords && locationCoords) {
+      if (coords && oneTimeLocationCoords) {
         return (
           <VStack space="md" style={{ width: '100%' }}>
             {/* Tapped Location */}
@@ -214,13 +213,13 @@ const Map = ({
               <HStack style={styles.head}>
                 <VStack>
                   <Text size='md'>{locationDisplayLabel}</Text>
-                  {showCoordinates && locationCoords && (
+                  {showCoordinates && oneTimeLocationCoords && (
                     <Text emphasis='light' size='sm'>
-                      {`${locationCoords[1].toFixed(6)}, ${locationCoords[0].toFixed(6)}`}
+                      {`${oneTimeLocationCoords[1].toFixed(6)}, ${oneTimeLocationCoords[0].toFixed(6)}`}
                     </Text>
                   )}
                 </VStack>
-                <Button width='fit' style={{ width: 'auto' }} action={"error"} onPress={handleStopTrackingClear || (() => {})}>
+                <Button width='fit' style={{ width: 'auto' }} action={"error"} onPress={handleClearOneTimeLocation || (() => {})}>
                     <Text>Stop</Text>
                 </Button>
             </HStack>
@@ -247,19 +246,19 @@ const Map = ({
         )
       } 
 
-      // Show only GPS coordinates if only locationCoords is available
-      if (locationCoords) {
+      // Show only GPS coordinates if only oneTimeLocationCoords is available
+      if (oneTimeLocationCoords) {
         return (
           <HStack style={styles.head}>
             <VStack>
               <Text size='md'>{locationDisplayLabel}</Text>
-              {showCoordinates && locationCoords && (
+              {showCoordinates && oneTimeLocationCoords && (
                 <Text emphasis='light' size='sm'>
-                  {`${locationCoords[1].toFixed(6)}, ${locationCoords[0].toFixed(6)}`}
+                  {`${oneTimeLocationCoords[1].toFixed(6)}, ${oneTimeLocationCoords[0].toFixed(6)}`}
                 </Text>
               )}
             </VStack>
-            <Button width='fit' style={{ width: 'auto' }} action={"error"} onPress={handleStopTrackingClear || (() => {})}>
+            <Button width='fit' style={{ width: 'auto' }} action={"error"} onPress={handleClearOneTimeLocation || (() => {})}>
                 <Text>Stop</Text>
             </Button>
           </HStack>
@@ -286,7 +285,7 @@ const Map = ({
         </>
       )
 
-    }, [stopTracking, coords, locationCoords, label, quickActionButtons, locationDisplayLabel, showCoordinates, handleLocationClear]);
+    }, [stopTracking, coords, oneTimeLocationCoords, label, quickActionButtons, locationDisplayLabel, showCoordinates, handleLocationClear]);
 
   return (
     <>
@@ -311,7 +310,7 @@ const Map = ({
               }}
               handleComponent={() => (
                   <View style={styles.handleContainer}>
-                      {(coords || locationCoords) && (
+                      {(coords || oneTimeLocationCoords) && (
                           <View style={[
                               styles.defaultHandle,
                               {
@@ -334,10 +333,10 @@ const Map = ({
               </VStack>
 
               {/* Dynamic Form Content */}
-              {(coords || locationCoords) && (
+              {(coords || oneTimeLocationCoords) && (
                 <VStack style={styles.bottomSheetForm}>
                   {/* Custom Title */}
-                  {title && (coords || locationCoords) && (
+                  {title && (coords || oneTimeLocationCoords) && (
                     <Text size='lg' style={[styles.bottomSheetTitle, titleStyle]}>
                       {title}
                     </Text>
@@ -426,6 +425,8 @@ const Map = ({
                       />
                     </View>
                   ))}
+
+                  <Text style={{ color: Colors.semantic.error, marginVertical: 8, textAlign: 'center', }}>{errMessage}</Text>
 
                   {/* Primary Action Button */}
                   {primaryButton && (
