@@ -33,6 +33,7 @@ export const navigateToBarangayForm = () => {
     console.log("🧭 Navigating to barangay form");
     console.log("🧭 Route:", ROUTES.AUTH.BARANGAY_FORM);
     router.replace(ROUTES.AUTH.BARANGAY_FORM);
+    return;
   } catch (error) {
     console.error("❌ Error navigating to barangay form:", error);
   }
@@ -43,6 +44,7 @@ export const navigateToNameAndContactForm = () => {
     console.log("🧭 Navigating to name and contact form");
     console.log("🧭 Route:", ROUTES.AUTH.NAME_AND_CONTACT_FORM);
     router.replace(ROUTES.AUTH.NAME_AND_CONTACT_FORM);
+    return;
   } catch (error) {
     console.error("❌ Error navigating to name and contact form:", error);
   }
@@ -113,6 +115,18 @@ export const handleAuthNavigation = async (user: any) => {
           hasPhoneNumber: !!userData?.phoneNumber,
           phoneNumberValue: userData?.phoneNumber
         });
+
+        if (!barangayData) {
+          console.log("❌ User is missing barangay information");
+          navigateToBarangayForm();
+          return;
+        }
+
+        if (!userData?.phoneNumber) {
+          console.log("❌ User is missing phone number information");
+          navigateToNameAndContactForm();
+          return;
+        }
 
         console.log("✅ User has complete data - going to tabs");
         navigateToTabs(); // uncomment this after

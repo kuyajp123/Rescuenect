@@ -9,11 +9,12 @@ import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { useCoords } from '@/contexts/MapContext';
-import useLocationTracking from '@/hooks/useLocationTracking';
 import { Bookmark, Info, Navigation } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import axios from 'axios';
+import { useAuth } from '@/components/store/useAuth';
 
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
@@ -27,12 +28,13 @@ export const createStatus = () => {
   const [hasUserTappedMap, setHasUserTappedMap] = useState(false); // Track if user has tapped on map
   const [isManualSelection, setIsManualSelection] = useState(false); // Track if user is making manual ButtonRadio selection
   const [isGPSselection, setIsGPSselection] = useState(false); // Track if user has selected GPS option
-  const { coords: gpsCoords } = useLocationTracking();
+  const { authUser } = useAuth();
   
   const [statusForm, setStatusForm] = useState<StatusForm>({
+    uid: authUser?.uid || '',
     firstName: '',
     lastName: '',
-    status: '',
+    statusType: '',
     phoneNumber: '',
     lat: null,
     lng: null,
@@ -41,6 +43,7 @@ export const createStatus = () => {
     note: '',
     shareLocation: true,
     shareContact: true,
+    created_at: new Date().toISOString(),
   });
 
   const getStorage = async () => {
@@ -61,15 +64,6 @@ export const createStatus = () => {
     });
 
   }, []);
-
-  // Update locationCoords when GPS coordinates are received
-  useEffect(() => {
-    if (gpsCoords) {
-      const convertedCoords: [number, number] = [gpsCoords.longitude, gpsCoords.latitude];
-      setOneTimeLocationCoords(convertedCoords);
-      console.log('GPS coordinates received and set:', convertedCoords);
-    }
-  }, [gpsCoords, setOneTimeLocationCoords]);
 
   // Update form coordinates and handle default selection priority
   useEffect(() => {
@@ -163,7 +157,7 @@ export const createStatus = () => {
     }
   }, [formErrors]);
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     // Validate form
     const errors: Partial<StatusForm> = {};
     
@@ -173,8 +167,8 @@ export const createStatus = () => {
     if (!statusForm.lastName.trim()) {
       errors.lastName = 'Last name is required';
     }
-    if (!statusForm.status) {
-      errors.status = 'Status is required';
+    if (!statusForm.statusType) {
+      errors.statusType = 'Status is required';
     }
     if (!statusForm.phoneNumber.trim()) {
       errors.phoneNumber = 'Phone number is required';
@@ -191,6 +185,14 @@ export const createStatus = () => {
     // Submit form data
     console.log('Submitting status form:', statusForm);
     // Here you would typically send the data to your backend
+
+    // try {
+    //   const response = await axios.post(`${process.env.EXPO_PUBLIC_BACKEND_URL}/createStatus`, statusForm);
+    //   console.log('Form submitted successfully:', response.data);
+    // } catch (error) {
+    //   console.error('Error submitting form:', error);
+    //   throw new Error('Error submitting form: ' + error);
+    // }
   }, [statusForm]);
 
   // Define text input fields
@@ -242,11 +244,11 @@ export const createStatus = () => {
         { label: 'Affected', value: 'affected' },
         { label: 'Missing', value: 'missing' },
       ],
-      selectedValue: statusForm.status,
-      onSelect: (value) => handleInputChange('status', value),
-      errorText: formErrors.status,
+      selectedValue: statusForm.statusType,
+      onSelect: (value) => handleInputChange('statusType', value),
+      errorText: formErrors.statusType,
     },
-  ], [statusForm.status, formErrors.status, handleInputChange]);
+  ], [statusForm.statusType, formErrors.statusType, handleInputChange]);
 
   // Define toggle fields
   const toggleFields: ToggleField[] = useMemo(() => [

@@ -43,6 +43,8 @@ export const Button = ({
     widthStyle = 'w-auto';
   } else if (width === 'fit') {
     widthStyle = 'w-fit';
+  } else if (width === 'full') {
+    widthStyle = 'w-full';
   }
 
   let baseStyle = ` ${widthStyle} px-4 ${sizeStyle} flex-row items-center justify-${justify} gap-1 rounded-lg font-semibold`;

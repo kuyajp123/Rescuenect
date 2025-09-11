@@ -15,8 +15,8 @@ export class SignInModel {
                 const userData = {
                     uid: data.uid,
                     email: data.email,
-                    firstName: data.familyName,
-                    lastName: data.givenName || '',
+                    firstName: data.givenName,
+                    lastName: data.familyName || '',
                     name: data.name,
                     photo: data.photo,
                     createdAt: new Date(),

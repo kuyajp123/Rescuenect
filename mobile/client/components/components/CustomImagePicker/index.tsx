@@ -102,6 +102,7 @@ export const index = ({ id = 'image-picker-actionSheet' }: CustomImagePickerProp
       )}
       
       <Button 
+        width='fit'
         onPress={() => {
           console.log('Button pressed, trying to show ActionSheet with id:', id);
           const sheet = require("react-native-actions-sheet").SheetManager;

@@ -81,10 +81,11 @@ export type FiveDaysForecastProps = {
 }
 
 export type StatusForm = {
+    uid: string;
     firstName: string;
     lastName: string;
     phoneNumber: string;
-    status: string;
+    statusType: string;
     lat: number | null;
     lng: number | null;
     loc?: string | null;
@@ -92,5 +93,6 @@ export type StatusForm = {
     image: string;
     shareLocation: boolean;
     shareContact: boolean;
+    created_at: string;
     errMessage?: string;
 };
