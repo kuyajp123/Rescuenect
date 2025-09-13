@@ -17,7 +17,6 @@ export class SignInModel {
                     email: data.email,
                     firstName: data.givenName,
                     lastName: data.familyName || '',
-                    name: data.name,
                     photo: data.photo,
                     createdAt: new Date(),
                     updatedAt: new Date(),

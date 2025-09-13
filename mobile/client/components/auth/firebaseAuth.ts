@@ -2,7 +2,7 @@ import { auth } from '@/lib/firebaseConfig';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useAuth } from '@/components/store/useAuth';
-import { handleAuthNavigation, handleSignOutNavigation } from './navigation';
+import { handleAuthNavigation, handleSignOutNavigation } from '@/components/navigations/navigation';
 
 // Configure Google Sign-In
 export const configureGoogleSignIn = () => {
@@ -29,6 +29,8 @@ export const setupAuthListener = (): Promise<void> => {
         // Update the centralized auth store
         useAuth.getState().setAuthUser(user);
         useAuth.getState().setLoading(false);
+
+        console.log("🔔 Auth state changed", JSON.stringify(user, null, 2));
         
         // Handle navigation based on auth state
         if (user) {

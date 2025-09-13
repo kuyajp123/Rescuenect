@@ -9,6 +9,7 @@ import { convertToE164Format } from '@/components/helper/commonHelpers';
 import { useAuth } from "@/components/store/useAuth";
 import { navigateToBarangayForm, navigateToNameAndContactForm } from "./navigation";
 
+
 interface UserState {
   newUser: boolean | null;
   setNewUser: (user: boolean | null) => void;
@@ -43,7 +44,6 @@ export const handleGoogleSignIn = async (
         email: userInfo.data?.user.email,
         familyName: userInfo.data?.user.familyName,
         givenName: userInfo.data?.user.givenName,
-        name: userInfo.data?.user.name,
         photo: userInfo.data?.user.photo,
       }
     });
@@ -64,17 +64,12 @@ export const handleGoogleSignIn = async (
     });
 
     // Set user state BEFORE Firebase auth to avoid race condition
-    if (response.data.isNewUser) {
-      setNewUser?.(true);
-    } else {
-      setNewUser?.(false);
-    }
-
+    
     // Sign in to Firebase with custom token FIRST
     await signInWithCustomToken(auth, response.data.token);
     await auth.currentUser?.reload();
     console.log("✅ Firebase authentication successful");
-
+    
     // Now handle navigation and data saving AFTER authentication
     if (response.data.isNewUser) {
       // New users will be handled by the auth state listener
@@ -107,7 +102,7 @@ export const handleGoogleSignIn = async (
         if (response.data.user.barangay) {
           await storage.set('@barangay', response.data.user.barangay);
         }
-
+        
         if (!hasBarangay) {
           console.log("❌ User is missing barangay information");
           navigateToBarangayForm();
@@ -126,6 +121,12 @@ export const handleGoogleSignIn = async (
       } else {
         console.warn("⚠️ No user data received from backend");
       }
+    }
+    
+    if (response.data.isNewUser) {
+      setNewUser?.(true);
+    } else {
+      setNewUser?.(false);
     }
     
     setLoading?.(false);
@@ -161,9 +162,15 @@ export const handleLogout = async () => {
     await auth.signOut();
     console.log("✅ Firebase sign out successful");
     
+    const isSignedIn = await GoogleSignin.getCurrentUser();
+
     // Sign out from Google
-    await GoogleSignin.revokeAccess();
-    await GoogleSignin.signOut();
+    if (isSignedIn) {
+      console.log("🔄 User is signed in with Google, proceeding to sign out");
+      await GoogleSignin.revokeAccess();
+      await GoogleSignin.signOut();
+    }
+
     console.log("✅ Google sign out successful");
     
     Alert.alert("Logged Out", "You have been logged out successfully.");

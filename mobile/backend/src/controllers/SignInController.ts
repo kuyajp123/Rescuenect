@@ -54,7 +54,6 @@ export class SignInController {
                 email: payload.email,
                 givenName: payload.given_name || user?.givenName,
                 familyName: payload.family_name || user?.familyName,
-                name: payload.name || user?.name,
                 photo: payload.picture || user?.photo,
                 barangay: user?.barangay || null,
                 phoneNumber: user?.phoneNumber || null

@@ -1,13 +1,12 @@
-import { handleGoogleSignIn } from "@/components/helper/auth";
+// import { handleGoogleSignIn } from "@/components/helper/auth";
+import { handleGoogleSignIn } from '@/components/auth/auth';
 import { LoadingOverlay } from "@/components/ui/loading/LoadingOverlay";
 import { useLoading } from "@/hooks/useLoading";
-import { useNewUser } from "@/components/helper/auth";
 import React from "react";
 import { GoogleButtonComponent } from "./Button";
 
 const GoogleButton = () => {
   const { isLoading, setIsLoading } = useLoading();
-  const { setNewUser } = useNewUser();
 
   const handleSignIn = async () => {
     console.log("🔘 GoogleButton: Button pressed, starting sign-in");
@@ -18,7 +17,7 @@ const GoogleButton = () => {
     });
     
     try {
-      await handleGoogleSignIn(setIsLoading, setNewUser);
+      await handleGoogleSignIn(setIsLoading);
     } catch (error) {
       console.error("🔘 GoogleButton: Error in handleSignIn:", error);
     }

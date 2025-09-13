@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useNewUser } from './auth';
 import { storage } from './storage';
+import { handleLogout } from './auth';
 
 // Direct route constants to avoid import issues
 const ROUTES = {
@@ -174,10 +175,12 @@ export const handleGuestNavigation = async () => {
       navigateToTabs();
     } else {
       console.log("❌ No saved data");
+      await handleLogout();
       navigateToSignIn();
     }
   } catch (error) {
     console.error('❌ Error loading saved data:', error);
+    await handleLogout();
     navigateToSignIn();
   }
 };

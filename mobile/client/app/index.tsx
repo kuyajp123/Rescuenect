@@ -1,7 +1,8 @@
 import { storage } from '@/components/helper/storage';
-import { loadUserAuth } from '@/components/helper/topLevelHelpers';
+import { initializeAuth } from '@/components/auth/firebaseAuth';
 import SplashScreen from '@/components/ui/loading/SplashScreen';
 import { useEffect, useState } from 'react';
+import { handleLogout } from '@/components/auth/auth';
 
 const Index = () => {
   const [loading, setLoading] = useState(true);
@@ -10,24 +11,21 @@ const Index = () => {
     // storage.clear(); // Clear AsyncStorage for testing purposes
     // handleLogout();
 
-    const getStorage = async () => {
-      const user = await storage.get('@user');
-      const barangay = await storage.get('@barangay');
-      console.log('Stored user:', user);
-      console.log('Stored barangay:', barangay);
-    }
-
-    const initializeAuth = async () => {
-      try {
-        await loadUserAuth();
-      } catch (error) {
-      } finally {
-        setLoading(false);
-      }
-    };
+    // const initializeAuth = async () => {
+    //   try {
+    //     await loadUserAuth();
+    //   } catch (error) {
+    //   } finally {
+    //     setLoading(false);
+    //   }
+    // };
     
-    initializeAuth();
-    getStorage();
+    // initializeAuth();
+
+    (() => {
+      // handleLogout();
+      initializeAuth().finally(() => setLoading(false));
+    })();
   }, []);
 
   if (loading) {
