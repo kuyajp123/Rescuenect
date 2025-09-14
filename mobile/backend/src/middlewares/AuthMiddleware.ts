@@ -3,24 +3,28 @@ import { NextFunction, Request, Response } from 'express';
 
 export class AuthMiddleware {
   static async verifyToken(req: Request, res: Response, next: NextFunction) {
-    const idToken = req.body.idToken;
+    const authHeader = req.headers.authorization;
+
+    console.log("Authorization header:", req.headers.authorization);
     
-    if (!idToken) {
-      res.status(401).send('token not provided');
-      return;
-    }
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).send("Unauthorized");
+    } 
+
+    const idToken = authHeader.split(" ")[1];
 
     try {
-      const decoded = await admin.auth().verifyIdToken(idToken);
-      if (!decoded) {
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      if (!decodedToken) {
           res.status(401).json({ message: "Unauthorized" });
           return;
       }
 
-      req.body.uid = decoded.sub;
       next();
     } catch (error) {
       res.status(401).json({ message: "Invalid or expired token" });
+      console.error("Token verification error:", error);
+      next(error);
     }
   }
 }

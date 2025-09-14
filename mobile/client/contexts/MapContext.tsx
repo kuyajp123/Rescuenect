@@ -16,9 +16,11 @@ interface CoordsState {
     coords: coordTypes;
     locationCoords: coordTypes;
     oneTimeLocationCoords: coordTypes;
+    followUserLocation?: boolean;
     setCoords: (coords: coordTypes) => void;
     setLocationCoords: (coords: coordTypes) => void;
     setOneTimeLocationCoords: (coords: coordTypes) => void;
+    setFollowUserLocation: (follow: boolean) => void;
 }
 
 export const useCoords = create<CoordsState>((set) => ({
@@ -26,9 +28,11 @@ export const useCoords = create<CoordsState>((set) => ({
     // locationCoords: [120.788432, 14.303068],
     locationCoords: null,
     oneTimeLocationCoords: null,
+    followUserLocation: false,
     setCoords: (coords) => set({ coords }),
     setLocationCoords: (coords) => set({ locationCoords: coords }),
     setOneTimeLocationCoords: (coords) => set({ oneTimeLocationCoords: coords }),
+    setFollowUserLocation: (follow) => set({ followUserLocation: follow }),
 }));
 
 type MapContextType = {
@@ -50,7 +54,7 @@ const MapContext = createContext<MapContextType | undefined>(undefined);
 export const MapProvider = ({ children }: MapProviderProps) => {
   const mapRef = useRef<MapboxGL.MapView | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
-  const { coords, oneTimeLocationCoords, setCoords } = useCoords();
+  const { coords, oneTimeLocationCoords, setCoords, followUserLocation } = useCoords();
   const [mapStyle, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
   const [showMapStyles, setShowMapStyles] = useState(false);
   const { isVisible } = useMapButtonStore();
@@ -87,6 +91,8 @@ export const MapProvider = ({ children }: MapProviderProps) => {
   const toggleMapStyles = useCallback(() => {
     setShowMapStyles(prev => !prev);
   }, []);
+
+
 
     // Function that triggers when user presses the map
     const handlePress = useCallback((event: any) => {
@@ -142,6 +148,8 @@ export const MapProvider = ({ children }: MapProviderProps) => {
                 animationDuration={300}
                 minZoomLevel={11}
                 maxZoomLevel={20}
+                followUserLocation={followUserLocation}
+                followZoomLevel={16}
                 // maxBounds={{
                 //   ne: [120.8739, 14.3628],
                 //   sw: [120.6989, 14.2214],
@@ -269,7 +277,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
             )}
         </View>
     );
-  }, [handlePress, coords, oneTimeLocationCoords, mapStyle, showMapStyles, isDark, isVisible]);
+  }, [handlePress, coords, oneTimeLocationCoords, mapStyle, showMapStyles, isDark, isVisible, followUserLocation]);
 
     const value = {
         isMapReady,

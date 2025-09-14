@@ -1,11 +1,12 @@
 import { db } from '@/db/firebaseConfig'
 
 export class SignInModel {
+    private static userRef = (uid: string) => db.collection('users').doc(uid);
+
     static async signInUser(uid: string, data: any): Promise<any | null> {
-        const userRef = db.collection('users').doc(uid);
 
         try {
-            const userDoc = await userRef.get();
+            const userDoc = await this.userRef(uid).get();
             if (userDoc.exists) {
                 return {
                     id: userDoc.id,
@@ -22,9 +23,9 @@ export class SignInModel {
                     updatedAt: new Date(),
                 };
 
-                await userRef.set(userData, { merge: true });
+                await this.userRef(uid).set(userData, { merge: true });
                 return {
-                    id: userRef.id,
+                    id: uid,
                     ...userData
                 };
             }
@@ -35,10 +36,9 @@ export class SignInModel {
     }
 
     static async saveBarangay(uid: string, barangay: string): Promise<void> {
-        const userRef = db.collection('users').doc(uid);
 
        try {
-            await userRef.set({ barangay }, { merge: true });
+            await this.userRef(uid).set({ barangay }, { merge: true });
         } catch (error: Error | any) {
             console.error("Error saving barangay:", error);
             throw new Error("Failed to save barangay");
@@ -46,10 +46,9 @@ export class SignInModel {
     }
 
     static async saveUserInfo(uid: string, data: any): Promise<void> {
-        const userRef = db.collection('users').doc(uid);
 
         try {
-            await userRef.set(data, { merge: true });
+            await this.userRef(uid).set(data, { merge: true });
         } catch (error: Error | any) {
             console.error("Error saving user info:", error);
             throw new Error("Failed to save user info");

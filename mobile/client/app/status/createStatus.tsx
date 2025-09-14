@@ -15,12 +15,13 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import axios from 'axios';
 import { useAuth } from '@/components/store/useAuth';
+import { LoadingOverlay } from '@/components/ui/loading/LoadingOverlay';
 
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
   const { image } = useImagePickerStore();
   const [formErrors, setFormErrors] = useState<Partial<StatusForm>>({});
-  const { coords, setCoords, oneTimeLocationCoords, setOneTimeLocationCoords } = useCoords();
+  const { coords, setCoords, oneTimeLocationCoords, setOneTimeLocationCoords, setFollowUserLocation } = useCoords();
   const savedLocation: [number, number] = [120.7752839, 14.2919325]; // simulate saved location
   // const savedLocation: [number, number] | null = null; // simulate saved location
   const [locationName, setLocationName] = useState<string>('Location Name must be here'); // simulate openCage response
@@ -29,6 +30,7 @@ export const createStatus = () => {
   const [isManualSelection, setIsManualSelection] = useState(false); // Track if user is making manual ButtonRadio selection
   const [isGPSselection, setIsGPSselection] = useState(false); // Track if user has selected GPS option
   const { authUser } = useAuth();
+  const [submitStatusLoading, setSubmitStatusLoading] = useState(false);
   
   const [statusForm, setStatusForm] = useState<StatusForm>({
     uid: authUser?.uid || '',
@@ -43,7 +45,6 @@ export const createStatus = () => {
     note: '',
     shareLocation: true,
     shareContact: true,
-    created_at: new Date().toISOString(),
   });
 
   const getStorage = async () => {
@@ -131,6 +132,11 @@ export const createStatus = () => {
     }));
   }, [image]);
 
+  useEffect(() => {
+    setOneTimeLocationCoords(null);
+    setFollowUserLocation(false);
+  }, [])
+
   const handleInputChange = useCallback((field: keyof StatusForm, value: string | boolean) => {
     if (field === 'phoneNumber' && typeof value === 'string') {
       value = formatContactNumber(value);
@@ -186,13 +192,17 @@ export const createStatus = () => {
     console.log('Submitting status form:', statusForm);
     // Here you would typically send the data to your backend
 
-    // try {
-    //   const response = await axios.post(`${process.env.EXPO_PUBLIC_BACKEND_URL}/createStatus`, statusForm);
-    //   console.log('Form submitted successfully:', response.data);
-    // } catch (error) {
-    //   console.error('Error submitting form:', error);
-    //   throw new Error('Error submitting form: ' + error);
-    // }
+    try {
+      setSubmitStatusLoading(true);
+      const response = await axios.post(`${process.env.EXPO_PUBLIC_BACKEND_URL}/createStatus`, statusForm);
+      console.log('Form submitted successfully:', response.data);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setSubmitStatusLoading(false);
+      throw new Error('Error submitting form: ' + error);
+    } finally {
+      setSubmitStatusLoading(false);
+    }
   }, [statusForm]);
 
   // Define text input fields
@@ -224,7 +234,7 @@ export const createStatus = () => {
     {
       key: 'note',
       label: 'Leave a Note',
-      placeholder: 'Enter your Note',
+      placeholder: 'Enter some Note',
       value: statusForm.note,
       onChangeText: (text) => handleInputChange('note', text),
       multiline: true,
@@ -294,6 +304,7 @@ export const createStatus = () => {
           if (currentCoords) {
             setOneTimeLocationCoords(currentCoords);
             console.log('Current location set:', currentCoords);
+            setFollowUserLocation(true); // Start following user location on map
           } else {
             console.warn('Failed to get current location');
           }
@@ -302,13 +313,14 @@ export const createStatus = () => {
         }
       }
     }
-  ], [savedLocation, setCoords, setOneTimeLocationCoords]);
+  ], [savedLocation, setCoords, setOneTimeLocationCoords, setFollowUserLocation]);
 
   // Custom stop tracking function that also clears oneTimeLocationCoords
   const handleStopTracking = useCallback(() => {
     setOneTimeLocationCoords(null); // Clear the GPS coordinates from map
+    setFollowUserLocation(false); // Stop following user location on map
     console.log('GPS tracking stopped and coordinates cleared');
-  }, [setOneTimeLocationCoords]);
+  }, [setOneTimeLocationCoords, setFollowUserLocation]);
 
   const handleTapLocationSelect = (value: string | [number, number]) => {
     if (Array.isArray(value) && value.length === 2) {
@@ -380,8 +392,8 @@ export const createStatus = () => {
       (coords || oneTimeLocationCoords) && (
         <View key="marker-info" style={styles.markerInfoContainer}>
           <Text style={styles.markerInfoTitle}>
-            {hasUserTappedMap ? 'Tapped Location:' : 
-             oneTimeLocationCoords && !coords ? 'GPS Location:' : 
+            {coords ? 'Location:' : 
+             oneTimeLocationCoords ? 'GPS Location:' : 
              'Selected Location:'}
           </Text>
           <Text>
@@ -407,40 +419,47 @@ export const createStatus = () => {
   ].filter(Boolean), [coords, oneTimeLocationCoords, selectedCoords, handleTapLocationSelect, handleGPSLocationSelect, hasUserTappedMap]);
 
   return (
-    <Body style={[
-      styles.container,
-      {
-        paddingTop: insets.top,
-        paddingBottom: insets.bottom,
-      }
-    ]}>
-      <Map 
-        title="Let us know your status during disaster!"
-        label="Tap the map to pin a marker"
-        locationDisplayLabel="Your selected location"
-        showCoordinates={true}
-        textInputFields={textInputFields}
-        radioFields={radioFields}
-        toggleFields={toggleFields}
-        customComponents={customComponents}
-        quickActionButtons={quickActionButtons}
-        stopTracking={handleStopTracking}
-        primaryButton={{
-          label: 'Submit',
-          onPress: handleSubmit,
-        }}
-        onLocationClear={() => {
-          setStatusForm(prev => ({
-            ...prev,
-            lat: null,
-            lng: null
-          }));
+    <>
+      <Body style={[
+        styles.container,
+        {
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+        }
+      ]}>
+        <Map 
+          title="Let us know your status during disaster!"
+          label="Tap the map to pin a marker"
+          locationDisplayLabel="Your selected location"
+          showCoordinates={true}
+          textInputFields={textInputFields}
+          radioFields={radioFields}
+          toggleFields={toggleFields}
+          customComponents={customComponents}
+          quickActionButtons={quickActionButtons}
+          stopTracking={handleStopTracking}
+          primaryButton={{
+            label: 'Submit',
+            onPress: handleSubmit,
+          }}
+          onLocationClear={() => {
+            setStatusForm(prev => ({
+              ...prev,
+              lat: null,
+              lng: null
+            }));
 
-          setCoords(null);
-        }}
-        errMessage={formErrors.errMessage || ''}
+            setCoords(null);
+            setHasUserTappedMap(false);
+          }}
+          errMessage={formErrors.errMessage || ''}
+        />
+      </Body>
+      <LoadingOverlay 
+        visible={submitStatusLoading} 
+        message="Saving your status..." 
       />
-    </Body>
+    </>
   );
 }
 

@@ -1,6 +1,7 @@
 import { useBackendResponse, handleLogout } from '@/components/auth/auth';
 import { storage } from '@/components/helper/storage';
 import { navigateToBarangayForm, navigateToNameAndContactForm, navigateToSignIn, navigateToTabs } from '@/components/routes/route';
+import { useAuth } from '../store/useAuth';
 
 export const handleAuthNavigation = async (user: any) => {
 
@@ -87,13 +88,19 @@ export const handleGuestNavigation = async () => {
       savedUser: !!savedUser 
     });
 
-    if (savedBarangay && savedUser) {
-      console.log("✅ Found saved data");
-      navigateToTabs();
-    } else {
-      console.log("❌ No saved data");
-      navigateToSignIn();
+    if (!savedBarangay) {
+        console.log("❌ User is missing barangay information");
+        navigateToBarangayForm();
+        return;
     }
+
+    if (!savedUser) {
+        console.log("❌ User is missing phone number information");
+        navigateToNameAndContactForm();
+        return;
+    }
+
+    navigateToTabs();
   } catch (error) {
     console.error('❌ Error loading saved data:', error);
     await handleLogout();

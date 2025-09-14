@@ -93,6 +93,5 @@ export type StatusForm = {
     image: string;
     shareLocation: boolean;
     shareContact: boolean;
-    created_at: string;
     errMessage?: string;
 };

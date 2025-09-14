@@ -96,6 +96,15 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
           code: error.code,
           toString: error.toString()
         });
+
+        const isSignedIn = await GoogleSignin.getCurrentUser();
+
+        // Sign out from Google
+        if (isSignedIn) {
+          console.log("🔄 User is signed in with Google, proceeding to sign out");
+          await GoogleSignin.revokeAccess();
+          await GoogleSignin.signOut();
+        }
         
         // Show user-friendly error
         Alert.alert(

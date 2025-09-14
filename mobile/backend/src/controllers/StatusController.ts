@@ -15,4 +15,20 @@ export class StatusController {
             // next(error);
         }
     }
+
+    static async getStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+        const uid = req.params.uid;
+
+        try {
+            const status = await StatusModel.getStatusByUid(uid);
+            if (status) {
+                res.status(200).json({ message: 'Status fetched successfully', data: status });
+            } else {
+                res.status(404).json({ message: 'Status not found' });
+            }
+        } catch (error: any) {
+            res.status(500).json({ message: 'Failed to fetch status', error: error.message });
+            console.error('Status fetching error:', error);
+        }
+    }
 }

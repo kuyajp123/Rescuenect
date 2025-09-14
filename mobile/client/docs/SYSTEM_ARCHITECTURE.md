@@ -46,14 +46,14 @@ RescueNect is a comprehensive disaster risk management system designed for commu
                              ▼                 ▼
     ┌─────────────────────────────────────────────────────────────────────────────┐
     │                         ADMIN WEB APP                                       │
-    │  ┌─────────────┐                                        ┌─────────────┐    │
-    │  │ React.js    │                                        │ Node.js     │    │
-    │  │ Frontend    │◄──────────────────────────────────────►│ Backend     │    │
-    │  │             │                                        │             │    │
-    │  │ - Dashboard │                                        │ - API Mgmt  │    │
-    │  │ - Alerts    │                                        │ - Data Proc │    │
-    │  │ - Map View  │                                        │ - Auth      │    │
-    │  └─────────────┘                                        └─────────────┘    │
+    │  ┌─────────────┐                                        ┌─────────────┐     │
+    │  │ React.js    │                                        │ Node.js     │     │
+    │  │ Frontend    │◄──────────────────────────────────────►│ Backend     │     │
+    │  │             │                                        │             │     │
+    │  │ - Dashboard │                                        │ - API Mgmt  │     │
+    │  │ - Alerts    │                                        │ - Data Proc │     │
+    │  │ - Map View  │                                        │ - Auth      │     │
+    │  └─────────────┘                                        └─────────────┘     │
     └─────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
@@ -74,15 +74,15 @@ RescueNect is a comprehensive disaster risk management system designed for commu
                                       ▼
     ┌─────────────────────────────────────────────────────────────────────────────┐
     │                       CLIENT MOBILE APP                                     │
-    │  ┌─────────────┐                                        ┌─────────────┐    │
-    │  │ React Native│                                        │ Node.js     │    │
-    │  │ + Expo      │◄──────────────────────────────────────►│ Backend     │    │
-    │  │             │                                        │ (Shared)    │    │
-    │  │ - Weather   │                                        │             │    │
-    │  │ - Alerts    │                                        │ - Data Sync │    │
-    │  │ - Status    │                                        │ - Auth      │    │
-    │  │ - Map View  │                                        │ - Offline   │    │
-    │  └─────────────┘                                        └─────────────┘    │
+    │  ┌─────────────┐                                        ┌─────────────┐     │
+    │  │ React Native│                                        │ Node.js     │     │
+    │  │ + Expo      │◄──────────────────────────────────────►│ Backend     │     │
+    │  │             │                                        │ (Shared)    │     │
+    │  │ - Weather   │                                        │             │     │
+    │  │ - Alerts    │                                        │ - Data Sync │     │
+    │  │ - Status    │                                        │ - Auth      │     │
+    │  │ - Map View  │                                        │ - Offline   │     │
+    │  └─────────────┘                                        └─────────────┘     │
     └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -387,13 +387,13 @@ class MapService {
 │   Admin Web     │    │   Node.js API   │    │   Databases     │
 │   (Vercel)      │◄──►│   (Railway)     │◄──►│   (Cloud)       │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-                              │
-                              ▼
-                    ┌─────────────────┐
-                    │  Mobile App     │
-                    │  (Expo/App      │
-                    │   Stores)       │
-                    └─────────────────┘
+                                │
+                                ▼
+                      ┌─────────────────┐
+                      │  Mobile App     │
+                      │  (Expo/App      │
+                      │   Stores)       │
+                      └─────────────────┘
 ```
 
 ### Development Environment
@@ -402,12 +402,12 @@ class MapService {
 │   Local Web     │    │   Local API     │    │   Local DBs     │
 │   (React Dev)   │◄──►│   (Node.js)     │◄──►│   (Docker)      │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-                              │
-                              ▼
-                    ┌─────────────────┐
-                    │  Expo Dev       │
-                    │  (Metro)        │
-                    └─────────────────┘
+                                │
+                                ▼
+                      ┌─────────────────┐
+                      │  Expo Dev       │
+                      │  (Metro)        │
+                      └─────────────────┘
 ```
 
 ## Technology Stack Summary
