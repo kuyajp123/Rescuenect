@@ -4,7 +4,7 @@ import { signInWithCustomToken } from "firebase/auth";
 import { Alert } from "react-native";
 import axios from 'axios';
 import { create } from "zustand";
-import { storage } from "./storage";
+import { storage } from "@/components/helper/storage";
 import { convertToE164Format } from '@/components/helper/commonHelpers';
 import { useAuth } from "@/components/store/useAuth";
 import { navigateToBarangayForm, navigateToNameAndContactForm } from "./navigation";

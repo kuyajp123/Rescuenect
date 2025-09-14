@@ -30,7 +30,7 @@ type BackendResponse = {
 }
 
 export const useBackendResponse = create<BackendResponse>((set) => ({
-    isNewUser: false,
+    isNewUser: null,
     userResponse: {
         firstName: '',
         lastName: '',
@@ -66,7 +66,8 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
         }
         });
 
-        console.log("✅ Backend response received", JSON.stringify(response.data, null, 2));
+        console.log("✅ Backend response received", JSON.stringify(response.data.user, null, 2));
+        console.log("✅ isNewUser?", JSON.stringify(response.data.isNewUser, null, 2));
 
         // Store backend response BEFORE Firebase auth state changes
         setBackendResponse({

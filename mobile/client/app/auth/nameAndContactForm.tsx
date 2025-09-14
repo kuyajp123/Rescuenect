@@ -46,16 +46,8 @@ const nameAndContactForm = () => {
             // If user has a display name, set it as the default firstName
             const displayName = authUser.displayName.trim();
 
-            // Try to split display name into first and last name
-            const nameParts = displayName.split(' ');
-            if (nameParts.length > 0) {
-                setFirstName(formatName(nameParts[0]));
-                
-                // If there are multiple parts, use the rest as last name
-                if (nameParts.length > 1) {
-                    const lastName = nameParts.slice(1).join(' ');
-                    setLastName(formatName(lastName));
-                }
+            if (displayName) {
+                setFirstName(formatName(displayName));
             }
         } else {
             // If no user or no display name, ensure fields are empty

@@ -7,34 +7,38 @@ export const handleAuthNavigation = async (user: any) => {
   try {
     const { isNewUser, userResponse } = useBackendResponse.getState();
     
-    console.log('response: ', isNewUser, userResponse);
+    console.log("✅ useBackendResponseState data:", JSON.stringify(userResponse, null, 2));
+    console.log("✅ isNewUser?", JSON.stringify(isNewUser, null, 2));
 
         if (user) {
             if (isNewUser === true) {
-                // useBackendResponse.getState().resetResponse();
+                useBackendResponse.getState().resetResponse();
                 navigateToBarangayForm();
                 return;
-            } else if (isNewUser === false) {
-
-
-              // ANG PROBLEMA PAG MERONG NAKA CURRENTLY SIGIN NA ACCOUNT 
-              // WALANG MAG I STORE SA ZUSTAND STATE NEED ATA MAG QUERY 
-              // OR OTHER WAY PARA MAKUHA YUNG DATA
+              } else if (isNewUser === false) {
               
                 // Existing user - check if they have complete data from backend
                 if (!userResponse.barangay) {
                     console.log("❌ User is missing barangay information from backend");
                     navigateToBarangayForm();
                     return;
-                }
+                  }
 
-                if (!userResponse.phoneNumber) {
+                  if (!userResponse.phoneNumber) {
                     console.log("❌ User is missing phone number information from backend");
                     navigateToNameAndContactForm();
                     return;
                 }
 
+                await storage.set('@barangay', userResponse.barangay);
+                await storage.set('@user', {
+                    firstName: userResponse.firstName || '',
+                    lastName: userResponse.lastName || '',
+                    phoneNumber: userResponse.phoneNumber || ''
+                });
+
                 // User has complete data from backend - go to main app
+                useBackendResponse.getState().resetResponse();
                 console.log("✅ User has complete data from backend - going to tabs");
                 navigateToTabs();
                 return;
@@ -43,19 +47,22 @@ export const handleAuthNavigation = async (user: any) => {
                 // Check if user has required data in storage
                 const barangayData = await storage.get('@barangay');
                 const userData = await storage.get('@user');
-        
-                if (barangayData && userData?.phoneNumber) {
-                    console.log("✅ User has complete data in storage - going to tabs");
-                    navigateToTabs();
-                } else {
-                    console.log("❌ User missing data in storage - going to barangay form");
+
+                if (!barangayData) {
+                    console.log("❌ User is missing barangay information");
                     navigateToBarangayForm();
+                    return;
                 }
+
+                if (!userData?.phoneNumber) {
+                    console.log("❌ User is missing phone number information");
+                    navigateToNameAndContactForm();
+                    return;
+                }
+
+                console.log("✅ User has complete data - going to tabs");
+                navigateToTabs();
             }
-        } else if (!user) {
-          console.log("❌ No authenticated user, checking saved data");
-          handleLogout();
-          navigateToSignIn();
         } else {
           // No authenticated user - check saved data
           console.log("❌ No authenticated user, checking saved data");
@@ -85,7 +92,6 @@ export const handleGuestNavigation = async () => {
       navigateToTabs();
     } else {
       console.log("❌ No saved data");
-      await handleLogout();
       navigateToSignIn();
     }
   } catch (error) {

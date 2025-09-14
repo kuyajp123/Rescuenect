@@ -1,7 +1,7 @@
 import { Button, HoveredButton } from '@/components/components/button/Button';
 import GoogleButton from '@/components/components/button/GoogleButton';
 import { Card } from '@/components/components/card/Card';
-import { handleLogout } from '@/components/helper/auth';
+import { handleLogout } from '@/components/auth/auth';
 import ThemeSwitcher from '@/components/shared/hooks/ThemeSwitcher';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
