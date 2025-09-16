@@ -1,9 +1,9 @@
-import type { Event } from '@/components/shared/types/components';
-import { EmptyState } from '@/components/components/empty-state';
-import { Text } from '@/components/ui/text';
-import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
-import { ImageBackground, StyleSheet, View } from 'react-native';
+import type { Event } from "@/types/components";
+import { EmptyState } from "@/components/components/empty-state";
+import { Text } from "@/components/ui/text";
+import { LinearGradient } from "expo-linear-gradient";
+import React from "react";
+import { ImageBackground, StyleSheet, View } from "react-native";
 
 interface ListOfEventsProps {
   events?: Event[];
@@ -11,30 +11,30 @@ interface ListOfEventsProps {
   subtitle?: string;
 }
 
-export const ListOfEvents = ({ 
-  events = [], 
-  title = "Volunteer Events", 
-  subtitle = "Step up for safety. Be a community hero." 
+export const ListOfEvents = ({
+  events = [],
+  title = "Volunteer Events",
+  subtitle = "Step up for safety. Be a community hero.",
 }: ListOfEventsProps) => {
-
   // Default fallback events (for demo purposes or when no events are provided)
   const defaultEvents: Event[] = [
     {
-      id: '1',
-      title: 'Community Cleanup',
-      description: 'Join us for a community cleanup event to keep our neighborhood clean and green.',
-      date: '2023-10-15',
-      location: 'Central Park',
-      image: require('@/assets/images/Events/image 5.png')
+      id: "1",
+      title: "Community Cleanup",
+      description:
+        "Join us for a community cleanup event to keep our neighborhood clean and green.",
+      date: "2023-10-15",
+      location: "Central Park",
+      image: require("@/assets/images/Events/image 5.png"),
     },
     {
-      id: '2',
-      title: 'Food Drive',
-      description: 'Help us collect food donations for local families in need.',
-      date: '2023-10-20',
-      image: require('@/assets/images/Events/image 6.png'),
-      location: 'City Hall'
-    }
+      id: "2",
+      title: "Food Drive",
+      description: "Help us collect food donations for local families in need.",
+      date: "2023-10-20",
+      image: require("@/assets/images/Events/image 6.png"),
+      location: "City Hall",
+    },
   ];
 
   // Use provided events or fallback to default events
@@ -43,31 +43,31 @@ export const ListOfEvents = ({
   const renderEvent = (event: Event) => {
     return (
       <View style={styles.eventContainer} key={event.id}>
-        <ImageBackground 
+        <ImageBackground
           source={event.image}
           style={styles.backgroundImage}
           imageStyle={styles.imageStyle}
           resizeMode="cover"
         >
           <LinearGradient
-            colors={['rgba(0,0,0,0.8)', 'rgba(0,0,0,0.4)', 'transparent']}
+            colors={["rgba(0,0,0,0.8)", "rgba(0,0,0,0.4)", "transparent"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.gradientOverlay}
           >
             <View style={styles.contentContainer}>
-              <Text size='2xs' emphasis='light' style={styles.eventDescription}>
-                {event.description ? event.description : ''}
+              <Text size="2xs" emphasis="light" style={styles.eventDescription}>
+                {event.description ? event.description : ""}
               </Text>
-              <Text size='md' bold style={styles.eventTitle}>
+              <Text size="md" bold style={styles.eventTitle}>
                 {event.title}
               </Text>
-              <Text size='2xs' emphasis='light' style={styles.eventDate}>
-                {new Date(event.date).toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
+              <Text size="2xs" emphasis="light" style={styles.eventDate}>
+                {new Date(event.date).toLocaleDateString("en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
                 })}
               </Text>
             </View>
@@ -75,28 +75,26 @@ export const ListOfEvents = ({
         </ImageBackground>
       </View>
     );
-  }
+  };
 
   const renderAllEvents = () => {
-    return (
-      <>
-        {displayEvents.map((event) => renderEvent(event))}
-      </>
-    );
-  }
+    return <>{displayEvents.map((event) => renderEvent(event))}</>;
+  };
 
   // Show EmptyState component when no events are available
   if (displayEvents.length === 0) {
     return (
       <View style={styles.container}>
         <View style={styles.headerContainer}>
-          <Text size='sm' bold style={styles.headerTitle}>{title}</Text>
+          <Text size="sm" bold style={styles.headerTitle}>
+            {title}
+          </Text>
           <Text style={styles.headerSubtitle}>{subtitle}</Text>
         </View>
-        <EmptyState 
+        <EmptyState
           title="No events available"
           subtitle="Check back later for new volunteer opportunities in your community!"
-          animationSource={require('@/assets/animations/no-activity.json')}
+          animationSource={require("@/assets/animations/no-activity.json")}
           animationSize={180}
           containerStyle={styles.emptyStateContainer}
         />
@@ -104,20 +102,20 @@ export const ListOfEvents = ({
     );
   }
 
-
-
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <Text size='sm' bold style={styles.headerTitle}>{title}</Text>
-        <Text size='xs' style={styles.headerSubtitle}>{subtitle}</Text>
+        <Text size="sm" bold style={styles.headerTitle}>
+          {title}
+        </Text>
+        <Text size="xs" style={styles.headerSubtitle}>
+          {subtitle}
+        </Text>
       </View>
-      <View>
-        {renderAllEvents()}
-      </View>
+      <View>{renderAllEvents()}</View>
     </View>
-  )
-}
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -133,82 +131,82 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   eventContainer: {
-    height: 'auto',
+    height: "auto",
     marginVertical: 10,
     borderRadius: 20,
-    overflow: 'hidden',
+    overflow: "hidden",
     minHeight: 150,
     maxHeight: 150,
   },
   backgroundImage: {
     flex: 1,
-    justifyContent: 'flex-end',
-    height: '100%',
+    justifyContent: "flex-end",
+    height: "100%",
   },
   imageStyle: {
     borderRadius: 20,
-    height: '100%',
+    height: "100%",
   },
   gradientOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
   },
   contentContainer: {
     padding: 20,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
     flex: 1,
   },
   eventDescription: {
-    color: 'white',
+    color: "white",
     marginBottom: 5,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowColor: "rgba(0, 0, 0, 0.8)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
     maxHeight: 40,
-    overflow: 'hidden',
-    textOverflow: 'see more',
+    overflow: "hidden",
+    textOverflow: "see more",
   },
   eventTitle: {
-    color: 'white',
+    color: "white",
     marginBottom: 5,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowColor: "rgba(0, 0, 0, 0.8)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
   eventDate: {
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: "rgba(255, 255, 255, 0.9)",
     marginBottom: 3,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowColor: "rgba(0, 0, 0, 0.8)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
   eventLocation: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    color: "rgba(255, 255, 255, 0.9)",
+    textShadowColor: "rgba(0, 0, 0, 0.8)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
   noEventsContainer: {
     padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   noEventsText: {
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 10,
     opacity: 0.8,
   },
   noEventsSubtext: {
-    textAlign: 'center',
+    textAlign: "center",
     opacity: 0.6,
   },
   emptyStateContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingTop: 20,
   },
-})
+});
 
 /*
 ===========================================
@@ -223,17 +221,17 @@ BASIC USAGE:
 */
 
 // import { ListOfEvents } from '@/components/ui/volunteer-events/ListOfEvents';
-// 
+//
 // function MyScreen() {
 //   const [events, setEvents] = useState([]);
 //   const [loading, setLoading] = useState(true);
-//   
+//
 //   useEffect(() => {
 //     const fetchEvents = async () => {
 //       try {
 //         const response = await fetch('YOUR_API_ENDPOINT/events');
 //         const data = await response.json();
-//         
+//
 //         // Transform backend data to match Event interface
 //         const transformedEvents = data.map((item) => ({
 //           id: item.id || item._id,
@@ -243,7 +241,7 @@ BASIC USAGE:
 //           location: item.location || item.venue,
 //           image: item.image_url ? { uri: item.image_url } : require('@/assets/images/Events/default.png')
 //         }));
-//         
+//
 //         setEvents(transformedEvents);
 //       } catch (error) {
 //         console.error('Failed to fetch events:', error);
@@ -254,13 +252,13 @@ BASIC USAGE:
 //
 //     fetchEvents();
 //   }, []);
-//   
+//
 //   if (loading) {
 //     return <ActivityIndicator size="large" />;
 //   }
-//   
+//
 //   return (
-//     <ListOfEvents 
+//     <ListOfEvents
 //       events={events}
 //       title="Community Events"
 //       subtitle="Join us in making a difference!"
@@ -286,7 +284,7 @@ USAGE EXAMPLES:
 // <ListOfEvents events={fetchedEvents} />
 
 // 2. With custom title and subtitle:
-// <ListOfEvents 
+// <ListOfEvents
 //   events={fetchedEvents}
 //   title="Emergency Response Events"
 //   subtitle="Be ready when your community needs you most"
@@ -329,24 +327,24 @@ COMPLETE INTEGRATION EXAMPLE:
 // import React, { useState, useEffect } from 'react';
 // import { ActivityIndicator, View } from 'react-native';
 // import { ListOfEvents } from '@/components/ui/volunteer-events/ListOfEvents';
-// 
+//
 // function EventsScreen() {
 //   const [events, setEvents] = useState([]);
 //   const [loading, setLoading] = useState(true);
 //   const [error, setError] = useState(null);
-// 
+//
 //   useEffect(() => {
 //     const fetchEvents = async () => {
 //       try {
 //         setLoading(true);
 //         const response = await fetch('https://your-api.com/api/events');
-//         
+//
 //         if (!response.ok) {
 //           throw new Error('Failed to fetch events');
 //         }
-//         
+//
 //         const data = await response.json();
-//         
+//
 //         // Transform data to match Event interface
 //         const transformedEvents = data.map((item) => ({
 //           id: item.id?.toString(),
@@ -354,11 +352,11 @@ COMPLETE INTEGRATION EXAMPLE:
 //           description: item.description,
 //           date: item.date,
 //           location: item.location,
-//           image: item.image_url ? 
-//             { uri: item.image_url } : 
+//           image: item.image_url ?
+//             { uri: item.image_url } :
 //             require('@/assets/images/Events/default.png')
 //         }));
-//         
+//
 //         setEvents(transformedEvents);
 //       } catch (err) {
 //         setError(err.message);
@@ -367,10 +365,10 @@ COMPLETE INTEGRATION EXAMPLE:
 //         setLoading(false);
 //       }
 //     };
-// 
+//
 //     fetchEvents();
 //   }, []);
-// 
+//
 //   if (loading) {
 //     return (
 //       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -378,7 +376,7 @@ COMPLETE INTEGRATION EXAMPLE:
 //       </View>
 //     );
 //   }
-// 
+//
 //   if (error) {
 //     return (
 //       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -386,9 +384,9 @@ COMPLETE INTEGRATION EXAMPLE:
 //       </View>
 //     );
 //   }
-// 
+//
 //   return (
-//     <ListOfEvents 
+//     <ListOfEvents
 //       events={events}
 //       title="Emergency Response Events"
 //       subtitle="Join the heroes in your community"

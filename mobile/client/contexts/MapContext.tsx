@@ -1,5 +1,5 @@
 import { HoveredButton } from '@/components/components/button/Button';
-import { useMapButtonStore } from '@/components/components/Map';
+import { useMapButtonStore } from '@/components/store/useMapButton';
 import { storage } from '@/components/helper/storage';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -8,32 +8,9 @@ import { useRouter } from 'expo-router';
 import { ChevronLeft, MapIcon } from 'lucide-react-native';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { create } from 'zustand';
+import { useCoords } from '@/components/store/useCoords';
 
 type coordTypes = [number, number] | null;
-
-interface CoordsState {
-    coords: coordTypes;
-    locationCoords: coordTypes;
-    oneTimeLocationCoords: coordTypes;
-    followUserLocation?: boolean;
-    setCoords: (coords: coordTypes) => void;
-    setLocationCoords: (coords: coordTypes) => void;
-    setOneTimeLocationCoords: (coords: coordTypes) => void;
-    setFollowUserLocation: (follow: boolean) => void;
-}
-
-export const useCoords = create<CoordsState>((set) => ({
-    coords: null,
-    // locationCoords: [120.788432, 14.303068],
-    locationCoords: null,
-    oneTimeLocationCoords: null,
-    followUserLocation: false,
-    setCoords: (coords) => set({ coords }),
-    setLocationCoords: (coords) => set({ locationCoords: coords }),
-    setOneTimeLocationCoords: (coords) => set({ oneTimeLocationCoords: coords }),
-    setFollowUserLocation: (follow) => set({ followUserLocation: follow }),
-}));
 
 type MapContextType = {
     isMapReady: boolean;
@@ -54,10 +31,15 @@ const MapContext = createContext<MapContextType | undefined>(undefined);
 export const MapProvider = ({ children }: MapProviderProps) => {
   const mapRef = useRef<MapboxGL.MapView | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
-  const { coords, oneTimeLocationCoords, setCoords, followUserLocation } = useCoords();
+  
+  const coords = useCoords((state) => state.coords);
+  const oneTimeLocationCoords = useCoords((state) => state.oneTimeLocationCoords);
+  const setCoords = useCoords((state) => state.setCoords);
+  const followUserLocation = useCoords((state) => state.followUserLocation);
+  
   const [mapStyle, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
   const [showMapStyles, setShowMapStyles] = useState(false);
-  const { isVisible } = useMapButtonStore();
+  const isVisible = useMapButtonStore((state) => state.isVisible);
   const router = useRouter();
   const { isDark } = useTheme();
 
@@ -122,7 +104,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
       
       const markerCoordinate: [number, number] = [mapCoords[0], mapCoords[1]];
       setCoords(markerCoordinate);
-    }, [coords, setCoords]);
+    }, [setCoords]); // ✅ Fix: Remove coords dependency to prevent infinite loop
 
   const mapContainer = useMemo(() => {
     console.log('Creating map container');

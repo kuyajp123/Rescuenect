@@ -1,4 +1,5 @@
 import { storage } from '@/components/helper/storage';
+import { handleLogout } from '@/components/auth/auth';
 import { initializeAuth } from '@/components/auth/firebaseAuth';
 import SplashScreen from '@/components/ui/loading/SplashScreen';
 import { useEffect, useState } from 'react';

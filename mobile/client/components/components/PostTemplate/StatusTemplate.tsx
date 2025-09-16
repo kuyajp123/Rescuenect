@@ -1,30 +1,30 @@
-import { ImageModal } from '@/components/components/image-modal/ImageModal'
-import type { StatusTemplateProps } from '@/components/shared/types/components'
+import { ImageModal } from "@/components/components/image-modal/ImageModal";
+import type { StatusTemplateProps } from "@/types/components";
 import {
-    Avatar,
-    AvatarFallbackText,
-    AvatarImage
-} from "@/components/ui/avatar"
-import { Badge, BadgeIcon, BadgeText } from '@/components/ui/badge'
-import { Box } from '@/components/ui/box'
-import { Divider } from "@/components/ui/divider"
-import { Image } from '@/components/ui/image'
-import { Text } from '@/components/ui/text'
-import { VStack } from '@/components/ui/vstack'
-import { ColorCombinations } from '@/constants/Colors'
-import { useTheme } from '@/contexts/ThemeContext'
+  Avatar,
+  AvatarFallbackText,
+  AvatarImage,
+} from "@/components/ui/avatar";
+import { Badge, BadgeIcon, BadgeText } from "@/components/ui/badge";
+import { Box } from "@/components/ui/box";
+import { Divider } from "@/components/ui/divider";
+import { Image } from "@/components/ui/image";
+import { Text } from "@/components/ui/text";
+import { VStack } from "@/components/ui/vstack";
+import { ColorCombinations } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
-    CircleCheck,
-    CircleQuestionMark,
-    Ellipsis,
-    Info,
-    MapPin,
-    Phone,
-    ShieldCheck,
-    Users
-} from 'lucide-react-native'
-import React, { useState } from 'react'
-import { StyleSheet, TouchableOpacity } from 'react-native'
+  CircleCheck,
+  CircleQuestionMark,
+  Ellipsis,
+  Info,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  Users,
+} from "lucide-react-native";
+import React, { useState } from "react";
+import { StyleSheet, TouchableOpacity } from "react-native";
 
 export const StatusTemplate: React.FC<StatusTemplateProps> = ({
   style,
@@ -43,16 +43,16 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
   person,
   contact,
 }) => {
-  const { isDark } = useTheme()
-  const [isImageModalVisible, setIsImageModalVisible] = useState(false)
+  const { isDark } = useTheme();
+  const [isImageModalVisible, setIsImageModalVisible] = useState(false);
 
   const handleImagePress = () => {
-    setIsImageModalVisible(true)
-  }
+    setIsImageModalVisible(true);
+  };
 
   const handleCloseModal = () => {
-    setIsImageModalVisible(false)
-  }
+    setIsImageModalVisible(false);
+  };
 
   // Dynamic styles based on theme
   const dynamicStyles = {
@@ -62,26 +62,19 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
         : ColorCombinations.statusTemplate.light,
     },
     ellipsisIcon: {
-      color: isDark ? '#A6A6A6' : '#5B5B5B',
+      color: isDark ? "#A6A6A6" : "#5B5B5B",
     },
     avatarBadge: {
-      backgroundColor: isDark ? '#4CAF50' : '#81C784',
+      backgroundColor: isDark ? "#4CAF50" : "#81C784",
     },
-  }
+  };
 
   return (
-    <Box 
-      style={[styles.container, dynamicStyles.container, style]}
-      key={id}
-    >
-      <VStack space='sm'>
-
+    <Box style={[styles.container, dynamicStyles.container, style]} key={id}>
+      <VStack space="sm">
         {/* Header with menu icon */}
         <Box style={styles.header}>
-          <Ellipsis 
-            color={dynamicStyles.ellipsisIcon.color} 
-            size={24}
-          />
+          <Ellipsis color={dynamicStyles.ellipsisIcon.color} size={24} />
         </Box>
 
         {/* Main content row */}
@@ -90,22 +83,25 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
           <Box style={styles.userSection}>
             <Box style={styles.avatarContainer}>
               {picture && (
-                <Avatar size='md'>
-                <AvatarImage
-                  source={{
-                    uri: picture,
-                  }}
-                  alt={`${firstName} ${lastName}`}
-                />
-                <AvatarFallbackText>
-                  {firstName.charAt(0)}{lastName.charAt(0)}
-                </AvatarFallbackText>
-              </Avatar>
+                <Avatar size="md">
+                  <AvatarImage
+                    source={{
+                      uri: picture,
+                    }}
+                    alt={`${firstName} ${lastName}`}
+                  />
+                  <AvatarFallbackText>
+                    {firstName.charAt(0)}
+                    {lastName.charAt(0)}
+                  </AvatarFallbackText>
+                </Avatar>
               )}
             </Box>
-            
+
             <Box style={styles.userInfo}>
-              <Text style={styles.userName}>{firstName} {lastName}</Text>
+              <Text style={styles.userName}>
+                {firstName} {lastName}
+              </Text>
               <Text style={styles.timestamp} size="2xs" emphasis="light">
                 {date} • {time}
               </Text>
@@ -115,45 +111,55 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
           {/* Status badge section */}
           <Box style={styles.statusSection}>
             <Badge
-              size='sm'
-              action={status == 'evacuated' ? 'info' : status == 'safe' ? 'success' : status == 'missing' ? 'error' : status == 'affected' ? 'warning' : 'muted'}
-              variant='solid'
+              size="sm"
+              action={
+                status == "evacuated"
+                  ? "info"
+                  : status == "safe"
+                  ? "success"
+                  : status == "missing"
+                  ? "error"
+                  : status == "affected"
+                  ? "warning"
+                  : "muted"
+              }
+              variant="solid"
               style={styles.statusBadge}
             >
-              <BadgeIcon as={
-                status == 'evacuated' ? ShieldCheck
-                : status == 'safe' ? CircleCheck
-                : status == 'affected' ? Info
-                : status == 'missing' ? CircleQuestionMark
-                : undefined
-              } />
+              <BadgeIcon
+                as={
+                  status == "evacuated"
+                    ? ShieldCheck
+                    : status == "safe"
+                    ? CircleCheck
+                    : status == "affected"
+                    ? Info
+                    : status == "missing"
+                    ? CircleQuestionMark
+                    : undefined
+                }
+              />
               <BadgeText>{status}</BadgeText>
             </Badge>
           </Box>
         </Box>
-        
+
         {/* Location section */}
         {loc && (
           <Box style={styles.locationContainer}>
             <Box style={styles.locationIconContainer}>
               <MapPin size={16} color={dynamicStyles.ellipsisIcon.color} />
             </Box>
-            
+
             <Box style={styles.locationContent}>
-              <Text  style={styles.locationText}>
-                {loc}
-              </Text>
-              
+              <Text style={styles.locationText}>{loc}</Text>
+
               {lng && (
-                <Text style={styles.coordinateText} >
-                  Longitude: {lng}
-                </Text>
+                <Text style={styles.coordinateText}>Longitude: {lng}</Text>
               )}
-              
+
               {lat && (
-                <Text style={styles.coordinateText} >
-                  Latitude: {lat}
-                </Text>
+                <Text style={styles.coordinateText}>Latitude: {lat}</Text>
               )}
             </Box>
           </Box>
@@ -162,9 +168,7 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
         {/* Description section */}
         {description && (
           <Box style={styles.descriptionContainer}>
-            <Text style={styles.descriptionText}>
-              {description}
-            </Text>
+            <Text style={styles.descriptionText}>{description}</Text>
           </Box>
         )}
 
@@ -195,7 +199,10 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
                 {person && (
                   <>
                     <Box style={styles.peopleIconContainer}>
-                      <Users size={16} color={dynamicStyles.ellipsisIcon.color} />
+                      <Users
+                        size={16}
+                        color={dynamicStyles.ellipsisIcon.color}
+                      />
                     </Box>
                     <Box style={styles.peopleTextContainer}>
                       <Text>{person} Person</Text>
@@ -209,7 +216,10 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
                 {contact && (
                   <>
                     <Box style={styles.contactIconContainer}>
-                      <Phone size={16} color={dynamicStyles.ellipsisIcon.color} />
+                      <Phone
+                        size={16}
+                        color={dynamicStyles.ellipsisIcon.color}
+                      />
                     </Box>
                     <Box style={styles.contactTextContainer}>
                       <Text>{contact}</Text>
@@ -220,9 +230,8 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
             </Box>
           </>
         )}
-
       </VStack>
-      
+
       {/* Image Modal */}
       {image && (
         <ImageModal
@@ -233,8 +242,8 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
         />
       )}
     </Box>
-  )
-}
+  );
+};
 
 const styles = StyleSheet.create({
   // Container styles
@@ -246,23 +255,23 @@ const styles = StyleSheet.create({
 
   // Header styles
   header: {
-    flexDirection: 'row-reverse',
+    flexDirection: "row-reverse",
   },
 
   // Main content styles
   mainContent: {
     flex: 1,
-    flexDirection: 'row',
-    height: 'auto',
-    width: '100%',
+    flexDirection: "row",
+    height: "auto",
+    width: "100%",
   },
 
   // User section styles
   userSection: {
-    width: '70%',
-    flexWrap: 'wrap',
+    width: "70%",
+    flexWrap: "wrap",
     gap: 8,
-    flexDirection: 'row',
+    flexDirection: "row",
   },
 
   avatarContainer: {
@@ -270,24 +279,24 @@ const styles = StyleSheet.create({
   },
 
   userInfo: {
-    width: '75%',
-    flexWrap: 'wrap',
+    width: "75%",
+    flexWrap: "wrap",
   },
 
   userName: {
-    maxWidth: '100%',
+    maxWidth: "100%",
   },
 
   timestamp: {
-    maxWidth: '100%',
+    maxWidth: "100%",
   },
 
   // Status section styles
   statusSection: {
-    width: '30%',
-    justifyContent: 'flex-end',
-    alignItems: 'flex-start',
-    flexDirection: 'row',
+    width: "30%",
+    justifyContent: "flex-end",
+    alignItems: "flex-start",
+    flexDirection: "row",
   },
 
   statusBadge: {
@@ -297,46 +306,46 @@ const styles = StyleSheet.create({
 
   // Location section styles
   locationContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
   },
 
   locationIconContainer: {
     width: 40,
-    flexDirection: 'row-reverse',
+    flexDirection: "row-reverse",
     paddingTop: 5,
   },
 
   locationContent: {
     flex: 1,
-    flexWrap: 'wrap',
-    maxWidth: '85%',
+    flexWrap: "wrap",
+    maxWidth: "85%",
   },
 
   locationText: {
-    maxWidth: '100%',
+    maxWidth: "100%",
   },
 
   coordinateText: {
-    maxWidth: '100%',
+    maxWidth: "100%",
   },
 
   // Description section styles
   descriptionContainer: {
-    width: '100%',
+    width: "100%",
     paddingTop: 5,
     paddingLeft: 48,
-    flexDirection: 'row',
+    flexDirection: "row",
   },
 
   descriptionText: {
-    maxWidth: '85%',
+    maxWidth: "85%",
   },
 
   // Image section styles
   imageContainer: {
-    width: '100%',
-    flexDirection: 'row',
+    width: "100%",
+    flexDirection: "row",
     paddingLeft: 48,
   },
 
@@ -350,21 +359,21 @@ const styles = StyleSheet.create({
   },
 
   footerMainContainer: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "flex-end",
   },
 
   // People count section styles
   peopleSection: {
-    width: '50%',
-    flexDirection: 'row',
+    width: "50%",
+    flexDirection: "row",
     gap: 8,
   },
 
   peopleIconContainer: {
     width: 40,
-    flexDirection: 'row-reverse',
+    flexDirection: "row-reverse",
     paddingTop: 5,
   },
 
@@ -374,23 +383,23 @@ const styles = StyleSheet.create({
 
   // Contact section styles
   contactSection: {
-    width: '50%',
-    flexDirection: 'row',
+    width: "50%",
+    flexDirection: "row",
     gap: 8,
-    justifyContent: 'flex-end',
-    alignItems: 'flex-start',
+    justifyContent: "flex-end",
+    alignItems: "flex-start",
   },
 
   contactIconContainer: {
     width: 40,
-    flexDirection: 'row-reverse',
+    flexDirection: "row-reverse",
     paddingTop: 5,
   },
 
   contactTextContainer: {
     paddingTop: 2,
   },
-})
+});
 
 // This component can be used in your main app file or wherever you need to display the status template
 // Usage example:

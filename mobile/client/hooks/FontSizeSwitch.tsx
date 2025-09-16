@@ -20,7 +20,6 @@ export const FontSizeSwitch = () => {
 
   const currentIndex = fontScales.findIndex(scale => scale.scale === fontScale);
   const currentScale = fontScales[currentIndex];
-  const textValueColor = isDark ? Colors.text.dark : Colors.text.light;
 
   const handleRadioChange = (selectedScale: string) => {
     setFontScale(selectedScale as FontSizeScale);
@@ -108,7 +107,6 @@ export const FontSizeSwitch = () => {
                 selectedValue={fontScale}
                 onSelect={handleRadioChange}
                 isDark={isDark}
-                textValueColor={textValueColor}
               />
             ))}
           </View>

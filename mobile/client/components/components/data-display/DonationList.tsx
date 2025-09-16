@@ -1,25 +1,25 @@
-import { EmptyState } from '@/components/components/empty-state';
-import type { StatusTemplateProps } from '@/components/shared/types/components';
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { DonnationPostTemplate } from '../PostTemplate/DonnationPostTemplate';
+import { EmptyState } from "@/components/components/empty-state";
+import type { StatusTemplateProps } from "@/types/components";
+import React from "react";
+import { StyleSheet, View } from "react-native";
+import { DonnationPostTemplate } from "../PostTemplate/DonnationPostTemplate";
 
 interface DonationListProps {
   /**
    * Array of donation posts to display
    */
   donations?: StatusTemplateProps[];
-  
+
   /**
    * Custom title for empty state
    */
   emptyTitle?: string;
-  
+
   /**
-   * Custom subtitle for empty state  
+   * Custom subtitle for empty state
    */
   emptySubtitle?: string;
-  
+
   /**
    * Custom container style
    */
@@ -32,15 +32,14 @@ export const DonationList: React.FC<DonationListProps> = ({
   emptySubtitle = "Be the first to share essential items with community members in need",
   containerStyle,
 }) => {
-  
   // Show EmptyState when no donations are available
   if (donations.length === 0) {
     return (
       <View style={[styles.container, containerStyle]}>
-        <EmptyState 
+        <EmptyState
           title={emptyTitle}
           subtitle={emptySubtitle}
-          animationSource={require('@/assets/animations/not-found.json')}
+          animationSource={require("@/assets/animations/not-found.json")}
           animationSize={170}
           containerStyle={styles.emptyStateContainer}
           autoPlay={false}
@@ -52,8 +51,8 @@ export const DonationList: React.FC<DonationListProps> = ({
   return (
     <View style={[styles.container, containerStyle]}>
       {donations.map((donation, index) => (
-        <DonnationPostTemplate 
-          key={donation.id} 
+        <DonnationPostTemplate
+          key={donation.id}
           {...donation}
           style={index > 0 ? styles.donationSpacing : undefined}
         />
@@ -68,8 +67,8 @@ const styles = StyleSheet.create({
   },
   emptyStateContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 60,
     paddingHorizontal: 20,
   },

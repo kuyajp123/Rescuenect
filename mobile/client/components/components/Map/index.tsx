@@ -2,13 +2,13 @@ import { HStack } from '@/components/ui/hstack';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
 import { Colors } from '@/constants/Colors';
-import { useCoords, useMap } from '@/contexts/MapContext';
+import { useMap } from '@/contexts/MapContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Bookmark, Navigation, X } from 'lucide-react-native';
 import React, { useCallback, useMemo, useRef } from "react";
 import { Keyboard, KeyboardAvoidingView, Platform, Text as RNText, StyleSheet, TextInput, View } from 'react-native';
-import { create } from 'zustand';
+import { useMapButtonStore } from '@/components/store/useMapButton';
 import { Button, IconButton, ToggleButton } from '../button/Button';
 
 // Types for flexible form fields
@@ -90,16 +90,6 @@ export interface MapNewProps {
   snapPoints?: string[];
   onLocationClear?: () => void;
 }
-
-type MapButtonStates = {
-    isVisible: boolean;
-    setIsVisible: (isVisible: boolean) => void;
-};
-
-export const useMapButtonStore = create<MapButtonStates>((set) => ({
-    isVisible: true,
-    setIsVisible: (isVisible) => set({ isVisible }),
-}));
 
 const Map = ({
   title,

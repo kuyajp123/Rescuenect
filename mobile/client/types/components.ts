@@ -81,7 +81,7 @@ export type FiveDaysForecastProps = {
 }
 
 export type StatusForm = {
-    uid: string;
+    uid?: string;
     firstName: string;
     lastName: string;
     phoneNumber: string;

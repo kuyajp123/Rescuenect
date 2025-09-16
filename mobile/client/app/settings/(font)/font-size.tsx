@@ -1,4 +1,4 @@
-import { FontSizeSwitch } from '@/components/shared/hooks/FontSizeSwitch'
+import { FontSizeSwitch } from '@/hooks/FontSizeSwitch'
 import { Body } from '@/components/ui/layout/Body'
 import { Text } from '@/components/ui/text'
 import React from 'react'

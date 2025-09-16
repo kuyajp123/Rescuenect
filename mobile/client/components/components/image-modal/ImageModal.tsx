@@ -1,17 +1,23 @@
-import type { ImageModalProps } from '@/components/shared/types/components';
-import { Image } from '@/components/ui/image';
-import { useTheme } from '@/contexts/ThemeContext';
-import { X } from 'lucide-react-native';
-import React from 'react';
-import { Dimensions, Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
+import type { ImageModalProps } from "@/types/components";
+import { Image } from "@/components/ui/image";
+import { useTheme } from "@/contexts/ThemeContext";
+import { X } from "lucide-react-native";
+import React from "react";
+import {
+  Dimensions,
+  Modal,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 export const ImageModal: React.FC<ImageModalProps> = ({
   visible,
   imageUri,
   onClose,
-  alt = 'Full size image'
+  alt = "Full size image",
 }) => {
   const { isDark } = useTheme();
 
@@ -26,24 +32,15 @@ export const ImageModal: React.FC<ImageModalProps> = ({
     >
       <View style={styles.modalOverlay}>
         {/* Background touchable to close */}
-        <TouchableOpacity 
-          style={styles.backgroundTouchable} 
+        <TouchableOpacity
+          style={styles.backgroundTouchable}
           activeOpacity={1}
           onPress={onClose}
         >
           <View style={styles.modalContainer}>
             {/* Close button */}
-            <TouchableOpacity 
-              style={[
-                styles.closeButton,
-               
-              ]} 
-              onPress={onClose}
-            >
-              <X 
-                size={24} 
-                color={'#FFFFFF'} 
-              />
+            <TouchableOpacity style={[styles.closeButton]} onPress={onClose}>
+              <X size={24} color={"#FFFFFF"} />
             </TouchableOpacity>
 
             {/* Full size image */}
@@ -52,7 +49,7 @@ export const ImageModal: React.FC<ImageModalProps> = ({
               alt={alt}
               style={styles.fullImage}
               resizeMode="contain"
-              size='full'
+              size="full"
             />
           </View>
         </TouchableOpacity>
@@ -64,10 +61,10 @@ export const ImageModal: React.FC<ImageModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'absolute',
+    backgroundColor: "#000000",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
@@ -77,32 +74,32 @@ const styles = StyleSheet.create({
   },
   backgroundTouchable: {
     flex: 1,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContainer: {
     width: width,
     height: height,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
   },
   closeButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 30,
     right: 20,
     zIndex: 10000,
     padding: 8,
     elevation: 10,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
   fullImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     borderRadius: 8,
   },
 });

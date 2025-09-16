@@ -1,5 +1,5 @@
 import { HoveredButton } from '@/components/components/button/Button'
-import HighContrastOption from '@/components/shared/hooks/HighContrastOption'
+import HighContrastOption from '@/hooks/HighContrastOption'
 import { Body } from '@/components/ui/layout/Body'
 import { Text } from '@/components/ui/text'
 import { ColorCombinations, Colors } from '@/constants/Colors'

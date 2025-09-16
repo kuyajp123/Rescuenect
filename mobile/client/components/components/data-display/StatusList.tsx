@@ -1,25 +1,25 @@
-import { EmptyState } from '@/components/components/empty-state';
-import type { StatusTemplateProps } from '@/components/shared/types/components';
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { StatusTemplate } from '../PostTemplate/StatusTemplate';
+import { EmptyState } from "@/components/components/empty-state";
+import type { StatusTemplateProps } from "@/types/components";
+import React from "react";
+import { StyleSheet, View } from "react-native";
+import { StatusTemplate } from "../PostTemplate/StatusTemplate";
 
 interface StatusListProps {
   /**
    * Array of status updates to display
    */
   statusUpdates?: StatusTemplateProps[];
-  
+
   /**
    * Custom title for empty state
    */
   emptyTitle?: string;
-  
+
   /**
-   * Custom subtitle for empty state  
+   * Custom subtitle for empty state
    */
   emptySubtitle?: string;
-  
+
   /**
    * Custom container style
    */
@@ -32,15 +32,14 @@ export const StatusList: React.FC<StatusListProps> = ({
   emptySubtitle = "Community members will share their safety status here during emergencies",
   containerStyle,
 }) => {
-  
   // Show EmptyState when no status updates are available
   if (statusUpdates.length === 0) {
     return (
       <View style={[styles.container, containerStyle]}>
-        <EmptyState 
+        <EmptyState
           title={emptyTitle}
           subtitle={emptySubtitle}
-          animationSource={require('@/assets/animations/not-found.json')}
+          animationSource={require("@/assets/animations/not-found.json")}
           animationSize={120}
           containerStyle={styles.emptyStateContainer}
           autoPlay={false}
@@ -52,8 +51,8 @@ export const StatusList: React.FC<StatusListProps> = ({
   return (
     <View style={[styles.container, containerStyle]}>
       {statusUpdates.map((status, index) => (
-        <StatusTemplate 
-          key={status.id} 
+        <StatusTemplate
+          key={status.id}
           {...status}
           style={index > 0 ? styles.statusSpacing : undefined}
         />
@@ -68,8 +67,8 @@ const styles = StyleSheet.create({
   },
   emptyStateContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 60,
     paddingHorizontal: 20,
   },

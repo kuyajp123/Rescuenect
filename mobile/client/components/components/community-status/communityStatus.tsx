@@ -1,154 +1,164 @@
-import { PrimaryButton } from '@/components/components/button/Button';
-import type { CommunityStatusProps } from '@/components/shared/types/components';
-import { Text } from '@/components/ui/text';
-import { VStack } from '@/components/ui/vstack';
-import { ColorCombinations, Colors } from '@/constants/Colors';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useRouter } from 'expo-router';
-import { ChevronRight } from 'lucide-react-native';
-import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { PrimaryButton } from "@/components/components/button/Button";
+import type { CommunityStatusProps } from "@/types/components";
+import { Text } from "@/components/ui/text";
+import { VStack } from "@/components/ui/vstack";
+import { ColorCombinations, Colors } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useRouter } from "expo-router";
+import { ChevronRight } from "lucide-react-native";
+import React from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 // Status Card Component
-const StatusCard = ({ 
-    status, 
-    count, 
-    label, 
-    colorClass, 
-    onPress 
-}: { 
-    status: string;
-    count: number;
-    label: string;
-    colorClass: string;
-    onPress: () => void;
+const StatusCard = ({
+  status,
+  count,
+  label,
+  colorClass,
+  onPress,
+}: {
+  status: string;
+  count: number;
+  label: string;
+  colorClass: string;
+  onPress: () => void;
 }) => {
-    const { isDark } = useTheme();
-    
-    return (
-        <TouchableOpacity 
-            style={styles.statusCard} 
-            activeOpacity={1} 
-            onPress={onPress}
-        >
-            <View style={styles.statusHeader}>
-                <View style={styles.statusDot} className={colorClass} />
-                <Text>{label}</Text>
-            </View>
-            <View style={styles.statusContent}>
-                <Text size='xl'>{count}</Text>
-                <ChevronRight color={isDark ? Colors.icons.light : Colors.icons.dark} />
-            </View>
-            <View>
-                <Text emphasis='light' size='2xs'>Individual</Text>
-            </View>
-        </TouchableOpacity>
-    );
+  const { isDark } = useTheme();
+
+  return (
+    <TouchableOpacity
+      style={styles.statusCard}
+      activeOpacity={1}
+      onPress={onPress}
+    >
+      <View style={styles.statusHeader}>
+        <View style={styles.statusDot} className={colorClass} />
+        <Text>{label}</Text>
+      </View>
+      <View style={styles.statusContent}>
+        <Text size="xl">{count}</Text>
+        <ChevronRight color={isDark ? Colors.icons.light : Colors.icons.dark} />
+      </View>
+      <View>
+        <Text emphasis="light" size="2xs">
+          Individual
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
 };
 
-export const CommunityStatus = ({ 
-    safe, 
-    evacuated, 
-    affected, 
-    missing 
+export const CommunityStatus = ({
+  safe,
+  evacuated,
+  affected,
+  missing,
 }: CommunityStatusProps) => {
-    const { isDark } = useTheme();
-    const router = useRouter();
+  const { isDark } = useTheme();
+  const router = useRouter();
 
-    return (
+  return (
+    <View>
+      <VStack space="lg">
+        <Text>Status</Text>
         <View>
-            <VStack space='lg'>
-                <Text>Status</Text>
-                <View>
-                    <View style={[
-                        styles.statusContainer,
-                        { backgroundColor: isDark ? ColorCombinations.statusTemplate.dark : ColorCombinations.statusTemplate.light }
-                    ]}>
-                        <View style={styles.leftColumn}>
-                            <StatusCard 
-                                status="safe"
-                                count={safe ?? 0}
-                                label="Safe"
-                                colorClass="bg-safe-500"
-                                onPress={() => alert('Safe pressed!')}
-                            />
-                            <StatusCard 
-                                status="affected"
-                                count={affected ?? 0}
-                                label="Affected"
-                                colorClass="bg-affected-500"
-                                onPress={() => alert('affected pressed!')}
-                            />
-                        </View>
+          <View
+            style={[
+              styles.statusContainer,
+              {
+                backgroundColor: isDark
+                  ? ColorCombinations.statusTemplate.dark
+                  : ColorCombinations.statusTemplate.light,
+              },
+            ]}
+          >
+            <View style={styles.leftColumn}>
+              <StatusCard
+                status="safe"
+                count={safe ?? 0}
+                label="Safe"
+                colorClass="bg-safe-500"
+                onPress={() => alert("Safe pressed!")}
+              />
+              <StatusCard
+                status="affected"
+                count={affected ?? 0}
+                label="Affected"
+                colorClass="bg-affected-500"
+                onPress={() => alert("affected pressed!")}
+              />
+            </View>
 
-                        <View style={styles.rightColumn}>
-                            <StatusCard 
-                                status="evacuated"
-                                count={evacuated ?? 0}
-                                label="Evacuated"
-                                colorClass="bg-evacuated-500"
-                                onPress={() => alert('evacuated pressed!')}
-                            />
-                            <StatusCard 
-                                status="missing"
-                                count={missing ?? 0}
-                                label="Missing"
-                                colorClass="bg-missing-500"
-                                onPress={() => alert('missing pressed!')}
-                            />
-                        </View>
-                    </View>
-                    <PrimaryButton onPress={() => router.push('post/status' as any)}>
-                        <Text style={{ color: '#ffffff' }} bold>View all Status</Text>
-                    </PrimaryButton>
-                </View>
-            </VStack>
+            <View style={styles.rightColumn}>
+              <StatusCard
+                status="evacuated"
+                count={evacuated ?? 0}
+                label="Evacuated"
+                colorClass="bg-evacuated-500"
+                onPress={() => alert("evacuated pressed!")}
+              />
+              <StatusCard
+                status="missing"
+                count={missing ?? 0}
+                label="Missing"
+                colorClass="bg-missing-500"
+                onPress={() => alert("missing pressed!")}
+              />
+            </View>
+          </View>
+          <PrimaryButton onPress={() => router.push("post/status" as any)}>
+            <Text style={{ color: "#ffffff" }} bold>
+              View all Status
+            </Text>
+          </PrimaryButton>
         </View>
-    );
+      </VStack>
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
-    statusContainer: {
-        padding: 10,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: 5,
-        marginBottom: 20,
-        borderRadius: 10,
-    },
-    leftColumn: {
-        width: '45%',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 10,
-    },
-    rightColumn: {
-        width: '45%',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 10,
-    },
-    statusCard: {
-        padding: 10,
-    },
-    statusHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-    },
-    statusDot: {
-        height: 10,
-        width: 10,
-        borderRadius: 50,
-    },
-    statusContent: {
-        width: '100%',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginTop: 2,
-    },
+  statusContainer: {
+    padding: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 5,
+    marginBottom: 20,
+    borderRadius: 10,
+  },
+  leftColumn: {
+    width: "45%",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 10,
+  },
+  rightColumn: {
+    width: "45%",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 10,
+  },
+  statusCard: {
+    padding: 10,
+  },
+  statusHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  statusDot: {
+    height: 10,
+    width: 10,
+    borderRadius: 50,
+  },
+  statusContent: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 2,
+  },
 });
 
 // Usage Example:

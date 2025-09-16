@@ -1,7 +1,6 @@
 import { useBackendResponse, handleLogout } from '@/components/auth/auth';
 import { storage } from '@/components/helper/storage';
-import { navigateToBarangayForm, navigateToNameAndContactForm, navigateToSignIn, navigateToTabs } from '@/components/routes/route';
-import { useAuth } from '../store/useAuth';
+import { navigateToBarangayForm, navigateToNameAndContactForm, navigateToSignIn, navigateToTabs } from '@/routes/route';
 
 export const handleAuthNavigation = async (user: any) => {
 
@@ -10,6 +9,7 @@ export const handleAuthNavigation = async (user: any) => {
     
     console.log("✅ useBackendResponseState data:", JSON.stringify(userResponse, null, 2));
     console.log("✅ isNewUser?", JSON.stringify(isNewUser, null, 2));
+    // console.log("🔍 Authenticated user:", user ? JSON.stringify(user, null, 2) : null);
 
         if (user) {
             if (isNewUser === true) {
@@ -45,24 +45,11 @@ export const handleAuthNavigation = async (user: any) => {
                 return;
             } else {
                 console.log("❓ Undefined newUser state, checking storage for existing data");
-                // Check if user has required data in storage
-                const barangayData = await storage.get('@barangay');
-                const userData = await storage.get('@user');
-
-                if (!barangayData) {
-                    console.log("❌ User is missing barangay information");
-                    navigateToBarangayForm();
-                    return;
-                }
-
-                if (!userData?.phoneNumber) {
-                    console.log("❌ User is missing phone number information");
-                    navigateToNameAndContactForm();
-                    return;
-                }
-
-                console.log("✅ User has complete data - going to tabs");
-                navigateToTabs();
+                // console.log("user from else block", JSON.stringify(user, null, 2));
+                const idToken = await user.getIdToken();
+                console.log("idToken: ", idToken)
+                await handleGuestNavigation();
+                return;
             }
         } else {
           // No authenticated user - check saved data
@@ -84,8 +71,8 @@ export const handleGuestNavigation = async () => {
     const savedUser = await storage.get('@user');
 
     console.log("🔍 Checking saved data:", { 
-      savedBarangay: !!savedBarangay, 
-      savedUser: !!savedUser 
+      savedBarangay: savedBarangay, 
+      savedUser: savedUser 
     });
 
     if (!savedBarangay) {
