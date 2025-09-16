@@ -29,6 +29,8 @@ export const setupAuthListener = (): Promise<void> => {
         // Update the centralized auth store
         useAuth.getState().setAuthUser(user);
         useAuth.getState().setLoading(false);
+
+        // console.log("🔔 Auth state changed. Current user:", user ? JSON.stringify(user, null, 2) : "No user");
         
         // Handle navigation based on auth state
         if (user) {

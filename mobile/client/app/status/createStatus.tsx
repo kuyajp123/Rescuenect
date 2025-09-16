@@ -228,8 +228,14 @@ export const createStatus = () => {
     try {
       setSubmitStatusLoading(true);
       const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_BACKEND_URL}/createStatus`,
-        statusForm
+        `${process.env.EXPO_PUBLIC_BACKEND_URL}/status/createStatus`,
+         statusForm,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${await authUser?.getIdToken()}`,
+          }
+        }
       );
       console.log("Form submitted successfully:", response.data);
     } catch (error) {

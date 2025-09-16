@@ -6,6 +6,7 @@ import { auth } from "@/lib/firebaseConfig";
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { signInWithCustomToken } from "firebase/auth";
 import { Alert } from "react-native";
+import { navigateToSignIn } from "@/routes/route";
 
 type AuthUser = {
     isNewUser: boolean | null;
@@ -140,6 +141,7 @@ export const handleLogout = async () => {
     Alert.alert("Logged Out", "You have been logged out successfully.");
     
     // Note: Navigation will be handled by the auth state listener in firebaseAuth.ts
+    navigateToSignIn()
     
   } catch (error) {
     console.error("❌ Logout error:", error);

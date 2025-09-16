@@ -8,7 +8,7 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // storage.clear(); // Clear AsyncStorage for testing purposes
+    // storage.clear(); // Clear AsyncStorage for testing purposes`
     // handleLogout();
 
     (() => {

@@ -4,14 +4,14 @@ import dotenv from "dotenv";
 dotenv.config();
 const app = express();
 const port = parseInt(process.env.PORT!);
-import routes from '@/router/routes';
+import router from '@/routes';
 
 // Middleware to parse JSON
 app.use(express.json());
 app.use(cors());
 app.use(express.json());
 
-app.use('/', routes);
+app.use('/', router);
 
 app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
   console.error('Error occurred:', err);

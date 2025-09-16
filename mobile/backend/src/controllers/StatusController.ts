@@ -21,11 +21,15 @@ export class StatusController {
 
         try {
             const status = await StatusModel.getStatusByUid(uid);
+            
+            // ✅ Fix: Always send a response
             if (status) {
                 res.status(200).json({ message: 'Status fetched successfully', data: status });
             } else {
-                res.status(404).json({ message: 'Status not found' });
+                // ✅ Fix: Return proper response when no status found
+                res.status(200).json({ message: 'No status found for user', data: null });
             }
+            
         } catch (error: any) {
             res.status(500).json({ message: 'Failed to fetch status', error: error.message });
             console.error('Status fetching error:', error);

@@ -94,4 +94,6 @@ export type StatusForm = {
     shareLocation: boolean;
     shareContact: boolean;
     errMessage?: string;
+    created_at?: number;
+    updated_at?: number;
 };
