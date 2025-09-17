@@ -18,10 +18,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useRouter } from "expo-router";
 import { ChevronDown, X } from "lucide-react-native";
-import React, { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { create } from "zustand";
 import { useIdToken } from "@/hooks/useIdToken";
+import { API_ROUTES } from '@/config/endpoints';
 
 type barangayStore = {
   selectedBarangay: string;
@@ -36,19 +37,19 @@ export const useBarangayStore = create<barangayStore>((set) => ({
 const barangayForm = () => {
   const router = useRouter();
   const { isDark } = useTheme();
-  const [modalVisible, setModalVisible] = React.useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
   const selectedBarangay = useBarangayStore((state) => state.selectedBarangay);
   const setSelectedBarangay = useBarangayStore(
     (state) => state.setSelectedBarangay
   );
-  const [errorMessage, setErrorMessage] = React.useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const authUser = useAuth((state) => state.authUser);
   const isLoading = useAuth((state) => state.isLoading);
 
   const { getToken } = useIdToken();
 
   // Debug logging
-  React.useEffect(() => {
+  useEffect(() => {
     console.log("🏠 BarangayForm mounted", {
       hasAuthUser: !!authUser,
       authUserUid: authUser?.uid,
@@ -140,8 +141,7 @@ const barangayForm = () => {
 
       console.log("idToken: ", token ? "Token present" : "Token missing");
 
-      const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_BACKEND_URL}/data/saveBarangay`,
+      const response = await axios.post(API_ROUTES.DATA.SAVE_BARANGAY_DATA,
         {
           uid: authUser?.uid,
           barangay: selectedBarangay,
@@ -151,6 +151,7 @@ const barangayForm = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
+          timeout: 30000, // 30 seconds timeout
         }
       );
 

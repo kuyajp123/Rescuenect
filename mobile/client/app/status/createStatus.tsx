@@ -27,6 +27,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import axios from "axios";
 import { useAuth } from "@/components/store/useAuth";
 import { LoadingOverlay } from "@/components/ui/loading/LoadingOverlay";
+import { API_ROUTES } from "@/config/endpoints";
+import { useStatusFormStore } from "@/components/store/useStatusForm";
 
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
@@ -35,29 +37,21 @@ export const createStatus = () => {
 
   const coords = useCoords((state) => state.coords);
   const setCoords = useCoords((state) => state.setCoords);
-  const oneTimeLocationCoords = useCoords(
-    (state) => state.oneTimeLocationCoords
-  );
-  const setOneTimeLocationCoords = useCoords(
-    (state) => state.setOneTimeLocationCoords
-  );
-  const setFollowUserLocation = useCoords(
-    (state) => state.setFollowUserLocation
-  );
+  const oneTimeLocationCoords = useCoords((state) => state.oneTimeLocationCoords);
+  const setOneTimeLocationCoords = useCoords((state) => state.setOneTimeLocationCoords);
+  const setFollowUserLocation = useCoords((state) => state.setFollowUserLocation);
 
   const savedLocation: [number, number] = [120.7752839, 14.2919325]; // simulate saved location
   // const savedLocation: [number, number] | null = null; // simulate saved location
-  const [locationName, setLocationName] = useState<string>(
-    "Location Name must be here"
-  ); // simulate openCage response
-  const [selectedCoords, setSelectedCoords] = useState<[number, number]>([
-    0, 0,
-  ]);
+  const [locationName, setLocationName] = useState<string>("Location Name must be here"); // simulate openCage response
+  const [selectedCoords, setSelectedCoords] = useState<[number, number]>([0, 0]);
   const [hasUserTappedMap, setHasUserTappedMap] = useState(false); // Track if user has tapped on map
   const [isManualSelection, setIsManualSelection] = useState(false); // Track if user is making manual ButtonRadio selection
   const [isGPSselection, setIsGPSselection] = useState(false); // Track if user has selected GPS option
   const { authUser } = useAuth();
   const [submitStatusLoading, setSubmitStatusLoading] = useState(false);
+  const formData = useStatusFormStore((state) => state.formData);
+  const setFormData = useStatusFormStore((state) => state.setFormData);
 
   const [statusForm, setStatusForm] = useState<StatusForm>({
     uid: authUser?.uid || "",
@@ -227,17 +221,18 @@ export const createStatus = () => {
 
     try {
       setSubmitStatusLoading(true);
-      const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_BACKEND_URL}/status/createStatus`,
+      const response = await axios.post(API_ROUTES.STATUS.SAVE_STATUS,
          statusForm,
         {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${await authUser?.getIdToken()}`,
-          }
-        }
+          },
+          timeout: 30000, // 30 seconds timeout
+        },
       );
       console.log("Form submitted successfully:", response.data);
+      setFormData(statusForm); // Save to Zustand store
     } catch (error) {
       console.error("Error submitting form:", error);
       setSubmitStatusLoading(false);
@@ -245,7 +240,7 @@ export const createStatus = () => {
     } finally {
       setSubmitStatusLoading(false);
     }
-  }, [statusForm]);
+  }, [statusForm, setFormData]);
 
   // Define text input fields
   const textInputFields: TextInputField[] = useMemo(

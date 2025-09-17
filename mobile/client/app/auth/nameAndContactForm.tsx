@@ -17,6 +17,7 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { create } from "zustand";
+import { API_ROUTES } from '@/config/endpoints';
 
 type FormState = {
   firstName: string;
@@ -154,8 +155,7 @@ const nameAndContactForm = () => {
             return;
           }
 
-          const response = await axios.post(
-            `${process.env.EXPO_PUBLIC_BACKEND_URL}/data/saveUserInfo`,
+          const response = await axios.post(API_ROUTES.DATA.SAVE_USER_DATA,
             {
               uid: authUser?.uid,
               firstName: firstName.trim(),
@@ -168,6 +168,7 @@ const nameAndContactForm = () => {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
               },
+              timeout: 30000, // 30 seconds timeout
             }
           );
 

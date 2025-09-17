@@ -7,6 +7,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { signInWithCustomToken } from "firebase/auth";
 import { Alert } from "react-native";
 import { navigateToSignIn } from "@/routes/route";
+import { API_ROUTES } from '@/config/endpoints';
 
 type AuthUser = {
     isNewUser: boolean | null;
@@ -57,7 +58,7 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
         const idToken = userInfo.data?.idToken;
 
         // Send to backend for verification and user creation/retrieval
-        const response = await axios.post(`${process.env.EXPO_PUBLIC_BACKEND_URL}/auth/signin`, {
+        const response = await axios.post(API_ROUTES.AUTH.SIGNIN, {
         idToken,
         user: {
             email: userInfo.data?.user.email,
@@ -65,7 +66,11 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
             givenName: userInfo.data?.user.givenName,
             photo: userInfo.data?.user.photo,
         }
-        });
+        }, 
+        {
+          timeout: 30000, // 30 seconds timeout
+        }
+      );
 
         console.log("✅ Backend response received", JSON.stringify(response.data.user, null, 2));
         console.log("✅ isNewUser?", JSON.stringify(response.data.isNewUser, null, 2));

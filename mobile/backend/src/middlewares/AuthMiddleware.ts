@@ -4,8 +4,6 @@ import { NextFunction, Request, Response } from 'express';
 export class AuthMiddleware {
   static async verifyToken(req: Request, res: Response, next: NextFunction) {
     const authHeader = req.headers.authorization;
-
-    console.log("Authorization header:", req.headers.authorization);
     
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ message: "Missing or invalid authorization header" });

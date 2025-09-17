@@ -87,7 +87,7 @@ function RootLayoutContent() {
         <Stack.Screen 
           name="(tabs)" 
           options={{
-            title: 'RescueNect', 
+            title: 'Rescuenect', 
             headerShown: true, 
             animation: 'fade',
             animationDuration: 500,

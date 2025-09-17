@@ -6,17 +6,10 @@ import {
   navigateToSignIn,
   navigateToTabs,
 } from "@/routes/route";
-import { fetchAndSaveStatusData } from "@/API/fetchStatusData";
-import { useStatusFormStore } from "../store/useStatusForm";
 
 export const handleAuthNavigation = async (user: any) => {
   try {
     const { isNewUser, userResponse } = useBackendResponse.getState();
-    const setFormData = useStatusFormStore.getState().setFormData;
-
-    // console.log("✅ useBackendResponseState data:", JSON.stringify(userResponse, null, 2));
-    // console.log("✅ isNewUser?", JSON.stringify(isNewUser, null, 2));
-    // console.log("🔍 Authenticated user:", user ? JSON.stringify(user, null, 2) : null);
 
     if (user) {
       if (isNewUser === true) {
@@ -46,24 +39,6 @@ export const handleAuthNavigation = async (user: any) => {
           phoneNumber: userResponse.phoneNumber || "",
         });
 
-        const idToken = await user.getIdToken();
-        console.log("idToken: ", !!idToken);
-        const response = await fetchAndSaveStatusData(user.uid, idToken);
-
-        // ✅ Fix: Handle new response format and errors
-        if (response.success && response.data) {
-          setFormData(response.data);
-          console.log(
-            "✅ Fetched and saved status data for user:",
-            JSON.stringify(response.data, null, 2)
-          );
-        } else if (!response.success) {
-          console.log("⚠️ Failed to fetch status data:", response.error);
-          // Continue with navigation even if status fetch fails
-        } else {
-          console.log("ℹ️ No existing status data found for user");
-        }
-
         // User has complete data from backend - go to main app
         useBackendResponse.getState().resetResponse();
         console.log("✅ User has complete data from backend - going to tabs");
@@ -74,24 +49,6 @@ export const handleAuthNavigation = async (user: any) => {
           "❓ Undefined newUser state, checking storage for existing data"
         );
         // console.log("user from else block", JSON.stringify(user, null, 2));
-        const idToken = await user.getIdToken();
-        console.log("idToken: ", idToken);
-        console.log("user.uid: ", user.uid);
-        const response = await fetchAndSaveStatusData(user.uid, idToken);
-
-        // ✅ Fix: Handle new response format and errors
-        if (response.success && response.data) {
-          setFormData(response.data);
-          console.log(
-            "✅ Fetched and saved status data for user:",
-            JSON.stringify(response.data, null, 2)
-          );
-        } else if (!response.success) {
-          console.log("⚠️ Failed to fetch status data:", response.error);
-          // Continue with navigation even if status fetch fails
-        } else {
-          console.log("ℹ️ No existing status data found for user");
-        }
 
         await handleGuestNavigation();
         return;
