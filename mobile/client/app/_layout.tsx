@@ -13,6 +13,7 @@ import { useStatusFetchBackgroundData } from "@/hooks/useStatusFetchBackgroundDa
 import { useIdToken } from "@/hooks/useIdToken";
 import { useAuth } from '@/components/store/useAuth';
 import { useStatusFormStore } from "@/components/store/useStatusForm";
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import "react-native-reanimated";
 import "../global.css";
 
@@ -23,6 +24,8 @@ export default function RootLayout() {
   const { idToken } = useIdToken();
   const setFormData = useStatusFormStore((state) => state.setFormData);
   const statusData = useStatusFetchBackgroundData(authUser ? authUser.uid : null, idToken);
+  
+  useNetworkStatus();
 
   useEffect(() => {
     if (statusData) {

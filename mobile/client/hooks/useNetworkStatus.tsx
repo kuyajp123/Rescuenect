@@ -3,23 +3,23 @@ import { useNetwork } from "@/components/store/useNetwork";
 import { useEffect } from "react";
 
 export const useNetworkStatus = () => {
-const { setIsOnline } = useNetwork();
+    const { setIsOnline } = useNetwork();
 
-useEffect(() => {
-    const updateNetworkStatus = async () => {
-        const state = await Network.getNetworkStateAsync();
-        setIsOnline(!!(state.isConnected && state.isInternetReachable));
-    };
+    useEffect(() => {
+        const updateNetworkStatus = async () => {
+            const state = await Network.getNetworkStateAsync();
+            setIsOnline(!!(state.isConnected && state.isInternetReachable));
+        };
 
-    updateNetworkStatus();
+        updateNetworkStatus();
 
-    const subscription = Network.addNetworkStateListener((state) => {
-        setIsOnline(!!(state.isConnected && state.isInternetReachable));
-    });
+        const subscription = Network.addNetworkStateListener((state) => {
+            setIsOnline(!!(state.isConnected && state.isInternetReachable));
+        });
 
-    return () => {
-        subscription.remove();
-    };
-}, []);
-
+        return () => {
+            subscription.remove();
+            setIsOnline(false);
+        };
+    }, [setIsOnline]);
 };

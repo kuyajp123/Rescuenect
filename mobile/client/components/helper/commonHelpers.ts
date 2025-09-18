@@ -49,7 +49,7 @@ export const formatName = (text: string): string => {
 
 
 // check network connection
-export const checkInternetConnection = async (): Promise<boolean> => {
+export const checkInternetConnectionOnce = async (): Promise<boolean> => {
   try {
     const state = await Network.getNetworkStateAsync();
     return !!(state.isConnected && state.isInternetReachable);

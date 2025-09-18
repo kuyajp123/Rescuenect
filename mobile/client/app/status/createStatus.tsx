@@ -235,8 +235,6 @@ export const createStatus = () => {
       setFormData(statusForm); // Save to Zustand store
     } catch (error) {
       console.error("Error submitting form:", error);
-      setSubmitStatusLoading(false);
-      throw new Error("Error submitting form: " + error);
     } finally {
       setSubmitStatusLoading(false);
     }
