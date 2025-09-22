@@ -70,12 +70,22 @@ export const handleGuestNavigation = async () => {
   try {
     const savedBarangay = await storage.get("@barangay");
     const savedUser = await storage.get("@user");
+    const hasSignedOut = await storage.get("@hasSignedOut");
 
     console.log("🔍 Checking saved data:", {
       savedBarangay: savedBarangay,
       savedUser: savedUser,
+      hasSignedOut: hasSignedOut,
     });
 
+    // If user previously signed out, stay on sign-in page to let them choose
+    if (hasSignedOut) {
+      console.log("🚪 User previously signed out - staying on sign-in page for choice");
+      navigateToSignIn();
+      return;
+    }
+
+    // First-time user or continuing guest - check data requirements
     if (!savedBarangay) {
       console.log("❌ User is missing barangay information");
       navigateToBarangayForm();

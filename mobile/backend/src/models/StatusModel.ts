@@ -1,5 +1,6 @@
 import db from "@/db/firebaseConfig";
 import { FieldValue } from "firebase-admin/firestore";
+import isEqual from "lodash/isEqual";
 
 interface StatusData {
     uid: string;
@@ -14,8 +15,8 @@ interface StatusData {
     image: string;
     shareLocation: boolean;
     shareContact: boolean;
-    created_at: string;
-    updated_at?: string;
+    createdAt: string;
+    archivedAt?: string | null;
 }
 
 export class StatusModel {
@@ -25,25 +26,48 @@ export class StatusModel {
         try {
             const docRef = this.collection.doc(data.uid);
             const docSnap = await docRef.get();
+            const docData = docSnap.data();
 
-            if (docSnap.exists) {
-                await docRef.set(
-                    {
-                        ...data,
-                        updated_at: FieldValue.serverTimestamp(),
-                    },
-                    { merge: true }
-                );
-            } else {
-                await docRef.set({
-                    ...data,
-                    created_at: FieldValue.serverTimestamp(),
-                    updated_at: FieldValue.serverTimestamp(),
+            if (docSnap.exists && docData) {
+            // Remove timestamps and system fields before comparison
+            const { createdAt, updatedAt, archivedAt, ...cleanExistingDoc } = docData;
+            const { createdAt: incomingCreatedAt, archivedAt: incomingArchivedAt, ...cleanIncomingData } = data;
+            
+            const isSame = isEqual(cleanExistingDoc, cleanIncomingData);
+
+            if (!isSame) {
+                // Archive the old record in history
+                await docRef.collection("history").add({
+                ...docData,
+                archivedAt: FieldValue.serverTimestamp(),
                 });
+
+                console.log("📚 Old record archived to history");
+
+                // Update the main doc
+                await docRef.set(
+                {
+                    ...data,
+                    updatedAt: FieldValue.serverTimestamp(),
+                },
+                { merge: true }
+                );
+
+                console.log("✅ Updated and history saved");
+            } else {
+                console.log("⏸️ No changes detected, nothing saved");
+            }
+            } else {
+            // Create new doc if none exists
+            await docRef.set({
+                ...data,
+                createdAt: FieldValue.serverTimestamp(),
+            });
+            console.log("New status created ✅");
             }
         } catch (error) {
-            console.error('Error saving status:', error);
-            throw new Error('Failed to save status');
+            console.error("Error saving status:", error);
+            throw new Error("Failed to save status");
         }
     }
 

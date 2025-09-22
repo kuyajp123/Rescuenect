@@ -8,6 +8,7 @@ import { signInWithCustomToken } from "firebase/auth";
 import { Alert } from "react-native";
 import { navigateToSignIn } from "@/routes/route";
 import { API_ROUTES } from '@/config/endpoints';
+import { useStatusFormStore } from "@/components/store/useStatusForm";
 
 type AuthUser = {
     isNewUser: boolean | null;
@@ -78,7 +79,7 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
         // Store backend response BEFORE Firebase auth state changes
         setBackendResponse({
         isNewUser: response.data.isNewUser,
-        userResponse: {  // ✅ Changed from 'user' to 'userResponse'
+        userResponse: { 
             firstName: response.data.user.firstName,  
             lastName: response.data.user.lastName,     
             barangay: response.data.user.barangay,     
@@ -89,6 +90,9 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
         // Sign in to Firebase with custom token AFTER storing response
         await signInWithCustomToken(auth, response.data.token);
         await auth.currentUser?.reload();
+        
+        // Clear sign-out flag since user is now signed in
+        await storage.remove('@hasSignedOut');
         
         setLoading?.(false);
         // Note: Navigation for complete users will be handled by the auth state listener in firebaseAuth.ts
@@ -122,11 +126,16 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
 }
 
 export const handleLogout = async () => {
+  const setFormData = useStatusFormStore.getState().setFormData;
+
   try {
+    setFormData(null);
     // Clear user data from storage
     await storage.remove('@barangay');
     await storage.remove('@user');
-    console.log("✅ Storage cleared");
+    // Set sign-out flag to indicate intentional sign-out
+    await storage.set('@hasSignedOut', true);
+    console.log("✅ Storage cleared and sign-out flag set");
 
     // Sign out from Firebase (this will trigger the auth state listener)
     await auth.signOut();
@@ -153,6 +162,7 @@ export const handleLogout = async () => {
     
     // Even if there's an error, try to clear Google state
     try {
+      setFormData(null);
       await GoogleSignin.revokeAccess();
       await GoogleSignin.signOut();
     } catch (e) {
