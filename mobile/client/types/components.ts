@@ -85,7 +85,7 @@ export type StatusForm = {
     firstName: string;
     lastName: string;
     phoneNumber: string;
-    statusType: string;
+    condition: string;
     lat: number | null;
     lng: number | null;
     loc?: string | null;

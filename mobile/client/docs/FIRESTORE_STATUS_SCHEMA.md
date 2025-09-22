@@ -245,7 +245,356 @@ expireAt.setDate(expireAt.getDate() + 30); // 30 days from now
 
 ## Query Examples
 
-### 1. Get Current Status for User
+### 1. Create New Status
+
+```typescript
+const createStatus = async (
+  userId: string,
+  statusData: Omit<
+    StatusData,
+    "parentId" | "versionId" | "statusType" | "createdAt" | "expireAt"
+  >
+) => {
+  try {
+    // Generate IDs
+    const parentId = `status-${Date.now()}`;
+    const versionId = `${parentId}-v1`;
+
+    // Set expiration date (30 days from now)
+    const expireAt = new Date();
+    expireAt.setDate(expireAt.getDate() + 30);
+
+    // Create document reference
+    const statusRef = db
+      .collection("status")
+      .doc(userId)
+      .collection("statuses")
+      .doc(versionId);
+
+    // Create the status document
+    await statusRef.set({
+      parentId: parentId,
+      versionId: versionId,
+      statusType: "current",
+      ...statusData,
+      createdAt: FieldValue.serverTimestamp(),
+      expireAt: admin.firestore.Timestamp.fromDate(expireAt),
+    });
+
+    console.log(`✅ Status created with ID: ${parentId}`);
+    return { parentId, versionId };
+  } catch (error) {
+    console.error("❌ Error creating status:", error);
+    throw new Error("Failed to create status");
+  }
+};
+
+// Usage example
+const newStatus = await createStatus("user123", {
+  uid: "user123",
+  firstName: "John",
+  lastName: "Doe",
+  phoneNumber: "+1234567890",
+  statusCondition: "safe",
+  lat: 14.5995,
+  lng: 120.9842,
+  location: "Manila City Hall",
+  note: "Safe at evacuation center",
+  image: "",
+  shareLocation: true,
+  shareContact: true,
+});
+```
+
+### 2. Update Existing Status (Create New Version)
+
+```typescript
+const updateStatus = async (
+  userId: string,
+  parentId: string,
+  updatedData: Partial<StatusData>
+) => {
+  try {
+    const batch = db.batch();
+
+    // Step 1: Find current version
+    const currentQuery = await db
+      .collection("status")
+      .doc(userId)
+      .collection("statuses")
+      .where("parentId", "==", parentId)
+      .where("statusType", "==", "current")
+      .limit(1)
+      .get();
+
+    if (currentQuery.empty) {
+      throw new Error("Current status not found");
+    }
+
+    const currentDoc = currentQuery.docs[0];
+    const currentData = currentDoc.data();
+
+    // Step 2: Get next version number
+    const allVersionsQuery = await db
+      .collection("status")
+      .doc(userId)
+      .collection("statuses")
+      .where("parentId", "==", parentId)
+      .get();
+
+    const nextVersionNumber = allVersionsQuery.size + 1;
+    const newVersionId = `${parentId}-v${nextVersionNumber}`;
+
+    // Step 3: Mark current version as history
+    batch.update(currentDoc.ref, {
+      statusType: "history",
+    });
+
+    // Step 4: Create new current version
+    const newVersionRef = db
+      .collection("status")
+      .doc(userId)
+      .collection("statuses")
+      .doc(newVersionId);
+
+    batch.set(newVersionRef, {
+      ...currentData, // Keep all existing data
+      ...updatedData, // Apply updates
+      parentId: parentId, // Maintain lineage
+      versionId: newVersionId,
+      statusType: "current",
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      // Keep original expireAt for consistent TTL
+      expireAt: currentData.expireAt,
+    });
+
+    // Step 5: Commit batch operation
+    await batch.commit();
+
+    console.log(`✅ Status updated to version ${nextVersionNumber}`);
+    return { versionId: newVersionId, versionNumber: nextVersionNumber };
+  } catch (error) {
+    console.error("❌ Error updating status:", error);
+    throw new Error("Failed to update status");
+  }
+};
+
+// Usage example
+const updatedStatus = await updateStatus("user123", "status-1695123456789", {
+  statusCondition: "evacuated",
+  location: "Evacuation Center Alpha",
+  note: "Moved to safer location",
+  shareContact: false,
+});
+```
+
+### 3. Bulk Status Update (Multiple Fields)
+
+```typescript
+const bulkUpdateStatus = async (
+  userId: string,
+  parentId: string,
+  updates: {
+    statusCondition?: "safe" | "evacuated" | "affected" | "missing";
+    location?: string;
+    coordinates?: { lat: number; lng: number };
+    contactInfo?: { phoneNumber: string; shareContact: boolean };
+    note?: string;
+    image?: string;
+  }
+) => {
+  try {
+    // Flatten updates into single object
+    const flatUpdates: Partial<StatusData> = {};
+
+    if (updates.statusCondition) {
+      flatUpdates.statusCondition = updates.statusCondition;
+    }
+
+    if (updates.location) {
+      flatUpdates.location = updates.location;
+    }
+
+    if (updates.coordinates) {
+      flatUpdates.lat = updates.coordinates.lat;
+      flatUpdates.lng = updates.coordinates.lng;
+    }
+
+    if (updates.contactInfo) {
+      flatUpdates.phoneNumber = updates.contactInfo.phoneNumber;
+      flatUpdates.shareContact = updates.contactInfo.shareContact;
+    }
+
+    if (updates.note !== undefined) {
+      flatUpdates.note = updates.note;
+    }
+
+    if (updates.image !== undefined) {
+      flatUpdates.image = updates.image;
+    }
+
+    // Use the updateStatus function
+    return await updateStatus(userId, parentId, flatUpdates);
+  } catch (error) {
+    console.error("❌ Error in bulk update:", error);
+    throw new Error("Failed to bulk update status");
+  }
+};
+
+// Usage example
+const bulkUpdate = await bulkUpdateStatus("user123", "status-1695123456789", {
+  statusCondition: "safe",
+  location: "Home",
+  coordinates: { lat: 14.6042, lng: 120.9822 },
+  contactInfo: { phoneNumber: "+1234567890", shareContact: true },
+  note: "Returned home safely",
+  image: "https://example.com/safe-photo.jpg",
+});
+```
+
+### 4. Conditional Status Update (Only if Changed)
+
+```typescript
+const conditionalUpdateStatus = async (
+  userId: string,
+  parentId: string,
+  newData: Partial<StatusData>
+) => {
+  try {
+    // Get current status
+    const currentQuery = await db
+      .collection("status")
+      .doc(userId)
+      .collection("statuses")
+      .where("parentId", "==", parentId)
+      .where("statusType", "==", "current")
+      .limit(1)
+      .get();
+
+    if (currentQuery.empty) {
+      throw new Error("Current status not found");
+    }
+
+    const currentData = currentQuery.docs[0].data();
+
+    // Compare only the fields being updated
+    let hasChanges = false;
+    const fieldsToCompare = Object.keys(newData);
+
+    for (const field of fieldsToCompare) {
+      if (currentData[field] !== newData[field as keyof StatusData]) {
+        hasChanges = true;
+        break;
+      }
+    }
+
+    if (!hasChanges) {
+      console.log("⏸️ No changes detected, skipping update");
+      return { updated: false, reason: "No changes detected" };
+    }
+
+    // Proceed with update if changes detected
+    const result = await updateStatus(userId, parentId, newData);
+    return { updated: true, ...result };
+  } catch (error) {
+    console.error("❌ Error in conditional update:", error);
+    throw new Error("Failed to conditionally update status");
+  }
+};
+
+// Usage example
+const conditionalResult = await conditionalUpdateStatus(
+  "user123",
+  "status-1695123456789",
+  {
+    statusCondition: "safe", // Same as current
+    note: "Updated note", // Different from current
+  }
+);
+// Result: { updated: true, versionId: 'status-1695123456789-v3', versionNumber: 3 }
+```
+
+### 6. Delete Status (Soft Delete)
+
+```typescript
+const deleteStatus = async (userId: string, parentId: string) => {
+  try {
+    // Find current version
+    const currentQuery = await db
+      .collection("status")
+      .doc(userId)
+      .collection("statuses")
+      .where("parentId", "==", parentId)
+      .where("statusType", "==", "current")
+      .limit(1)
+      .get();
+
+    if (currentQuery.empty) {
+      throw new Error("Current status not found");
+    }
+
+    const currentDoc = currentQuery.docs[0];
+
+    // Mark as deleted (soft delete)
+    await currentDoc.ref.update({
+      statusType: "deleted",
+      deletedAt: FieldValue.serverTimestamp(),
+      // expireAt remains the same for TTL cleanup
+    });
+
+    console.log(`✅ Status ${parentId} marked as deleted`);
+    return { parentId, deletedAt: new Date() };
+  } catch (error) {
+    console.error("❌ Error deleting status:", error);
+    throw new Error("Failed to delete status");
+  }
+};
+
+// Usage example
+const deletedStatus = await deleteStatus("user123", "status-1695123456789");
+```
+
+### 7. Restore Deleted Status
+
+```typescript
+const restoreStatus = async (userId: string, parentId: string) => {
+  try {
+    // Find deleted version
+    const deletedQuery = await db
+      .collection("status")
+      .doc(userId)
+      .collection("statuses")
+      .where("parentId", "==", parentId)
+      .where("statusType", "==", "deleted")
+      .limit(1)
+      .get();
+
+    if (deletedQuery.empty) {
+      throw new Error("Deleted status not found");
+    }
+
+    const deletedDoc = deletedQuery.docs[0];
+
+    // Restore as current (remove deletedAt field)
+    await deletedDoc.ref.update({
+      statusType: "current",
+      deletedAt: FieldValue.delete(), // Remove deletedAt field
+    });
+
+    console.log(`✅ Status ${parentId} restored from deletion`);
+    return { parentId, restoredAt: new Date() };
+  } catch (error) {
+    console.error("❌ Error restoring status:", error);
+    throw new Error("Failed to restore status");
+  }
+};
+
+// Usage example
+const restoredStatus = await restoreStatus("user123", "status-1695123456789");
+```
+
+### 8. Get Current Status for User
 
 ```typescript
 const getCurrentStatus = async (userId: string, parentId: string) => {
@@ -262,7 +611,7 @@ const getCurrentStatus = async (userId: string, parentId: string) => {
 };
 ```
 
-### 2. Get All User Statuses (Current Only)
+### 9. Get All User Statuses (Current Only)
 
 ```typescript
 const getAllCurrentStatuses = async (userId: string) => {
@@ -278,7 +627,7 @@ const getAllCurrentStatuses = async (userId: string) => {
 };
 ```
 
-### 3. Get Status History (Lineage Tracking)
+### 10. Get Status History (Lineage Tracking)
 
 ```typescript
 const getStatusLineage = async (userId: string, parentId: string) => {
@@ -297,7 +646,7 @@ const getStatusLineage = async (userId: string, parentId: string) => {
 };
 ```
 
-### 4. Get Deleted Statuses
+### 11. Get Deleted Statuses
 
 ```typescript
 const getDeletedStatuses = async (userId: string) => {
@@ -313,7 +662,7 @@ const getDeletedStatuses = async (userId: string) => {
 };
 ```
 
-### 5. Search Active Statuses by Condition
+### 12. Search Active Statuses by Condition
 
 ```typescript
 const getStatusesByCondition = async (userId: string, condition: string) => {

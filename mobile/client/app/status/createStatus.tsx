@@ -57,7 +57,7 @@ export const createStatus = () => {
     uid: authUser?.uid || "",
     firstName: "",
     lastName: "",
-    statusType: "",
+    condition: "",
     phoneNumber: "",
     lat: null,
     lng: null,
@@ -200,8 +200,8 @@ export const createStatus = () => {
     if (!statusForm.lastName.trim()) {
       errors.lastName = "Last name is required";
     }
-    if (!statusForm.statusType) {
-      errors.statusType = "Status is required";
+    if (!statusForm.condition) {
+      errors.condition = "Status is required";
     }
     if (!statusForm.phoneNumber.trim()) {
       errors.phoneNumber = "Phone number is required";
@@ -286,19 +286,19 @@ export const createStatus = () => {
     () => [
       {
         key: "status",
-        label: "Set your Status",
+        label: "What is your current condition?",
         options: [
           { label: "Safe", value: "safe" },
           { label: "Evacuated", value: "evacuated" },
           { label: "Affected", value: "affected" },
           { label: "Missing", value: "missing" },
         ],
-        selectedValue: statusForm.statusType,
-        onSelect: (value) => handleInputChange("statusType", value),
-        errorText: formErrors.statusType,
+        selectedValue: statusForm.condition,
+        onSelect: (value) => handleInputChange("condition", value),
+        errorText: formErrors.condition,
       },
     ],
-    [statusForm.statusType, formErrors.statusType, handleInputChange]
+    [statusForm.condition, formErrors.condition, handleInputChange]
   );
 
   // Define toggle fields

@@ -7,7 +7,7 @@ interface StatusData {
     firstName: string;
     lastName: string;
     phoneNumber: string;
-    statusType: 'safe' | 'evacuated' | 'affected' | 'missing';
+    condition: 'safe' | 'evacuated' | 'affected' | 'missing';
     lat: number | null;
     lng: number | null;
     loc?: string | null;
