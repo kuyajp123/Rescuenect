@@ -82,6 +82,9 @@ export type FiveDaysForecastProps = {
 
 export type StatusForm = {
     uid?: string;
+    parentId?: string;
+    versionId?: string;
+    statusType?: "current" | "history" | "deleted";
     firstName: string;
     lastName: string;
     phoneNumber: string;
@@ -94,6 +97,8 @@ export type StatusForm = {
     shareLocation: boolean;
     shareContact: boolean;
     errMessage?: string;
-    created_at?: number;
-    updated_at?: number;
+    createdAt?: number;
+    updatedAt?: number;
+    deletedAt?: number | null;
+    expireAt?: number | null;
 };

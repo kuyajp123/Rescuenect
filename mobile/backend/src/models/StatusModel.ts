@@ -4,10 +4,12 @@ import isEqual from "lodash/isEqual";
 
 interface StatusData {
     uid: string;
+    parentId?: string;
+    versionId?: string;
     firstName: string;
     lastName: string;
     phoneNumber: string;
-    condition: 'safe' | 'evacuated' | 'affected' | 'missing';
+    condition: "safe" | "evacuated" | "affected" | "missing";
     lat: number | null;
     lng: number | null;
     loc?: string | null;
@@ -15,9 +17,12 @@ interface StatusData {
     image: string;
     shareLocation: boolean;
     shareContact: boolean;
-    createdAt: string;
-    archivedAt?: string | null;
-}
+    createdAt?: number;
+    updatedAt?: number;
+    deletedAt?: number | null;
+    expireAt?: number | null;
+    archivedAt?: number | null;
+};
 
 export class StatusModel {
     private static collection = db.collection("status");

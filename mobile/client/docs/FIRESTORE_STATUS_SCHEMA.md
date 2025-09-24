@@ -30,33 +30,250 @@ status (collection)
 
 ## Fields Explanation
 
+### TypeScript Interface Definition
+
+```typescript
+// Core status data interface
+interface StatusData {
+  // Core versioning fields
+  parentId: string;
+  versionId: string;
+  statusType: "current" | "history" | "deleted";
+
+  // User identification
+  uid: string;
+
+  // Personal information
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+
+  // Status information
+  statusCondition: "safe" | "evacuated" | "affected" | "missing";
+
+  // Location data
+  lat: number | null;
+  lng: number | null;
+  location?: string | null;
+
+  // Additional information
+  note: string;
+  image: string;
+
+  // Privacy settings
+  shareLocation: boolean;
+  shareContact: boolean;
+
+  // Timestamps
+  createdAt: FirebaseFirestore.Timestamp | string;
+  updatedAt?: FirebaseFirestore.Timestamp | string;
+  deletedAt?: FirebaseFirestore.Timestamp | string;
+  expireAt: FirebaseFirestore.Timestamp;
+}
+
+// Type for creating new status (excludes system fields)
+type CreateStatusData = Omit<
+  StatusData,
+  | "parentId"
+  | "versionId"
+  | "statusType"
+  | "createdAt"
+  | "expireAt"
+  | "updatedAt"
+  | "deletedAt"
+>;
+
+// Type for updating status (partial fields)
+type UpdateStatusData = Partial<
+  Omit<
+    StatusData,
+    "parentId" | "versionId" | "statusType" | "uid" | "createdAt" | "expireAt"
+  >
+>;
+
+// Status condition enum
+enum StatusCondition {
+  SAFE = "safe",
+  EVACUATED = "evacuated",
+  AFFECTED = "affected",
+  MISSING = "missing",
+}
+
+// Status type enum
+enum StatusType {
+  CURRENT = "current",
+  HISTORY = "history",
+  DELETED = "deleted",
+}
+
+// Location coordinates interface
+interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+// Contact information interface
+interface ContactInfo {
+  phoneNumber: string;
+  shareContact: boolean;
+}
+
+// Privacy settings interface
+interface PrivacySettings {
+  shareLocation: boolean;
+  shareContact: boolean;
+}
+```
+
 ### Core Fields
 
-| Field        | Type      | Required | Description                                         |
-| ------------ | --------- | -------- | --------------------------------------------------- |
-| `parentId`   | string    | ✅       | Points to the original status ID (lineage tracking) |
-| `versionId`  | string    | ✅       | Unique identifier for this specific version         |
-| `statusType` | string    | ✅       | `"current"` \| `"history"` \| `"deleted"`           |
-| `createdAt`  | timestamp | ✅       | When this version was created                       |
-| `updatedAt`  | timestamp | ❌       | When this version was last modified (for edits)     |
-| `deletedAt`  | timestamp | ❌       | When this status was deleted (for deleted type)     |
-| `expireAt`   | timestamp | ✅       | TTL field for automatic cleanup after 30 days       |
+| Field        | Type                                    | Required | Description                                         |
+| ------------ | --------------------------------------- | -------- | --------------------------------------------------- |
+| `parentId`   | `string`                                | ✅       | Points to the original status ID (lineage tracking) |
+| `versionId`  | `string`                                | ✅       | Unique identifier for this specific version         |
+| `statusType` | `'current' \| 'history' \| 'deleted'`   | ✅       | Document lifecycle state                            |
+| `createdAt`  | `FirebaseFirestore.Timestamp \| string` | ✅       | When this version was created                       |
+| `updatedAt`  | `FirebaseFirestore.Timestamp \| string` | ❌       | When this version was last modified (for edits)     |
+| `deletedAt`  | `FirebaseFirestore.Timestamp \| string` | ❌       | When this status was deleted (for deleted type)     |
+| `expireAt`   | `FirebaseFirestore.Timestamp`           | ✅       | TTL field for automatic cleanup after 30 days       |
 
 ### Status Data Fields
 
-| Field             | Type           | Required | Description                                              |
-| ----------------- | -------------- | -------- | -------------------------------------------------------- |
-| `firstName`       | string         | ✅       | User's first name                                        |
-| `lastName`        | string         | ✅       | User's last name                                         |
-| `phoneNumber`     | string         | ✅       | Contact phone number                                     |
-| `statusCondition` | string         | ✅       | `"safe"` \| `"evacuated"` \| `"affected"` \| `"missing"` |
-| `lat`             | number \| null | ❌       | Latitude coordinate                                      |
-| `lng`             | number \| null | ❌       | Longitude coordinate                                     |
-| `location`        | string \| null | ❌       | Human-readable location                                  |
-| `note`            | string         | ❌       | Additional notes or description                          |
-| `image`           | string         | ❌       | Image URL or path                                        |
-| `shareLocation`   | boolean        | ✅       | Whether to share location publicly                       |
-| `shareContact`    | boolean        | ✅       | Whether to share contact info publicly                   |
+| Field             | Type                                               | Required | Description                                     |
+| ----------------- | -------------------------------------------------- | -------- | ----------------------------------------------- |
+| `uid`             | `string`                                           | ✅       | Firebase user identifier                        |
+| `firstName`       | `string`                                           | ✅       | User's first name                               |
+| `lastName`        | `string`                                           | ✅       | User's last name                                |
+| `phoneNumber`     | `string`                                           | ✅       | Contact phone number (formatted)                |
+| `statusCondition` | `'safe' \| 'evacuated' \| 'affected' \| 'missing'` | ✅       | Current emergency status condition              |
+| `lat`             | `number \| null`                                   | ❌       | Latitude coordinate (decimal degrees)           |
+| `lng`             | `number \| null`                                   | ❌       | Longitude coordinate (decimal degrees)          |
+| `location`        | `string \| null`                                   | ❌       | Human-readable location description             |
+| `note`            | `string`                                           | ❌       | Additional notes or description (max 500 chars) |
+| `image`           | `string`                                           | ❌       | Image URL or Cloud Storage path                 |
+| `shareLocation`   | `boolean`                                          | ✅       | Whether to share location publicly              |
+| `shareContact`    | `boolean`                                          | ✅       | Whether to share contact info publicly          |
+
+### Field Validation Rules
+
+```typescript
+// Field validation constraints
+const StatusValidation = {
+  // Personal information constraints
+  firstName: {
+    minLength: 1,
+    maxLength: 50,
+    pattern: /^[a-zA-Z\s\-\.\']+$/,
+    required: true,
+  },
+  lastName: {
+    minLength: 1,
+    maxLength: 50,
+    pattern: /^[a-zA-Z\s\-\.\']+$/,
+    required: true,
+  },
+  phoneNumber: {
+    pattern: /^\+?[\d\-\(\)\s]+$/,
+    minLength: 10,
+    maxLength: 20,
+    required: true,
+  },
+
+  // Status constraints
+  statusCondition: {
+    enum: ["safe", "evacuated", "affected", "missing"],
+    required: true,
+  },
+
+  // Location constraints
+  lat: {
+    min: -90,
+    max: 90,
+    type: "number",
+  },
+  lng: {
+    min: -180,
+    max: 180,
+    type: "number",
+  },
+  location: {
+    maxLength: 200,
+    type: "string",
+  },
+
+  // Content constraints
+  note: {
+    maxLength: 500,
+    type: "string",
+  },
+  image: {
+    pattern: /^(https?:\/\/|gs:\/\/).+$/,
+    maxLength: 500,
+    type: "string",
+  },
+
+  // System field constraints
+  parentId: {
+    pattern: /^status-\d+$/,
+    required: true,
+  },
+  versionId: {
+    pattern: /^status-\d+-v\d+$/,
+    required: true,
+  },
+};
+
+// Field default values
+const StatusDefaults = {
+  note: "",
+  image: "",
+  lat: null,
+  lng: null,
+  location: null,
+  shareLocation: true,
+  shareContact: true,
+};
+```
+
+### Data Type Examples
+
+```typescript
+// Example of valid field values
+const exampleStatusData: StatusData = {
+  // System fields
+  parentId: "status-1695123456789",
+  versionId: "status-1695123456789-v1",
+  statusType: "current",
+  uid: "firebase-user-uid-123",
+
+  // Personal information
+  firstName: "Maria Elena",
+  lastName: "Santos-Dela Cruz",
+  phoneNumber: "+63-917-123-4567",
+
+  // Status information
+  statusCondition: "affected",
+
+  // Location data (Philippines coordinates)
+  lat: 14.5995124,
+  lng: 120.9842195,
+  location: "Barangay San Antonio, Manila",
+
+  // Additional information
+  note: "House flooded, need evacuation assistance. Family of 4 with elderly.",
+  image: "gs://rescuenect-storage/status-images/user123/photo-123.jpg",
+
+  // Privacy settings
+  shareLocation: true,
+  shareContact: false,
+
+  // Timestamps (Firestore types)
+  createdAt: admin.firestore.Timestamp.now(),
+  expireAt: admin.firestore.Timestamp.fromDate(
+    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+  ),
+};
+```
 
 ## Versioning Flow
 

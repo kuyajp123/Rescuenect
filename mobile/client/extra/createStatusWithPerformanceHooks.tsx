@@ -21,7 +21,7 @@ import { Text } from "@/components/ui/text";
 import { Colors } from "@/constants/Colors";
 import { useCoords } from "@/components/store/useCoords";
 import { Bookmark, Info, Navigation, SquarePen } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import axios from "axios";
@@ -180,33 +180,36 @@ export const createStatus = () => {
     setFollowUserLocation(false);
   }, []);
 
-  const handleInputChange = (field: keyof StatusForm, value: string | boolean) => {
-    if (field === "phoneNumber" && typeof value === "string") {
-      value = formatContactNumber(value);
-    }
-    if (field === "firstName" && typeof value === "string") {
-      value = formatName(value);
-    }
-    if (field === "lastName" && typeof value === "string") {
-      value = formatName(value);
-    }
+  const handleInputChange = useCallback(
+    (field: keyof StatusForm, value: string | boolean) => {
+      if (field === "phoneNumber" && typeof value === "string") {
+        value = formatContactNumber(value);
+      }
+      if (field === "firstName" && typeof value === "string") {
+        value = formatName(value);
+      }
+      if (field === "lastName" && typeof value === "string") {
+        value = formatName(value);
+      }
 
-    setStatusForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-
-    // Clear error when user starts typing
-    if (formErrors[field]) {
-      setFormErrors((prev) => ({
+      setStatusForm((prev) => ({
         ...prev,
-        [field]: undefined,
-        errMessage: "",
+        [field]: value,
       }));
-    }
-  };
 
-  const handleSubmit = async () => {
+      // Clear error when user starts typing
+      if (formErrors[field]) {
+        setFormErrors((prev) => ({
+          ...prev,
+          [field]: undefined,
+          errMessage: "",
+        }));
+      }
+    },
+    [formErrors]
+  );
+
+  const handleSubmit = useCallback(async () => {
     // Validate form
     const errors: Partial<StatusForm> = {};
 
@@ -254,149 +257,161 @@ export const createStatus = () => {
     } finally {
       setSubmitStatusLoading(false);
     }
-  };
+  }, [statusForm, setFormData]);
 
   // Define text input fields
-  const textInputFields: TextInputField[] = [
-    {
-      key: "firstName",
-      label: "First Name",
-      placeholder: "Enter your First Name",
-      value: statusForm.firstName,
-      onChangeText: (text) => handleInputChange("firstName", text),
-      errorText: formErrors.firstName,
-    },
-    {
-      key: "lastName",
-      label: "Last Name",
-      placeholder: "Enter your Last Name",
-      value: statusForm.lastName,
-      onChangeText: (text) => handleInputChange("lastName", text),
-      errorText: formErrors.lastName,
-    },
-    {
-      key: "phoneNumber",
-      label: "Contact Number",
-      placeholder: "Enter your Contact Number",
-      value: statusForm.phoneNumber,
-      onChangeText: (text) => handleInputChange("phoneNumber", text),
-      errorText: formErrors.phoneNumber,
-    },
-    {
-      key: "note",
-      label: "Leave a Note",
-      placeholder: "Enter some Note",
-      value: statusForm.note,
-      onChangeText: (text) => handleInputChange("note", text),
-      multiline: true,
-      numberOfLines: 4,
-      maxLength: 500,
-    },
-  ];
+  const textInputFields: TextInputField[] = useMemo(
+    () => [
+      {
+        key: "firstName",
+        label: "First Name",
+        placeholder: "Enter your First Name",
+        value: statusForm.firstName,
+        onChangeText: (text) => handleInputChange("firstName", text),
+        errorText: formErrors.firstName,
+      },
+      {
+        key: "lastName",
+        label: "Last Name",
+        placeholder: "Enter your Last Name",
+        value: statusForm.lastName,
+        onChangeText: (text) => handleInputChange("lastName", text),
+        errorText: formErrors.lastName,
+      },
+      {
+        key: "phoneNumber",
+        label: "Contact Number",
+        placeholder: "Enter your Contact Number",
+        value: statusForm.phoneNumber,
+        onChangeText: (text) => handleInputChange("phoneNumber", text),
+        errorText: formErrors.phoneNumber,
+      },
+      {
+        key: "note",
+        label: "Leave a Note",
+        placeholder: "Enter some Note",
+        value: statusForm.note,
+        onChangeText: (text) => handleInputChange("note", text),
+        multiline: true,
+        numberOfLines: 4,
+        maxLength: 500,
+      },
+    ],
+    [statusForm, formErrors, handleInputChange]
+  );
 
   // Define radio fields
-  const radioFields: RadioField[] = [
-    {
-      key: "status",
-      label: "What is your current condition?",
-      options: [
-        { label: "Safe", value: "safe" },
-        { label: "Evacuated", value: "evacuated" },
-        { label: "Affected", value: "affected" },
-        { label: "Missing", value: "missing" },
-      ],
-      selectedValue: statusForm.condition,
-      onSelect: (value) => handleInputChange("condition", value),
-      errorText: formErrors.condition,
-    },
-  ];
+  const radioFields: RadioField[] = useMemo(
+    () => [
+      {
+        key: "status",
+        label: "What is your current condition?",
+        options: [
+          { label: "Safe", value: "safe" },
+          { label: "Evacuated", value: "evacuated" },
+          { label: "Affected", value: "affected" },
+          { label: "Missing", value: "missing" },
+        ],
+        selectedValue: statusForm.condition,
+        onSelect: (value) => handleInputChange("condition", value),
+        errorText: formErrors.condition,
+      },
+    ],
+    [statusForm.condition, formErrors.condition, handleInputChange]
+  );
 
   // Define toggle fields
-  const toggleFields: ToggleField[] = [
-    {
-      key: "shareLocation",
-      label: "Share my Location",
-      isEnabled: statusForm.shareLocation,
-      onToggle: () =>
-        handleInputChange("shareLocation", !statusForm.shareLocation),
-    },
-    {
-      key: "shareContact",
-      label: "Share my Contact Number",
-      isEnabled: statusForm.shareContact,
-      onToggle: () =>
-        handleInputChange("shareContact", !statusForm.shareContact),
-    },
-  ];
+  const toggleFields: ToggleField[] = useMemo(
+    () => [
+      {
+        key: "shareLocation",
+        label: "Share my Location",
+        isEnabled: statusForm.shareLocation,
+        onToggle: () =>
+          handleInputChange("shareLocation", !statusForm.shareLocation),
+      },
+      {
+        key: "shareContact",
+        label: "Share my Contact Number",
+        isEnabled: statusForm.shareContact,
+        onToggle: () =>
+          handleInputChange("shareContact", !statusForm.shareContact),
+      },
+    ],
+    [statusForm.shareLocation, statusForm.shareContact, handleInputChange]
+  );
 
   // Define quick action buttons
-  const buttons: CustomButton[] = [
-    {
-      key: "saved-location",
-      label: "saved location",
-      icon: <Bookmark size={16} color={"white"} />,
-      onPress: () => {
-        console.log("Loading saved location");
-        if (savedLocation) {
-          setCoords(savedLocation);
-          setHasUserTappedMap(false);
-          console.log("Set saved location as coords:", savedLocation);
-        }
-      },
-    },
-    {
-      key: "location-services",
-      label: "Turn on location",
-      icon: <Navigation size={16} color={"white"} />,
-      onPress: async () => {
-        console.log("Fetching current location...");
-        try {
-          const currentCoords = await getCurrentPositionOnce();
-          if (currentCoords) {
-            setOneTimeLocationCoords(currentCoords);
-            console.log("Current location set:", currentCoords);
-            setFollowUserLocation(true);
-          } else {
-            console.warn("Failed to get current location");
+  const quickActionButtons: CustomButton[] = useMemo(() => {
+    const buttons: CustomButton[] = [
+      {
+        key: "saved-location",
+        label: "saved location",
+        icon: <Bookmark size={16} color={"white"} />,
+        onPress: () => {
+          console.log("Loading saved location");
+          if (savedLocation) {
+            setCoords(savedLocation);
+            setHasUserTappedMap(false);
+            console.log("Set saved location as coords:", savedLocation);
           }
-        } catch (error) {
-          console.error("Error getting current location:", error);
-        }
+        },
       },
-    },
-  ];
-
-  // ✅ Only add "current-status" if formData exists
-  if (formData) {
-    buttons.push({
-      key: "current-status",
-      label: "current status",
-      icon: <SquarePen size={16} color={"white"} />,
-      onPress: () => {
-        if (formData) {
-          setCoords(
-            formData.lng && formData.lat ? [formData.lng, formData.lat] : null
-          );
-          setSelectedCoords(
-            formData.lng && formData.lat ? [formData.lng, formData.lat] : [0, 0]
-          );
-          setStatusForm((prev) => ({
-            ...prev,
-            ...formData,
-          }));
-        }
+      {
+        key: "location-services",
+        label: "Turn on location",
+        icon: <Navigation size={16} color={"white"} />,
+        onPress: async () => {
+          console.log("Fetching current location...");
+          try {
+            const currentCoords = await getCurrentPositionOnce();
+            if (currentCoords) {
+              setOneTimeLocationCoords(currentCoords);
+              console.log("Current location set:", currentCoords);
+              setFollowUserLocation(true);
+            } else {
+              console.warn("Failed to get current location");
+            }
+          } catch (error) {
+            console.error("Error getting current location:", error);
+          }
+        },
       },
-    });
-  }
+    ];
 
-  const quickActionButtons: CustomButton[] = buttons;
+    // ✅ Only add "current-status" if formData exists
+    if (formData) {
+      buttons.push({
+        key: "current-status",
+        label: "current status",
+        icon: <SquarePen size={16} color={"white"} />,
+        onPress: () => {
+          if (formData) {
+            setCoords(
+              formData.lng && formData.lat ? [formData.lng, formData.lat] : null
+            );
+            setSelectedCoords(
+              formData.lng && formData.lat ? [formData.lng, formData.lat] : [0, 0]
+            );
+            setStatusForm((prev) => ({
+              ...prev,
+              ...formData,
+            }));
+          }
+        },
+      });
+    }
+
+    return buttons;
+  }, [savedLocation, setCoords, setOneTimeLocationCoords, setFollowUserLocation, formData]
+  );
 
   // Custom stop tracking function that also clears oneTimeLocationCoords
-  const handleStopTracking = () => {
+  const handleStopTracking = useCallback(() => {
     setOneTimeLocationCoords(null); // Clear the GPS coordinates from map
     setFollowUserLocation(false); // Stop following user location on map
     console.log("GPS tracking stopped and coordinates cleared");
-  };
+  }, [setOneTimeLocationCoords, setFollowUserLocation]);
 
   const handleTapLocationSelect = (value: string | [number, number]) => {
     if (Array.isArray(value) && value.length === 2) {
@@ -432,78 +447,89 @@ export const createStatus = () => {
   };
 
   // Custom components
-  const customComponents = [
-    <CustomImagePicker
-      key="image-picker"
-      id="map-image-picker-actionSheet"
-    />,
-    <View key="spacer" style={{ marginVertical: 20 }} />,
+  const customComponents = useMemo(
+    () =>
+      [
+        <CustomImagePicker
+          key="image-picker"
+          id="map-image-picker-actionSheet"
+        />,
+        <View key="spacer" style={{ marginVertical: 20 }} />,
 
-    // Show ButtonRadio choice when user has both tapped location AND GPS available
-    hasUserTappedMap && oneTimeLocationCoords && coords ? (
-      <View key="location-options">
-        <Text style={{ marginBottom: 10, fontWeight: "bold" }}>
-          Choose your location:
-        </Text>
+        // Show ButtonRadio choice when user has both tapped location AND GPS available
+        hasUserTappedMap && oneTimeLocationCoords && coords ? (
+          <View key="location-options">
+            <Text style={{ marginBottom: 10, fontWeight: "bold" }}>
+              Choose your location:
+            </Text>
 
-        {/* Tapped Location Option (Default/Priority) */}
-        <ButtonRadio
-          key="tapped-location"
-          label="Tapped Location"
-          subLabel={coords}
-          value={coords}
-          selectedValue={!isGPSselection ? coords : [0, 0]}
-          onSelect={handleTapLocationSelect}
-          style={{ marginBottom: 8 }}
-        />
+            {/* Tapped Location Option (Default/Priority) */}
+            <ButtonRadio
+              key="tapped-location"
+              label="Tapped Location"
+              subLabel={coords}
+              value={coords}
+              selectedValue={!isGPSselection ? coords : [0, 0]}
+              onSelect={handleTapLocationSelect}
+              style={{ marginBottom: 8 }}
+            />
 
-        {/* GPS/Current Location Option */}
-        <ButtonRadio
-          key="gps-location"
-          label="Current Location (GPS)"
-          subLabel={oneTimeLocationCoords}
-          value={oneTimeLocationCoords}
-          selectedValue={isGPSselection ? oneTimeLocationCoords : [0, 0]}
-          onSelect={handleGPSLocationSelect}
-          style={{ marginBottom: 8 }}
-        />
-      </View>
-    ) : (
-      // Show simple coordinate display when only one location source
-      (coords || oneTimeLocationCoords) && (
-        <View key="marker-info" style={styles.markerInfoContainer}>
-          <Text style={styles.markerInfoTitle}>
-            {coords
-              ? "Location:"
-              : oneTimeLocationCoords
-              ? "GPS Location:"
-              : "Selected Location:"}
+            {/* GPS/Current Location Option */}
+            <ButtonRadio
+              key="gps-location"
+              label="Current Location (GPS)"
+              subLabel={oneTimeLocationCoords}
+              value={oneTimeLocationCoords}
+              selectedValue={isGPSselection ? oneTimeLocationCoords : [0, 0]}
+              onSelect={handleGPSLocationSelect}
+              style={{ marginBottom: 8 }}
+            />
+          </View>
+        ) : (
+          // Show simple coordinate display when only one location source
+          (coords || oneTimeLocationCoords) && (
+            <View key="marker-info" style={styles.markerInfoContainer}>
+              <Text style={styles.markerInfoTitle}>
+                {coords
+                  ? "Location:"
+                  : oneTimeLocationCoords
+                  ? "GPS Location:"
+                  : "Selected Location:"}
+              </Text>
+              <Text>
+                {coords
+                  ? `Lat: ${coords[1].toFixed(6)}, Lng: ${coords[0].toFixed(6)}`
+                  : oneTimeLocationCoords
+                  ? `Lat: ${oneTimeLocationCoords[1].toFixed(
+                      6
+                    )}, Lng: ${oneTimeLocationCoords[0].toFixed(6)}`
+                  : "No location selected"}
+              </Text>
+            </View>
+          )
+        ),
+
+        <Text key="info-text" style={{ marginTop: 10 }}>
+          What information you want to share with community?
+        </Text>,
+        // Info banner
+        <HStack key="info-banner" style={styles.infoContainer}>
+          <Info size={20} color={Colors.icons.light} />
+          <Text size="2xs" emphasis="light">
+            All information entered here will remain visible to the admin for
+            detailed status tracking.
           </Text>
-          <Text>
-            {coords
-              ? `Lat: ${coords[1].toFixed(6)}, Lng: ${coords[0].toFixed(6)}`
-              : oneTimeLocationCoords
-              ? `Lat: ${oneTimeLocationCoords[1].toFixed(
-                  6
-                )}, Lng: ${oneTimeLocationCoords[0].toFixed(6)}`
-              : "No location selected"}
-          </Text>
-        </View>
-      )
-    ),
-
-    <Text key="info-text" style={{ marginTop: 10 }}>
-      What information you want to share with community?
-    </Text>,
-    // Info banner
-    <HStack key="info-banner" style={styles.infoContainer}>
-      <Info size={20} color={Colors.icons.light} />
-      <Text size="2xs" emphasis="light">
-        All information entered here will remain visible to the admin for
-        detailed status tracking.
-      </Text>
-    </HStack>,
-  ].filter(Boolean);
+        </HStack>,
+      ].filter(Boolean),
+    [
+      coords,
+      oneTimeLocationCoords,
+      selectedCoords,
+      handleTapLocationSelect,
+      handleGPSLocationSelect,
+      hasUserTappedMap,
+    ]
+  );
 
   return (
     <>
