@@ -102,3 +102,23 @@ export type StatusForm = {
     deletedAt?: number | null;
     expireAt?: number | null;
 };
+
+// Types for a single address component
+interface AddressComponents {
+  city?: string;
+  town?: string;
+  village?: string;
+  state?: string;
+  country: string;
+  country_code: string;
+  postcode?: string;
+  road?: string;
+  suburb?: string;
+  [key: string]: any; // keep flexible because OpenCage can return extra fields
+}
+
+// Types for the whole address state
+export interface AddressState {
+  formatted: string;
+  components: AddressComponents;
+}

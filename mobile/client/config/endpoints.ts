@@ -16,5 +16,8 @@ export const API_ROUTES = {
     DATA: {
         SAVE_USER_DATA: `${BASE_URL}/data/saveUserInfo`,
         SAVE_BARANGAY_DATA: `${BASE_URL}/data/saveBarangay`,
+    },
+    GEOCODING: {
+        GET_ADDRESS: `${BASE_URL}/api/geoCoding`,
     }
 }

@@ -1,39 +1,42 @@
 import CustomImagePicker from "@/components/components/CustomImagePicker";
-import { useImagePickerStore } from "@/components/store/useImagePicker";
 import Map, {
   CustomButton,
   RadioField,
   TextInputField,
   ToggleField,
 } from "@/components/components/Map";
+import Modal from "@/components/components/Modal";
 import {
   formatContactNumber,
   formatName,
   getCurrentPositionOnce,
   isValidContactNumber,
 } from "@/components/helper/commonHelpers";
-import Modal from "@/components/components/Modal";
+import { GetDate, GetTime } from "@/components/helper/DateAndTime";
 import { storage } from "@/components/helper/storage";
-import { StatusForm } from "@/types/components";
+import { useAuth } from "@/components/store/useAuth";
+import { useCoords } from "@/components/store/useCoords";
+import { useGetAddress } from "@/components/store/useGetAddress";
+import { useImagePickerStore } from "@/components/store/useImagePicker";
+import { useNetwork } from "@/components/store/useNetwork";
+import { useStatusFormStore } from "@/components/store/useStatusForm";
+import CustomAlertDialog from "@/components/ui/CustomAlertDialog";
 import { ButtonRadio } from "@/components/ui/CustomRadio";
 import { HStack } from "@/components/ui/hstack";
 import Body from "@/components/ui/layout/Body";
+import { LoadingOverlay } from "@/components/ui/loading/LoadingOverlay";
+import StateImage from "@/components/ui/StateImage/StateImage";
 import { Text } from "@/components/ui/text";
+import { API_ROUTES } from "@/config/endpoints";
 import { Colors } from "@/constants/Colors";
-import { useCoords } from "@/components/store/useCoords";
+import { StatusForm, AddressState } from "@/types/components";
+import axios from "axios";
+import { isEqual } from "lodash";
 import { Bookmark, Info, Navigation, SquarePen } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet, View } from "react-native";
+import { Animated, Linking, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import axios from "axios";
-import { useAuth } from "@/components/store/useAuth";
-import { LoadingOverlay } from "@/components/ui/loading/LoadingOverlay";
-import { API_ROUTES } from "@/config/endpoints";
-import { useStatusFormStore } from "@/components/store/useStatusForm";
-import { isEqual } from "lodash";
-import { useNetwork } from "@/components/store/useNetwork";
-import StateImage from "@/components/ui/StateImage/StateImage";
-import CustomAlertDialog from "@/components/ui/CustomAlertDialog";
+import { getAddress } from "@/API/getAddress";
 
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
@@ -41,6 +44,7 @@ export const createStatus = () => {
   const image = useImagePickerStore((state) => state.image);
   const [formErrors, setFormErrors] = useState<Partial<StatusForm>>({});
   const isOnline = useNetwork((state) => state.isOnline);
+  const { authUser } = useAuth();
 
   const coords = useCoords((state) => state.coords);
   const setCoords = useCoords((state) => state.setCoords);
@@ -50,22 +54,30 @@ export const createStatus = () => {
   const setOneTimeLocationCoords = useCoords(
     (state) => state.setOneTimeLocationCoords
   );
+  const savedLocation: [number, number] = [120.7752839, 14.2919325]; // simulate saved location
+  // const savedLocation: [number, number] | null = null; // simulate saved location
+  
+  // Address store
+  const addressCoords = useGetAddress((state) => state.addressCoords);
+  const addressGPS = useGetAddress((state) => state.addressGPS);
+  const addressCoordsLoading = useGetAddress((state) => state.addressCoordsLoading);
+  const addressGPSLoading = useGetAddress((state) => state.addressGPSLoading);
+  const setAddressCoords = useGetAddress((state) => state.setAddressCoords);
+  const setAddressGPS = useGetAddress((state) => state.setAddressGPS);
+  const setAddressCoordsLoading = useGetAddress((state) => state.setAddressCoordsLoading);
+  const setAddressGPSLoading = useGetAddress((state) => state.setAddressGPSLoading);
+
   const setFollowUserLocation = useCoords(
     (state) => state.setFollowUserLocation
   );
-
-  const savedLocation: [number, number] = [120.7752839, 14.2919325]; // simulate saved location
-  // const savedLocation: [number, number] | null = null; // simulate saved location
-  const [locationName, setLocationName] = useState<string>(
-    "Location Name must be here"
-  ); // simulate openCage response
   const [selectedCoords, setSelectedCoords] = useState<[number, number]>([
     0, 0,
   ]);
   const [hasUserTappedMap, setHasUserTappedMap] = useState(false); // Track if user has tapped on map
   const [isManualSelection, setIsManualSelection] = useState(false); // Track if user is making manual ButtonRadio selection
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null); // For debouncing coords address calls
   const [isGPSselection, setIsGPSselection] = useState(false); // Track if user has selected GPS option
-  const { authUser } = useAuth();
+  const debounceTimerRefGPS = useRef<NodeJS.Timeout | null>(null); // For debouncing GPS address calls
 
   const [submitStatusLoading, setSubmitStatusLoading] = useState(false);
   const formData = useStatusFormStore((state) => state.formData);
@@ -80,6 +92,7 @@ export const createStatus = () => {
     errorFetchStatus: errorFetching,
     noNetwork: false,
     submitSuccess: false,
+    submitFailure: false,
   });
   const toggleModal = (name: keyof typeof modals, value: boolean) => {
     setModals((prev) => ({ ...prev, [name]: value }));
@@ -99,11 +112,6 @@ export const createStatus = () => {
     shareLocation: true,
     shareContact: true,
   });
-
-  const getStorage = async () => {
-    const user = await storage.get("@user");
-    return user;
-  };
 
   const handleClose = () => {
     // Scale out animation
@@ -136,6 +144,11 @@ export const createStatus = () => {
       return () => clearTimeout(timer);
     }
   }, [modals.submitSuccess]);
+
+  const getStorage = async () => {
+    const user = await storage.get("@user");
+    return user;
+  };
 
   useEffect(() => {
     if (!formData) {
@@ -251,6 +264,21 @@ export const createStatus = () => {
     }
   }, [errorFetching]);
 
+  // Debug address state changes
+  useEffect(() => {
+    console.log(
+      "📍 addressGPS state updated:",
+      JSON.stringify(addressGPS, null, 2)
+    );
+  }, [addressGPS]);
+
+  useEffect(() => {
+    console.log(
+      "📍 addressCoords state updated:",
+      JSON.stringify(addressCoords, null, 2)
+    );
+  }, [addressCoords]);
+
   // Handle modal close with delay to prevent immediate refetch
   const handleErrorModalClose = () => {
     toggleModal("errorFetchStatus", false);
@@ -353,6 +381,8 @@ export const createStatus = () => {
       showAlert();
     } catch (error) {
       console.error("Error submitting form:", error);
+      toggleModal("submitFailure", true);
+      setSubmitStatusLoading(false);
     } finally {
       setSubmitStatusLoading(false);
     }
@@ -497,6 +527,7 @@ export const createStatus = () => {
   const handleStopTracking = () => {
     setOneTimeLocationCoords(null); // Clear the GPS coordinates from map
     setFollowUserLocation(false); // Stop following user location on map
+    setAddressGPS(null); // Clear GPS address from store
     console.log("GPS tracking stopped and coordinates cleared");
   };
 
@@ -605,8 +636,6 @@ export const createStatus = () => {
   ].filter(Boolean);
 
   const renderImageState = (imageType: string) => {
-    console.log("🖼️ Rendering image for type:", imageType);
-
     if (imageType === "noChanges") {
       return (
         <StateImage
@@ -643,10 +672,174 @@ export const createStatus = () => {
       );
     }
 
+    if (imageType === "submitFailure") {
+      return (
+        <StateImage
+          type="error"
+          onLoad={() =>
+            console.log("✅ submitFailure image loaded successfully")
+          }
+          onError={(error) =>
+            console.log("❌ submitFailure image failed to load:", error)
+          }
+        />
+      );
+    }
+
     // Fallback return
     console.log("⚠️ Unknown image type:", imageType);
     return null;
   };
+
+  const sendSMS = () => {
+    const { firstName, lastName, condition, phoneNumber, lat, lng, loc, note } =
+      statusForm;
+
+    const LGU = "09123456789"; // Replace with actual LGU number
+
+    const message = `
+    Name: ${firstName} ${lastName}
+    Condition: ${condition}
+    Phone: ${phoneNumber}
+    lat: ${lat}
+    lng: ${lng}
+    Location: ${loc ? loc : null}
+    Note: ${note ? note : null}
+    Time: ${GetTime()}
+    Date: ${GetDate()}
+    `;
+
+    let url = `sms:${LGU}?body=${encodeURIComponent(message)}`;
+
+    Linking.openURL(url).catch((err) => console.error("Error:", err));
+  };
+
+  const handleGetAddress = async (lat: number, lng: number) => {
+    if (!authUser) {
+      console.warn("User is not authenticated");
+      return;
+    }
+
+    try {
+      const idToken = await authUser.getIdToken();
+      const result = await getAddress(lat, lng, idToken);
+
+      if (result.success && result.address) {
+        console.log("Address fetched successfully:", result.address);
+
+        // Create a cleaner address by filtering out unnecessary components
+        const cleanAddress = (fullAddress: string) => {
+          // Split the address by commas and filter out unwanted parts
+          const addressParts = fullAddress
+            .split(",")
+            .map((part) => part.trim());
+
+          // Filter out postcode, region codes, and country
+          const filteredParts = addressParts.filter((part) => {
+            // Remove parts that look like postcodes (numbers)
+            if (/^\d+$/.test(part)) return false;
+            // Remove common region identifiers
+            if (part.includes("Calabarzon") || part.includes("Philippines"))
+              return false;
+            // Remove country codes and similar
+            if (part.length <= 4 && /^[A-Z]+$/.test(part)) return false;
+            return true;
+          });
+
+          return filteredParts.join(", ");
+        };
+
+        // Properly construct AddressState object with cleaned address
+        const addressState: AddressState = {
+          formatted: cleanAddress(result.address),
+          components: result.components || {},
+        };
+
+        if (lat === coords?.[1] && lng === coords?.[0]) {
+          // This is the tapped location
+          console.log("Setting tapped location address:", addressState);
+          setAddressCoords(addressState);
+        }
+        if (
+          lat === oneTimeLocationCoords?.[1] &&
+          lng === oneTimeLocationCoords?.[0]
+        ) {
+          // This is the GPS location
+          console.log("Setting GPS location address:", addressState);
+          setAddressGPS(addressState);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching address:", error);
+    }
+  };
+
+  // Debounced fetch address for tapped location
+  useEffect(() => {
+    if (!coords) {
+      // Clear any pending timer if coords is null
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      return;
+    }
+
+    // Clear previous timer if it exists
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Set new timer for 1.5 seconds
+    debounceTimerRef.current = setTimeout(() => {
+      console.log("🔄 Fetching address for coords after 1.5s delay:", coords);
+      handleGetAddress(coords[1], coords[0]);
+      debounceTimerRef.current = null;
+    }, 1500);
+
+    // Cleanup function to clear timer on unmount
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+    };
+  }, [coords]);
+
+  // Debounced fetch address for GPS location
+  useEffect(() => {
+    if (!oneTimeLocationCoords) {
+      // Clear any pending timer if GPS coords is null
+      if (debounceTimerRefGPS.current) {
+        clearTimeout(debounceTimerRefGPS.current);
+        debounceTimerRefGPS.current = null;
+      }
+      return;
+    }
+
+    // Clear previous timer if it exists
+    if (debounceTimerRefGPS.current) {
+      clearTimeout(debounceTimerRefGPS.current);
+    }
+
+    // Set new timer for 1.5 seconds
+    debounceTimerRefGPS.current = setTimeout(() => {
+      console.log(
+        "🔄 Fetching address for GPS after 1.5s delay:",
+        oneTimeLocationCoords
+      );
+      handleGetAddress(oneTimeLocationCoords[1], oneTimeLocationCoords[0]);
+      debounceTimerRefGPS.current = null;
+    }, 1500);
+
+    // Cleanup function to clear timer on unmount
+    return () => {
+      if (debounceTimerRefGPS.current) {
+        clearTimeout(debounceTimerRefGPS.current);
+        debounceTimerRefGPS.current = null;
+      }
+    };
+  }, [oneTimeLocationCoords]);
 
   return (
     <>
@@ -662,7 +855,12 @@ export const createStatus = () => {
         <Map
           title="Let us know your status during disaster!"
           label="Tap the map to pin a marker"
-          locationDisplayLabel="Your selected location"
+          GPSlocationLabel={
+            addressGPS ? addressGPS.formatted : "GPS Location name here"
+          }
+          tappedLocationLabel={
+            addressCoords ? addressCoords.formatted : "Tapped Location"
+          }
           textInputFields={textInputFields}
           radioFields={radioFields}
           toggleFields={toggleFields}
@@ -682,20 +880,19 @@ export const createStatus = () => {
 
             setCoords(null);
             setHasUserTappedMap(false);
+            setAddressCoords(null); // Clear tapped location address
           }}
           errMessage={formErrors.errMessage || ""}
           secondaryButton={{ label: "Delete", onPress: () => {} }}
         />
         <Modal
           modalVisible={modals.noChanges}
-          onClose={() => {
-            toggleModal("noChanges", false);
-          }}
+          onClose={() => toggleModal("noChanges", false)}
           size="lg"
           iconOnPress={() => toggleModal("noChanges", false)}
           sizeIcon={20}
-          primaryButtonOnPress={() => toggleModal("noChanges", false)}
           primaryButtonText="Close"
+          primaryButtonOnPress={() => toggleModal("noChanges", false)}
           renderImage={() => renderImageState("noChanges")}
           primaryText="No changes made"
           secondaryText="Your status remains the same as before."
@@ -706,8 +903,8 @@ export const createStatus = () => {
           size="lg"
           iconOnPress={handleErrorModalClose}
           sizeIcon={20}
-          primaryButtonOnPress={handleErrorModalClose}
           primaryButtonText="Close"
+          primaryButtonOnPress={handleErrorModalClose}
           renderImage={() => renderImageState("errorFetchStatus")}
           primaryText="Oops! Something went wrong."
           secondaryText="We couldn’t load the details right now. Please try again later."
@@ -718,12 +915,26 @@ export const createStatus = () => {
           size="lg"
           iconOnPress={() => toggleModal("noNetwork", false)}
           sizeIcon={20}
-          primaryButtonOnPress={() => toggleModal("noNetwork", false)}
           primaryButtonText="Continue"
-          secondaryButtonOnPress={() => toggleModal("noNetwork", false)}
+          primaryButtonOnPress={() => sendSMS()}
           secondaryButtonText="Cancel"
+          secondaryButtonOnPress={() => toggleModal("noNetwork", false)}
           renderImage={() => renderImageState("noNetwork")}
           primaryText="No internet connection."
+          secondaryText="Would you like to send the details you entered through your messaging app instead?"
+        />
+        <Modal
+          modalVisible={modals.submitFailure}
+          onClose={() => toggleModal("submitFailure", false)}
+          size="lg"
+          iconOnPress={() => toggleModal("submitFailure", false)}
+          sizeIcon={20}
+          primaryButtonText="Continue"
+          primaryButtonOnPress={() => sendSMS()}
+          secondaryButtonText="Cancel"
+          secondaryButtonOnPress={() => toggleModal("submitFailure", false)}
+          renderImage={() => renderImageState("submitFailure")}
+          primaryText="An error occurred."
           secondaryText="Would you like to send the details you entered through your messaging app instead?"
         />
         <CustomAlertDialog

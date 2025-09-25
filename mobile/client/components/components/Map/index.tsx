@@ -95,7 +95,8 @@ export interface MapNewProps {
   quickActionButtons?: CustomButton[];
 
   // Location display customization
-  locationDisplayLabel?: string;
+  GPSlocationLabel?: string;
+  tappedLocationLabel?: string;
   showCoordinates?: boolean;
 
   // Location tracking functions
@@ -130,7 +131,8 @@ const Map = ({
       onPress: () => {},
     },
   ],
-  locationDisplayLabel = "Location name here",
+  GPSlocationLabel = "GPS Location name here",
+  tappedLocationLabel = "Tapped Location",
   showCoordinates = true,
   stopTracking,
   snapPoints = ["14%", "90%"],
@@ -204,7 +206,9 @@ const Map = ({
           {/* Tapped Location */}
           <HStack style={styles.head}>
             <VStack>
-              <Text size="md">Tapped Location</Text>
+              <View style={styles.textLocationName}>
+                <Text size="md">{tappedLocationLabel}</Text>
+              </View>
               {showCoordinates && (
                 <Text emphasis="light" size="sm">
                   {`${coords[1].toFixed(6)}, ${coords[0].toFixed(6)}`}
@@ -219,7 +223,9 @@ const Map = ({
           {/* GPS Location */}
           <HStack style={styles.head}>
             <VStack>
-              <Text size="md">{locationDisplayLabel}</Text>
+              <View style={styles.textLocationName}>
+                <Text size="md">{GPSlocationLabel}</Text>
+              </View>
               {showCoordinates && oneTimeLocationCoords && (
                 <Text emphasis="light" size="sm">
                   {`${oneTimeLocationCoords[1].toFixed(
@@ -246,7 +252,9 @@ const Map = ({
       return (
         <HStack style={styles.head}>
           <VStack>
-            <Text size="md">{locationDisplayLabel}</Text>
+            <View style={styles.textLocationName}>
+              <Text size="md">{tappedLocationLabel}</Text>
+            </View>
             {showCoordinates && coords && (
               <Text emphasis="light" size="sm">
                 {`${coords[1].toFixed(6)}, ${coords[0].toFixed(6)}`}
@@ -265,7 +273,9 @@ const Map = ({
       return (
         <HStack style={styles.head}>
           <VStack>
-            <Text size="md">{locationDisplayLabel}</Text>
+            <View style={styles.textLocationName}>
+              <Text size="md">{GPSlocationLabel}</Text>
+            </View>
             {showCoordinates && oneTimeLocationCoords && (
               <Text emphasis="light" size="sm">
                 {`${oneTimeLocationCoords[1].toFixed(
@@ -556,6 +566,10 @@ const styles = StyleSheet.create({
     width: "100%",
     gap: 10,
     paddingBottom: 20,
+  },
+  textLocationName: { 
+    flexDirection: "row", 
+    width: "85%", 
   },
   button: {
     borderWidth: 1,
