@@ -18,6 +18,8 @@ export const useStatusFetchBackgroundData = (
   const [data, setData] = useState<StatusForm | null>(null);
   const [shouldFetch, setShouldFetch] = useState<boolean>(false);
   const formData = useStatusFormStore((state) => state.formData);
+  const setLoading = useStatusFormStore((state) => state.setLoading);
+  const setError = useStatusFormStore((state) => state.setError);
 
   useEffect(() => {
     if (statusId && idToken) {
@@ -30,12 +32,14 @@ export const useStatusFetchBackgroundData = (
   useEffect(() => {
     const fetchData = async () => {
       try {
+          setLoading(true);
         if (shouldFetch && statusId && idToken) {
           const response = await fetchAndSaveStatusData(statusId, idToken);
           if (response.success) {
             setData(response.data);
           } else {
             console.error("❌ Failed to fetch background data:", response.error);
+            setError(true);
           }
         } else {
           console.log("ℹ️ Missing statusId or idToken, skipping fetch");
@@ -43,8 +47,17 @@ export const useStatusFetchBackgroundData = (
         }
       } catch (error) {
         console.error("❌ Error fetching background data:", error);
+      } finally {
+          setLoading(false);
       }
     };
+
+    // setLoading(true);
+    // const timeout = setTimeout(() => {
+    //   fetchData();
+    // }, 10000);
+
+    // return () => clearTimeout(timeout);
 
     fetchData();
   }, [shouldFetch]);

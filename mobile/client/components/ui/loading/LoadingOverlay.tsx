@@ -8,15 +8,20 @@ import {
 } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Colors } from '@/constants/Colors';
+import { Button } from '@/components/components/button/Button'
 
 interface LoadingOverlayProps {
   visible: boolean;
   message?: string;
+  width?: number | string;
+  onRequestClose?: () => void;
 }
 
 export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ 
   visible, 
-  message = "Signing in..." 
+  message = "Signing in...", 
+  width,
+  onRequestClose
 }) => {
   const { isDark } = useTheme();
 
@@ -25,10 +30,12 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
       transparent={true}
       visible={visible}
       animationType="fade"
+      onRequestClose={onRequestClose}
     >
       <View style={styles.overlay}>
         <View style={[
           styles.container, 
+          { width: width as any },
           { 
             backgroundColor: isDark 
               ? 'rgba(30, 30, 30, 0.9)' 
@@ -47,6 +54,19 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
           ]}>
             {message}
           </Text>
+          {onRequestClose && (
+            <View
+                style={{ marginTop: 20, alignItems: 'flex-end' }}
+            >
+              <Button 
+                onPress={onRequestClose}
+                width='fit'
+                variant='link'
+              >
+                <Text>Close</Text>
+              </Button>
+            </View>
+          )}
         </View>
       </View>
     </Modal>
@@ -61,10 +81,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   container: {
-    padding: 30,
+    padding: 20,
     borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
+    // alignItems: 'center',
+    // justifyContent: 'center',
     minWidth: 150,
     shadowColor: '#000',
     shadowOffset: {

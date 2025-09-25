@@ -12,6 +12,7 @@ import {
   getCurrentPositionOnce,
   isValidContactNumber,
 } from "@/components/helper/commonHelpers";
+import Modal from "@/components/components/Modal";
 import { storage } from "@/components/helper/storage";
 import { StatusForm } from "@/types/components";
 import { ButtonRadio } from "@/components/ui/CustomRadio";
@@ -21,37 +22,68 @@ import { Text } from "@/components/ui/text";
 import { Colors } from "@/constants/Colors";
 import { useCoords } from "@/components/store/useCoords";
 import { Bookmark, Info, Navigation, SquarePen } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import axios from "axios";
 import { useAuth } from "@/components/store/useAuth";
 import { LoadingOverlay } from "@/components/ui/loading/LoadingOverlay";
 import { API_ROUTES } from "@/config/endpoints";
 import { useStatusFormStore } from "@/components/store/useStatusForm";
+import { isEqual } from "lodash";
+import { useNetwork } from "@/components/store/useNetwork";
+import StateImage from "@/components/ui/StateImage/StateImage";
+import CustomAlertDialog from "@/components/ui/CustomAlertDialog";
 
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
+  const scaleValue = useRef(new Animated.Value(0)).current;
   const image = useImagePickerStore((state) => state.image);
   const [formErrors, setFormErrors] = useState<Partial<StatusForm>>({});
+  const isOnline = useNetwork((state) => state.isOnline);
 
   const coords = useCoords((state) => state.coords);
   const setCoords = useCoords((state) => state.setCoords);
-  const oneTimeLocationCoords = useCoords((state) => state.oneTimeLocationCoords);
-  const setOneTimeLocationCoords = useCoords((state) => state.setOneTimeLocationCoords);
-  const setFollowUserLocation = useCoords((state) => state.setFollowUserLocation);
+  const oneTimeLocationCoords = useCoords(
+    (state) => state.oneTimeLocationCoords
+  );
+  const setOneTimeLocationCoords = useCoords(
+    (state) => state.setOneTimeLocationCoords
+  );
+  const setFollowUserLocation = useCoords(
+    (state) => state.setFollowUserLocation
+  );
 
   const savedLocation: [number, number] = [120.7752839, 14.2919325]; // simulate saved location
   // const savedLocation: [number, number] | null = null; // simulate saved location
-  const [locationName, setLocationName] = useState<string>("Location Name must be here"); // simulate openCage response
-  const [selectedCoords, setSelectedCoords] = useState<[number, number]>([0, 0]);
+  const [locationName, setLocationName] = useState<string>(
+    "Location Name must be here"
+  ); // simulate openCage response
+  const [selectedCoords, setSelectedCoords] = useState<[number, number]>([
+    0, 0,
+  ]);
   const [hasUserTappedMap, setHasUserTappedMap] = useState(false); // Track if user has tapped on map
   const [isManualSelection, setIsManualSelection] = useState(false); // Track if user is making manual ButtonRadio selection
   const [isGPSselection, setIsGPSselection] = useState(false); // Track if user has selected GPS option
   const { authUser } = useAuth();
+
   const [submitStatusLoading, setSubmitStatusLoading] = useState(false);
   const formData = useStatusFormStore((state) => state.formData);
   const setFormData = useStatusFormStore((state) => state.setFormData);
+  const isLoading = useStatusFormStore((state) => state.isLoading);
+  const setLoadingFetch = useStatusFormStore((state) => state.setLoading);
+  const errorFetching = useStatusFormStore((state) => state.error);
+  const setErrorFetching = useStatusFormStore((state) => state.setError);
+
+  const [modals, setModals] = useState({
+    noChanges: false,
+    errorFetchStatus: errorFetching,
+    noNetwork: false,
+    submitSuccess: false,
+  });
+  const toggleModal = (name: keyof typeof modals, value: boolean) => {
+    setModals((prev) => ({ ...prev, [name]: value }));
+  };
 
   const [statusForm, setStatusForm] = useState<StatusForm>({
     uid: authUser?.uid || "",
@@ -72,6 +104,38 @@ export const createStatus = () => {
     const user = await storage.get("@user");
     return user;
   };
+
+  const handleClose = () => {
+    // Scale out animation
+    Animated.timing(scaleValue, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      toggleModal("submitSuccess", false);
+    });
+  };
+
+  const showAlert = () => {
+    toggleModal("submitSuccess", true);
+    // Scale in animation with bounce
+    Animated.spring(scaleValue, {
+      toValue: 1,
+      tension: 100,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Auto hide after 3 seconds
+  useEffect(() => {
+    if (modals.submitSuccess) {
+      const timer = setTimeout(() => {
+        handleClose();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [modals.submitSuccess]);
 
   useEffect(() => {
     if (!formData) {
@@ -180,7 +244,26 @@ export const createStatus = () => {
     setFollowUserLocation(false);
   }, []);
 
-  const handleInputChange = (field: keyof StatusForm, value: string | boolean) => {
+  // Watch for changes to errorFetching from Zustand store and update modal state
+  useEffect(() => {
+    if (errorFetching) {
+      toggleModal("errorFetchStatus", true);
+    }
+  }, [errorFetching]);
+
+  // Handle modal close with delay to prevent immediate refetch
+  const handleErrorModalClose = () => {
+    toggleModal("errorFetchStatus", false);
+    // Add a small delay before clearing the error to prevent immediate refetch
+    setTimeout(() => {
+      setErrorFetching(false);
+    }, 100);
+  };
+
+  const handleInputChange = (
+    field: keyof StatusForm,
+    value: string | boolean
+  ) => {
     if (field === "phoneNumber" && typeof value === "string") {
       value = formatContactNumber(value);
     }
@@ -234,8 +317,25 @@ export const createStatus = () => {
     // Submit form data
     console.log("Submitting status form:", JSON.stringify(statusForm, null, 2));
 
+    setSubmitStatusLoading(true);
+
+    if (isEqual(statusForm, formData)) {
+      console.log("No changes detected in the form, skipping submission.");
+      toggleModal("noChanges", true);
+      setSubmitStatusLoading(false);
+      return;
+    }
+
+    // If offline, skip submission but save to store
+    if (!isOnline) {
+      console.log("🔄 Triggering noNetwork modal...");
+      toggleModal("noNetwork", true);
+      setSubmitStatusLoading(false);
+      return;
+    }
+
+    // Submit form online
     try {
-      setSubmitStatusLoading(true);
       const response = await axios.post(
         API_ROUTES.STATUS.SAVE_STATUS,
         statusForm,
@@ -249,6 +349,8 @@ export const createStatus = () => {
       );
       console.log("Form submitted successfully:", response.data);
       setFormData(statusForm); // Save to Zustand store
+      toggleModal("submitSuccess", true);
+      showAlert();
     } catch (error) {
       console.error("Error submitting form:", error);
     } finally {
@@ -433,10 +535,7 @@ export const createStatus = () => {
 
   // Custom components
   const customComponents = [
-    <CustomImagePicker
-      key="image-picker"
-      id="map-image-picker-actionSheet"
-    />,
+    <CustomImagePicker key="image-picker" id="map-image-picker-actionSheet" />,
     <View key="spacer" style={{ marginVertical: 20 }} />,
 
     // Show ButtonRadio choice when user has both tapped location AND GPS available
@@ -505,6 +604,50 @@ export const createStatus = () => {
     </HStack>,
   ].filter(Boolean);
 
+  const renderImageState = (imageType: string) => {
+    console.log("🖼️ Rendering image for type:", imageType);
+
+    if (imageType === "noChanges") {
+      return (
+        <StateImage
+          type="noChanges"
+          onLoad={() => console.log("✅ noChanges image loaded successfully")}
+          onError={(error) =>
+            console.log("❌ noChanges image failed to load:", error)
+          }
+        />
+      );
+    }
+
+    if (imageType === "errorFetchStatus") {
+      return (
+        <StateImage
+          type="error"
+          onLoad={() => console.log("✅ error image loaded successfully")}
+          onError={(error) =>
+            console.log("❌ error image failed to load:", error)
+          }
+        />
+      );
+    }
+
+    if (imageType === "noNetwork") {
+      return (
+        <StateImage
+          type="noNetwork"
+          onLoad={() => console.log("✅ noNetwork image loaded successfully")}
+          onError={(error) =>
+            console.log("❌ noNetwork image failed to load:", error)
+          }
+        />
+      );
+    }
+
+    // Fallback return
+    console.log("⚠️ Unknown image type:", imageType);
+    return null;
+  };
+
   return (
     <>
       <Body
@@ -520,7 +663,6 @@ export const createStatus = () => {
           title="Let us know your status during disaster!"
           label="Tap the map to pin a marker"
           locationDisplayLabel="Your selected location"
-          showCoordinates={true}
           textInputFields={textInputFields}
           radioFields={radioFields}
           toggleFields={toggleFields}
@@ -542,14 +684,64 @@ export const createStatus = () => {
             setHasUserTappedMap(false);
           }}
           errMessage={formErrors.errMessage || ""}
-          secondaryButton={{ label: "Delete", onPress: () => {
-
-          }}}
+          secondaryButton={{ label: "Delete", onPress: () => {} }}
+        />
+        <Modal
+          modalVisible={modals.noChanges}
+          onClose={() => {
+            toggleModal("noChanges", false);
+          }}
+          size="lg"
+          iconOnPress={() => toggleModal("noChanges", false)}
+          sizeIcon={20}
+          primaryButtonOnPress={() => toggleModal("noChanges", false)}
+          primaryButtonText="Close"
+          renderImage={() => renderImageState("noChanges")}
+          primaryText="No changes made"
+          secondaryText="Your status remains the same as before."
+        />
+        <Modal
+          modalVisible={modals.errorFetchStatus}
+          onClose={handleErrorModalClose}
+          size="lg"
+          iconOnPress={handleErrorModalClose}
+          sizeIcon={20}
+          primaryButtonOnPress={handleErrorModalClose}
+          primaryButtonText="Close"
+          renderImage={() => renderImageState("errorFetchStatus")}
+          primaryText="Oops! Something went wrong."
+          secondaryText="We couldn’t load the details right now. Please try again later."
+        />
+        <Modal
+          modalVisible={modals.noNetwork}
+          onClose={() => toggleModal("noNetwork", false)}
+          size="lg"
+          iconOnPress={() => toggleModal("noNetwork", false)}
+          sizeIcon={20}
+          primaryButtonOnPress={() => toggleModal("noNetwork", false)}
+          primaryButtonText="Continue"
+          secondaryButtonOnPress={() => toggleModal("noNetwork", false)}
+          secondaryButtonText="Cancel"
+          renderImage={() => renderImageState("noNetwork")}
+          primaryText="No internet connection."
+          secondaryText="Would you like to send the details you entered through your messaging app instead?"
+        />
+        <CustomAlertDialog
+          showAlertDialog={modals.submitSuccess}
+          handleClose={handleClose}
+          text="Status submitted successfully!"
         />
       </Body>
       <LoadingOverlay
         visible={submitStatusLoading}
         message="Saving your status..."
+      />
+      <LoadingOverlay
+        visible={isLoading}
+        message="retrieving your current status Please wait"
+        onRequestClose={() => {
+          setLoadingFetch(false);
+        }}
       />
     </>
   );

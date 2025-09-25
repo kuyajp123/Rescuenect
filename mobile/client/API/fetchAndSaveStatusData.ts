@@ -12,6 +12,7 @@ export const fetchAndSaveStatusData = async (statusId: string, idToken: string):
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${idToken}`
             },
+            // timeout: 10000 
         });
         
         console.log("✅ Status data fetch response:", JSON.stringify(response.data, null, 2));

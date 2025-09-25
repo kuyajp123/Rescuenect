@@ -132,7 +132,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
       setCoords(markerCoordinate);
     },
     [setCoords]
-  ); // ✅ Fix: Remove coords dependency to prevent infinite loop
+  );
 
   const mapContainer = useMemo(() => {
     console.log("Creating map container");

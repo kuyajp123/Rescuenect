@@ -32,9 +32,9 @@ export const TabLayout = () => {
         }}
       />
       <Tabs.Screen
-        name="details"
+        name="contacts"
         options={{
-          title: 'Details',
+          title: 'Contacts',
           tabBarIcon: ({ color }) => <Info color={color} size={20} />,
         }}
       />

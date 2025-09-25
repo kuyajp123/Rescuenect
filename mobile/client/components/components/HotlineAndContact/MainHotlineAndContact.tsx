@@ -1,8 +1,3 @@
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader
-} from "@/components/ui/alert-dialog";
 import { Image } from '@/components/ui/image';
 import { Text } from '@/components/ui/text';
 import { Colors } from "@/constants/Colors";
@@ -10,16 +5,16 @@ import { useTheme } from '@/contexts/ThemeContext';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
-import { Check, Copy, ExternalLink, Facebook, Flame, Globe, Mail, Phone, Shield, Smartphone, Zap } from 'lucide-react-native';
+import { Copy, ExternalLink, Facebook, Flame, Globe, Mail, Phone, Shield, Smartphone, Zap } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Linking, Pressable, StyleSheet, View } from 'react-native';
+import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 
 
 export const MainHotlineAndContact = () => {
   const { isDark } = useTheme();
   const [showAlertDialog, setShowAlertDialog] = useState(false)
   const scaleValue = useRef(new Animated.Value(0)).current;
-  const { width } = Dimensions.get('window');
 
   const fbUrl = 'fb://facewebmodal/f?href=https://www.facebook.com/share/14xwTMd2Ht/';
   const fallbackUrl = 'https://www.facebook.com/share/14xwTMd2Ht/';
@@ -318,23 +313,11 @@ export const MainHotlineAndContact = () => {
       </View>
 
       {/* Success Alert Dialog */}
-      <AlertDialog isOpen={showAlertDialog} onClose={handleClose} size="lg">
-        <AlertDialogContent style={[styles.alertContent, {
-          backgroundColor: isDark ? '#065f46' : '#d1fae5',
-          borderColor: isDark ? '#059669' : '#10b981',
-        }]}>
-          <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
-            <AlertDialogHeader style={styles.alertHeader}>
-              <View style={[styles.alertIconContainer, { backgroundColor: isDark ? '#059669' : '#10b981' }]}>
-                <Check color="white" size={20} />
-              </View>
-              <Text bold size="sm" style={{ color: isDark ? '#d1fae5' : '#065f46' }}>
-                Copied to clipboard successfully!
-              </Text>
-            </AlertDialogHeader>
-          </Animated.View>
-        </AlertDialogContent>
-      </AlertDialog>
+      <CustomAlertDialog 
+        showAlertDialog={showAlertDialog}
+        handleClose={handleClose}
+        text="Contact Copied to Clipboard!"
+      />
     </View>
   )
 }
@@ -511,28 +494,6 @@ const styles = StyleSheet.create({
   },
   disclaimerText: {
     textAlign: 'justify',
-  },
-  alertContent: {
-    borderWidth: 2,
-    borderRadius: 16,
-    position: 'absolute',
-    top: 30,
-    alignSelf: 'center',
-    minWidth: 280,
-  },
-  alertHeader: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-    padding: 5,
-  },
-  alertIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
 

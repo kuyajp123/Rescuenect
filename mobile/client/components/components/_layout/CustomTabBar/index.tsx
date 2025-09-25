@@ -1,7 +1,7 @@
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
-import { AlignRight, House, Info, MapPinPlus, MapPlus, Plus, UsersRound } from 'lucide-react-native';
+import { AlignRight, House, Phone, MapPinPlus, MapPlus, Plus, UsersRound } from 'lucide-react-native';
 import React, { useCallback } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -71,10 +71,10 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
 
         const isFocused = state.index === index;
         
-        // For 4 tabs, FAB should be between community (index 1) and details (index 2)
+        // For 4 tabs, FAB should be between community (index 1) and contacts (index 2)
         // So we adjust spacing for these tabs but don't skip any
         const isBeforeFAB = index === 1; // community
-        const isAfterFAB = index === 2;  // details
+        const isAfterFAB = index === 2;  // contacts
 
         const onPress = () => {
           const event = navigation.emit({
@@ -96,7 +96,7 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
           switch (route.name) {
             case 'index': return <House color={color} size={size} />;
             case 'community': return <UsersRound color={color} size={size} />;
-            case 'details': return <Info color={color} size={size} />;
+            case 'contacts': return <Phone color={color} size={size} />;
             case 'menu': return <AlignRight color={color} size={size} />;
             default: return null;
           }
@@ -107,7 +107,7 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
           const baseLabels = {
             'index': 'Home',
             'community': 'Community',
-            'details': 'Details',
+            'contacts': 'Contacts',
             'menu': 'Menu'
           };
           
@@ -119,7 +119,7 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
           const hints = {
             'index': 'Navigate to home screen with dashboard and overview',
             'community': 'Navigate to community screen to see status updates and posts',
-            'details': 'Navigate to details screen for additional information',
+            'contacts': 'Navigate to contacts screen for managing your connections',
             'menu': 'Navigate to menu screen for app settings and options'
           };
           
