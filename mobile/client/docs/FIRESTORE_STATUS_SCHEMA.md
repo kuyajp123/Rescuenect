@@ -2,7 +2,15 @@
 
 ## Overview
 
-This document describes a comprehensive Firestore schema design for a user status system in a disaster response mobile app. The schema supports full versioning, lineage tracking, and automatic cleanup while maintaining data integrity and query performance.
+This document describes a comprehensive Firestore schema design for a user status system in a disaster response mobile app. The schema supports single active status per user, full versioning, lineage tracking, and managed cleanup while maintaining data integrity and query performance.
+
+## Key Requirements
+
+- **Single Active Status**: Each user can only have one active status at a time
+- **Update Instead of Create**: Creating a new status while having an active one will update the existing status
+- **User-Controlled Expiration**: Users choose 12 or 24-hour expiration for their status
+- **History Retention**: Expired/deleted status versions remain for 30 days before permanent deletion
+- **Version Control**: Each update creates a new version with complete audit trail
 
 ## Schema Overview
 
@@ -13,19 +21,24 @@ status (collection)
 ├── {userId} (document)
 │   └── statuses (subcollection)
 │       ├── {statusId-v1} (document) - Original status
-│       ├── {statusId-v2} (document) - First edit
-│       ├── {statusId-v3} (document) - Second edit
-│       └── {statusId-deleted} (document) - Deletion record
+│       ├── {statusId-v2} (document) - Updated version (v1 → history)
+│       ├── {statusId-v3} (document) - Another update (v2 → history)
+│       └── {statusId-deleted} (document) - Soft deletion record
 ```
+
+**Note**: Only ONE status can have `statusType: "current"` per user at any time.
 
 ### Design Philosophy
 
-**Flat Versioned Schema**: Instead of nested subcollections for current/history/deleted, all versions exist as separate documents in the same subcollection. This provides:
+**Single Active Status with Flat Versioning**: Each user has only one active status, with all versions stored as separate documents in the same subcollection. This provides:
 
+- **Single Source of Truth**: Only one current status per user prevents conflicts
+- **Update-First Approach**: New status creation updates existing instead of creating duplicates
+- **User-Controlled Lifecycle**: Users choose their status expiration (12h/24h)
+- **Managed History Retention**: System automatically cleans up after 30 days
+- **Complete Audit Trail**: Full version history with lineage tracking
 - **Simplified Queries**: Single collection queries for all operations
 - **Better Performance**: No need to query multiple subcollections
-- **Atomic Operations**: Each version is independent
-- **Consistent TTL**: Single expireAt field manages all cleanup
 - **Scalability**: Better distribution across Firestore servers
 
 ## Fields Explanation
@@ -49,7 +62,7 @@ interface StatusData {
   phoneNumber: string;
 
   // Status information
-  statusCondition: "safe" | "evacuated" | "affected" | "missing";
+  condition: "safe" | "evacuated" | "affected" | "missing";
 
   // Location data
   lat: number | null;
@@ -64,11 +77,17 @@ interface StatusData {
   shareLocation: boolean;
   shareContact: boolean;
 
+  // Expiration settings (user-controlled)
+  expirationDuration: 12 | 24; // hours
+  expiresAt: FirebaseFirestore.Timestamp; // when status becomes inactive
+
   // Timestamps
   createdAt: FirebaseFirestore.Timestamp | string;
   updatedAt?: FirebaseFirestore.Timestamp | string;
   deletedAt?: FirebaseFirestore.Timestamp | string;
-  expireAt: FirebaseFirestore.Timestamp;
+
+  // System-managed cleanup (30 days retention for history)
+  retentionUntil: FirebaseFirestore.Timestamp; // when history is permanently deleted
 }
 
 // Type for creating new status (excludes system fields)
@@ -78,7 +97,7 @@ type CreateStatusData = Omit<
   | "versionId"
   | "statusType"
   | "createdAt"
-  | "expireAt"
+  | "retentionUntil"
   | "updatedAt"
   | "deletedAt"
 >;
@@ -87,12 +106,17 @@ type CreateStatusData = Omit<
 type UpdateStatusData = Partial<
   Omit<
     StatusData,
-    "parentId" | "versionId" | "statusType" | "uid" | "createdAt" | "expireAt"
+    | "parentId"
+    | "versionId"
+    | "statusType"
+    | "uid"
+    | "createdAt"
+    | "retentionUntil"
   >
 >;
 
 // Status condition enum
-enum StatusCondition {
+enum Condition {
   SAFE = "safe",
   EVACUATED = "evacuated",
   AFFECTED = "affected",
@@ -104,6 +128,12 @@ enum StatusType {
   CURRENT = "current",
   HISTORY = "history",
   DELETED = "deleted",
+}
+
+// Expiration duration options
+enum ExpirationDuration {
+  TWELVE_HOURS = 12,
+  TWENTY_FOUR_HOURS = 24,
 }
 
 // Location coordinates interface
@@ -123,36 +153,44 @@ interface PrivacySettings {
   shareLocation: boolean;
   shareContact: boolean;
 }
+
+// Expiration settings interface
+interface ExpirationSettings {
+  expirationDuration: 12 | 24;
+  expiresAt: FirebaseFirestore.Timestamp;
+}
 ```
 
 ### Core Fields
 
-| Field        | Type                                    | Required | Description                                         |
-| ------------ | --------------------------------------- | -------- | --------------------------------------------------- |
-| `parentId`   | `string`                                | ✅       | Points to the original status ID (lineage tracking) |
-| `versionId`  | `string`                                | ✅       | Unique identifier for this specific version         |
-| `statusType` | `'current' \| 'history' \| 'deleted'`   | ✅       | Document lifecycle state                            |
-| `createdAt`  | `FirebaseFirestore.Timestamp \| string` | ✅       | When this version was created                       |
-| `updatedAt`  | `FirebaseFirestore.Timestamp \| string` | ❌       | When this version was last modified (for edits)     |
-| `deletedAt`  | `FirebaseFirestore.Timestamp \| string` | ❌       | When this status was deleted (for deleted type)     |
-| `expireAt`   | `FirebaseFirestore.Timestamp`           | ✅       | TTL field for automatic cleanup after 30 days       |
+| Field                | Type                                    | Required | Description                                                        |
+| -------------------- | --------------------------------------- | -------- | ------------------------------------------------------------------ |
+| `parentId`           | `string`                                | ✅       | Points to the original status ID (lineage tracking)                |
+| `versionId`          | `string`                                | ✅       | Unique identifier for this specific version                        |
+| `statusType`         | `'current' \| 'history' \| 'deleted'`   | ✅       | Document lifecycle state (only ONE current per user)               |
+| `expirationDuration` | `12 \| 24`                              | ✅       | User-chosen expiration duration in hours                           |
+| `expiresAt`          | `FirebaseFirestore.Timestamp`           | ✅       | When status becomes inactive (user-controlled)                     |
+| `retentionUntil`     | `FirebaseFirestore.Timestamp`           | ✅       | When history is permanently deleted (30 days from expiry/deletion) |
+| `createdAt`          | `FirebaseFirestore.Timestamp \| string` | ✅       | When this version was created                                      |
+| `updatedAt`          | `FirebaseFirestore.Timestamp \| string` | ❌       | When this version was last modified (for edits)                    |
+| `deletedAt`          | `FirebaseFirestore.Timestamp \| string` | ❌       | When this status was deleted (for deleted type)                    |
 
 ### Status Data Fields
 
-| Field             | Type                                               | Required | Description                                     |
-| ----------------- | -------------------------------------------------- | -------- | ----------------------------------------------- |
-| `uid`             | `string`                                           | ✅       | Firebase user identifier                        |
-| `firstName`       | `string`                                           | ✅       | User's first name                               |
-| `lastName`        | `string`                                           | ✅       | User's last name                                |
-| `phoneNumber`     | `string`                                           | ✅       | Contact phone number (formatted)                |
-| `statusCondition` | `'safe' \| 'evacuated' \| 'affected' \| 'missing'` | ✅       | Current emergency status condition              |
-| `lat`             | `number \| null`                                   | ❌       | Latitude coordinate (decimal degrees)           |
-| `lng`             | `number \| null`                                   | ❌       | Longitude coordinate (decimal degrees)          |
-| `location`        | `string \| null`                                   | ❌       | Human-readable location description             |
-| `note`            | `string`                                           | ❌       | Additional notes or description (max 500 chars) |
-| `image`           | `string`                                           | ❌       | Image URL or Cloud Storage path                 |
-| `shareLocation`   | `boolean`                                          | ✅       | Whether to share location publicly              |
-| `shareContact`    | `boolean`                                          | ✅       | Whether to share contact info publicly          |
+| Field           | Type                                               | Required | Description                                     |
+| --------------- | -------------------------------------------------- | -------- | ----------------------------------------------- |
+| `uid`           | `string`                                           | ✅       | Firebase user identifier                        |
+| `firstName`     | `string`                                           | ✅       | User's first name                               |
+| `lastName`      | `string`                                           | ✅       | User's last name                                |
+| `phoneNumber`   | `string`                                           | ✅       | Contact phone number (formatted)                |
+| `condition`     | `'safe' \| 'evacuated' \| 'affected' \| 'missing'` | ✅       | Current emergency status condition (renamed)    |
+| `lat`           | `number \| null`                                   | ❌       | Latitude coordinate (decimal degrees)           |
+| `lng`           | `number \| null`                                   | ❌       | Longitude coordinate (decimal degrees)          |
+| `location`      | `string \| null`                                   | ❌       | Human-readable location description             |
+| `note`          | `string`                                           | ❌       | Additional notes or description (max 500 chars) |
+| `image`         | `string`                                           | ❌       | Image URL or Cloud Storage path                 |
+| `shareLocation` | `boolean`                                          | ✅       | Whether to share location publicly              |
+| `shareContact`  | `boolean`                                          | ✅       | Whether to share contact info publicly          |
 
 ### Field Validation Rules
 
@@ -180,8 +218,14 @@ const StatusValidation = {
   },
 
   // Status constraints
-  statusCondition: {
+  condition: {
     enum: ["safe", "evacuated", "affected", "missing"],
+    required: true,
+  },
+
+  // Expiration constraints
+  expirationDuration: {
+    enum: [12, 24],
     required: true,
   },
 
@@ -252,7 +296,13 @@ const exampleStatusData: StatusData = {
   phoneNumber: "+63-917-123-4567",
 
   // Status information
-  statusCondition: "affected",
+  condition: "affected",
+
+  // Expiration settings
+  expirationDuration: 24,
+  expiresAt: admin.firestore.Timestamp.fromDate(
+    new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
+  ),
 
   // Location data (Philippines coordinates)
   lat: 14.5995124,
@@ -269,8 +319,8 @@ const exampleStatusData: StatusData = {
 
   // Timestamps (Firestore types)
   createdAt: admin.firestore.Timestamp.now(),
-  expireAt: admin.firestore.Timestamp.fromDate(
-    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+  retentionUntil: admin.firestore.Timestamp.fromDate(
+    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days for history retention
   ),
 };
 ```
@@ -288,7 +338,9 @@ const exampleStatusData: StatusData = {
   firstName: "John",
   lastName: "Doe",
   phoneNumber: "+1234567890",
-  statusCondition: "safe",
+  condition: "safe",
+  expirationDuration: 24,
+  expiresAt: "2023-09-20T10:30:00Z", // 24 hours from creation
   lat: 14.5995,
   lng: 120.9842,
   location: "Manila City Hall",
@@ -297,7 +349,7 @@ const exampleStatusData: StatusData = {
   shareLocation: true,
   shareContact: true,
   createdAt: "2023-09-19T10:30:00Z",
-  expireAt: "2023-10-19T10:30:00Z" // 30 days from creation
+  retentionUntil: "2023-10-19T10:30:00Z" // 30 days from creation for history cleanup
 }
 ```
 
@@ -311,7 +363,7 @@ const exampleStatusData: StatusData = {
   versionId: "status-1695123456789-v1",
   statusType: "history", // ← Changed from "current"
   // ... same data as before
-  expireAt: "2023-10-19T10:30:00Z" // Keeps original expiration
+  retentionUntil: "2023-10-19T10:30:00Z" // Keeps original retention date
 }
 
 // New current version
@@ -323,7 +375,9 @@ const exampleStatusData: StatusData = {
   firstName: "John",
   lastName: "Doe",
   phoneNumber: "+1234567890",
-  statusCondition: "evacuated", // ← Changed
+  condition: "evacuated", // ← Changed
+  expirationDuration: 12, // ← Changed to 12 hours
+  expiresAt: "2023-09-19T24:15:00Z", // ← 12 hours from update
   lat: 14.6042,
   lng: 120.9822,
   location: "Safe House Alpha", // ← Changed
@@ -333,7 +387,7 @@ const exampleStatusData: StatusData = {
   shareContact: false, // ← Changed
   createdAt: "2023-09-19T12:15:00Z",
   updatedAt: "2023-09-19T12:15:00Z",
-  expireAt: "2023-10-19T10:30:00Z" // Same as parent
+  retentionUntil: "2023-10-19T10:30:00Z" // Same as parent
 }
 ```
 
@@ -421,65 +475,128 @@ await currentDoc.ref.update({
   firstName: "John",
   lastName: "Doe",
   phoneNumber: "+1234567890",
-  statusCondition: "evacuated",
+  condition: "evacuated",
+  expirationDuration: 24,
+  expiresAt: "2023-09-20T12:15:00Z",
   // ... rest of data preserved
   createdAt: "2023-09-19T12:15:00Z",
   updatedAt: "2023-09-19T12:15:00Z",
   deletedAt: "2023-09-19T14:30:00Z", // ← Deletion timestamp
-  expireAt: "2023-10-19T10:30:00Z" // ← Still expires with original TTL
+  retentionUntil: "2023-10-19T10:30:00Z" // ← Cleanup after 30 days from creation
 }
 ```
 
-## Cleanup with TTL (Time To Live)
+## Cleanup Strategy
 
-### Firestore TTL Configuration
+### Two-Tier Expiration System
+
+1. **User-Controlled Status Expiration** (`expiresAt`)
+
+   - Users choose 12 or 24-hour expiration when creating status
+   - When expired, status moves from "current" to "history" automatically
+   - Handled by scheduled functions or cron jobs
+
+2. **System-Managed History Retention** (`retentionUntil`)
+   - History records (expired or deleted) remain for 30 days
+   - After 30 days, documents are permanently deleted
+   - Prevents database growth while maintaining audit trail
+
+### Cleanup Implementation Options
+
+**Option 1: Firebase Scheduled Functions (Recommended)**
 
 ```typescript
-// Enable TTL on the expireAt field
-// This is configured in Firestore console or Admin SDK
+// Deploy with Firebase Functions
+import { onSchedule } from "firebase-functions/v2/scheduler";
+
+export const cleanupExpiredStatuses = onSchedule("every 1 hours", async () => {
+  // Move expired current statuses to history
+  const expiredStatuses = await db
+    .collectionGroup("statuses")
+    .where("statusType", "==", "current")
+    .where("expiresAt", "<=", admin.firestore.Timestamp.now())
+    .get();
+
+  // Move to history...
+});
+
+export const cleanupRetentionExpired = onSchedule(
+  "every 24 hours",
+  async () => {
+    // Permanently delete history after 30 days
+    const expiredHistory = await db
+      .collectionGroup("statuses")
+      .where("statusType", "in", ["history", "deleted"])
+      .where("retentionUntil", "<=", admin.firestore.Timestamp.now())
+      .get();
+
+    // Delete permanently...
+  }
+);
 ```
 
-### TTL Rules
-
-- **30 Day Retention**: All status versions expire 30 days after the original creation
-- **Automatic Cleanup**: Firestore automatically deletes expired documents
-- **Lineage Cleanup**: All versions (current, history, deleted) share the same `expireAt`
-- **No Manual Cleanup**: TTL handles all cleanup automatically
-
-### TTL Best Practices
+**Option 2: External Cron Jobs**
 
 ```typescript
-// When creating original status
-const expireAt = new Date();
-expireAt.setDate(expireAt.getDate() + 30); // 30 days from now
-
-// All versions inherit this expireAt timestamp
-{
-  // ... status data
-  expireAt: admin.firestore.Timestamp.fromDate(expireAt);
-}
+// Run on external server with Admin SDK
+const cleanupExpiredStatuses = async () => {
+  const admin = require("firebase-admin");
+  // Same logic as above
+};
 ```
+
+### Expiration Rules
+
+- **Status Lifecycle**: Active → History (after `expiresAt`) → Deleted (after `retentionUntil`)
+- **User Updates**: Reset `expiresAt`, keep original `retentionUntil`
+- **Manual Deletion**: Set `deletedAt`, calculate new `retentionUntil` (30 days from deletion)
+- **Single Active Rule**: Only one "current" status per user at any time
 
 ## Query Examples
 
 ### 1. Create New Status
 
 ```typescript
-const createStatus = async (
+const createOrUpdateStatus = async (
   userId: string,
   statusData: Omit<
     StatusData,
-    "parentId" | "versionId" | "statusType" | "createdAt" | "expireAt"
-  >
+    | "parentId"
+    | "versionId"
+    | "statusType"
+    | "createdAt"
+    | "expiresAt"
+    | "retentionUntil"
+  > & { expirationDuration: 12 | 24 }
 ) => {
   try {
-    // Generate IDs
+    // Check if user already has an active status
+    const existingStatusQuery = await db
+      .collection("status")
+      .doc(userId)
+      .collection("statuses")
+      .where("statusType", "==", "current")
+      .limit(1)
+      .get();
+
+    if (!existingStatusQuery.empty) {
+      // Update existing status instead of creating new one
+      const existingDoc = existingStatusQuery.docs[0];
+      const existingData = existingDoc.data();
+      return await updateStatus(userId, existingData.parentId, statusData);
+    }
+
+    // Generate IDs for new status
     const parentId = `status-${Date.now()}`;
     const versionId = `${parentId}-v1`;
 
-    // Set expiration date (30 days from now)
-    const expireAt = new Date();
-    expireAt.setDate(expireAt.getDate() + 30);
+    // Set user-chosen expiration (12 or 24 hours)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + statusData.expirationDuration);
+
+    // Set history retention (30 days from creation)
+    const retentionUntil = new Date();
+    retentionUntil.setDate(retentionUntil.getDate() + 30);
 
     // Create document reference
     const statusRef = db
@@ -494,8 +611,9 @@ const createStatus = async (
       versionId: versionId,
       statusType: "current",
       ...statusData,
+      expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
+      retentionUntil: admin.firestore.Timestamp.fromDate(retentionUntil),
       createdAt: FieldValue.serverTimestamp(),
-      expireAt: admin.firestore.Timestamp.fromDate(expireAt),
     });
 
     console.log(`✅ Status created with ID: ${parentId}`);
@@ -506,13 +624,14 @@ const createStatus = async (
   }
 };
 
-// Usage example
-const newStatus = await createStatus("user123", {
+// Usage example - will update existing if user has active status
+const newStatus = await createOrUpdateStatus("user123", {
   uid: "user123",
   firstName: "John",
   lastName: "Doe",
   phoneNumber: "+1234567890",
-  statusCondition: "safe",
+  condition: "safe",
+  expirationDuration: 24, // User chooses 24 hours
   lat: 14.5995,
   lng: 120.9842,
   location: "Manila City Hall",
@@ -582,8 +701,17 @@ const updateStatus = async (
       statusType: "current",
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
-      // Keep original expireAt for consistent TTL
-      expireAt: currentData.expireAt,
+      // Update expiration based on new user choice, keep original retention
+      expiresAt: admin.firestore.Timestamp.fromDate(
+        new Date(
+          Date.now() +
+            (updatedData.expirationDuration || currentData.expirationDuration) *
+              60 *
+              60 *
+              1000
+        )
+      ),
+      retentionUntil: currentData.retentionUntil,
     });
 
     // Step 5: Commit batch operation
@@ -599,7 +727,8 @@ const updateStatus = async (
 
 // Usage example
 const updatedStatus = await updateStatus("user123", "status-1695123456789", {
-  statusCondition: "evacuated",
+  condition: "evacuated",
+  expirationDuration: 24,
   location: "Evacuation Center Alpha",
   note: "Moved to safer location",
   shareContact: false,
@@ -613,7 +742,8 @@ const bulkUpdateStatus = async (
   userId: string,
   parentId: string,
   updates: {
-    statusCondition?: "safe" | "evacuated" | "affected" | "missing";
+    condition?: "safe" | "evacuated" | "affected" | "missing";
+    expirationDuration?: 12 | 24;
     location?: string;
     coordinates?: { lat: number; lng: number };
     contactInfo?: { phoneNumber: string; shareContact: boolean };
@@ -625,8 +755,16 @@ const bulkUpdateStatus = async (
     // Flatten updates into single object
     const flatUpdates: Partial<StatusData> = {};
 
-    if (updates.statusCondition) {
-      flatUpdates.statusCondition = updates.statusCondition;
+    if (updates.condition) {
+      flatUpdates.condition = updates.condition;
+    }
+
+    if (updates.expirationDuration) {
+      flatUpdates.expirationDuration = updates.expirationDuration;
+      // Recalculate expiresAt when duration changes
+      flatUpdates.expiresAt = admin.firestore.Timestamp.fromDate(
+        new Date(Date.now() + updates.expirationDuration * 60 * 60 * 1000)
+      );
     }
 
     if (updates.location) {
@@ -661,7 +799,8 @@ const bulkUpdateStatus = async (
 
 // Usage example
 const bulkUpdate = await bulkUpdateStatus("user123", "status-1695123456789", {
-  statusCondition: "safe",
+  condition: "safe",
+  expirationDuration: 12, // Change from 24h to 12h
   location: "Home",
   coordinates: { lat: 14.6042, lng: 120.9822 },
   contactInfo: { phoneNumber: "+1234567890", shareContact: true },
@@ -725,8 +864,9 @@ const conditionalResult = await conditionalUpdateStatus(
   "user123",
   "status-1695123456789",
   {
-    statusCondition: "safe", // Same as current
+    condition: "safe", // Same as current
     note: "Updated note", // Different from current
+    expirationDuration: 12, // Different from current
   }
 );
 // Result: { updated: true, versionId: 'status-1695123456789-v3', versionNumber: 3 }
@@ -753,11 +893,14 @@ const deleteStatus = async (userId: string, parentId: string) => {
 
     const currentDoc = currentQuery.docs[0];
 
-    // Mark as deleted (soft delete)
+    // Mark as deleted (soft delete) and set 30-day retention
+    const retentionDate = new Date();
+    retentionDate.setDate(retentionDate.getDate() + 30);
+
     await currentDoc.ref.update({
       statusType: "deleted",
       deletedAt: FieldValue.serverTimestamp(),
-      // expireAt remains the same for TTL cleanup
+      retentionUntil: admin.firestore.Timestamp.fromDate(retentionDate),
     });
 
     console.log(`✅ Status ${parentId} marked as deleted`);
@@ -888,7 +1031,7 @@ const getStatusesByCondition = async (userId: string, condition: string) => {
     .doc(userId)
     .collection("statuses")
     .where("statusType", "==", "current")
-    .where("statusCondition", "==", condition)
+    .where("condition", "==", condition)
     .get();
 
   return snapshot.docs.map((doc) => doc.data());
@@ -909,7 +1052,9 @@ const getStatusesByCondition = async (userId: string, condition: string) => {
   "firstName": "Maria",
   "lastName": "Santos",
   "phoneNumber": "+639171234567",
-  "statusCondition": "affected",
+  "condition": "affected",
+  "expirationDuration": 12,
+  "expiresAt": "2023-09-19T20:00:00Z",
   "lat": 14.5995,
   "lng": 120.9842,
   "location": "Barangay San Antonio",
@@ -918,7 +1063,7 @@ const getStatusesByCondition = async (userId: string, condition: string) => {
   "shareLocation": true,
   "shareContact": true,
   "createdAt": "2023-09-19T08:00:00Z",
-  "expireAt": "2023-10-19T08:00:00Z"
+  "retentionUntil": "2023-10-19T08:00:00Z"
 }
 ```
 
@@ -933,7 +1078,9 @@ const getStatusesByCondition = async (userId: string, condition: string) => {
   "firstName": "Maria",
   "lastName": "Santos",
   "phoneNumber": "+639171234567",
-  "statusCondition": "affected",
+  "condition": "affected",
+  "expirationDuration": 12,
+  "expiresAt": "2023-09-19T20:00:00Z",
   "lat": 14.5995,
   "lng": 120.9842,
   "location": "Barangay San Antonio",
@@ -942,7 +1089,7 @@ const getStatusesByCondition = async (userId: string, condition: string) => {
   "shareLocation": true,
   "shareContact": true,
   "createdAt": "2023-09-19T08:00:00Z",
-  "expireAt": "2023-10-19T08:00:00Z"
+  "retentionUntil": "2023-10-19T08:00:00Z"
 }
 
 // v2 becomes current
@@ -953,7 +1100,9 @@ const getStatusesByCondition = async (userId: string, condition: string) => {
   "firstName": "Maria",
   "lastName": "Santos",
   "phoneNumber": "+639171234567",
-  "statusCondition": "safe",
+  "condition": "safe",
+  "expirationDuration": 24,
+  "expiresAt": "2023-09-20T10:30:00Z",
   "lat": 14.6042,
   "lng": 120.9822,
   "location": "Evacuation Center Alpha",
@@ -963,7 +1112,7 @@ const getStatusesByCondition = async (userId: string, condition: string) => {
   "shareContact": true,
   "createdAt": "2023-09-19T10:30:00Z",
   "updatedAt": "2023-09-19T10:30:00Z",
-  "expireAt": "2023-10-19T08:00:00Z"
+  "retentionUntil": "2023-10-19T08:00:00Z"
 }
 ```
 
@@ -977,7 +1126,9 @@ const getStatusesByCondition = async (userId: string, condition: string) => {
   "firstName": "Maria",
   "lastName": "Santos",
   "phoneNumber": "+639171234567",
-  "statusCondition": "safe",
+  "condition": "safe",
+  "expirationDuration": 24,
+  "expiresAt": "2023-09-20T10:30:00Z",
   "lat": 14.6042,
   "lng": 120.9822,
   "location": "Evacuation Center Alpha",
@@ -988,7 +1139,7 @@ const getStatusesByCondition = async (userId: string, condition: string) => {
   "createdAt": "2023-09-19T10:30:00Z",
   "updatedAt": "2023-09-19T10:30:00Z",
   "deletedAt": "2023-09-19T16:45:00Z",
-  "expireAt": "2023-10-19T08:00:00Z"
+  "retentionUntil": "2023-10-19T08:00:00Z"
 }
 ```
 
@@ -1047,8 +1198,10 @@ Create composite indexes for common queries:
 Collection: status/{userId}/statuses
 Indexes:
 - parentId ASC, statusType ASC, createdAt DESC
-- statusType ASC, statusCondition ASC, createdAt DESC
-- statusType ASC, expireAt ASC (for TTL cleanup queries)
+- statusType ASC, condition ASC, createdAt DESC
+- statusType ASC, expiresAt ASC (for expiration queries)
+- statusType ASC, retentionUntil ASC (for cleanup queries)
+- statusType ASC (for single current status per user queries)
 ```
 
 ## Scalability Considerations
@@ -1131,7 +1284,12 @@ service cloud.firestore {
       allow write: if resource.data.statusType in ['current', 'history', 'deleted'];
 
       // Prevent modification of expired documents
-      allow write: if resource.data.expireAt > request.time;
+      allow write: if resource.data.expiresAt > request.time;
+
+      // Ensure only one current status per user
+      allow create: if request.auth.uid == userId
+        && !exists(/databases/$(database)/documents/status/$(userId)/statuses)
+        || resource.data.statusType != "current";
     }
   }
 }
@@ -1204,6 +1362,8 @@ const getStatusMetrics = async (userId: string) => {
 
 ## Conclusion
 
-This flat versioned schema provides a robust foundation for a disaster response status system with complete audit trails, automatic cleanup, and excellent query performance. The design balances data integrity with operational efficiency while maintaining scalability for large user bases.
+This single active status schema provides a robust foundation for a disaster response status system with complete audit trails, managed cleanup, and excellent query performance. The design balances data integrity with operational efficiency while maintaining scalability for large user bases.
 
-The TTL-based cleanup ensures storage costs remain manageable, while the flat structure simplifies development and maintenance operations. This schema can handle the demanding requirements of emergency response scenarios while providing the flexibility needed for future feature enhancements.
+The two-tier expiration system (user-controlled status expiration + system-managed history retention) ensures optimal user experience while keeping storage costs manageable. The single active status rule prevents confusion and conflicts while the flat structure simplifies development and maintenance operations.
+
+This schema can handle the demanding requirements of emergency response scenarios where users need one clear, current status while maintaining complete history for accountability and analysis.
