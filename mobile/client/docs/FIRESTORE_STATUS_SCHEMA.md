@@ -503,45 +503,244 @@ await currentDoc.ref.update({
 
 ### Cleanup Implementation Options
 
-**Option 1: Firebase Scheduled Functions (Recommended)**
+**Firebase Scheduled Functions (Recommended)**
 
 ```typescript
 // Deploy with Firebase Functions
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import * as admin from "firebase-admin";
 
 export const cleanupExpiredStatuses = onSchedule("every 1 hours", async () => {
-  // Move expired current statuses to history
-  const expiredStatuses = await db
-    .collectionGroup("statuses")
-    .where("statusType", "==", "current")
-    .where("expiresAt", "<=", admin.firestore.Timestamp.now())
-    .get();
+  const db = admin.firestore();
+  const batch = db.batch();
+  let batchCount = 0;
+  const maxBatchSize = 500; // Firestore batch limit
 
-  // Move to history...
+  console.log("🔄 Starting cleanup of expired statuses...");
+
+  try {
+    // Query ALL expired current statuses across ALL users at once
+    const expiredStatuses = await db
+      .collectionGroup("statuses") // ← This queries across ALL users
+      .where("statusType", "==", "current")
+      .where("expiresAt", "<=", admin.firestore.Timestamp.now())
+      .limit(500) // Process in chunks to avoid memory issues
+      .get();
+
+    console.log(`📊 Found ${expiredStatuses.size} expired current statuses`);
+
+    // Process each expired status
+    for (const doc of expiredStatuses.docs) {
+      // Move from "current" to "history"
+      batch.update(doc.ref, {
+        statusType: "history",
+        expiredAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      batchCount++;
+
+      // Commit batch when it reaches limit
+      if (batchCount >= maxBatchSize) {
+        await batch.commit();
+        console.log(`✅ Committed batch of ${batchCount} status updates`);
+        batchCount = 0;
+      }
+    }
+
+    // Commit remaining documents
+    if (batchCount > 0) {
+      await batch.commit();
+      console.log(`✅ Committed final batch of ${batchCount} status updates`);
+    }
+
+    console.log(
+      `✅ Successfully moved ${expiredStatuses.size} statuses to history`
+    );
+  } catch (error) {
+    console.error("❌ Error in status expiration cleanup:", error);
+    throw error;
+  }
 });
 
 export const cleanupRetentionExpired = onSchedule(
   "every 24 hours",
   async () => {
-    // Permanently delete history after 30 days
-    const expiredHistory = await db
-      .collectionGroup("statuses")
-      .where("statusType", "in", ["history", "deleted"])
-      .where("retentionUntil", "<=", admin.firestore.Timestamp.now())
-      .get();
+    const db = admin.firestore();
+    const batch = db.batch();
+    let batchCount = 0;
+    const maxBatchSize = 500;
 
-    // Delete permanently...
+    console.log("🗑️ Starting cleanup of retention-expired documents...");
+
+    try {
+      // Query ALL retention-expired documents across ALL users at once
+      const expiredHistory = await db
+        .collectionGroup("statuses") // ← This queries across ALL users
+        .where("statusType", "in", ["history", "deleted"])
+        .where("retentionUntil", "<=", admin.firestore.Timestamp.now())
+        .limit(500) // Process in chunks
+        .get();
+
+      console.log(
+        `📊 Found ${expiredHistory.size} retention-expired documents`
+      );
+
+      // Delete each expired document
+      for (const doc of expiredHistory.docs) {
+        batch.delete(doc.ref);
+        batchCount++;
+
+        // Commit batch when it reaches limit
+        if (batchCount >= maxBatchSize) {
+          await batch.commit();
+          console.log(`🗑️ Deleted batch of ${batchCount} expired documents`);
+          batchCount = 0;
+        }
+      }
+
+      // Commit remaining documents
+      if (batchCount > 0) {
+        await batch.commit();
+        console.log(
+          `🗑️ Deleted final batch of ${batchCount} expired documents`
+        );
+      }
+
+      console.log(
+        `✅ Successfully deleted ${expiredHistory.size} expired documents`
+      );
+    } catch (error) {
+      console.error("❌ Error in retention cleanup:", error);
+      throw error;
+    }
+  }
+);
+
+// Optional: Cleanup function for very large datasets
+export const cleanupExpiredStatusesLarge = onSchedule(
+  "every 6 hours",
+  async () => {
+    const db = admin.firestore();
+    let totalProcessed = 0;
+    let hasMore = true;
+
+    console.log("🔄 Starting large-scale cleanup process...");
+
+    // Process in multiple rounds for very large datasets
+    while (hasMore && totalProcessed < 10000) {
+      // Safety limit
+      const batch = db.batch();
+      let batchCount = 0;
+
+      // Query next batch of expired documents
+      const expiredDocs = await db
+        .collectionGroup("statuses")
+        .where("statusType", "==", "current")
+        .where("expiresAt", "<=", admin.firestore.Timestamp.now())
+        .limit(500)
+        .get();
+
+      if (expiredDocs.empty) {
+        hasMore = false;
+        break;
+      }
+
+      // Process each document in current batch
+      for (const doc of expiredDocs.docs) {
+        batch.update(doc.ref, {
+          statusType: "history",
+          expiredAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        batchCount++;
+      }
+
+      // Commit current batch
+      if (batchCount > 0) {
+        await batch.commit();
+        totalProcessed += batchCount;
+        console.log(`📊 Processed ${totalProcessed} documents so far...`);
+      }
+
+      // Small delay to avoid overwhelming Firestore
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    console.log(
+      `✅ Large-scale cleanup completed. Total processed: ${totalProcessed}`
+    );
   }
 );
 ```
 
-**Option 2: External Cron Jobs**
+**Key Points:**
+
+1. **Collection Group Queries**: Uses `collectionGroup("statuses")` to query across ALL user subcollections at once
+2. **Efficient Processing**: Processes up to 500 documents per batch to stay within Firestore limits
+3. **No User Iteration**: Never loops through individual users - queries all expired documents directly
+4. **Batch Operations**: Uses Firestore batch writes for efficient updates/deletes
+5. **Chunked Processing**: Handles large datasets by processing in manageable chunks
+6. **Safety Limits**: Includes limits and delays to prevent overwhelming Firestore
+
+**Performance Benefits:**
+
+- ✅ **Single Query**: One query finds all expired documents across all users
+- ✅ **Batch Operations**: Up to 500 operations per batch (Firestore limit)
+- ✅ **Parallel Processing**: Firestore handles the parallel execution
+- ✅ **Automatic Scaling**: Scales with your user base without code changes
+
+**External Cron Jobs Example**
 
 ```typescript
 // Run on external server with Admin SDK
-const cleanupExpiredStatuses = async () => {
-  const admin = require("firebase-admin");
-  // Same logic as above
+import * as admin from "firebase-admin";
+
+const cleanupExpiredStatusesExternal = async () => {
+  const db = admin.firestore();
+  let lastDoc = null;
+  let totalProcessed = 0;
+
+  console.log("🔄 Starting external cleanup process...");
+
+  do {
+    // Build query with pagination
+    let query = db
+      .collectionGroup("statuses")
+      .where("statusType", "==", "current")
+      .where("expiresAt", "<=", admin.firestore.Timestamp.now())
+      .limit(1000); // Larger batches for external processing
+
+    // Add pagination cursor
+    if (lastDoc) {
+      query = query.startAfter(lastDoc);
+    }
+
+    const snapshot = await query.get();
+
+    if (snapshot.empty) {
+      break;
+    }
+
+    // Process current batch
+    const batch = db.batch();
+    snapshot.docs.forEach((doc) => {
+      batch.update(doc.ref, {
+        statusType: "history",
+        expiredAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    });
+
+    await batch.commit();
+
+    totalProcessed += snapshot.size;
+    lastDoc = snapshot.docs[snapshot.docs.length - 1];
+
+    console.log(`📊 Processed ${totalProcessed} documents...`);
+
+    // Rate limiting
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  } while (lastDoc);
+
+  console.log(`✅ External cleanup completed. Total: ${totalProcessed}`);
 };
 ```
 
