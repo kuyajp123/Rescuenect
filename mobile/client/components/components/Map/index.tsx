@@ -16,10 +16,12 @@ import {
   TextInput,
   View,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { useMapButtonStore } from "@/components/store/useMapButton";
 import { Button, IconButton, ToggleButton } from "../button/Button";
 import { useStatusFormStore } from "@/components/store/useStatusForm";
+import { useGetAddress } from "@/components/store/useGetAddress";
 
 // Types for flexible form fields
 export interface TextInputField {
@@ -131,8 +133,8 @@ const Map = ({
       onPress: () => {},
     },
   ],
-  GPSlocationLabel = "GPS Location name here",
-  tappedLocationLabel = "Tapped Location",
+  GPSlocationLabel = "GPS Location",
+  tappedLocationLabel = "Coordinates",
   showCoordinates = true,
   stopTracking,
   snapPoints = ["14%", "90%"],
@@ -144,6 +146,10 @@ const Map = ({
   const { isDark } = useTheme();
   const [bottomSheetEnabled, setBottomSheetEnabled] = React.useState(false);
   const statusForm = useStatusFormStore((state) => state.formData);
+  const addressCoordsLoading = useGetAddress(
+    (state) => state.addressCoordsLoading
+  );
+  const addressGPSLoading = useGetAddress((state) => state.addressGPSLoading);
 
   const bottomSheetRef = useRef<BottomSheet>(null);
 
@@ -151,7 +157,7 @@ const Map = ({
   let memoizedSnapPoints;
   // If both coordinates exist, use larger initial height
   if (coords && oneTimeLocationCoords) {
-    memoizedSnapPoints = ["20%", "90%"];
+    memoizedSnapPoints = ["25%", "90%"];
   } else {
     // If only one or no coordinates, use default
     memoizedSnapPoints = snapPoints;
@@ -207,7 +213,15 @@ const Map = ({
           <HStack style={styles.head}>
             <VStack>
               <View style={styles.textLocationName}>
-                <Text size="md">{tappedLocationLabel}</Text>
+                {addressCoordsLoading ? (
+                  <ActivityIndicator
+                    size="large"
+                    color={Colors.brand.light}
+                    style={{ marginLeft: 8 }}
+                  />
+                ) : (
+                  <Text size="md">{tappedLocationLabel}</Text>
+                )}
               </View>
               {showCoordinates && (
                 <Text emphasis="light" size="sm">
@@ -224,7 +238,15 @@ const Map = ({
           <HStack style={styles.head}>
             <VStack>
               <View style={styles.textLocationName}>
-                <Text size="md">{GPSlocationLabel}</Text>
+                {addressGPSLoading ? (
+                  <ActivityIndicator
+                    size="large"
+                    color={Colors.brand.light}
+                    style={{ marginLeft: 8 }}
+                  />
+                ) : (
+                  <Text size="md">{GPSlocationLabel}</Text>
+                )}
               </View>
               {showCoordinates && oneTimeLocationCoords && (
                 <Text emphasis="light" size="sm">
@@ -253,7 +275,15 @@ const Map = ({
         <HStack style={styles.head}>
           <VStack>
             <View style={styles.textLocationName}>
-              <Text size="md">{tappedLocationLabel}</Text>
+              {addressCoordsLoading ? (
+                <ActivityIndicator
+                  size="large"
+                  color={Colors.brand.light}
+                  style={{ marginLeft: 8 }}
+                />
+              ) : (
+                <Text size="md">{tappedLocationLabel}</Text>
+              )}
             </View>
             {showCoordinates && coords && (
               <Text emphasis="light" size="sm">
@@ -274,7 +304,15 @@ const Map = ({
         <HStack style={styles.head}>
           <VStack>
             <View style={styles.textLocationName}>
-              <Text size="md">{GPSlocationLabel}</Text>
+              {addressGPSLoading ? (
+                <ActivityIndicator
+                  size="large"
+                  color={Colors.brand.light}
+                  style={{ marginLeft: 8 }}
+                />
+              ) : (
+                <Text size="md">{GPSlocationLabel}</Text>
+              )}
             </View>
             {showCoordinates && oneTimeLocationCoords && (
               <Text emphasis="light" size="sm">
@@ -567,9 +605,9 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingBottom: 20,
   },
-  textLocationName: { 
-    flexDirection: "row", 
-    width: "85%", 
+  textLocationName: {
+    flexDirection: "row",
+    width: "85%",
   },
   button: {
     borderWidth: 1,

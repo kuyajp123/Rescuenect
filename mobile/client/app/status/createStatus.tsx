@@ -31,7 +31,7 @@ import { API_ROUTES } from "@/config/endpoints";
 import { Colors } from "@/constants/Colors";
 import { StatusForm, AddressState } from "@/types/components";
 import axios from "axios";
-import { isEqual } from "lodash";
+import { isEqual, set } from "lodash";
 import { Bookmark, Info, Navigation, SquarePen } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Linking, StyleSheet, View } from "react-native";
@@ -56,16 +56,22 @@ export const createStatus = () => {
   );
   const savedLocation: [number, number] = [120.7752839, 14.2919325]; // simulate saved location
   // const savedLocation: [number, number] | null = null; // simulate saved location
-  
+
   // Address store
   const addressCoords = useGetAddress((state) => state.addressCoords);
   const addressGPS = useGetAddress((state) => state.addressGPS);
-  const addressCoordsLoading = useGetAddress((state) => state.addressCoordsLoading);
+  const addressCoordsLoading = useGetAddress(
+    (state) => state.addressCoordsLoading
+  );
   const addressGPSLoading = useGetAddress((state) => state.addressGPSLoading);
   const setAddressCoords = useGetAddress((state) => state.setAddressCoords);
   const setAddressGPS = useGetAddress((state) => state.setAddressGPS);
-  const setAddressCoordsLoading = useGetAddress((state) => state.setAddressCoordsLoading);
-  const setAddressGPSLoading = useGetAddress((state) => state.setAddressGPSLoading);
+  const setAddressCoordsLoading = useGetAddress(
+    (state) => state.setAddressCoordsLoading
+  );
+  const setAddressGPSLoading = useGetAddress(
+    (state) => state.setAddressGPSLoading
+  );
 
   const setFollowUserLocation = useCoords(
     (state) => state.setFollowUserLocation
@@ -212,7 +218,10 @@ export const createStatus = () => {
 
       if (latDiff > distanceThreshold || lngDiff > distanceThreshold) {
         // User tapped a new location on map
-        setHasUserTappedMap(true);
+        if (authUser) {
+          setAddressCoordsLoading(true);
+          setHasUserTappedMap(true);
+        }
         setSelectedCoords(coords); // Tapped location becomes default
         console.log("User tapped map, new default location:", coords);
       }
@@ -278,6 +287,15 @@ export const createStatus = () => {
       JSON.stringify(addressCoords, null, 2)
     );
   }, [addressCoords]);
+
+  // Debug loading states
+  useEffect(() => {
+    console.log("🔄 addressCoordsLoading:", addressCoordsLoading);
+  }, [addressCoordsLoading]);
+
+  useEffect(() => {
+    console.log("🔄 addressGPSLoading:", addressGPSLoading);
+  }, [addressGPSLoading]);
 
   // Handle modal close with delay to prevent immediate refetch
   const handleErrorModalClose = () => {
@@ -357,6 +375,12 @@ export const createStatus = () => {
     // If offline, skip submission but save to store
     if (!isOnline) {
       console.log("🔄 Triggering noNetwork modal...");
+      toggleModal("noNetwork", true);
+      setSubmitStatusLoading(false);
+      return;
+    }
+
+    if (!authUser) {
       toggleModal("noNetwork", true);
       setSubmitStatusLoading(false);
       return;
@@ -482,6 +506,9 @@ export const createStatus = () => {
       icon: <Navigation size={16} color={"white"} />,
       onPress: async () => {
         console.log("Fetching current location...");
+        if (authUser) {
+          setAddressGPSLoading(true);
+        }
         try {
           const currentCoords = await getCurrentPositionOnce();
           if (currentCoords) {
@@ -492,6 +519,7 @@ export const createStatus = () => {
             console.warn("Failed to get current location");
           }
         } catch (error) {
+          setAddressGPSLoading(false);
           console.error("Error getting current location:", error);
         }
       },
@@ -579,7 +607,8 @@ export const createStatus = () => {
         {/* Tapped Location Option (Default/Priority) */}
         <ButtonRadio
           key="tapped-location"
-          label="Tapped Location"
+          label={addressCoords ? addressCoords.formatted : "Tapped Location"}
+          sizeText="sm"
           subLabel={coords}
           value={coords}
           selectedValue={!isGPSselection ? coords : [0, 0]}
@@ -590,7 +619,8 @@ export const createStatus = () => {
         {/* GPS/Current Location Option */}
         <ButtonRadio
           key="gps-location"
-          label="Current Location (GPS)"
+          label={addressGPS ? addressGPS.formatted : "GPS Location"}
+          sizeText="sm"
           subLabel={oneTimeLocationCoords}
           value={oneTimeLocationCoords}
           selectedValue={isGPSselection ? oneTimeLocationCoords : [0, 0]}
@@ -602,11 +632,11 @@ export const createStatus = () => {
       // Show simple coordinate display when only one location source
       (coords || oneTimeLocationCoords) && (
         <View key="marker-info" style={styles.markerInfoContainer}>
-          <Text style={styles.markerInfoTitle}>
+          <Text size="sm" style={styles.markerInfoTitle}>
             {coords
-              ? "Location:"
+              ? addressCoords?.formatted || "Location:"
               : oneTimeLocationCoords
-              ? "GPS Location:"
+              ? addressGPS?.formatted || "GPS Location:"
               : "Selected Location:"}
           </Text>
           <Text>
@@ -703,8 +733,8 @@ export const createStatus = () => {
     Phone: ${phoneNumber}
     lat: ${lat}
     lng: ${lng}
-    Location: ${loc ? loc : null}
-    Note: ${note ? note : null}
+    Location: ${loc ? loc : ""}
+    Note: ${note ? note : ""}
     Time: ${GetTime()}
     Date: ${GetDate()}
     `;
@@ -717,6 +747,8 @@ export const createStatus = () => {
   const handleGetAddress = async (lat: number, lng: number) => {
     if (!authUser) {
       console.warn("User is not authenticated");
+      setAddressCoordsLoading(false);
+      setAddressGPSLoading(false);
       return;
     }
 
@@ -759,6 +791,7 @@ export const createStatus = () => {
           // This is the tapped location
           console.log("Setting tapped location address:", addressState);
           setAddressCoords(addressState);
+          setAddressCoordsLoading(false);
         }
         if (
           lat === oneTimeLocationCoords?.[1] &&
@@ -767,21 +800,34 @@ export const createStatus = () => {
           // This is the GPS location
           console.log("Setting GPS location address:", addressState);
           setAddressGPS(addressState);
+          setAddressGPSLoading(false);
         }
       }
     } catch (error) {
       console.error("Error fetching address:", error);
+      setAddressCoordsLoading(false);
+      setAddressGPSLoading(false);
     }
   };
 
   // Debounced fetch address for tapped location
   useEffect(() => {
+    if (authUser) {
+      setAddressCoordsLoading(true);
+    }
+
     if (!coords) {
       // Clear any pending timer if coords is null
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
         debounceTimerRef.current = null;
       }
+      return;
+    }
+
+    if (!isOnline) {
+      // If offline, do not attempt to fetch address
+      setAddressCoordsLoading(false);
       return;
     }
 
@@ -802,18 +848,28 @@ export const createStatus = () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
         debounceTimerRef.current = null;
+        setAddressCoordsLoading(false);
       }
     };
-  }, [coords]);
+  }, [coords, isOnline, authUser]);
 
   // Debounced fetch address for GPS location
   useEffect(() => {
+    if (authUser) {
+      setAddressGPSLoading(true);
+    }
     if (!oneTimeLocationCoords) {
       // Clear any pending timer if GPS coords is null
       if (debounceTimerRefGPS.current) {
         clearTimeout(debounceTimerRefGPS.current);
         debounceTimerRefGPS.current = null;
       }
+      return;
+    }
+
+    if (!isOnline) {
+      // If offline, do not attempt to fetch address
+      setAddressGPSLoading(false);
       return;
     }
 
@@ -837,9 +893,27 @@ export const createStatus = () => {
       if (debounceTimerRefGPS.current) {
         clearTimeout(debounceTimerRefGPS.current);
         debounceTimerRefGPS.current = null;
+        setAddressGPSLoading(false);
       }
     };
-  }, [oneTimeLocationCoords]);
+  }, [oneTimeLocationCoords, isOnline, authUser]);
+
+  // Clear address states in guest mode or offline mode
+  useEffect(() => {
+    if (!isOnline) {
+      setAddressCoords(null);
+      setAddressGPS(null);
+      setAddressCoordsLoading(false);
+      setAddressGPSLoading(false);
+    }
+
+    if (!authUser) {
+      setAddressCoords(null);
+      setAddressGPS(null);
+      setAddressCoordsLoading(false);
+      setAddressGPSLoading(false);
+    }
+  }, [isOnline, authUser]);
 
   return (
     <>
@@ -855,11 +929,9 @@ export const createStatus = () => {
         <Map
           title="Let us know your status during disaster!"
           label="Tap the map to pin a marker"
-          GPSlocationLabel={
-            addressGPS ? addressGPS.formatted : "GPS Location name here"
-          }
+          GPSlocationLabel={addressGPS ? addressGPS.formatted : "GPS Location"}
           tappedLocationLabel={
-            addressCoords ? addressCoords.formatted : "Tapped Location"
+            addressCoords ? addressCoords.formatted : "Coordinates"
           }
           textInputFields={textInputFields}
           radioFields={radioFields}
@@ -883,7 +955,7 @@ export const createStatus = () => {
             setAddressCoords(null); // Clear tapped location address
           }}
           errMessage={formErrors.errMessage || ""}
-          secondaryButton={{ label: "Delete", onPress: () => {} }}
+          secondaryButton={formData ? { label: "Delete", onPress: () => {} } : undefined}
         />
         <Modal
           modalVisible={modals.noChanges}
@@ -920,7 +992,9 @@ export const createStatus = () => {
           secondaryButtonText="Cancel"
           secondaryButtonOnPress={() => toggleModal("noNetwork", false)}
           renderImage={() => renderImageState("noNetwork")}
-          primaryText="No internet connection."
+          primaryText={
+            authUser ? "No Internet Connection" : "You are in Guest Mode"
+          }
           secondaryText="Would you like to send the details you entered through your messaging app instead?"
         />
         <Modal

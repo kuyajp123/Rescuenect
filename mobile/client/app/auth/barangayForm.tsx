@@ -22,7 +22,8 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { create } from "zustand";
 import { useIdToken } from "@/hooks/useIdToken";
-import { API_ROUTES } from '@/config/endpoints';
+import { API_ROUTES } from "@/config/endpoints";
+import { storage } from "@/components/helper/storage";
 
 type barangayStore = {
   selectedBarangay: string;
@@ -97,7 +98,6 @@ const barangayForm = () => {
   };
 
   const handleSaveBarangay = async () => {
-
     if (!selectedBarangay) {
       setErrorMessage("Please select your barangay");
       return;
@@ -117,12 +117,12 @@ const barangayForm = () => {
         setErrorMessage("Failed to authenticate. Please try again.");
         return;
       }
-      
     } else if (isLoading) {
       console.log("⏳ Authentication still loading, please wait...");
       setErrorMessage("Please wait for authentication to complete.");
     } else {
       await AsyncStorage.setItem("@barangay", selectedBarangay);
+      await storage.remove("@hasSignedOut");
       console.log("✅ Barangay saved to local storage");
       console.log("🧭 Navigating to nameAndContactForm...");
       router.push("/auth/nameAndContactForm" as any);
@@ -141,7 +141,8 @@ const barangayForm = () => {
 
       console.log("idToken: ", token ? "Token present" : "Token missing");
 
-      const response = await axios.post(API_ROUTES.DATA.SAVE_BARANGAY_DATA,
+      const response = await axios.post(
+        API_ROUTES.DATA.SAVE_BARANGAY_DATA,
         {
           uid: authUser?.uid,
           barangay: selectedBarangay,

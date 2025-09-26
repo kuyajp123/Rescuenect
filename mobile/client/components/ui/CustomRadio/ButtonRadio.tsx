@@ -10,6 +10,7 @@ type CityNeedsProps = {
     selectedValue: [number, number] | string;
     onSelect: (value: [number, number] | string) => void;
     style?: object;
+    sizeText?: 'sm' | 'md' | 'lg';
 };
 
 export const ButtonRadio = ({
@@ -19,6 +20,7 @@ export const ButtonRadio = ({
     selectedValue,
     onSelect,
     style,
+    sizeText = 'md',
 }: CityNeedsProps) => {
     // Custom comparison for different value types
     const isSelected = () => {
@@ -44,6 +46,24 @@ export const ButtonRadio = ({
 
     const selected = isSelected();
 
+    let sizeLabel: "sm" | "md" | "lg" | "xs" | "xl" | "2xs" | "2xl" | "3xl" | "4xl" | "5xl" | "6xl";
+    let sizeSubLabel: "sm" | "md" | "lg" | "xs" | "xl" | "2xs" | "2xl" | "3xl" | "4xl" | "5xl" | "6xl";
+
+    switch (sizeText) {
+        case 'sm':
+            sizeLabel = 'sm';
+            sizeSubLabel = 'xs';
+            break;
+        case 'md':
+            sizeLabel = 'md';
+            sizeSubLabel = 'sm';
+            break;
+        case 'lg':
+            sizeLabel = 'lg';
+            sizeSubLabel = 'lg';
+            break;
+    }
+
     return (
         <Button
             size='xl'
@@ -53,8 +73,8 @@ export const ButtonRadio = ({
             style={style}
         >
         <View>
-            <Text size='md' style={selected ? styles.TextColor : undefined}>{label}</Text>
-            <Text size='sm' style={selected ? styles.TextColor : undefined}>{formatSubLabel(subLabel)}</Text>
+            <Text size={sizeLabel} style={selected ? styles.TextColor : undefined}>{label}</Text>
+            <Text size={sizeSubLabel} style={selected ? styles.TextColor : undefined}>{formatSubLabel(subLabel)}</Text>
         </View>
     </Button>
   )
