@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { convertToE164Format } from '@/components/helper/commonHelpers';
 import { storage } from "@/components/helper/storage";
 import axios from 'axios';
 import { auth } from "@/lib/firebaseConfig";
@@ -126,10 +125,10 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
 }
 
 export const handleLogout = async () => {
-  const setFormData = useStatusFormStore.getState().setFormData;
+  const resetFormData = useStatusFormStore.getState().resetFormData;
 
   try {
-    setFormData(null);
+    resetFormData();
     // Clear user data from storage
     await storage.remove('@barangay');
     await storage.remove('@user');
@@ -162,7 +161,7 @@ export const handleLogout = async () => {
     
     // Even if there's an error, try to clear Google state
     try {
-      setFormData(null);
+      resetFormData();
       await GoogleSignin.revokeAccess();
       await GoogleSignin.signOut();
     } catch (e) {

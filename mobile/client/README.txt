@@ -11,6 +11,8 @@ rnce → React Native Class Component with Export
 rncs → React Native Class Component with StyleSheet
 rnfes → React Native Function Component with StyleSheet <-- this is default
 
+npx tsc --noEmit <-- to check typescript error
+
 
 typograpy: {
     light: text-typography-900 // color black in light mode

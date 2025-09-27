@@ -11,9 +11,9 @@ import { SheetProvider } from "react-native-actions-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useStatusFetchBackgroundData } from "@/hooks/useStatusFetchBackgroundData";
 import { useIdToken } from "@/hooks/useIdToken";
-import { useAuth } from '@/components/store/useAuth';
+import { useAuth } from "@/components/store/useAuth";
 import { useStatusFormStore } from "@/components/store/useStatusForm";
-import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import "react-native-reanimated";
 import "../global.css";
 
@@ -23,15 +23,15 @@ export default function RootLayout() {
   const authUser = useAuth((state) => state.authUser);
   const { idToken } = useIdToken();
   const setFormData = useStatusFormStore((state) => state.setFormData);
-  const statusData = useStatusFetchBackgroundData(authUser ? authUser.uid : null, idToken);
-  
+  // const statusData = useStatusFetchBackgroundData(authUser ? authUser.uid : null, idToken);
+
   useNetworkStatus();
 
-  useEffect(() => {
-    if (statusData) {
-      setFormData(statusData);
-    }
-  }, [statusData]);
+  // useEffect(() => {
+  //   if (statusData) {
+  //     setFormData(statusData);
+  //   }
+  // }, [statusData]);
 
   return (
     <GestureHandlerRootView style={styles.gestureHandlerContainer}>

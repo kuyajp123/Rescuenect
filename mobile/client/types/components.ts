@@ -1,4 +1,5 @@
 // import { NameHere } from '@/components/shared/types/components';
+import FirebaseFirestore from 'firebase/firestore';
 
 export type StatusTemplateProps = {
   style?: object
@@ -80,28 +81,74 @@ export type FiveDaysForecastProps = {
     isNight?: boolean;
 }
 
-export type StatusForm = {
-    uid?: string;
-    parentId?: string;
-    versionId?: string;
-    statusType?: "current" | "history" | "deleted";
-    firstName: string;
-    lastName: string;
-    phoneNumber: string;
-    condition: string;
-    lat: number | null;
-    lng: number | null;
-    loc?: string | null;
-    note: string;
-    image: string;
-    shareLocation: boolean;
-    shareContact: boolean;
-    errMessage?: string;
-    createdAt?: number;
-    updatedAt?: number;
-    deletedAt?: number | null;
-    expireAt?: number | null;
+interface StatusData {
+  // Core versioning fields
+  parentId: string;
+  versionId: string;
+  statusType: "current" | "history" | "deleted";
+
+  // User identification
+  uid: string;
+
+  // Personal information
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+
+  // Status information
+  condition: "safe" | "evacuated" | "affected" | "missing" | "";
+
+  // Location data
+  lat: number | null;
+  lng: number | null;
+  location?: string | null;
+
+  // Additional information
+  note: string;
+  image: string;
+
+  // Privacy settings
+  shareLocation: boolean;
+  shareContact: boolean;
+
+  // Expiration settings (user-controlled)
+  expirationDuration: 12 | 24; // hours
+  expiresAt: FirebaseFirestore.Timestamp; // when status becomes inactive
+
+  // Timestamps
+  createdAt: FirebaseFirestore.Timestamp | string;
+  updatedAt?: FirebaseFirestore.Timestamp | string;
+  deletedAt?: FirebaseFirestore.Timestamp | string;
+
+  // System-managed cleanup (30 days retention for history)
+  retentionUntil: FirebaseFirestore.Timestamp; // when history is permanently deleted
+}
+
+export type CreateStatusData = Omit<
+  StatusData,
+  | "parentId"
+  | "versionId"
+  | "statusType"
+  | "expiresAt"
+  | "createdAt"
+  | "retentionUntil"
+  | "updatedAt"
+  | "deletedAt"
+>;
+
+export type StatusStateData = CreateStatusData & {
+  parentId?: string;
+  versionId?: string;
 };
+
+export type StatusFormErrors = {
+  [K in keyof CreateStatusData]?: string; // every field maps to a string error
+} & {
+  errMessage?: string;
+  parentId?: string;
+  versionId?: string;
+};
+
 
 // Types for a single address component
 interface AddressComponents {

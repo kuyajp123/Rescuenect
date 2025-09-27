@@ -29,9 +29,13 @@ import StateImage from "@/components/ui/StateImage/StateImage";
 import { Text } from "@/components/ui/text";
 import { API_ROUTES } from "@/config/endpoints";
 import { Colors } from "@/constants/Colors";
-import { StatusForm, AddressState } from "@/types/components";
+import {
+  StatusStateData,
+  AddressState,
+  StatusFormErrors,
+} from "@/types/components";
 import axios from "axios";
-import { isEqual, set } from "lodash";
+import { isEqual } from "lodash";
 import { Bookmark, Info, Navigation, SquarePen } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Linking, StyleSheet, View } from "react-native";
@@ -42,7 +46,7 @@ export const createStatus = () => {
   const insets = useSafeAreaInsets();
   const scaleValue = useRef(new Animated.Value(0)).current;
   const image = useImagePickerStore((state) => state.image);
-  const [formErrors, setFormErrors] = useState<Partial<StatusForm>>({});
+  const [formErrors, setFormErrors] = useState<StatusFormErrors>({});
   const isOnline = useNetwork((state) => state.isOnline);
   const { authUser } = useAuth();
 
@@ -60,10 +64,6 @@ export const createStatus = () => {
   // Address store
   const addressCoords = useGetAddress((state) => state.addressCoords);
   const addressGPS = useGetAddress((state) => state.addressGPS);
-  const addressCoordsLoading = useGetAddress(
-    (state) => state.addressCoordsLoading
-  );
-  const addressGPSLoading = useGetAddress((state) => state.addressGPSLoading);
   const setAddressCoords = useGetAddress((state) => state.setAddressCoords);
   const setAddressGPS = useGetAddress((state) => state.setAddressGPS);
   const setAddressCoordsLoading = useGetAddress(
@@ -104,7 +104,7 @@ export const createStatus = () => {
     setModals((prev) => ({ ...prev, [name]: value }));
   };
 
-  const [statusForm, setStatusForm] = useState<StatusForm>({
+  const [statusForm, setStatusForm] = useState<StatusStateData>({
     uid: authUser?.uid || "",
     firstName: "",
     lastName: "",
@@ -112,11 +112,12 @@ export const createStatus = () => {
     phoneNumber: "",
     lat: null,
     lng: null,
-    loc: null,
+    location: null,
     image: "",
     note: "",
     shareLocation: true,
     shareContact: true,
+    expirationDuration: 24,
   });
 
   const handleClose = () => {
@@ -204,7 +205,6 @@ export const createStatus = () => {
         ...prev,
         ...formData,
       }));
-      console.log("Loaded form data from store:", formData);
     }
   }, [formData]);
 
@@ -273,30 +273,6 @@ export const createStatus = () => {
     }
   }, [errorFetching]);
 
-  // Debug address state changes
-  useEffect(() => {
-    console.log(
-      "📍 addressGPS state updated:",
-      JSON.stringify(addressGPS, null, 2)
-    );
-  }, [addressGPS]);
-
-  useEffect(() => {
-    console.log(
-      "📍 addressCoords state updated:",
-      JSON.stringify(addressCoords, null, 2)
-    );
-  }, [addressCoords]);
-
-  // Debug loading states
-  useEffect(() => {
-    console.log("🔄 addressCoordsLoading:", addressCoordsLoading);
-  }, [addressCoordsLoading]);
-
-  useEffect(() => {
-    console.log("🔄 addressGPSLoading:", addressGPSLoading);
-  }, [addressGPSLoading]);
-
   // Handle modal close with delay to prevent immediate refetch
   const handleErrorModalClose = () => {
     toggleModal("errorFetchStatus", false);
@@ -307,7 +283,7 @@ export const createStatus = () => {
   };
 
   const handleInputChange = (
-    field: keyof StatusForm,
+    field: keyof StatusStateData,
     value: string | boolean
   ) => {
     if (field === "phoneNumber" && typeof value === "string") {
@@ -337,7 +313,7 @@ export const createStatus = () => {
 
   const handleSubmit = async () => {
     // Validate form
-    const errors: Partial<StatusForm> = {};
+    const errors: StatusFormErrors = {};
 
     if (!statusForm.firstName.trim()) {
       errors.firstName = "First name is required";
@@ -399,8 +375,12 @@ export const createStatus = () => {
           timeout: 30000, // 30 seconds timeout
         }
       );
-      console.log("Form submitted successfully:", response.data);
-      setFormData(statusForm); // Save to Zustand store
+      console.log(
+        "Form submitted successfully:",
+        JSON.stringify(response.data, null, 2)
+      );
+      // Save to Zustand store with parentId from response
+      setFormData({ ...statusForm, parentId: response.data.data.parentId });
       toggleModal("submitSuccess", true);
       showAlert();
     } catch (error) {
@@ -722,8 +702,16 @@ export const createStatus = () => {
   };
 
   const sendSMS = () => {
-    const { firstName, lastName, condition, phoneNumber, lat, lng, loc, note } =
-      statusForm;
+    const {
+      firstName,
+      lastName,
+      condition,
+      phoneNumber,
+      lat,
+      lng,
+      location,
+      note,
+    } = statusForm;
 
     const LGU = "09123456789"; // Replace with actual LGU number
 
@@ -733,7 +721,7 @@ export const createStatus = () => {
     Phone: ${phoneNumber}
     lat: ${lat}
     lng: ${lng}
-    Location: ${loc ? loc : ""}
+    Location: ${location ? location : ""}
     Note: ${note ? note : ""}
     Time: ${GetTime()}
     Date: ${GetDate()}
@@ -773,6 +761,8 @@ export const createStatus = () => {
             // Remove common region identifiers
             if (part.includes("Calabarzon") || part.includes("Philippines"))
               return false;
+            // Remove "unnamed road" (case insensitive)
+            if (part.toLowerCase().includes("unnamed road")) return false;
             // Remove country codes and similar
             if (part.length <= 4 && /^[A-Z]+$/.test(part)) return false;
             return true;
@@ -789,7 +779,6 @@ export const createStatus = () => {
 
         if (lat === coords?.[1] && lng === coords?.[0]) {
           // This is the tapped location
-          console.log("Setting tapped location address:", addressState);
           setAddressCoords(addressState);
           setAddressCoordsLoading(false);
         }
@@ -798,7 +787,6 @@ export const createStatus = () => {
           lng === oneTimeLocationCoords?.[0]
         ) {
           // This is the GPS location
-          console.log("Setting GPS location address:", addressState);
           setAddressGPS(addressState);
           setAddressGPSLoading(false);
         }
@@ -838,7 +826,6 @@ export const createStatus = () => {
 
     // Set new timer for 1.5 seconds
     debounceTimerRef.current = setTimeout(() => {
-      console.log("🔄 Fetching address for coords after 1.5s delay:", coords);
       handleGetAddress(coords[1], coords[0]);
       debounceTimerRef.current = null;
     }, 1500);
@@ -880,10 +867,6 @@ export const createStatus = () => {
 
     // Set new timer for 1.5 seconds
     debounceTimerRefGPS.current = setTimeout(() => {
-      console.log(
-        "🔄 Fetching address for GPS after 1.5s delay:",
-        oneTimeLocationCoords
-      );
       handleGetAddress(oneTimeLocationCoords[1], oneTimeLocationCoords[0]);
       debounceTimerRefGPS.current = null;
     }, 1500);
@@ -955,7 +938,9 @@ export const createStatus = () => {
             setAddressCoords(null); // Clear tapped location address
           }}
           errMessage={formErrors.errMessage || ""}
-          secondaryButton={formData ? { label: "Delete", onPress: () => {} } : undefined}
+          secondaryButton={
+            formData ? { label: "Delete", onPress: () => {} } : undefined
+          }
         />
         <Modal
           modalVisible={modals.noChanges}

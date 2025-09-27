@@ -1,11 +1,11 @@
 import { create } from "zustand";
-import { StatusForm } from '@/types/components';
+import { StatusStateData } from '@/types/components';
 
 type StatusFormStore = {
-    formData: StatusForm | null;
+    formData: StatusStateData | null;
     isLoading: boolean;
     error: boolean;
-    setFormData: (data: StatusForm | null) => void;
+    setFormData: (data: StatusStateData | null) => void;
     setLoading: (loading: boolean) => void;
     setError: (error: boolean) => void;
     resetFormData: () => void;

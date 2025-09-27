@@ -1,21 +1,20 @@
 import { useState, useEffect } from 'react';
 import { fetchAndSaveStatusData } from "@/API/fetchAndSaveStatusData";
-import { StatusForm } from '@/types/components';
+import { CreateStatusData } from '@/types/components';
 import { useStatusFormStore } from '@/components/store/useStatusForm';
 
 /**
  * Custom hook to fetch status data in the background
  * @param {string | null} statusId - The ID of the status to fetch
  * @param {string | null} idToken - The Firebase ID token for authentication
- * @returns {StatusForm | null} - The fetched status data or null
+ * @returns {CreateStatusData | null} - The fetched status data or null
  */
-
 
 export const useStatusFetchBackgroundData = (
   statusId: string | null,
   idToken: string | null
-): StatusForm | null => {
-  const [data, setData] = useState<StatusForm | null>(null);
+): CreateStatusData | null => {
+  const [data, setData] = useState<CreateStatusData | null>(null);
   const [shouldFetch, setShouldFetch] = useState<boolean>(false);
   const formData = useStatusFormStore((state) => state.formData);
   const setLoading = useStatusFormStore((state) => state.setLoading);
