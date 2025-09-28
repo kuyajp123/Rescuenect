@@ -1156,17 +1156,16 @@ const restoredStatus = await restoreStatus("user123", "status-1695123456789");
 ### 8. Get Current Status for User
 
 ```typescript
-const getCurrentStatus = async (userId: string, parentId: string) => {
+const hasActiveStatus = async (userId: string): Promise<boolean> => {
   const snapshot = await db
     .collection("status")
     .doc(userId)
     .collection("statuses")
-    .where("parentId", "==", parentId)
     .where("statusType", "==", "current")
     .limit(1)
     .get();
 
-  return snapshot.empty ? null : snapshot.docs[0].data();
+  return !snapshot.empty;
 };
 ```
 

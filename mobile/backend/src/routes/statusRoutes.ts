@@ -9,5 +9,7 @@ statusRoutes.use(AuthMiddleware.verifyToken);
 
 statusRoutes.post('/createStatus', StatusController.createStatus);
 
+statusRoutes.get('/getStatus/:uid', StatusController.getStatus);
+
 export default statusRoutes;
 

@@ -1,8 +1,9 @@
 import db from "@/db/firebaseConfig";
 import { FieldValue } from "firebase-admin/firestore";
-import isEqual from "lodash/isEqual";
-import { StatusData } from "@/types/types";
 import * as admin from "firebase-admin";
+import isEqual from "lodash/isEqual";
+import pick from "lodash/pick";
+import { StatusData } from "@/types/types";
 
 export class StatusModel {
 
@@ -28,7 +29,7 @@ export class StatusModel {
             | "expiresAt"
             | "retentionUntil"
         > & { expirationDuration: 12 | 24 }
-    ): Promise<StatusData | { parentId: string; versionId: string }> {
+    ): Promise<StatusData | { updated: boolean; reason?: string } | StatusData | { parentId: string; versionId: string }> {
         try {
             // Validate userId parameter
             if (!userId || typeof userId !== 'string' || userId.trim() === '') {
@@ -41,11 +42,13 @@ export class StatusModel {
                 .limit(1)
                 .get();
 
+            // console.log(`Existing status query for userId ${userId}:`, existingStatusQuery.empty ? "No active status found" : "Active status exists");
+
             if (!existingStatusQuery.empty) {
             // Update existing status instead of creating new one
             const existingDoc = existingStatusQuery.docs[0];
             const existingData = existingDoc.data();
-            return await StatusModel.updateStatus(userId, existingData.parentId, statusData);
+            return await StatusModel.conditionalUpdateStatus(userId, existingData.parentId, statusData);
             }
 
             // Generate IDs for new status
@@ -87,6 +90,62 @@ export class StatusModel {
     }
 
 
+    static async conditionalUpdateStatus(
+        userId: string,
+        parentId: string,
+        newData: Partial<StatusData>
+    ): Promise<{ updated: boolean; reason?: string } | StatusData | { parentId: string; versionId: string }> {
+        try {
+            // Get current status
+            const currentQuery = await this.pathRef(userId)
+                .where("parentId", "==", parentId)
+                .where("statusType", "==", "current")
+                .limit(1)
+                .get();
+
+            if (currentQuery.empty) {
+                throw new Error("Current status not found");
+            }
+
+            const currentData = currentQuery.docs[0].data();
+
+            // Define system-managed fields that should NOT be compared
+            const systemFields = [
+                'parentId', 'versionId', 'statusType', 
+                'createdAt', 'updatedAt', 'deletedAt',
+                'expiresAt', 'retentionUntil', 'statusData'
+            ];
+
+            // Filter out system fields from newData for comparison
+            const filteredNewData: any = {};
+            Object.keys(newData).forEach(key => {
+                if (!systemFields.includes(key)) {
+                    filteredNewData[key] = newData[key as keyof StatusData];
+                }
+            });
+
+            // Compare only user-editable fields
+            const currentFieldsToCompare = pick(currentData, Object.keys(filteredNewData));
+            
+            console.log("Current fields to compare:", JSON.stringify(currentFieldsToCompare, null, 2));
+            console.log("Filtered new data for comparison:", JSON.stringify(filteredNewData, null, 2));
+            const isSame = isEqual(currentFieldsToCompare, filteredNewData);
+            console.log("Is same check result:", isSame);
+
+            if (isSame) {
+                console.log("⏸️ No changes detected, skipping update");
+                return { updated: false, reason: "No changes detected" };
+            }
+
+            // Proceed with update if changes detected
+            const result = await this.updateStatus(userId, parentId, newData);
+            return { updated: true, ...result };
+        } catch (error) {
+            console.error("❌ Error in conditional update:", error);
+            throw new Error("Failed to conditionally update status");
+        }
+    }
+
     private static async updateStatus(
         userId: string,
         parentId: string,
@@ -124,7 +183,7 @@ export class StatusModel {
                 statusType: "history",
             });
 
-            const newVersionRef = await this.pathRef(userId)
+            const newVersionRef = this.pathRef(userId)
                 .doc(newVersionId);
 
             batch.set(newVersionRef, {
@@ -159,10 +218,9 @@ export class StatusModel {
     }
 
 
-    static async getCurrentStatus(uid: string, parentId: string): Promise<StatusData | null> {
+    static async getActiveStatus(uid: string): Promise<StatusData | null> {
         try {
             const snapshot = await this.pathRef(uid)
-                .where("parentId", "==", parentId)
                 .where("statusType", "==", "current")
                 .limit(1)
                 .get();
@@ -171,7 +229,7 @@ export class StatusModel {
                 return null;
             }
 
-            return snapshot.empty ? null : snapshot.docs[0].data() as StatusData;
+            return snapshot.docs[0].data() as StatusData;
         } catch (error) {
             console.error('Error fetching status:', error);
             throw new Error('Failed to fetch status');

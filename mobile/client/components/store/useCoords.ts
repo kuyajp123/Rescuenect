@@ -7,6 +7,7 @@ interface CoordsState {
     locationCoords: coordTypes;
     oneTimeLocationCoords: coordTypes;
     followUserLocation?: boolean;
+    resetState?: () => void;
     setCoords: (coords: coordTypes) => void;
     setLocationCoords: (coords: coordTypes) => void;
     setOneTimeLocationCoords: (coords: coordTypes) => void;
@@ -19,6 +20,12 @@ export const useCoords = create<CoordsState>((set) => ({
     locationCoords: null,
     oneTimeLocationCoords: null,
     followUserLocation: false,
+    resetState: () => set({
+        coords: null,
+        locationCoords: null,
+        oneTimeLocationCoords: null,
+        followUserLocation: false,
+    }),
     setCoords: (coords) => set({ coords }),
     setLocationCoords: (coords) => set({ locationCoords: coords }),
     setOneTimeLocationCoords: (coords) => set({ oneTimeLocationCoords: coords }),

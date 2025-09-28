@@ -23,15 +23,15 @@ export default function RootLayout() {
   const authUser = useAuth((state) => state.authUser);
   const { idToken } = useIdToken();
   const setFormData = useStatusFormStore((state) => state.setFormData);
-  // const statusData = useStatusFetchBackgroundData(authUser ? authUser.uid : null, idToken);
+  const statusData = useStatusFetchBackgroundData(authUser ? authUser.uid : null, idToken);
 
   useNetworkStatus();
 
-  // useEffect(() => {
-  //   if (statusData) {
-  //     setFormData(statusData);
-  //   }
-  // }, [statusData]);
+  useEffect(() => {
+    if (statusData) {
+      setFormData({ ...statusData, uid: authUser ? authUser.uid : "" });
+    }
+  }, [statusData]);
 
   return (
     <GestureHandlerRootView style={styles.gestureHandlerContainer}>

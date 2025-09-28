@@ -273,6 +273,106 @@ export const createStatus = () => {
     }
   }, [errorFetching]);
 
+  // Debounced fetch address for tapped location
+  useEffect(() => {
+    if (authUser) {
+      setAddressCoordsLoading(true);
+    }
+
+    if (!coords) {
+      // Clear any pending timer if coords is null
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      return;
+    }
+
+    if (!isOnline) {
+      // If offline, do not attempt to fetch address
+      setAddressCoordsLoading(false);
+      return;
+    }
+
+    // Clear previous timer if it exists
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Set new timer for 1.5 seconds
+    debounceTimerRef.current = setTimeout(() => {
+      handleGetAddress(coords[1], coords[0]);
+      debounceTimerRef.current = null;
+    }, 1500);
+
+    // Cleanup function to clear timer on unmount
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+        setAddressCoordsLoading(false);
+      }
+    };
+  }, [coords, isOnline, authUser]);
+
+  // Debounced fetch address for GPS location
+  useEffect(() => {
+    if (authUser) {
+      setAddressGPSLoading(true);
+    }
+    if (!oneTimeLocationCoords) {
+      // Clear any pending timer if GPS coords is null
+      if (debounceTimerRefGPS.current) {
+        clearTimeout(debounceTimerRefGPS.current);
+        debounceTimerRefGPS.current = null;
+      }
+      return;
+    }
+
+    if (!isOnline) {
+      // If offline, do not attempt to fetch address
+      setAddressGPSLoading(false);
+      return;
+    }
+
+    // Clear previous timer if it exists
+    if (debounceTimerRefGPS.current) {
+      clearTimeout(debounceTimerRefGPS.current);
+    }
+
+    // Set new timer for 1.5 seconds
+    debounceTimerRefGPS.current = setTimeout(() => {
+      handleGetAddress(oneTimeLocationCoords[1], oneTimeLocationCoords[0]);
+      debounceTimerRefGPS.current = null;
+    }, 1500);
+
+    // Cleanup function to clear timer on unmount
+    return () => {
+      if (debounceTimerRefGPS.current) {
+        clearTimeout(debounceTimerRefGPS.current);
+        debounceTimerRefGPS.current = null;
+        setAddressGPSLoading(false);
+      }
+    };
+  }, [oneTimeLocationCoords, isOnline, authUser]);
+
+  // Clear address states in guest mode or offline mode
+  useEffect(() => {
+    if (!isOnline) {
+      setAddressCoords(null);
+      setAddressGPS(null);
+      setAddressCoordsLoading(false);
+      setAddressGPSLoading(false);
+    }
+
+    if (!authUser) {
+      setAddressCoords(null);
+      setAddressGPS(null);
+      setAddressCoordsLoading(false);
+      setAddressGPSLoading(false);
+    }
+  }, [isOnline, authUser]);
+
   // Handle modal close with delay to prevent immediate refetch
   const handleErrorModalClose = () => {
     toggleModal("errorFetchStatus", false);
@@ -336,9 +436,6 @@ export const createStatus = () => {
       return;
     }
 
-    // Submit form data
-    console.log("Submitting status form:", JSON.stringify(statusForm, null, 2));
-
     setSubmitStatusLoading(true);
 
     if (isEqual(statusForm, formData)) {
@@ -375,12 +472,21 @@ export const createStatus = () => {
           timeout: 30000, // 30 seconds timeout
         }
       );
-      console.log(
-        "Form submitted successfully:",
-        JSON.stringify(response.data, null, 2)
-      );
+
+      if (
+        response.status === 200 &&
+        response.data.message === "No changes detected"
+      ) {
+        console.log("No changes detected:", response.data.reason);
+        toggleModal("noChanges", true);
+        return;
+      }
       // Save to Zustand store with parentId from response
-      setFormData({ ...statusForm, parentId: response.data.data.parentId });
+      setFormData({
+        ...statusForm,
+        parentId: response.data?.data?.parentId,
+        versionId: response.data?.data?.versionId,
+      });
       toggleModal("submitSuccess", true);
       showAlert();
     } catch (error) {
@@ -797,106 +903,6 @@ export const createStatus = () => {
       setAddressGPSLoading(false);
     }
   };
-
-  // Debounced fetch address for tapped location
-  useEffect(() => {
-    if (authUser) {
-      setAddressCoordsLoading(true);
-    }
-
-    if (!coords) {
-      // Clear any pending timer if coords is null
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-        debounceTimerRef.current = null;
-      }
-      return;
-    }
-
-    if (!isOnline) {
-      // If offline, do not attempt to fetch address
-      setAddressCoordsLoading(false);
-      return;
-    }
-
-    // Clear previous timer if it exists
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    // Set new timer for 1.5 seconds
-    debounceTimerRef.current = setTimeout(() => {
-      handleGetAddress(coords[1], coords[0]);
-      debounceTimerRef.current = null;
-    }, 1500);
-
-    // Cleanup function to clear timer on unmount
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-        debounceTimerRef.current = null;
-        setAddressCoordsLoading(false);
-      }
-    };
-  }, [coords, isOnline, authUser]);
-
-  // Debounced fetch address for GPS location
-  useEffect(() => {
-    if (authUser) {
-      setAddressGPSLoading(true);
-    }
-    if (!oneTimeLocationCoords) {
-      // Clear any pending timer if GPS coords is null
-      if (debounceTimerRefGPS.current) {
-        clearTimeout(debounceTimerRefGPS.current);
-        debounceTimerRefGPS.current = null;
-      }
-      return;
-    }
-
-    if (!isOnline) {
-      // If offline, do not attempt to fetch address
-      setAddressGPSLoading(false);
-      return;
-    }
-
-    // Clear previous timer if it exists
-    if (debounceTimerRefGPS.current) {
-      clearTimeout(debounceTimerRefGPS.current);
-    }
-
-    // Set new timer for 1.5 seconds
-    debounceTimerRefGPS.current = setTimeout(() => {
-      handleGetAddress(oneTimeLocationCoords[1], oneTimeLocationCoords[0]);
-      debounceTimerRefGPS.current = null;
-    }, 1500);
-
-    // Cleanup function to clear timer on unmount
-    return () => {
-      if (debounceTimerRefGPS.current) {
-        clearTimeout(debounceTimerRefGPS.current);
-        debounceTimerRefGPS.current = null;
-        setAddressGPSLoading(false);
-      }
-    };
-  }, [oneTimeLocationCoords, isOnline, authUser]);
-
-  // Clear address states in guest mode or offline mode
-  useEffect(() => {
-    if (!isOnline) {
-      setAddressCoords(null);
-      setAddressGPS(null);
-      setAddressCoordsLoading(false);
-      setAddressGPSLoading(false);
-    }
-
-    if (!authUser) {
-      setAddressCoords(null);
-      setAddressGPS(null);
-      setAddressCoordsLoading(false);
-      setAddressGPSLoading(false);
-    }
-  }, [isOnline, authUser]);
 
   return (
     <>

@@ -8,6 +8,7 @@ import { Alert } from "react-native";
 import { navigateToSignIn } from "@/routes/route";
 import { API_ROUTES } from '@/config/endpoints';
 import { useStatusFormStore } from "@/components/store/useStatusForm";
+import { useCoords } from "@/components/store/useCoords";
 
 type AuthUser = {
     isNewUser: boolean | null;
@@ -126,9 +127,11 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
 
 export const handleLogout = async () => {
   const resetFormData = useStatusFormStore.getState().resetFormData;
+  const resetCoords = useCoords.getState().resetState;
 
   try {
     resetFormData();
+    resetCoords?.();
     // Clear user data from storage
     await storage.remove('@barangay');
     await storage.remove('@user');
