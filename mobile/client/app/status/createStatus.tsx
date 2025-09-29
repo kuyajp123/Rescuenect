@@ -1,84 +1,63 @@
-import CustomImagePicker from "@/components/components/CustomImagePicker";
-import Map, {
-  CustomButton,
-  RadioField,
-  TextInputField,
-  ToggleField,
-} from "@/components/components/Map";
-import Modal from "@/components/components/Modal";
+import CustomImagePicker from '@/components/components/CustomImagePicker';
+import Map, { CustomButton, RadioField, TextInputField, ToggleField } from '@/components/components/Map';
+import Modal from '@/components/components/Modal';
 import {
   formatContactNumber,
   formatName,
   getCurrentPositionOnce,
   isValidContactNumber,
-} from "@/components/helper/commonHelpers";
-import { GetDate, GetTime } from "@/components/helper/DateAndTime";
-import { storage } from "@/components/helper/storage";
-import { useAuth } from "@/components/store/useAuth";
-import { useCoords } from "@/components/store/useCoords";
-import { useGetAddress } from "@/components/store/useGetAddress";
-import { useImagePickerStore } from "@/components/store/useImagePicker";
-import { useNetwork } from "@/components/store/useNetwork";
-import { useStatusFormStore } from "@/components/store/useStatusForm";
-import CustomAlertDialog from "@/components/ui/CustomAlertDialog";
-import { ButtonRadio } from "@/components/ui/CustomRadio";
-import { HStack } from "@/components/ui/hstack";
-import Body from "@/components/ui/layout/Body";
-import { LoadingOverlay } from "@/components/ui/loading/LoadingOverlay";
-import StateImage from "@/components/ui/StateImage/StateImage";
-import { Text } from "@/components/ui/text";
-import { API_ROUTES } from "@/config/endpoints";
-import { Colors } from "@/constants/Colors";
-import {
-  StatusStateData,
-  AddressState,
-  StatusFormErrors,
-} from "@/types/components";
-import axios from "axios";
-import { isEqual } from "lodash";
-import { Bookmark, Info, Navigation, SquarePen } from "lucide-react-native";
-import React, { useEffect, useRef, useState } from "react";
-import { Animated, Linking, StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getAddress } from "@/API/getAddress";
+} from '@/components/helper/commonHelpers';
+import { GetDate, GetTime } from '@/components/helper/DateAndTime';
+import { storage } from '@/components/helper/storage';
+import { useAuth } from '@/components/store/useAuth';
+import { useCoords } from '@/components/store/useCoords';
+import { useGetAddress } from '@/components/store/useGetAddress';
+import { useImagePickerStore } from '@/components/store/useImagePicker';
+import { useNetwork } from '@/components/store/useNetwork';
+import { useStatusFormStore } from '@/components/store/useStatusForm';
+import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
+import { ButtonRadio } from '@/components/ui/CustomRadio';
+import { HStack } from '@/components/ui/hstack';
+import Body from '@/components/ui/layout/Body';
+import { LoadingOverlay } from '@/components/ui/loading/LoadingOverlay';
+import StateImage from '@/components/ui/StateImage/StateImage';
+import { Text } from '@/components/ui/text';
+import { API_ROUTES } from '@/config/endpoints';
+import { Colors } from '@/constants/Colors';
+import { StatusStateData, AddressState, StatusFormErrors } from '@/types/components';
+import axios from 'axios';
+import { isEqual } from 'lodash';
+import { Bookmark, Info, Navigation, SquarePen } from 'lucide-react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Linking, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getAddress } from '@/API/getAddress';
 
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
   const scaleValue = useRef(new Animated.Value(0)).current;
-  const image = useImagePickerStore((state) => state.image);
+  const image = useImagePickerStore(state => state.image);
   const [formErrors, setFormErrors] = useState<StatusFormErrors>({});
-  const isOnline = useNetwork((state) => state.isOnline);
+  const isOnline = useNetwork(state => state.isOnline);
   const { authUser } = useAuth();
 
-  const coords = useCoords((state) => state.coords);
-  const setCoords = useCoords((state) => state.setCoords);
-  const oneTimeLocationCoords = useCoords(
-    (state) => state.oneTimeLocationCoords
-  );
-  const setOneTimeLocationCoords = useCoords(
-    (state) => state.setOneTimeLocationCoords
-  );
+  const coords = useCoords(state => state.coords);
+  const setCoords = useCoords(state => state.setCoords);
+  const oneTimeLocationCoords = useCoords(state => state.oneTimeLocationCoords);
+  const setOneTimeLocationCoords = useCoords(state => state.setOneTimeLocationCoords);
   const savedLocation: [number, number] = [120.7752839, 14.2919325]; // simulate saved location
   // const savedLocation: [number, number] | null = null; // simulate saved location
 
   // Address store
-  const addressCoords = useGetAddress((state) => state.addressCoords);
-  const addressGPS = useGetAddress((state) => state.addressGPS);
-  const setAddressCoords = useGetAddress((state) => state.setAddressCoords);
-  const setAddressGPS = useGetAddress((state) => state.setAddressGPS);
-  const setAddressCoordsLoading = useGetAddress(
-    (state) => state.setAddressCoordsLoading
-  );
-  const setAddressGPSLoading = useGetAddress(
-    (state) => state.setAddressGPSLoading
-  );
+  const addressCoords = useGetAddress(state => state.addressCoords);
+  const addressGPS = useGetAddress(state => state.addressGPS);
+  const setAddressCoords = useGetAddress(state => state.setAddressCoords);
+  const setAddressGPS = useGetAddress(state => state.setAddressGPS);
+  const setAddressCoordsLoading = useGetAddress(state => state.setAddressCoordsLoading);
+  const setAddressGPSLoading = useGetAddress(state => state.setAddressGPSLoading);
 
-  const setFollowUserLocation = useCoords(
-    (state) => state.setFollowUserLocation
-  );
-  const [selectedCoords, setSelectedCoords] = useState<[number, number]>([
-    0, 0,
-  ]);
+  const setFollowUserLocation = useCoords(state => state.setFollowUserLocation);
+  const [selectedCoords, setSelectedCoords] = useState<[number, number]>([0, 0]);
   const [hasUserTappedMap, setHasUserTappedMap] = useState(false); // Track if user has tapped on map
   const [isManualSelection, setIsManualSelection] = useState(false); // Track if user is making manual ButtonRadio selection
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null); // For debouncing coords address calls
@@ -86,12 +65,12 @@ export const createStatus = () => {
   const debounceTimerRefGPS = useRef<NodeJS.Timeout | null>(null); // For debouncing GPS address calls
 
   const [submitStatusLoading, setSubmitStatusLoading] = useState(false);
-  const formData = useStatusFormStore((state) => state.formData);
-  const setFormData = useStatusFormStore((state) => state.setFormData);
-  const isLoading = useStatusFormStore((state) => state.isLoading);
-  const setLoadingFetch = useStatusFormStore((state) => state.setLoading);
-  const errorFetching = useStatusFormStore((state) => state.error);
-  const setErrorFetching = useStatusFormStore((state) => state.setError);
+  const formData = useStatusFormStore(state => state.formData);
+  const setFormData = useStatusFormStore(state => state.setFormData);
+  const isLoading = useStatusFormStore(state => state.isLoading);
+  const setLoadingFetch = useStatusFormStore(state => state.setLoading);
+  const errorFetching = useStatusFormStore(state => state.error);
+  const setErrorFetching = useStatusFormStore(state => state.setError);
 
   const [modals, setModals] = useState({
     noChanges: false,
@@ -101,46 +80,24 @@ export const createStatus = () => {
     submitFailure: false,
   });
   const toggleModal = (name: keyof typeof modals, value: boolean) => {
-    setModals((prev) => ({ ...prev, [name]: value }));
+    setModals(prev => ({ ...prev, [name]: value }));
   };
 
   const [statusForm, setStatusForm] = useState<StatusStateData>({
-    uid: authUser?.uid || "",
-    firstName: "",
-    lastName: "",
-    condition: "",
-    phoneNumber: "",
+    uid: authUser?.uid || '',
+    firstName: '',
+    lastName: '',
+    condition: '',
+    phoneNumber: '',
     lat: null,
     lng: null,
     location: null,
-    image: "",
-    note: "",
+    image: '',
+    note: '',
     shareLocation: true,
     shareContact: true,
     expirationDuration: 24,
   });
-
-  const handleClose = () => {
-    // Scale out animation
-    Animated.timing(scaleValue, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      toggleModal("submitSuccess", false);
-    });
-  };
-
-  const showAlert = () => {
-    toggleModal("submitSuccess", true);
-    // Scale in animation with bounce
-    Animated.spring(scaleValue, {
-      toValue: 1,
-      tension: 100,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
-  };
 
   // Auto hide after 3 seconds
   useEffect(() => {
@@ -153,19 +110,19 @@ export const createStatus = () => {
   }, [modals.submitSuccess]);
 
   const getStorage = async () => {
-    const user = await storage.get("@user");
+    const user = await storage.get('@user');
     return user;
   };
 
   useEffect(() => {
     if (!formData) {
-      getStorage().then((data) => {
+      getStorage().then(data => {
         if (data) {
-          setStatusForm((prev) => ({
+          setStatusForm(prev => ({
             ...prev,
-            firstName: data.firstName || "",
-            lastName: data.lastName || "",
-            phoneNumber: data.phoneNumber || "",
+            firstName: data.firstName || '',
+            lastName: data.lastName || '',
+            phoneNumber: data.phoneNumber || '',
           }));
         }
       });
@@ -175,7 +132,7 @@ export const createStatus = () => {
   // Update form coordinates and handle default selection priority
   useEffect(() => {
     if (coords) {
-      setStatusForm((prev) => ({
+      setStatusForm(prev => ({
         ...prev,
         lng: coords[0],
         lat: coords[1],
@@ -192,16 +149,15 @@ export const createStatus = () => {
     }
   }, [coords, selectedCoords, hasUserTappedMap]);
 
+  // PROBLEM HERE!
+  // everytime theres fetched data from backend, the coords will overdide the lat and lng
+  // we need to ensure that the fetched coords do not overwrite user-selected coords
   // Load form data from Zustand store on mount
   useEffect(() => {
     if (formData) {
-      setCoords(
-        formData.lng && formData.lat ? [formData.lng, formData.lat] : null
-      );
-      setSelectedCoords(
-        formData.lng && formData.lat ? [formData.lng, formData.lat] : [0, 0]
-      );
-      setStatusForm((prev) => ({
+      setCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : null);
+      setSelectedCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : [0, 0]);
+      setStatusForm(prev => ({
         ...prev,
         ...formData,
       }));
@@ -223,7 +179,7 @@ export const createStatus = () => {
           setHasUserTappedMap(true);
         }
         setSelectedCoords(coords); // Tapped location becomes default
-        console.log("User tapped map, new default location:", coords);
+        console.log('User tapped map, new default location:', coords);
       }
     }
 
@@ -237,27 +193,23 @@ export const createStatus = () => {
   useEffect(() => {
     if (oneTimeLocationCoords) {
       // If no user tap and no current selection, GPS can be default
-      if (
-        !hasUserTappedMap &&
-        selectedCoords[0] === 0 &&
-        selectedCoords[1] === 0
-      ) {
+      if (!hasUserTappedMap && selectedCoords[0] === 0 && selectedCoords[1] === 0) {
         setSelectedCoords(oneTimeLocationCoords);
-        setStatusForm((prev) => ({
+        setStatusForm(prev => ({
           ...prev,
           lng: oneTimeLocationCoords[0],
           lat: oneTimeLocationCoords[1],
         }));
-        console.log("GPS set as default location:", oneTimeLocationCoords);
+        console.log('GPS set as default location:', oneTimeLocationCoords);
       }
     }
   }, [oneTimeLocationCoords, hasUserTappedMap, selectedCoords]);
 
   // Update image when image picker store changes
   useEffect(() => {
-    setStatusForm((prev) => ({
+    setStatusForm(prev => ({
       ...prev,
-      image: image || "",
+      image: image || '',
     }));
   }, [image]);
 
@@ -269,7 +221,7 @@ export const createStatus = () => {
   // Watch for changes to errorFetching from Zustand store and update modal state
   useEffect(() => {
     if (errorFetching) {
-      toggleModal("errorFetchStatus", true);
+      toggleModal('errorFetchStatus', true);
     }
   }, [errorFetching]);
 
@@ -373,40 +325,79 @@ export const createStatus = () => {
     }
   }, [isOnline, authUser]);
 
+  useEffect(() => {
+    if (addressGPS?.formatted) {
+      setStatusForm(prev => ({
+        ...prev,
+        location: addressGPS ? addressGPS.formatted : prev.location,
+      }));
+    } else {
+      if (addressCoords?.formatted) {
+        setStatusForm(prev => ({
+          ...prev,
+          location: addressCoords ? addressCoords.formatted : prev.location,
+        }));
+      } else {
+        setStatusForm(prev => ({
+          ...prev,
+          location: null,
+        }));
+      }
+    }
+
+    if (!isGPSselection) {
+      if (addressCoords?.formatted) {
+        setStatusForm(prev => ({
+          ...prev,
+          location: addressCoords ? addressCoords.formatted : prev.location,
+        }));
+      }
+    }
+  }, [addressCoords?.formatted, addressGPS?.formatted, isGPSselection]);
+
+  useEffect(() => {
+    if (statusForm) {
+      console.log('Status Form updated:', JSON.stringify(statusForm, null, 2));
+    }
+  }, [statusForm]);
+
+  useEffect(() => {
+    if (formData) {
+      console.log('Form Data updated:', JSON.stringify(formData, null, 2));
+    }
+  }, [formData]);
+
   // Handle modal close with delay to prevent immediate refetch
   const handleErrorModalClose = () => {
-    toggleModal("errorFetchStatus", false);
+    toggleModal('errorFetchStatus', false);
     // Add a small delay before clearing the error to prevent immediate refetch
     setTimeout(() => {
       setErrorFetching(false);
     }, 100);
   };
 
-  const handleInputChange = (
-    field: keyof StatusStateData,
-    value: string | boolean
-  ) => {
-    if (field === "phoneNumber" && typeof value === "string") {
+  const handleInputChange = (field: keyof StatusStateData, value: string | boolean) => {
+    if (field === 'phoneNumber' && typeof value === 'string') {
       value = formatContactNumber(value);
     }
-    if (field === "firstName" && typeof value === "string") {
+    if (field === 'firstName' && typeof value === 'string') {
       value = formatName(value);
     }
-    if (field === "lastName" && typeof value === "string") {
+    if (field === 'lastName' && typeof value === 'string') {
       value = formatName(value);
     }
 
-    setStatusForm((prev) => ({
+    setStatusForm(prev => ({
       ...prev,
       [field]: value,
     }));
 
     // Clear error when user starts typing
     if (formErrors[field]) {
-      setFormErrors((prev) => ({
+      setFormErrors(prev => ({
         ...prev,
         [field]: undefined,
-        errMessage: "",
+        errMessage: '',
       }));
     }
   };
@@ -416,22 +407,22 @@ export const createStatus = () => {
     const errors: StatusFormErrors = {};
 
     if (!statusForm.firstName.trim()) {
-      errors.firstName = "First name is required";
+      errors.firstName = 'First name is required';
     }
     if (!statusForm.lastName.trim()) {
-      errors.lastName = "Last name is required";
+      errors.lastName = 'Last name is required';
     }
     if (!statusForm.condition) {
-      errors.condition = "Status is required";
+      errors.condition = 'Status is required';
     }
     if (!statusForm.phoneNumber.trim()) {
-      errors.phoneNumber = "Phone number is required";
+      errors.phoneNumber = 'Phone number is required';
     }
     if (!isValidContactNumber(statusForm.phoneNumber)) {
-      errors.phoneNumber = "Please enter a valid mobile number";
+      errors.phoneNumber = 'Please enter a valid mobile number';
     }
     if (Object.keys(errors).length > 0) {
-      errors.errMessage = "Please fill out all required fields.";
+      errors.errMessage = 'Please fill out all required fields.';
       setFormErrors(errors);
       return;
     }
@@ -439,46 +430,39 @@ export const createStatus = () => {
     setSubmitStatusLoading(true);
 
     if (isEqual(statusForm, formData)) {
-      console.log("No changes detected in the form, skipping submission.");
-      toggleModal("noChanges", true);
+      console.log('No changes detected in the form, skipping submission.');
+      toggleModal('noChanges', true);
       setSubmitStatusLoading(false);
       return;
     }
 
     // If offline, skip submission but save to store
     if (!isOnline) {
-      console.log("🔄 Triggering noNetwork modal...");
-      toggleModal("noNetwork", true);
+      console.log('🔄 Triggering noNetwork modal...');
+      toggleModal('noNetwork', true);
       setSubmitStatusLoading(false);
       return;
     }
 
     if (!authUser) {
-      toggleModal("noNetwork", true);
+      toggleModal('noNetwork', true);
       setSubmitStatusLoading(false);
       return;
     }
 
     // Submit form online
     try {
-      const response = await axios.post(
-        API_ROUTES.STATUS.SAVE_STATUS,
-        statusForm,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${await authUser?.getIdToken()}`,
-          },
-          timeout: 30000, // 30 seconds timeout
-        }
-      );
+      const response = await axios.post(API_ROUTES.STATUS.SAVE_STATUS, statusForm, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${await authUser?.getIdToken()}`,
+        },
+        timeout: 30000, // 30 seconds timeout
+      });
 
-      if (
-        response.status === 200 &&
-        response.data.message === "No changes detected"
-      ) {
-        console.log("No changes detected:", response.data.reason);
-        toggleModal("noChanges", true);
+      if (response.status === 200 && response.data.message === 'No changes detected') {
+        console.log('No changes detected:', response.data.reason);
+        toggleModal('noChanges', true);
         return;
       }
       // Save to Zustand store with parentId from response
@@ -487,11 +471,11 @@ export const createStatus = () => {
         parentId: response.data?.data?.parentId,
         versionId: response.data?.data?.versionId,
       });
-      toggleModal("submitSuccess", true);
+      toggleModal('submitSuccess', true);
       showAlert();
     } catch (error) {
-      console.error("Error submitting form:", error);
-      toggleModal("submitFailure", true);
+      console.error('Error submitting form:', error);
+      toggleModal('submitFailure', true);
       setSubmitStatusLoading(false);
     } finally {
       setSubmitStatusLoading(false);
@@ -501,35 +485,35 @@ export const createStatus = () => {
   // Define text input fields
   const textInputFields: TextInputField[] = [
     {
-      key: "firstName",
-      label: "First Name",
-      placeholder: "Enter your First Name",
+      key: 'firstName',
+      label: 'First Name',
+      placeholder: 'Enter your First Name',
       value: statusForm.firstName,
-      onChangeText: (text) => handleInputChange("firstName", text),
+      onChangeText: text => handleInputChange('firstName', text),
       errorText: formErrors.firstName,
     },
     {
-      key: "lastName",
-      label: "Last Name",
-      placeholder: "Enter your Last Name",
+      key: 'lastName',
+      label: 'Last Name',
+      placeholder: 'Enter your Last Name',
       value: statusForm.lastName,
-      onChangeText: (text) => handleInputChange("lastName", text),
+      onChangeText: text => handleInputChange('lastName', text),
       errorText: formErrors.lastName,
     },
     {
-      key: "phoneNumber",
-      label: "Contact Number",
-      placeholder: "Enter your Contact Number",
+      key: 'phoneNumber',
+      label: 'Contact Number',
+      placeholder: 'Enter your Contact Number',
       value: statusForm.phoneNumber,
-      onChangeText: (text) => handleInputChange("phoneNumber", text),
+      onChangeText: text => handleInputChange('phoneNumber', text),
       errorText: formErrors.phoneNumber,
     },
     {
-      key: "note",
-      label: "Leave a Note",
-      placeholder: "Enter some Note",
+      key: 'note',
+      label: 'Leave a Note',
+      placeholder: 'Enter some Note',
       value: statusForm.note,
-      onChangeText: (text) => handleInputChange("note", text),
+      onChangeText: text => handleInputChange('note', text),
       multiline: true,
       numberOfLines: 4,
       maxLength: 500,
@@ -539,16 +523,16 @@ export const createStatus = () => {
   // Define radio fields
   const radioFields: RadioField[] = [
     {
-      key: "status",
-      label: "What is your current condition?",
+      key: 'status',
+      label: 'What is your current condition?',
       options: [
-        { label: "Safe", value: "safe" },
-        { label: "Evacuated", value: "evacuated" },
-        { label: "Affected", value: "affected" },
-        { label: "Missing", value: "missing" },
+        { label: 'Safe', value: 'safe' },
+        { label: 'Evacuated', value: 'evacuated' },
+        { label: 'Affected', value: 'affected' },
+        { label: 'Missing', value: 'missing' },
       ],
       selectedValue: statusForm.condition,
-      onSelect: (value) => handleInputChange("condition", value),
+      onSelect: value => handleInputChange('condition', value),
       errorText: formErrors.condition,
     },
   ];
@@ -556,42 +540,40 @@ export const createStatus = () => {
   // Define toggle fields
   const toggleFields: ToggleField[] = [
     {
-      key: "shareLocation",
-      label: "Share my Location",
+      key: 'shareLocation',
+      label: 'Share my Location',
       isEnabled: statusForm.shareLocation,
-      onToggle: () =>
-        handleInputChange("shareLocation", !statusForm.shareLocation),
+      onToggle: () => handleInputChange('shareLocation', !statusForm.shareLocation),
     },
     {
-      key: "shareContact",
-      label: "Share my Contact Number",
+      key: 'shareContact',
+      label: 'Share my Contact Number',
       isEnabled: statusForm.shareContact,
-      onToggle: () =>
-        handleInputChange("shareContact", !statusForm.shareContact),
+      onToggle: () => handleInputChange('shareContact', !statusForm.shareContact),
     },
   ];
 
   // Define quick action buttons
   const buttons: CustomButton[] = [
     {
-      key: "saved-location",
-      label: "saved location",
-      icon: <Bookmark size={16} color={"white"} />,
+      key: 'saved-location',
+      label: 'saved location',
+      icon: <Bookmark size={16} color={'white'} />,
       onPress: () => {
-        console.log("Loading saved location");
+        console.log('Loading saved location');
         if (savedLocation) {
           setCoords(savedLocation);
           setHasUserTappedMap(false);
-          console.log("Set saved location as coords:", savedLocation);
+          console.log('Set saved location as coords:', savedLocation);
         }
       },
     },
     {
-      key: "location-services",
-      label: "Turn on location",
-      icon: <Navigation size={16} color={"white"} />,
+      key: 'location-services',
+      label: 'Turn on location',
+      icon: <Navigation size={16} color={'white'} />,
       onPress: async () => {
-        console.log("Fetching current location...");
+        console.log('Fetching current location...');
         if (authUser) {
           setAddressGPSLoading(true);
         }
@@ -599,14 +581,14 @@ export const createStatus = () => {
           const currentCoords = await getCurrentPositionOnce();
           if (currentCoords) {
             setOneTimeLocationCoords(currentCoords);
-            console.log("Current location set:", currentCoords);
+            console.log('Current location set:', currentCoords);
             setFollowUserLocation(true);
           } else {
-            console.warn("Failed to get current location");
+            console.warn('Failed to get current location');
           }
         } catch (error) {
           setAddressGPSLoading(false);
-          console.error("Error getting current location:", error);
+          console.error('Error getting current location:', error);
         }
       },
     },
@@ -615,18 +597,14 @@ export const createStatus = () => {
   // ✅ Only add "current-status" if formData exists
   if (formData) {
     buttons.push({
-      key: "current-status",
-      label: "current status",
-      icon: <SquarePen size={16} color={"white"} />,
+      key: 'current-status',
+      label: 'current status',
+      icon: <SquarePen size={16} color={'white'} />,
       onPress: () => {
         if (formData) {
-          setCoords(
-            formData.lng && formData.lat ? [formData.lng, formData.lat] : null
-          );
-          setSelectedCoords(
-            formData.lng && formData.lat ? [formData.lng, formData.lat] : [0, 0]
-          );
-          setStatusForm((prev) => ({
+          setCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : null);
+          setSelectedCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : [0, 0]);
+          setStatusForm(prev => ({
             ...prev,
             ...formData,
           }));
@@ -642,7 +620,11 @@ export const createStatus = () => {
     setOneTimeLocationCoords(null); // Clear the GPS coordinates from map
     setFollowUserLocation(false); // Stop following user location on map
     setAddressGPS(null); // Clear GPS address from store
-    console.log("GPS tracking stopped and coordinates cleared");
+    setStatusForm(prev => ({
+      ...prev,
+      location: prev.location ? prev.location : null,
+    }));
+    console.log('GPS tracking stopped and coordinates cleared');
   };
 
   const handleTapLocationSelect = (value: string | [number, number]) => {
@@ -652,13 +634,12 @@ export const createStatus = () => {
       setSelectedCoords(value as [number, number]);
 
       // Update the status form with selected coordinates
-      setStatusForm((prev) => ({
+      setStatusForm(prev => ({
         ...prev,
         lng: value[0],
         lat: value[1],
+        location: addressCoords ? addressCoords.formatted : prev.location,
       }));
-
-      console.log("User choose manual selection:", value);
     }
   };
 
@@ -668,13 +649,12 @@ export const createStatus = () => {
       setIsManualSelection(false);
 
       // Update the status form with selected coordinates
-      setStatusForm((prev) => ({
+      setStatusForm(prev => ({
         ...prev,
         lng: value[0],
         lat: value[1],
+        location: addressGPS ? addressGPS.formatted : prev.location,
       }));
-
-      console.log("User choose GPS location:", value);
     }
   };
 
@@ -686,14 +666,12 @@ export const createStatus = () => {
     // Show ButtonRadio choice when user has both tapped location AND GPS available
     hasUserTappedMap && oneTimeLocationCoords && coords ? (
       <View key="location-options">
-        <Text style={{ marginBottom: 10, fontWeight: "bold" }}>
-          Choose your location:
-        </Text>
+        <Text style={{ marginBottom: 10, fontWeight: 'bold' }}>Choose your location:</Text>
 
         {/* Tapped Location Option (Default/Priority) */}
         <ButtonRadio
           key="tapped-location"
-          label={addressCoords ? addressCoords.formatted : "Tapped Location"}
+          label={addressCoords ? addressCoords.formatted : 'Tapped Location'}
           sizeText="sm"
           subLabel={coords}
           value={coords}
@@ -705,7 +683,7 @@ export const createStatus = () => {
         {/* GPS/Current Location Option */}
         <ButtonRadio
           key="gps-location"
-          label={addressGPS ? addressGPS.formatted : "GPS Location"}
+          label={addressGPS ? addressGPS.formatted : 'GPS Location'}
           sizeText="sm"
           subLabel={oneTimeLocationCoords}
           value={oneTimeLocationCoords}
@@ -720,19 +698,17 @@ export const createStatus = () => {
         <View key="marker-info" style={styles.markerInfoContainer}>
           <Text size="sm" style={styles.markerInfoTitle}>
             {coords
-              ? addressCoords?.formatted || "Location:"
+              ? addressCoords?.formatted || 'Location:'
               : oneTimeLocationCoords
-              ? addressGPS?.formatted || "GPS Location:"
-              : "Selected Location:"}
+              ? addressGPS?.formatted || 'GPS Location:'
+              : 'Selected Location:'}
           </Text>
           <Text>
             {coords
               ? `Lat: ${coords[1].toFixed(6)}, Lng: ${coords[0].toFixed(6)}`
               : oneTimeLocationCoords
-              ? `Lat: ${oneTimeLocationCoords[1].toFixed(
-                  6
-                )}, Lng: ${oneTimeLocationCoords[0].toFixed(6)}`
-              : "No location selected"}
+              ? `Lat: ${oneTimeLocationCoords[1].toFixed(6)}, Lng: ${oneTimeLocationCoords[0].toFixed(6)}`
+              : 'No location selected'}
           </Text>
         </View>
       )
@@ -745,81 +721,83 @@ export const createStatus = () => {
     <HStack key="info-banner" style={styles.infoContainer}>
       <Info size={20} color={Colors.icons.light} />
       <Text size="2xs" emphasis="light">
-        All information entered here will remain visible to the admin for
-        detailed status tracking.
+        All information entered here will remain visible to the admin for detailed status tracking.
       </Text>
     </HStack>,
   ].filter(Boolean);
 
   const renderImageState = (imageType: string) => {
-    if (imageType === "noChanges") {
+    if (imageType === 'noChanges') {
       return (
         <StateImage
           type="noChanges"
-          onLoad={() => console.log("✅ noChanges image loaded successfully")}
-          onError={(error) =>
-            console.log("❌ noChanges image failed to load:", error)
-          }
+          onLoad={() => console.log('✅ noChanges image loaded successfully')}
+          onError={error => console.log('❌ noChanges image failed to load:', error)}
         />
       );
     }
 
-    if (imageType === "errorFetchStatus") {
+    if (imageType === 'errorFetchStatus') {
       return (
         <StateImage
           type="error"
-          onLoad={() => console.log("✅ error image loaded successfully")}
-          onError={(error) =>
-            console.log("❌ error image failed to load:", error)
-          }
+          onLoad={() => console.log('✅ error image loaded successfully')}
+          onError={error => console.log('❌ error image failed to load:', error)}
         />
       );
     }
 
-    if (imageType === "noNetwork") {
+    if (imageType === 'noNetwork') {
       return (
         <StateImage
           type="noNetwork"
-          onLoad={() => console.log("✅ noNetwork image loaded successfully")}
-          onError={(error) =>
-            console.log("❌ noNetwork image failed to load:", error)
-          }
+          onLoad={() => console.log('✅ noNetwork image loaded successfully')}
+          onError={error => console.log('❌ noNetwork image failed to load:', error)}
         />
       );
     }
 
-    if (imageType === "submitFailure") {
+    if (imageType === 'submitFailure') {
       return (
         <StateImage
           type="error"
-          onLoad={() =>
-            console.log("✅ submitFailure image loaded successfully")
-          }
-          onError={(error) =>
-            console.log("❌ submitFailure image failed to load:", error)
-          }
+          onLoad={() => console.log('✅ submitFailure image loaded successfully')}
+          onError={error => console.log('❌ submitFailure image failed to load:', error)}
         />
       );
     }
 
     // Fallback return
-    console.log("⚠️ Unknown image type:", imageType);
+    console.log('⚠️ Unknown image type:', imageType);
     return null;
   };
 
-  const sendSMS = () => {
-    const {
-      firstName,
-      lastName,
-      condition,
-      phoneNumber,
-      lat,
-      lng,
-      location,
-      note,
-    } = statusForm;
+  const handleClose = () => {
+    // Scale out animation
+    Animated.timing(scaleValue, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      toggleModal('submitSuccess', false);
+    });
+  };
 
-    const LGU = "09123456789"; // Replace with actual LGU number
+  const showAlert = () => {
+    toggleModal('submitSuccess', true);
+    // Scale in animation with bounce
+    Animated.spring(scaleValue, {
+      toValue: 1,
+      tension: 100,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const sendSMS = () => {
+    const { firstName, lastName, condition, phoneNumber, lat, lng, location, note } = statusForm;
+
+    const LGU = '09123456789'; // Replace with actual LGU number
 
     const message = `
     Name: ${firstName} ${lastName}
@@ -827,20 +805,20 @@ export const createStatus = () => {
     Phone: ${phoneNumber}
     lat: ${lat}
     lng: ${lng}
-    Location: ${location ? location : ""}
-    Note: ${note ? note : ""}
+    Location: ${location ? location : ''}
+    Note: ${note ? note : ''}
     Time: ${GetTime()}
     Date: ${GetDate()}
     `;
 
     let url = `sms:${LGU}?body=${encodeURIComponent(message)}`;
 
-    Linking.openURL(url).catch((err) => console.error("Error:", err));
+    Linking.openURL(url).catch(err => console.error('Error:', err));
   };
 
   const handleGetAddress = async (lat: number, lng: number) => {
     if (!authUser) {
-      console.warn("User is not authenticated");
+      console.warn('User is not authenticated');
       setAddressCoordsLoading(false);
       setAddressGPSLoading(false);
       return;
@@ -851,30 +829,27 @@ export const createStatus = () => {
       const result = await getAddress(lat, lng, idToken);
 
       if (result.success && result.address) {
-        console.log("Address fetched successfully:", result.address);
+        console.log('Address fetched successfully:', result.address);
 
         // Create a cleaner address by filtering out unnecessary components
         const cleanAddress = (fullAddress: string) => {
           // Split the address by commas and filter out unwanted parts
-          const addressParts = fullAddress
-            .split(",")
-            .map((part) => part.trim());
+          const addressParts = fullAddress.split(',').map(part => part.trim());
 
           // Filter out postcode, region codes, and country
-          const filteredParts = addressParts.filter((part) => {
+          const filteredParts = addressParts.filter(part => {
             // Remove parts that look like postcodes (numbers)
             if (/^\d+$/.test(part)) return false;
             // Remove common region identifiers
-            if (part.includes("Calabarzon") || part.includes("Philippines"))
-              return false;
+            if (part.includes('Calabarzon') || part.includes('Philippines')) return false;
             // Remove "unnamed road" (case insensitive)
-            if (part.toLowerCase().includes("unnamed road")) return false;
+            if (part.toLowerCase().includes('unnamed road')) return false;
             // Remove country codes and similar
             if (part.length <= 4 && /^[A-Z]+$/.test(part)) return false;
             return true;
           });
 
-          return filteredParts.join(", ");
+          return filteredParts.join(', ');
         };
 
         // Properly construct AddressState object with cleaned address
@@ -888,17 +863,14 @@ export const createStatus = () => {
           setAddressCoords(addressState);
           setAddressCoordsLoading(false);
         }
-        if (
-          lat === oneTimeLocationCoords?.[1] &&
-          lng === oneTimeLocationCoords?.[0]
-        ) {
+        if (lat === oneTimeLocationCoords?.[1] && lng === oneTimeLocationCoords?.[0]) {
           // This is the GPS location
           setAddressGPS(addressState);
           setAddressGPSLoading(false);
         }
       }
     } catch (error) {
-      console.error("Error fetching address:", error);
+      console.error('Error fetching address:', error);
       setAddressCoordsLoading(false);
       setAddressGPSLoading(false);
     }
@@ -918,10 +890,8 @@ export const createStatus = () => {
         <Map
           title="Let us know your status during disaster!"
           label="Tap the map to pin a marker"
-          GPSlocationLabel={addressGPS ? addressGPS.formatted : "GPS Location"}
-          tappedLocationLabel={
-            addressCoords ? addressCoords.formatted : "Coordinates"
-          }
+          GPSlocationLabel={addressGPS ? addressGPS.formatted : 'GPS Location'}
+          tappedLocationLabel={addressCoords ? addressCoords.formatted : 'Coordinates'}
           textInputFields={textInputFields}
           radioFields={radioFields}
           toggleFields={toggleFields}
@@ -929,34 +899,33 @@ export const createStatus = () => {
           quickActionButtons={quickActionButtons}
           stopTracking={handleStopTracking}
           primaryButton={{
-            label: formData ? "Update" : "Submit",
+            label: formData ? 'Update' : 'Submit',
             onPress: handleSubmit,
           }}
           onLocationClear={() => {
-            setStatusForm((prev) => ({
+            setStatusForm(prev => ({
               ...prev,
               lat: null,
               lng: null,
+              location: null,
             }));
 
             setCoords(null);
             setHasUserTappedMap(false);
             setAddressCoords(null); // Clear tapped location address
           }}
-          errMessage={formErrors.errMessage || ""}
-          secondaryButton={
-            formData ? { label: "Delete", onPress: () => {} } : undefined
-          }
+          errMessage={formErrors.errMessage || ''}
+          secondaryButton={formData ? { label: 'Delete', onPress: () => {} } : undefined}
         />
         <Modal
           modalVisible={modals.noChanges}
-          onClose={() => toggleModal("noChanges", false)}
+          onClose={() => toggleModal('noChanges', false)}
           size="lg"
-          iconOnPress={() => toggleModal("noChanges", false)}
+          iconOnPress={() => toggleModal('noChanges', false)}
           sizeIcon={20}
           primaryButtonText="Close"
-          primaryButtonOnPress={() => toggleModal("noChanges", false)}
-          renderImage={() => renderImageState("noChanges")}
+          primaryButtonOnPress={() => toggleModal('noChanges', false)}
+          renderImage={() => renderImageState('noChanges')}
           primaryText="No changes made"
           secondaryText="Your status remains the same as before."
         />
@@ -968,37 +937,35 @@ export const createStatus = () => {
           sizeIcon={20}
           primaryButtonText="Close"
           primaryButtonOnPress={handleErrorModalClose}
-          renderImage={() => renderImageState("errorFetchStatus")}
+          renderImage={() => renderImageState('errorFetchStatus')}
           primaryText="Oops! Something went wrong."
           secondaryText="We couldn’t load the details right now. Please try again later."
         />
         <Modal
           modalVisible={modals.noNetwork}
-          onClose={() => toggleModal("noNetwork", false)}
+          onClose={() => toggleModal('noNetwork', false)}
           size="lg"
-          iconOnPress={() => toggleModal("noNetwork", false)}
+          iconOnPress={() => toggleModal('noNetwork', false)}
           sizeIcon={20}
           primaryButtonText="Continue"
           primaryButtonOnPress={() => sendSMS()}
           secondaryButtonText="Cancel"
-          secondaryButtonOnPress={() => toggleModal("noNetwork", false)}
-          renderImage={() => renderImageState("noNetwork")}
-          primaryText={
-            authUser ? "No Internet Connection" : "You are in Guest Mode"
-          }
+          secondaryButtonOnPress={() => toggleModal('noNetwork', false)}
+          renderImage={() => renderImageState('noNetwork')}
+          primaryText={authUser ? 'No Internet Connection' : 'You are in Guest Mode'}
           secondaryText="Would you like to send the details you entered through your messaging app instead?"
         />
         <Modal
           modalVisible={modals.submitFailure}
-          onClose={() => toggleModal("submitFailure", false)}
+          onClose={() => toggleModal('submitFailure', false)}
           size="lg"
-          iconOnPress={() => toggleModal("submitFailure", false)}
+          iconOnPress={() => toggleModal('submitFailure', false)}
           sizeIcon={20}
           primaryButtonText="Continue"
           primaryButtonOnPress={() => sendSMS()}
           secondaryButtonText="Cancel"
-          secondaryButtonOnPress={() => toggleModal("submitFailure", false)}
-          renderImage={() => renderImageState("submitFailure")}
+          secondaryButtonOnPress={() => toggleModal('submitFailure', false)}
+          renderImage={() => renderImageState('submitFailure')}
           primaryText="An error occurred."
           secondaryText="Would you like to send the details you entered through your messaging app instead?"
         />
@@ -1008,10 +975,7 @@ export const createStatus = () => {
           text="Status submitted successfully!"
         />
       </Body>
-      <LoadingOverlay
-        visible={submitStatusLoading}
-        message="Saving your status..."
-      />
+      <LoadingOverlay visible={submitStatusLoading} message="Saving your status..." />
       <LoadingOverlay
         visible={isLoading}
         message="retrieving your current status Please wait"
@@ -1034,7 +998,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   markerContainer: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
@@ -1044,18 +1008,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    backgroundColor: "rgba(0, 150, 255, 0.1)",
-    borderColor: "rgba(0, 150, 255, 0.3)",
+    backgroundColor: 'rgba(0, 150, 255, 0.1)',
+    borderColor: 'rgba(0, 150, 255, 0.3)',
   },
   markerInfoTitle: {
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginBottom: 4,
   },
   infoContainer: {
     marginTop: 12,
     borderRadius: 8,
     gap: 8,
-    display: "flex",
-    alignItems: "center",
+    display: 'flex',
+    alignItems: 'center',
   },
 });

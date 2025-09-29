@@ -51,7 +51,7 @@ interface StatusData {
   // Core versioning fields
   parentId: string;
   versionId: string;
-  statusType: "current" | "history" | "deleted";
+  statusType: 'current' | 'history' | 'deleted';
 
   // User identification
   uid: string;
@@ -62,7 +62,7 @@ interface StatusData {
   phoneNumber: string;
 
   // Status information
-  condition: "safe" | "evacuated" | "affected" | "missing";
+  condition: 'safe' | 'evacuated' | 'affected' | 'missing';
 
   // Location data
   lat: number | null;
@@ -93,41 +93,27 @@ interface StatusData {
 // Type for creating new status (excludes system fields)
 type CreateStatusData = Omit<
   StatusData,
-  | "parentId"
-  | "versionId"
-  | "statusType"
-  | "createdAt"
-  | "retentionUntil"
-  | "updatedAt"
-  | "deletedAt"
+  'parentId' | 'versionId' | 'statusType' | 'createdAt' | 'retentionUntil' | 'updatedAt' | 'deletedAt'
 >;
 
 // Type for updating status (partial fields)
 type UpdateStatusData = Partial<
-  Omit<
-    StatusData,
-    | "parentId"
-    | "versionId"
-    | "statusType"
-    | "uid"
-    | "createdAt"
-    | "retentionUntil"
-  >
+  Omit<StatusData, 'parentId' | 'versionId' | 'statusType' | 'uid' | 'createdAt' | 'retentionUntil'>
 >;
 
 // Status condition enum
 enum Condition {
-  SAFE = "safe",
-  EVACUATED = "evacuated",
-  AFFECTED = "affected",
-  MISSING = "missing",
+  SAFE = 'safe',
+  EVACUATED = 'evacuated',
+  AFFECTED = 'affected',
+  MISSING = 'missing',
 }
 
 // Status type enum
 enum StatusType {
-  CURRENT = "current",
-  HISTORY = "history",
-  DELETED = "deleted",
+  CURRENT = 'current',
+  HISTORY = 'history',
+  DELETED = 'deleted',
 }
 
 // Expiration duration options
@@ -219,7 +205,7 @@ const StatusValidation = {
 
   // Status constraints
   condition: {
-    enum: ["safe", "evacuated", "affected", "missing"],
+    enum: ['safe', 'evacuated', 'affected', 'missing'],
     required: true,
   },
 
@@ -233,27 +219,27 @@ const StatusValidation = {
   lat: {
     min: -90,
     max: 90,
-    type: "number",
+    type: 'number',
   },
   lng: {
     min: -180,
     max: 180,
-    type: "number",
+    type: 'number',
   },
   location: {
     maxLength: 200,
-    type: "string",
+    type: 'string',
   },
 
   // Content constraints
   note: {
     maxLength: 500,
-    type: "string",
+    type: 'string',
   },
   image: {
     pattern: /^(https?:\/\/|gs:\/\/).+$/,
     maxLength: 500,
-    type: "string",
+    type: 'string',
   },
 
   // System field constraints
@@ -269,8 +255,8 @@ const StatusValidation = {
 
 // Field default values
 const StatusDefaults = {
-  note: "",
-  image: "",
+  note: '',
+  image: '',
   lat: null,
   lng: null,
   location: null,
@@ -285,18 +271,18 @@ const StatusDefaults = {
 // Example of valid field values
 const exampleStatusData: StatusData = {
   // System fields
-  parentId: "status-1695123456789",
-  versionId: "status-1695123456789-v1",
-  statusType: "current",
-  uid: "firebase-user-uid-123",
+  parentId: 'status-1695123456789',
+  versionId: 'status-1695123456789-v1',
+  statusType: 'current',
+  uid: 'firebase-user-uid-123',
 
   // Personal information
-  firstName: "Maria Elena",
-  lastName: "Santos-Dela Cruz",
-  phoneNumber: "+63-917-123-4567",
+  firstName: 'Maria Elena',
+  lastName: 'Santos-Dela Cruz',
+  phoneNumber: '+63-917-123-4567',
 
   // Status information
-  condition: "affected",
+  condition: 'affected',
 
   // Expiration settings
   expirationDuration: 24,
@@ -307,11 +293,11 @@ const exampleStatusData: StatusData = {
   // Location data (Philippines coordinates)
   lat: 14.5995124,
   lng: 120.9842195,
-  location: "Barangay San Antonio, Manila",
+  location: 'Barangay San Antonio, Manila',
 
   // Additional information
-  note: "House flooded, need evacuation assistance. Family of 4 with elderly.",
-  image: "gs://rescuenect-storage/status-images/user123/photo-123.jpg",
+  note: 'House flooded, need evacuation assistance. Family of 4 with elderly.',
+  image: 'gs://rescuenect-storage/status-images/user123/photo-123.jpg',
 
   // Privacy settings
   shareLocation: true,
@@ -410,11 +396,11 @@ graph TD
 
    ```typescript
    const currentStatus = await db
-     .collection("status")
+     .collection('status')
      .doc(userId)
-     .collection("statuses")
-     .where("parentId", "==", parentId)
-     .where("statusType", "==", "current")
+     .collection('statuses')
+     .where('parentId', '==', parentId)
+     .where('statusType', '==', 'current')
      .limit(1)
      .get();
    ```
@@ -423,7 +409,7 @@ graph TD
 
    ```typescript
    await currentDoc.ref.update({
-     statusType: "history",
+     statusType: 'history',
    });
    ```
 
@@ -433,7 +419,7 @@ graph TD
    await statusesRef.doc(newVersionId).set({
      parentId: parentId,
      versionId: newVersionId,
-     statusType: "current",
+     statusType: 'current',
      ...newStatusData,
      createdAt: FieldValue.serverTimestamp(),
      updatedAt: FieldValue.serverTimestamp(),
@@ -459,7 +445,7 @@ graph TD
 ```typescript
 // Mark current version as deleted
 await currentDoc.ref.update({
-  statusType: "deleted",
+  statusType: 'deleted',
   deletedAt: FieldValue.serverTimestamp(),
   // expireAt remains the same for TTL cleanup
 });
@@ -507,23 +493,23 @@ await currentDoc.ref.update({
 
 ```typescript
 // Deploy with Firebase Functions
-import { onSchedule } from "firebase-functions/v2/scheduler";
-import * as admin from "firebase-admin";
+import { onSchedule } from 'firebase-functions/v2/scheduler';
+import * as admin from 'firebase-admin';
 
-export const cleanupExpiredStatuses = onSchedule("every 1 hours", async () => {
+export const cleanupExpiredStatuses = onSchedule('every 1 hours', async () => {
   const db = admin.firestore();
   const batch = db.batch();
   let batchCount = 0;
   const maxBatchSize = 500; // Firestore batch limit
 
-  console.log("🔄 Starting cleanup of expired statuses...");
+  console.log('🔄 Starting cleanup of expired statuses...');
 
   try {
     // Query ALL expired current statuses across ALL users at once
     const expiredStatuses = await db
-      .collectionGroup("statuses") // ← This queries across ALL users
-      .where("statusType", "==", "current")
-      .where("expiresAt", "<=", admin.firestore.Timestamp.now())
+      .collectionGroup('statuses') // ← This queries across ALL users
+      .where('statusType', '==', 'current')
+      .where('expiresAt', '<=', admin.firestore.Timestamp.now())
       .limit(500) // Process in chunks to avoid memory issues
       .get();
 
@@ -533,7 +519,7 @@ export const cleanupExpiredStatuses = onSchedule("every 1 hours", async () => {
     for (const doc of expiredStatuses.docs) {
       // Move from "current" to "history"
       batch.update(doc.ref, {
-        statusType: "history",
+        statusType: 'history',
         expiredAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
@@ -553,123 +539,107 @@ export const cleanupExpiredStatuses = onSchedule("every 1 hours", async () => {
       console.log(`✅ Committed final batch of ${batchCount} status updates`);
     }
 
-    console.log(
-      `✅ Successfully moved ${expiredStatuses.size} statuses to history`
-    );
+    console.log(`✅ Successfully moved ${expiredStatuses.size} statuses to history`);
   } catch (error) {
-    console.error("❌ Error in status expiration cleanup:", error);
+    console.error('❌ Error in status expiration cleanup:', error);
     throw error;
   }
 });
 
-export const cleanupRetentionExpired = onSchedule(
-  "every 24 hours",
-  async () => {
-    const db = admin.firestore();
-    const batch = db.batch();
-    let batchCount = 0;
-    const maxBatchSize = 500;
+export const cleanupRetentionExpired = onSchedule('every 24 hours', async () => {
+  const db = admin.firestore();
+  const batch = db.batch();
+  let batchCount = 0;
+  const maxBatchSize = 500;
 
-    console.log("🗑️ Starting cleanup of retention-expired documents...");
+  console.log('🗑️ Starting cleanup of retention-expired documents...');
 
-    try {
-      // Query ALL retention-expired documents across ALL users at once
-      const expiredHistory = await db
-        .collectionGroup("statuses") // ← This queries across ALL users
-        .where("statusType", "in", ["history", "deleted"])
-        .where("retentionUntil", "<=", admin.firestore.Timestamp.now())
-        .limit(500) // Process in chunks
-        .get();
+  try {
+    // Query ALL retention-expired documents across ALL users at once
+    const expiredHistory = await db
+      .collectionGroup('statuses') // ← This queries across ALL users
+      .where('statusType', 'in', ['history', 'deleted'])
+      .where('retentionUntil', '<=', admin.firestore.Timestamp.now())
+      .limit(500) // Process in chunks
+      .get();
 
-      console.log(
-        `📊 Found ${expiredHistory.size} retention-expired documents`
-      );
+    console.log(`📊 Found ${expiredHistory.size} retention-expired documents`);
 
-      // Delete each expired document
-      for (const doc of expiredHistory.docs) {
-        batch.delete(doc.ref);
-        batchCount++;
+    // Delete each expired document
+    for (const doc of expiredHistory.docs) {
+      batch.delete(doc.ref);
+      batchCount++;
 
-        // Commit batch when it reaches limit
-        if (batchCount >= maxBatchSize) {
-          await batch.commit();
-          console.log(`🗑️ Deleted batch of ${batchCount} expired documents`);
-          batchCount = 0;
-        }
-      }
-
-      // Commit remaining documents
-      if (batchCount > 0) {
+      // Commit batch when it reaches limit
+      if (batchCount >= maxBatchSize) {
         await batch.commit();
-        console.log(
-          `🗑️ Deleted final batch of ${batchCount} expired documents`
-        );
+        console.log(`🗑️ Deleted batch of ${batchCount} expired documents`);
+        batchCount = 0;
       }
-
-      console.log(
-        `✅ Successfully deleted ${expiredHistory.size} expired documents`
-      );
-    } catch (error) {
-      console.error("❌ Error in retention cleanup:", error);
-      throw error;
     }
+
+    // Commit remaining documents
+    if (batchCount > 0) {
+      await batch.commit();
+      console.log(`🗑️ Deleted final batch of ${batchCount} expired documents`);
+    }
+
+    console.log(`✅ Successfully deleted ${expiredHistory.size} expired documents`);
+  } catch (error) {
+    console.error('❌ Error in retention cleanup:', error);
+    throw error;
   }
-);
+});
 
 // Optional: Cleanup function for very large datasets
-export const cleanupExpiredStatusesLarge = onSchedule(
-  "every 6 hours",
-  async () => {
-    const db = admin.firestore();
-    let totalProcessed = 0;
-    let hasMore = true;
+export const cleanupExpiredStatusesLarge = onSchedule('every 6 hours', async () => {
+  const db = admin.firestore();
+  let totalProcessed = 0;
+  let hasMore = true;
 
-    console.log("🔄 Starting large-scale cleanup process...");
+  console.log('🔄 Starting large-scale cleanup process...');
 
-    // Process in multiple rounds for very large datasets
-    while (hasMore && totalProcessed < 10000) {
-      // Safety limit
-      const batch = db.batch();
-      let batchCount = 0;
+  // Process in multiple rounds for very large datasets
+  while (hasMore && totalProcessed < 10000) {
+    // Safety limit
+    const batch = db.batch();
+    let batchCount = 0;
 
-      // Query next batch of expired documents
-      const expiredDocs = await db
-        .collectionGroup("statuses")
-        .where("statusType", "==", "current")
-        .where("expiresAt", "<=", admin.firestore.Timestamp.now())
-        .limit(500)
-        .get();
+    // Query next batch of expired documents
+    const expiredDocs = await db
+      .collectionGroup('statuses')
+      .where('statusType', '==', 'current')
+      .where('expiresAt', '<=', admin.firestore.Timestamp.now())
+      .limit(500)
+      .get();
 
-      if (expiredDocs.empty) {
-        hasMore = false;
-        break;
-      }
-
-      // Process each document in current batch
-      for (const doc of expiredDocs.docs) {
-        batch.update(doc.ref, {
-          statusType: "history",
-          expiredAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-        batchCount++;
-      }
-
-      // Commit current batch
-      if (batchCount > 0) {
-        await batch.commit();
-        totalProcessed += batchCount;
-        console.log(`📊 Processed ${totalProcessed} documents so far...`);
-      }
-
-      // Small delay to avoid overwhelming Firestore
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+    if (expiredDocs.empty) {
+      hasMore = false;
+      break;
     }
 
-    console.log(
-      `✅ Large-scale cleanup completed. Total processed: ${totalProcessed}`
-    );
+    // Process each document in current batch
+    for (const doc of expiredDocs.docs) {
+      batch.update(doc.ref, {
+        statusType: 'history',
+        expiredAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      batchCount++;
+    }
+
+    // Commit current batch
+    if (batchCount > 0) {
+      await batch.commit();
+      totalProcessed += batchCount;
+      console.log(`📊 Processed ${totalProcessed} documents so far...`);
+    }
+
+    // Small delay to avoid overwhelming Firestore
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
-);
+
+  console.log(`✅ Large-scale cleanup completed. Total processed: ${totalProcessed}`);
+});
 ```
 
 **Key Points:**
@@ -692,21 +662,21 @@ export const cleanupExpiredStatusesLarge = onSchedule(
 
 ```typescript
 // Run on external server with Admin SDK
-import * as admin from "firebase-admin";
+import * as admin from 'firebase-admin';
 
 const cleanupExpiredStatusesExternal = async () => {
   const db = admin.firestore();
   let lastDoc = null;
   let totalProcessed = 0;
 
-  console.log("🔄 Starting external cleanup process...");
+  console.log('🔄 Starting external cleanup process...');
 
   do {
     // Build query with pagination
     let query = db
-      .collectionGroup("statuses")
-      .where("statusType", "==", "current")
-      .where("expiresAt", "<=", admin.firestore.Timestamp.now())
+      .collectionGroup('statuses')
+      .where('statusType', '==', 'current')
+      .where('expiresAt', '<=', admin.firestore.Timestamp.now())
       .limit(1000); // Larger batches for external processing
 
     // Add pagination cursor
@@ -722,9 +692,9 @@ const cleanupExpiredStatusesExternal = async () => {
 
     // Process current batch
     const batch = db.batch();
-    snapshot.docs.forEach((doc) => {
+    snapshot.docs.forEach(doc => {
       batch.update(doc.ref, {
-        statusType: "history",
+        statusType: 'history',
         expiredAt: admin.firestore.FieldValue.serverTimestamp(),
       });
     });
@@ -737,7 +707,7 @@ const cleanupExpiredStatusesExternal = async () => {
     console.log(`📊 Processed ${totalProcessed} documents...`);
 
     // Rate limiting
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 500));
   } while (lastDoc);
 
   console.log(`✅ External cleanup completed. Total: ${totalProcessed}`);
@@ -760,21 +730,16 @@ const createOrUpdateStatus = async (
   userId: string,
   statusData: Omit<
     StatusData,
-    | "parentId"
-    | "versionId"
-    | "statusType"
-    | "createdAt"
-    | "expiresAt"
-    | "retentionUntil"
+    'parentId' | 'versionId' | 'statusType' | 'createdAt' | 'expiresAt' | 'retentionUntil'
   > & { expirationDuration: 12 | 24 }
 ) => {
   try {
     // Check if user already has an active status
     const existingStatusQuery = await db
-      .collection("status")
+      .collection('status')
       .doc(userId)
-      .collection("statuses")
-      .where("statusType", "==", "current")
+      .collection('statuses')
+      .where('statusType', '==', 'current')
       .limit(1)
       .get();
 
@@ -798,17 +763,13 @@ const createOrUpdateStatus = async (
     retentionUntil.setDate(retentionUntil.getDate() + 30);
 
     // Create document reference
-    const statusRef = db
-      .collection("status")
-      .doc(userId)
-      .collection("statuses")
-      .doc(versionId);
+    const statusRef = db.collection('status').doc(userId).collection('statuses').doc(versionId);
 
     // Create the status document
     await statusRef.set({
       parentId: parentId,
       versionId: versionId,
-      statusType: "current",
+      statusType: 'current',
       ...statusData,
       expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
       retentionUntil: admin.firestore.Timestamp.fromDate(retentionUntil),
@@ -818,24 +779,24 @@ const createOrUpdateStatus = async (
     console.log(`✅ Status created with ID: ${parentId}`);
     return { parentId, versionId };
   } catch (error) {
-    console.error("❌ Error creating status:", error);
-    throw new Error("Failed to create status");
+    console.error('❌ Error creating status:', error);
+    throw new Error('Failed to create status');
   }
 };
 
 // Usage example - will update existing if user has active status
-const newStatus = await createOrUpdateStatus("user123", {
-  uid: "user123",
-  firstName: "John",
-  lastName: "Doe",
-  phoneNumber: "+1234567890",
-  condition: "safe",
+const newStatus = await createOrUpdateStatus('user123', {
+  uid: 'user123',
+  firstName: 'John',
+  lastName: 'Doe',
+  phoneNumber: '+1234567890',
+  condition: 'safe',
   expirationDuration: 24, // User chooses 24 hours
   lat: 14.5995,
   lng: 120.9842,
-  location: "Manila City Hall",
-  note: "Safe at evacuation center",
-  image: "",
+  location: 'Manila City Hall',
+  note: 'Safe at evacuation center',
+  image: '',
   shareLocation: true,
   shareContact: true,
 });
@@ -844,26 +805,22 @@ const newStatus = await createOrUpdateStatus("user123", {
 ### 2. Update Existing Status (Create New Version)
 
 ```typescript
-const updateStatus = async (
-  userId: string,
-  parentId: string,
-  updatedData: Partial<StatusData>
-) => {
+const updateStatus = async (userId: string, parentId: string, updatedData: Partial<StatusData>) => {
   try {
     const batch = db.batch();
 
     // Step 1: Find current version
     const currentQuery = await db
-      .collection("status")
+      .collection('status')
       .doc(userId)
-      .collection("statuses")
-      .where("parentId", "==", parentId)
-      .where("statusType", "==", "current")
+      .collection('statuses')
+      .where('parentId', '==', parentId)
+      .where('statusType', '==', 'current')
       .limit(1)
       .get();
 
     if (currentQuery.empty) {
-      throw new Error("Current status not found");
+      throw new Error('Current status not found');
     }
 
     const currentDoc = currentQuery.docs[0];
@@ -871,10 +828,10 @@ const updateStatus = async (
 
     // Step 2: Get next version number
     const allVersionsQuery = await db
-      .collection("status")
+      .collection('status')
       .doc(userId)
-      .collection("statuses")
-      .where("parentId", "==", parentId)
+      .collection('statuses')
+      .where('parentId', '==', parentId)
       .get();
 
     const nextVersionNumber = allVersionsQuery.size + 1;
@@ -882,33 +839,23 @@ const updateStatus = async (
 
     // Step 3: Mark current version as history
     batch.update(currentDoc.ref, {
-      statusType: "history",
+      statusType: 'history',
     });
 
     // Step 4: Create new current version
-    const newVersionRef = db
-      .collection("status")
-      .doc(userId)
-      .collection("statuses")
-      .doc(newVersionId);
+    const newVersionRef = db.collection('status').doc(userId).collection('statuses').doc(newVersionId);
 
     batch.set(newVersionRef, {
       ...currentData, // Keep all existing data
       ...updatedData, // Apply updates
       parentId: parentId, // Maintain lineage
       versionId: newVersionId,
-      statusType: "current",
+      statusType: 'current',
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
       // Update expiration based on new user choice, keep original retention
       expiresAt: admin.firestore.Timestamp.fromDate(
-        new Date(
-          Date.now() +
-            (updatedData.expirationDuration || currentData.expirationDuration) *
-              60 *
-              60 *
-              1000
-        )
+        new Date(Date.now() + (updatedData.expirationDuration || currentData.expirationDuration) * 60 * 60 * 1000)
       ),
       retentionUntil: currentData.retentionUntil,
     });
@@ -919,17 +866,17 @@ const updateStatus = async (
     console.log(`✅ Status updated to version ${nextVersionNumber}`);
     return { versionId: newVersionId, versionNumber: nextVersionNumber };
   } catch (error) {
-    console.error("❌ Error updating status:", error);
-    throw new Error("Failed to update status");
+    console.error('❌ Error updating status:', error);
+    throw new Error('Failed to update status');
   }
 };
 
 // Usage example
-const updatedStatus = await updateStatus("user123", "status-1695123456789", {
-  condition: "evacuated",
+const updatedStatus = await updateStatus('user123', 'status-1695123456789', {
+  condition: 'evacuated',
   expirationDuration: 24,
-  location: "Evacuation Center Alpha",
-  note: "Moved to safer location",
+  location: 'Evacuation Center Alpha',
+  note: 'Moved to safer location',
   shareContact: false,
 });
 ```
@@ -941,7 +888,7 @@ const bulkUpdateStatus = async (
   userId: string,
   parentId: string,
   updates: {
-    condition?: "safe" | "evacuated" | "affected" | "missing";
+    condition?: 'safe' | 'evacuated' | 'affected' | 'missing';
     expirationDuration?: 12 | 24;
     location?: string;
     coordinates?: { lat: number; lng: number };
@@ -991,44 +938,40 @@ const bulkUpdateStatus = async (
     // Use the updateStatus function
     return await updateStatus(userId, parentId, flatUpdates);
   } catch (error) {
-    console.error("❌ Error in bulk update:", error);
-    throw new Error("Failed to bulk update status");
+    console.error('❌ Error in bulk update:', error);
+    throw new Error('Failed to bulk update status');
   }
 };
 
 // Usage example
-const bulkUpdate = await bulkUpdateStatus("user123", "status-1695123456789", {
-  condition: "safe",
+const bulkUpdate = await bulkUpdateStatus('user123', 'status-1695123456789', {
+  condition: 'safe',
   expirationDuration: 12, // Change from 24h to 12h
-  location: "Home",
+  location: 'Home',
   coordinates: { lat: 14.6042, lng: 120.9822 },
-  contactInfo: { phoneNumber: "+1234567890", shareContact: true },
-  note: "Returned home safely",
-  image: "https://example.com/safe-photo.jpg",
+  contactInfo: { phoneNumber: '+1234567890', shareContact: true },
+  note: 'Returned home safely',
+  image: 'https://example.com/safe-photo.jpg',
 });
 ```
 
 ### 4. Conditional Status Update (Only if Changed)
 
 ```typescript
-const conditionalUpdateStatus = async (
-  userId: string,
-  parentId: string,
-  newData: Partial<StatusData>
-) => {
+const conditionalUpdateStatus = async (userId: string, parentId: string, newData: Partial<StatusData>) => {
   try {
     // Get current status
     const currentQuery = await db
-      .collection("status")
+      .collection('status')
       .doc(userId)
-      .collection("statuses")
-      .where("parentId", "==", parentId)
-      .where("statusType", "==", "current")
+      .collection('statuses')
+      .where('parentId', '==', parentId)
+      .where('statusType', '==', 'current')
       .limit(1)
       .get();
 
     if (currentQuery.empty) {
-      throw new Error("Current status not found");
+      throw new Error('Current status not found');
     }
 
     const currentData = currentQuery.docs[0].data();
@@ -1045,29 +988,25 @@ const conditionalUpdateStatus = async (
     }
 
     if (!hasChanges) {
-      console.log("⏸️ No changes detected, skipping update");
-      return { updated: false, reason: "No changes detected" };
+      console.log('⏸️ No changes detected, skipping update');
+      return { updated: false, reason: 'No changes detected' };
     }
 
     // Proceed with update if changes detected
     const result = await updateStatus(userId, parentId, newData);
     return { updated: true, ...result };
   } catch (error) {
-    console.error("❌ Error in conditional update:", error);
-    throw new Error("Failed to conditionally update status");
+    console.error('❌ Error in conditional update:', error);
+    throw new Error('Failed to conditionally update status');
   }
 };
 
 // Usage example
-const conditionalResult = await conditionalUpdateStatus(
-  "user123",
-  "status-1695123456789",
-  {
-    condition: "safe", // Same as current
-    note: "Updated note", // Different from current
-    expirationDuration: 12, // Different from current
-  }
-);
+const conditionalResult = await conditionalUpdateStatus('user123', 'status-1695123456789', {
+  condition: 'safe', // Same as current
+  note: 'Updated note', // Different from current
+  expirationDuration: 12, // Different from current
+});
 // Result: { updated: true, versionId: 'status-1695123456789-v3', versionNumber: 3 }
 ```
 
@@ -1078,16 +1017,16 @@ const deleteStatus = async (userId: string, parentId: string) => {
   try {
     // Find current version
     const currentQuery = await db
-      .collection("status")
+      .collection('status')
       .doc(userId)
-      .collection("statuses")
-      .where("parentId", "==", parentId)
-      .where("statusType", "==", "current")
+      .collection('statuses')
+      .where('parentId', '==', parentId)
+      .where('statusType', '==', 'current')
       .limit(1)
       .get();
 
     if (currentQuery.empty) {
-      throw new Error("Current status not found");
+      throw new Error('Current status not found');
     }
 
     const currentDoc = currentQuery.docs[0];
@@ -1097,7 +1036,7 @@ const deleteStatus = async (userId: string, parentId: string) => {
     retentionDate.setDate(retentionDate.getDate() + 30);
 
     await currentDoc.ref.update({
-      statusType: "deleted",
+      statusType: 'deleted',
       deletedAt: FieldValue.serverTimestamp(),
       retentionUntil: admin.firestore.Timestamp.fromDate(retentionDate),
     });
@@ -1105,13 +1044,13 @@ const deleteStatus = async (userId: string, parentId: string) => {
     console.log(`✅ Status ${parentId} marked as deleted`);
     return { parentId, deletedAt: new Date() };
   } catch (error) {
-    console.error("❌ Error deleting status:", error);
-    throw new Error("Failed to delete status");
+    console.error('❌ Error deleting status:', error);
+    throw new Error('Failed to delete status');
   }
 };
 
 // Usage example
-const deletedStatus = await deleteStatus("user123", "status-1695123456789");
+const deletedStatus = await deleteStatus('user123', 'status-1695123456789');
 ```
 
 ### 7. Restore Deleted Status
@@ -1121,36 +1060,36 @@ const restoreStatus = async (userId: string, parentId: string) => {
   try {
     // Find deleted version
     const deletedQuery = await db
-      .collection("status")
+      .collection('status')
       .doc(userId)
-      .collection("statuses")
-      .where("parentId", "==", parentId)
-      .where("statusType", "==", "deleted")
+      .collection('statuses')
+      .where('parentId', '==', parentId)
+      .where('statusType', '==', 'deleted')
       .limit(1)
       .get();
 
     if (deletedQuery.empty) {
-      throw new Error("Deleted status not found");
+      throw new Error('Deleted status not found');
     }
 
     const deletedDoc = deletedQuery.docs[0];
 
     // Restore as current (remove deletedAt field)
     await deletedDoc.ref.update({
-      statusType: "current",
+      statusType: 'current',
       deletedAt: FieldValue.delete(), // Remove deletedAt field
     });
 
     console.log(`✅ Status ${parentId} restored from deletion`);
     return { parentId, restoredAt: new Date() };
   } catch (error) {
-    console.error("❌ Error restoring status:", error);
-    throw new Error("Failed to restore status");
+    console.error('❌ Error restoring status:', error);
+    throw new Error('Failed to restore status');
   }
 };
 
 // Usage example
-const restoredStatus = await restoreStatus("user123", "status-1695123456789");
+const restoredStatus = await restoreStatus('user123', 'status-1695123456789');
 ```
 
 ### 8. Get Current Status for User
@@ -1158,10 +1097,10 @@ const restoredStatus = await restoreStatus("user123", "status-1695123456789");
 ```typescript
 const hasActiveStatus = async (userId: string): Promise<boolean> => {
   const snapshot = await db
-    .collection("status")
+    .collection('status')
     .doc(userId)
-    .collection("statuses")
-    .where("statusType", "==", "current")
+    .collection('statuses')
+    .where('statusType', '==', 'current')
     .limit(1)
     .get();
 
@@ -1174,14 +1113,14 @@ const hasActiveStatus = async (userId: string): Promise<boolean> => {
 ```typescript
 const getAllCurrentStatuses = async (userId: string) => {
   const snapshot = await db
-    .collection("status")
+    .collection('status')
     .doc(userId)
-    .collection("statuses")
-    .where("statusType", "==", "current")
-    .orderBy("createdAt", "desc")
+    .collection('statuses')
+    .where('statusType', '==', 'current')
+    .orderBy('createdAt', 'desc')
     .get();
 
-  return snapshot.docs.map((doc) => doc.data());
+  return snapshot.docs.map(doc => doc.data());
 };
 ```
 
@@ -1190,14 +1129,14 @@ const getAllCurrentStatuses = async (userId: string) => {
 ```typescript
 const getStatusLineage = async (userId: string, parentId: string) => {
   const snapshot = await db
-    .collection("status")
+    .collection('status')
     .doc(userId)
-    .collection("statuses")
-    .where("parentId", "==", parentId)
-    .orderBy("createdAt", "asc")
+    .collection('statuses')
+    .where('parentId', '==', parentId)
+    .orderBy('createdAt', 'asc')
     .get();
 
-  return snapshot.docs.map((doc) => ({
+  return snapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data(),
   }));
@@ -1209,14 +1148,14 @@ const getStatusLineage = async (userId: string, parentId: string) => {
 ```typescript
 const getDeletedStatuses = async (userId: string) => {
   const snapshot = await db
-    .collection("status")
+    .collection('status')
     .doc(userId)
-    .collection("statuses")
-    .where("statusType", "==", "deleted")
-    .orderBy("deletedAt", "desc")
+    .collection('statuses')
+    .where('statusType', '==', 'deleted')
+    .orderBy('deletedAt', 'desc')
     .get();
 
-  return snapshot.docs.map((doc) => doc.data());
+  return snapshot.docs.map(doc => doc.data());
 };
 ```
 
@@ -1225,14 +1164,14 @@ const getDeletedStatuses = async (userId: string) => {
 ```typescript
 const getStatusesByCondition = async (userId: string, condition: string) => {
   const snapshot = await db
-    .collection("status")
+    .collection('status')
     .doc(userId)
-    .collection("statuses")
-    .where("statusType", "==", "current")
-    .where("condition", "==", condition)
+    .collection('statuses')
+    .where('statusType', '==', 'current')
+    .where('condition', '==', condition)
     .get();
 
-  return snapshot.docs.map((doc) => doc.data());
+  return snapshot.docs.map(doc => doc.data());
 };
 ```
 
@@ -1381,9 +1320,9 @@ const safeStatusOperation = async (operation: Function) => {
   try {
     await operation();
   } catch (error) {
-    console.error("Status operation failed:", error);
+    console.error('Status operation failed:', error);
     // Implement retry logic or fallback
-    throw new Error("Status operation failed");
+    throw new Error('Status operation failed');
   }
 };
 ```
@@ -1507,11 +1446,7 @@ service cloud.firestore {
 
 ```typescript
 const getStatusMetrics = async (userId: string) => {
-  const snapshot = await db
-    .collection("status")
-    .doc(userId)
-    .collection("statuses")
-    .get();
+  const snapshot = await db.collection('status').doc(userId).collection('statuses').get();
 
   const metrics = {
     totalDocuments: snapshot.size,
@@ -1523,16 +1458,12 @@ const getStatusMetrics = async (userId: string) => {
 
   const parentGroups = new Map();
 
-  snapshot.docs.forEach((doc) => {
+  snapshot.docs.forEach(doc => {
     const data = doc.data();
     const parentId = data.parentId;
 
     // Count by type
-    metrics[
-      `${data.statusType}${
-        data.statusType === "current" ? "Statuses" : "Records"
-      }`
-    ]++;
+    metrics[`${data.statusType}${data.statusType === 'current' ? 'Statuses' : 'Records'}`]++;
 
     // Group by parent for version counting
     if (!parentGroups.has(parentId)) {
@@ -1543,13 +1474,8 @@ const getStatusMetrics = async (userId: string) => {
 
   // Calculate average versions
   if (parentGroups.size > 0) {
-    const totalVersions = Array.from(parentGroups.values()).reduce(
-      (a, b) => a + b,
-      0
-    );
-    metrics.avgVersionsPerStatus = (totalVersions / parentGroups.size).toFixed(
-      2
-    );
+    const totalVersions = Array.from(parentGroups.values()).reduce((a, b) => a + b, 0);
+    metrics.avgVersionsPerStatus = (totalVersions / parentGroups.size).toFixed(2);
   }
 
   return metrics;
