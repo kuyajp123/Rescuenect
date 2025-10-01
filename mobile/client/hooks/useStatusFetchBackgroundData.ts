@@ -41,7 +41,7 @@ export const useStatusFetchBackgroundData = (
             setError(true);
           }
         } else {
-          console.log("ℹ️ Missing statusId or idToken, skipping fetch");
+          // console.log("ℹ️ Missing statusId or idToken, skipping fetch");
           setData(null);
         }
       } catch (error) {

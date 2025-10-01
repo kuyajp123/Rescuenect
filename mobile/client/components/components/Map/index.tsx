@@ -1,12 +1,12 @@
-import { HStack } from "@/components/ui/hstack";
-import { Text } from "@/components/ui/text";
-import { VStack } from "@/components/ui/vstack";
-import { Colors } from "@/constants/Colors";
-import { useMap } from "@/contexts/MapContext";
-import { useTheme } from "@/contexts/ThemeContext";
-import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { Bookmark, Navigation, X } from "lucide-react-native";
-import React, { useRef } from "react";
+import { HStack } from '@/components/ui/hstack';
+import { Text } from '@/components/ui/text';
+import { VStack } from '@/components/ui/vstack';
+import { Colors } from '@/constants/Colors';
+import { useMap } from '@/contexts/MapContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { Bookmark, Navigation, X } from 'lucide-react-native';
+import React, { useRef } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -17,11 +17,11 @@ import {
   View,
   ScrollView,
   ActivityIndicator,
-} from "react-native";
-import { useMapButtonStore } from "@/components/store/useMapButton";
-import { Button, IconButton, ToggleButton } from "../button/Button";
-import { useStatusFormStore } from "@/components/store/useStatusForm";
-import { useGetAddress } from "@/components/store/useGetAddress";
+} from 'react-native';
+import { useMapButtonStore } from '@/components/store/useMapButton';
+import { Button, IconButton, ToggleButton } from '../button/Button';
+import { useStatusFormStore } from '@/components/store/useStatusForm';
+import { useGetAddress } from '@/components/store/useGetAddress';
 
 // Types for flexible form fields
 export interface TextInputField {
@@ -121,35 +121,33 @@ const Map = ({
   secondaryButton,
   quickActionButtons = [
     {
-      key: "saved-location",
-      label: "saved location",
-      icon: <Bookmark size={16} color={"white"} />,
+      key: 'saved-location',
+      label: 'saved location',
+      icon: <Bookmark size={16} color={'white'} />,
       onPress: () => {},
     },
     {
-      key: "location-services",
-      label: "Turn on location",
-      icon: <Navigation size={16} color={"white"} />,
+      key: 'location-services',
+      label: 'Turn on location',
+      icon: <Navigation size={16} color={'white'} />,
       onPress: () => {},
     },
   ],
-  GPSlocationLabel = "GPS Location",
-  tappedLocationLabel = "Coordinates",
+  GPSlocationLabel = 'GPS Location',
+  tappedLocationLabel = 'Coordinates',
   showCoordinates = true,
   stopTracking,
-  snapPoints = ["14%", "90%"],
+  snapPoints = ['14%', '90%'],
   onLocationClear,
-  errMessage = "",
+  errMessage = '',
 }: MapNewProps) => {
   const { setIsVisible } = useMapButtonStore();
   const { coords, mapContainer, oneTimeLocationCoords } = useMap();
   const { isDark } = useTheme();
   const [bottomSheetEnabled, setBottomSheetEnabled] = React.useState(false);
-  const statusForm = useStatusFormStore((state) => state.formData);
-  const addressCoordsLoading = useGetAddress(
-    (state) => state.addressCoordsLoading
-  );
-  const addressGPSLoading = useGetAddress((state) => state.addressGPSLoading);
+  const statusForm = useStatusFormStore(state => state.formData);
+  const addressCoordsLoading = useGetAddress(state => state.addressCoordsLoading);
+  const addressGPSLoading = useGetAddress(state => state.addressGPSLoading);
 
   const bottomSheetRef = useRef<BottomSheet>(null);
 
@@ -157,7 +155,7 @@ const Map = ({
   let memoizedSnapPoints;
   // If both coordinates exist, use larger initial height
   if (coords && oneTimeLocationCoords) {
-    memoizedSnapPoints = ["25%", "90%"];
+    memoizedSnapPoints = ['25%', '90%'];
   } else {
     // If only one or no coordinates, use default
     memoizedSnapPoints = snapPoints;
@@ -177,7 +175,7 @@ const Map = ({
 
   // Bottom Sheet callbacks
   const handleSheetChanges = (index: number) => {
-    console.log("handleSheetChanges", index);
+    console.log('handleSheetChanges', index);
 
     if (index === 2 || index === 1) {
       setIsVisible(false);
@@ -208,17 +206,13 @@ const Map = ({
     // Show both coordinates if both are available
     if (coords && oneTimeLocationCoords) {
       return (
-        <VStack space="md" style={{ width: "100%" }}>
+        <VStack space="md" style={{ width: '100%' }}>
           {/* Tapped Location */}
           <HStack style={styles.head}>
             <VStack>
               <View style={styles.textLocationName}>
                 {addressCoordsLoading ? (
-                  <ActivityIndicator
-                    size="large"
-                    color={Colors.brand.light}
-                    style={{ marginLeft: 8 }}
-                  />
+                  <ActivityIndicator size="large" color={Colors.brand.light} style={{ marginLeft: 8 }} />
                 ) : (
                   <Text size="md">{tappedLocationLabel}</Text>
                 )}
@@ -239,27 +233,21 @@ const Map = ({
             <VStack>
               <View style={styles.textLocationName}>
                 {addressGPSLoading ? (
-                  <ActivityIndicator
-                    size="large"
-                    color={Colors.brand.light}
-                    style={{ marginLeft: 8 }}
-                  />
+                  <ActivityIndicator size="large" color={Colors.brand.light} style={{ marginLeft: 8 }} />
                 ) : (
                   <Text size="md">{GPSlocationLabel}</Text>
                 )}
               </View>
               {showCoordinates && oneTimeLocationCoords && (
                 <Text emphasis="light" size="sm">
-                  {`${oneTimeLocationCoords[1].toFixed(
-                    6
-                  )}, ${oneTimeLocationCoords[0].toFixed(6)}`}
+                  {`${oneTimeLocationCoords[1].toFixed(6)}, ${oneTimeLocationCoords[0].toFixed(6)}`}
                 </Text>
               )}
             </VStack>
             <Button
               width="fit"
-              style={{ width: "auto" }}
-              action={"error"}
+              style={{ width: 'auto' }}
+              action={'error'}
               onPress={handleClearOneTimeLocation || (() => {})}
             >
               <Text>Stop</Text>
@@ -276,11 +264,7 @@ const Map = ({
           <VStack>
             <View style={styles.textLocationName}>
               {addressCoordsLoading ? (
-                <ActivityIndicator
-                  size="large"
-                  color={Colors.brand.light}
-                  style={{ marginLeft: 8 }}
-                />
+                <ActivityIndicator size="large" color={Colors.brand.light} style={{ marginLeft: 8 }} />
               ) : (
                 <Text size="md">{tappedLocationLabel}</Text>
               )}
@@ -305,27 +289,21 @@ const Map = ({
           <VStack>
             <View style={styles.textLocationName}>
               {addressGPSLoading ? (
-                <ActivityIndicator
-                  size="large"
-                  color={Colors.brand.light}
-                  style={{ marginLeft: 8 }}
-                />
+                <ActivityIndicator size="large" color={Colors.brand.light} style={{ marginLeft: 8 }} />
               ) : (
                 <Text size="md">{GPSlocationLabel}</Text>
               )}
             </View>
             {showCoordinates && oneTimeLocationCoords && (
               <Text emphasis="light" size="sm">
-                {`${oneTimeLocationCoords[1].toFixed(
-                  6
-                )}, ${oneTimeLocationCoords[0].toFixed(6)}`}
+                {`${oneTimeLocationCoords[1].toFixed(6)}, ${oneTimeLocationCoords[0].toFixed(6)}`}
               </Text>
             )}
           </VStack>
           <Button
             width="fit"
-            style={{ width: "auto" }}
-            action={"error"}
+            style={{ width: 'auto' }}
+            action={'error'}
             onPress={handleClearOneTimeLocation || (() => {})}
           >
             <Text>Stop</Text>
@@ -344,12 +322,8 @@ const Map = ({
         >
           {quickActionButtons.length > 0 && (
             <HStack style={styles.choices}>
-              {quickActionButtons.map((button) => (
-                <Button
-                  key={button.key}
-                  style={[styles.buttons, button.style]}
-                  onPress={button.onPress}
-                >
+              {quickActionButtons.map(button => (
+                <Button key={button.key} style={[styles.buttons, button.style]} onPress={button.onPress}>
                   {button.icon}
                   <RNText style={styles.textColor}>{button.label}</RNText>
                 </Button>
@@ -365,7 +339,7 @@ const Map = ({
     <>
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
         {mapContainer}
@@ -380,9 +354,7 @@ const Map = ({
           enableHandlePanningGesture={bottomSheetEnabled}
           enableContentPanningGesture={bottomSheetEnabled}
           backgroundStyle={{
-            backgroundColor: isDark
-              ? Colors.background.dark
-              : Colors.background.light,
+            backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
           }}
           handleComponent={() => (
             <View style={styles.handleContainer}>
@@ -391,9 +363,7 @@ const Map = ({
                   style={[
                     styles.defaultHandle,
                     {
-                      backgroundColor: isDark
-                        ? Colors.border.light
-                        : Colors.border.dark,
+                      backgroundColor: isDark ? Colors.border.light : Colors.border.dark,
                     },
                   ]}
                 />
@@ -427,13 +397,11 @@ const Map = ({
                 )}
 
                 {/* Text Input Fields */}
-                {textInputFields.map((field) => (
+                {textInputFields.map(field => (
                   <VStack key={field.key} style={{ marginBottom: 12 }}>
                     <HStack>
                       <Text>{field.label}</Text>
-                      {field.errorText && (
-                        <Text style={styles.errorText}>{field.errorText}</Text>
-                      )}
+                      {field.errorText && <Text style={styles.errorText}>{field.errorText}</Text>}
                     </HStack>
                     <TextInput
                       placeholder={field.placeholder}
@@ -444,9 +412,7 @@ const Map = ({
                       numberOfLines={field.numberOfLines}
                       maxLength={field.maxLength}
                       style={[
-                        field.multiline
-                          ? styles.textInputMultiline
-                          : styles.textInput,
+                        field.multiline ? styles.textInputMultiline : styles.textInput,
                         { color: textValueColor },
                       ]}
                     />
@@ -454,16 +420,14 @@ const Map = ({
                 ))}
 
                 {/* Radio Fields */}
-                {radioFields.map((field) => (
+                {radioFields.map(field => (
                   <VStack key={field.key} style={{ marginBottom: 12 }}>
                     <HStack>
                       <Text>{field.label}</Text>
-                      {field.errorText && (
-                        <Text style={styles.errorText}>{field.errorText}</Text>
-                      )}
+                      {field.errorText && <Text style={styles.errorText}>{field.errorText}</Text>}
                     </HStack>
                     <View style={styles.radioGroup}>
-                      {field.options.map((option) => (
+                      {field.options.map(option => (
                         <View key={option.value} style={styles.radioItem}>
                           <View style={styles.radioOption}>
                             <View
@@ -481,19 +445,11 @@ const Map = ({
                               onTouchEnd={() => field.onSelect(option.value)}
                             >
                               {field.selectedValue === option.value && (
-                                <View
-                                  style={[
-                                    styles.radioInner,
-                                    { backgroundColor: Colors.brand.light },
-                                  ]}
-                                />
+                                <View style={[styles.radioInner, { backgroundColor: Colors.brand.light }]} />
                               )}
                             </View>
                             <Text
-                              style={[
-                                styles.radioLabel,
-                                { color: textValueColor },
-                              ]}
+                              style={[styles.radioLabel, { color: textValueColor }]}
                               onPress={() => field.onSelect(option.value)}
                             >
                               {option.label}
@@ -513,13 +469,10 @@ const Map = ({
                 ))}
 
                 {/* Toggle Fields */}
-                {toggleFields.map((field) => (
+                {toggleFields.map(field => (
                   <View key={field.key} style={styles.toggleContainer}>
                     <Text>{field.label}</Text>
-                    <ToggleButton
-                      isEnabled={field.isEnabled}
-                      onToggle={field.onToggle}
-                    />
+                    <ToggleButton isEnabled={field.isEnabled} onToggle={field.onToggle} />
                   </View>
                 ))}
 
@@ -527,7 +480,7 @@ const Map = ({
                   style={{
                     color: Colors.semantic.error,
                     marginVertical: 8,
-                    textAlign: "center",
+                    textAlign: 'center',
                   }}
                 >
                   {errMessage}
@@ -535,25 +488,14 @@ const Map = ({
 
                 {/* Primary Action Button */}
                 {primaryButton && (
-                  <Button
-                    onPress={primaryButton.onPress}
-                    style={[{ marginTop: 20 }, primaryButton.style]}
-                  >
-                    <RNText style={styles.submitText}>
-                      {primaryButton.label}
-                    </RNText>
+                  <Button onPress={primaryButton.onPress} style={[{ marginTop: 20 }, primaryButton.style]}>
+                    <RNText style={styles.submitText}>{primaryButton.label}</RNText>
                   </Button>
                 )}
 
                 {secondaryButton && (
-                  <Button
-                    onPress={secondaryButton.onPress}
-                    style={{ marginTop: 20 }}
-                    action="secondary"
-                  >
-                    <RNText style={styles.submitText}>
-                      {secondaryButton.label}
-                    </RNText>
+                  <Button onPress={secondaryButton.onPress} style={{ marginTop: 20 }} action="secondary">
+                    <RNText style={styles.submitText}>{secondaryButton.label}</RNText>
                   </Button>
                 )}
               </VStack>
@@ -572,8 +514,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   handleContainer: {
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 8,
   },
   defaultHandle: {
@@ -585,43 +527,43 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   toggleButton: {
-    position: "absolute",
+    position: 'absolute',
     top: 20,
     left: 20,
     padding: 12,
-    alignSelf: "flex-start", // Prevents stretching to full width
+    alignSelf: 'flex-start', // Prevents stretching to full width
     borderRadius: 24, // Changed from '50%' to numeric value
     elevation: 5, // Android shadow
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 4,
   },
   head: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    width: "100%",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
     gap: 10,
     paddingBottom: 20,
   },
   textLocationName: {
-    flexDirection: "row",
-    width: "85%",
+    flexDirection: 'row',
+    width: '85%',
   },
   button: {
     borderWidth: 1,
     borderColor: Colors.icons.light,
     width: 50,
     height: 50,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   choices: {
-    flexDirection: "row",
-    alignItems: "center",
-    width: "100%",
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
     gap: 10,
   },
   quickActions: {
@@ -629,23 +571,23 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   buttons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     gap: 10,
-    width: "auto",
+    width: 'auto',
     borderRadius: 40,
   },
   textColor: {
-    color: "white",
+    color: 'white',
   },
   // Form styles copied from Map/index.tsx
   bottomSheetForm: {
     marginTop: 20,
-    width: "100%",
+    width: '100%',
   },
   bottomSheetTitle: {
     color: Colors.brand.light,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginBottom: 16,
   },
   textInput: {
@@ -654,7 +596,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
-    width: "100%",
+    width: '100%',
   },
   textInputMultiline: {
     borderWidth: 1,
@@ -662,20 +604,20 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
-    width: "100%",
+    width: '100%',
     height: 100,
-    textAlignVertical: "top",
+    textAlignVertical: 'top',
   },
   radioGroup: {
-    display: "flex",
-    flexDirection: "column",
+    display: 'flex',
+    flexDirection: 'column',
     marginTop: 12,
-    width: "100%",
+    width: '100%',
     marginBottom: 12,
   },
   radioOption: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 4,
   },
@@ -685,8 +627,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 2,
     marginRight: 12,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   radioInner: {
     width: 10,
@@ -695,25 +637,25 @@ const styles = StyleSheet.create({
   },
   radioLabel: {
     fontSize: 16,
-    fontWeight: "400",
+    fontWeight: '400',
   },
   radioItem: {
     marginBottom: 8,
   },
   toggleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
     paddingVertical: 8,
   },
   errorText: {
     color: Colors.semantic.error,
-    fontWeight: "400",
+    fontWeight: '400',
     marginLeft: 10,
   },
   submitText: {
-    color: "white",
-    fontWeight: "600",
+    color: 'white',
+    fontWeight: '600',
   },
 });

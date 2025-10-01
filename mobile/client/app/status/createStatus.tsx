@@ -28,7 +28,7 @@ import { StatusStateData, AddressState, StatusFormErrors } from '@/types/compone
 import axios from 'axios';
 import { isEqual } from 'lodash';
 import { Bookmark, Info, Navigation, SquarePen } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Animated, Linking, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAddress } from '@/API/getAddress';
@@ -45,6 +45,8 @@ export const createStatus = () => {
   const setCoords = useCoords(state => state.setCoords);
   const oneTimeLocationCoords = useCoords(state => state.oneTimeLocationCoords);
   const setOneTimeLocationCoords = useCoords(state => state.setOneTimeLocationCoords);
+  const activeStatusCoords = useCoords(state => state.activeStatusCoords);
+  const setActiveStatusCoords = useCoords(state => state.setActiveStatusCoords);
   const savedLocation: [number, number] = [120.7752839, 14.2919325]; // simulate saved location
   // const savedLocation: [number, number] | null = null; // simulate saved location
 
@@ -60,6 +62,7 @@ export const createStatus = () => {
   const [selectedCoords, setSelectedCoords] = useState<[number, number]>([0, 0]);
   const [hasUserTappedMap, setHasUserTappedMap] = useState(false); // Track if user has tapped on map
   const [isManualSelection, setIsManualSelection] = useState(false); // Track if user is making manual ButtonRadio selection
+  const isFormDataLoadingRef = useRef(false); // Track if we're loading formData coordinates
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null); // For debouncing coords address calls
   const [isGPSselection, setIsGPSselection] = useState(false); // Track if user has selected GPS option
   const debounceTimerRefGPS = useRef<NodeJS.Timeout | null>(null); // For debouncing GPS address calls
@@ -149,24 +152,34 @@ export const createStatus = () => {
     }
   }, [coords, selectedCoords, hasUserTappedMap]);
 
-  // PROBLEM HERE!
-  // everytime theres fetched data from backend, the coords will overdide the lat and lng
-  // we need to ensure that the fetched coords do not overwrite user-selected coords
   // Load form data from Zustand store on mount
   useEffect(() => {
     if (formData) {
+      console.log('📋 Loading formData coordinates - setting isFormDataLoading flag');
+
+      // Set ref flag FIRST for immediate synchronous access
+      isFormDataLoadingRef.current = true;
+      console.log('🚩 Set formData loading flag to TRUE');
+
       setCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : null);
       setSelectedCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : [0, 0]);
+      setActiveStatusCoords(true);
       setStatusForm(prev => ({
         ...prev,
         ...formData,
       }));
+
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        isFormDataLoadingRef.current = false;
+        console.log('✅ FormData loading complete - cleared isFormDataLoading flag');
+      }, 300);
     }
   }, [formData]);
 
   // Track when user taps map (coords change significantly from last selected)
   useEffect(() => {
-    if (coords && !isManualSelection) {
+    if (coords && !isManualSelection && !isFormDataLoadingRef.current) {
       // Check if this is a new map tap (coordinates changed significantly)
       const distanceThreshold = 0.001; // ~100 meters
       const latDiff = Math.abs(coords[1] - selectedCoords[1]);
@@ -174,13 +187,16 @@ export const createStatus = () => {
 
       if (latDiff > distanceThreshold || lngDiff > distanceThreshold) {
         // User tapped a new location on map
+        console.log('👆 User tapped map, new default location:', coords);
         if (authUser) {
           setAddressCoordsLoading(true);
           setHasUserTappedMap(true);
         }
+        setActiveStatusCoords(false);
         setSelectedCoords(coords); // Tapped location becomes default
-        console.log('User tapped map, new default location:', coords);
       }
+    } else if (isFormDataLoadingRef.current) {
+      console.log('📋 Ignoring coordinate change - formData is loading (ref:', isFormDataLoadingRef.current, ')');
     }
 
     // Reset manual selection flag after processing
@@ -188,6 +204,10 @@ export const createStatus = () => {
       setIsManualSelection(false);
     }
   }, [coords, selectedCoords, isManualSelection]);
+
+  useEffect(() => {
+    console.log('MapContext activeStatusCoords changed:', activeStatusCoords);
+  }, [activeStatusCoords]);
 
   // Handle GPS availability (secondary priority)
   useEffect(() => {
@@ -213,9 +233,33 @@ export const createStatus = () => {
     }));
   }, [image]);
 
+  // Initialize activeStatusCoords synchronously before component renders
+  useLayoutEffect(() => {
+    // Get the current formData from Zustand store
+    const currentFormData = useStatusFormStore.getState().formData;
+    console.log('🎯 useLayoutEffect - Initializing activeStatusCoords - formData exists:', !!currentFormData);
+
+    if (currentFormData) {
+      console.log('🟢 Component mounting WITH formData - setting activeStatusCoords to TRUE');
+      setActiveStatusCoords(true);
+    } else {
+      console.log('🔵 Component mounting WITHOUT formData - setting activeStatusCoords to FALSE');
+      setActiveStatusCoords(false);
+    }
+  }, []); // Run once before first render
+
+  // Reset coordinate states on component mount and cleanup on unmount
   useEffect(() => {
+    console.log('🔄 Component mounted - resetting location states');
     setOneTimeLocationCoords(null);
     setFollowUserLocation(false);
+    isFormDataLoadingRef.current = false; // Reset formData loading flag
+
+    // Cleanup function - reset activeStatusCoords when component unmounts
+    return () => {
+      console.log('🧹 Component unmounting - resetting activeStatusCoords to FALSE');
+      setActiveStatusCoords(false);
+    };
   }, []);
 
   // Watch for changes to errorFetching from Zustand store and update modal state
@@ -355,18 +399,6 @@ export const createStatus = () => {
     }
   }, [addressCoords?.formatted, addressGPS?.formatted, isGPSselection]);
 
-  useEffect(() => {
-    if (statusForm) {
-      console.log('Status Form updated:', JSON.stringify(statusForm, null, 2));
-    }
-  }, [statusForm]);
-
-  useEffect(() => {
-    if (formData) {
-      console.log('Form Data updated:', JSON.stringify(formData, null, 2));
-    }
-  }, [formData]);
-
   // Handle modal close with delay to prevent immediate refetch
   const handleErrorModalClose = () => {
     toggleModal('errorFetchStatus', false);
@@ -471,6 +503,7 @@ export const createStatus = () => {
         parentId: response.data?.data?.parentId,
         versionId: response.data?.data?.versionId,
       });
+      setOneTimeLocationCoords(null);
       toggleModal('submitSuccess', true);
       showAlert();
     } catch (error) {
@@ -557,7 +590,7 @@ export const createStatus = () => {
   const buttons: CustomButton[] = [
     {
       key: 'saved-location',
-      label: 'saved location',
+      label: 'Saved location',
       icon: <Bookmark size={16} color={'white'} />,
       onPress: () => {
         console.log('Loading saved location');
@@ -585,6 +618,7 @@ export const createStatus = () => {
             setFollowUserLocation(true);
           } else {
             console.warn('Failed to get current location');
+            setAddressGPSLoading(false);
           }
         } catch (error) {
           setAddressGPSLoading(false);
@@ -597,13 +631,14 @@ export const createStatus = () => {
   // ✅ Only add "current-status" if formData exists
   if (formData) {
     buttons.push({
-      key: 'current-status',
-      label: 'current status',
+      key: 'active-status',
+      label: 'Active status',
       icon: <SquarePen size={16} color={'white'} />,
       onPress: () => {
         if (formData) {
           setCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : null);
           setSelectedCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : [0, 0]);
+          setActiveStatusCoords(true);
           setStatusForm(prev => ({
             ...prev,
             ...formData,

@@ -13,7 +13,7 @@ export const configureGoogleSignIn = () => {
       hostedDomain: '',
       forceCodeForRefreshToken: true,
     });
-    console.log("✅ Google Sign-In configured successfully");
+    // console.log("✅ Google Sign-In configured successfully");
   } catch (error) {
     console.error("❌ Error configuring Google Sign-In:", error);
   }
@@ -43,7 +43,7 @@ export const setupAuthListener = (): Promise<void> => {
           await handleAuthNavigation(null);
         }
         
-        console.log("✅ Navigation handling completed");
+        // console.log("✅ Navigation handling completed");
         
       } catch (error) {
         console.error("❌ Error in auth state handler:", error);
@@ -58,7 +58,7 @@ export const setupAuthListener = (): Promise<void> => {
         
         // Fallback navigation
         try {
-          console.log("🔄 Attempting fallback navigation to sign-in");
+          // console.log("🔄 Attempting fallback navigation to sign-in");
           handleSignOutNavigation();
         } catch (fallbackError) {
           console.error("❌ Even fallback navigation failed:", fallbackError);
@@ -79,7 +79,7 @@ export const setupAuthListener = (): Promise<void> => {
 
 // Initialize authentication system
 export const initializeAuth = async (): Promise<void> => {
-  console.log("🚀 Initializing authentication system");
+  // console.log("🚀 Initializing authentication system");
   
   // Configure Google Sign-In
   configureGoogleSignIn();
@@ -87,5 +87,5 @@ export const initializeAuth = async (): Promise<void> => {
   // Set up auth listener and wait for initial state
   await setupAuthListener();
   
-  console.log("✅ Authentication system initialized");
+  // console.log("✅ Authentication system initialized");
 };

@@ -73,8 +73,8 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
         }
       );
 
-        console.log("✅ Backend response received", JSON.stringify(response.data.user, null, 2));
-        console.log("✅ isNewUser?", JSON.stringify(response.data.isNewUser, null, 2));
+        // console.log("✅ Backend response received", JSON.stringify(response.data.user, null, 2));
+        // console.log("✅ isNewUser?", JSON.stringify(response.data.isNewUser, null, 2));
 
         // Store backend response BEFORE Firebase auth state changes
         setBackendResponse({
@@ -111,7 +111,7 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
 
         // Sign out from Google
         if (isSignedIn) {
-          console.log("🔄 User is signed in with Google, proceeding to sign out");
+          // console.log("🔄 User is signed in with Google, proceeding to sign out");
           await GoogleSignin.revokeAccess();
           await GoogleSignin.signOut();
         }
@@ -137,24 +137,24 @@ export const handleLogout = async () => {
     await storage.remove('@user');
     // Set sign-out flag to indicate intentional sign-out
     await storage.set('@hasSignedOut', true);
-    console.log("✅ Storage cleared and sign-out flag set");
+    // console.log("✅ Storage cleared and sign-out flag set");
 
     // Sign out from Firebase (this will trigger the auth state listener)
     await auth.signOut();
-    console.log("✅ Firebase sign out successful");
+    // console.log("✅ Firebase sign out successful");
     
     const isSignedIn = await GoogleSignin.getCurrentUser();
 
     // Sign out from Google
     if (isSignedIn) {
-      console.log("🔄 User is signed in with Google, proceeding to sign out");
+      // console.log("🔄 User is signed in with Google, proceeding to sign out");
       await GoogleSignin.revokeAccess();
       await GoogleSignin.signOut();
     }
 
-    console.log("✅ Google sign out successful");
+    // console.log("✅ Google sign out successful");
     
-    Alert.alert("Logged Out", "You have been logged out successfully.");
+    // Alert.alert("Logged Out", "You have been logged out successfully.");
     
     // Note: Navigation will be handled by the auth state listener in firebaseAuth.ts
     navigateToSignIn()

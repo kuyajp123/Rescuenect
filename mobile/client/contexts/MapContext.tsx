@@ -1,22 +1,14 @@
-import { HoveredButton } from "@/components/components/button/Button";
-import { useMapButtonStore } from "@/components/store/useMapButton";
-import { storage } from "@/components/helper/storage";
-import { Colors } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
-import MapboxGL from "@rnmapbox/maps";
-import { useRouter } from "expo-router";
-import { ChevronLeft, MapIcon } from "lucide-react-native";
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useCoords } from "@/components/store/useCoords";
+import { HoveredButton } from '@/components/components/button/Button';
+import { useMapButtonStore } from '@/components/store/useMapButton';
+import { storage } from '@/components/helper/storage';
+import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import MapboxGL from '@rnmapbox/maps';
+import { useRouter } from 'expo-router';
+import { ChevronLeft, MapIcon } from 'lucide-react-native';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCoords } from '@/components/store/useCoords';
 
 type coordTypes = [number, number] | null;
 
@@ -40,36 +32,34 @@ export const MapProvider = ({ children }: MapProviderProps) => {
   const mapRef = useRef<MapboxGL.MapView | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
 
-  const coords = useCoords((state) => state.coords);
-  const oneTimeLocationCoords = useCoords(
-    (state) => state.oneTimeLocationCoords
-  );
-  const setCoords = useCoords((state) => state.setCoords);
-  const followUserLocation = useCoords((state) => state.followUserLocation);
+  const coords = useCoords(state => state.coords);
+  const setCoords = useCoords(state => state.setCoords);
+  const oneTimeLocationCoords = useCoords(state => state.oneTimeLocationCoords);
+  const activeStatusCoords = useCoords(state => state.activeStatusCoords);
+  const setActiveStatusCoords = useCoords(state => state.setActiveStatusCoords);
+  const followUserLocation = useCoords(state => state.followUserLocation);
 
-  const [mapStyle, setMapStyleState] = useState<MapboxGL.StyleURL>(
-    MapboxGL.StyleURL.Street
-  );
+  const [mapStyle, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
   const [showMapStyles, setShowMapStyles] = useState(false);
-  const isVisible = useMapButtonStore((state) => state.isVisible);
+  const isVisible = useMapButtonStore(state => state.isVisible);
   const router = useRouter();
   const { isDark } = useTheme();
 
   // Load saved map style from storage
+  // Debug activeStatusCoords changes
+  useEffect(() => {
+    console.log('🗺️ MapContext activeStatusCoords changed:', activeStatusCoords);
+  }, [activeStatusCoords]);
+
   useEffect(() => {
     const loadMapStyle = async () => {
       try {
-        const savedStyle = await storage.get<string>("mapStyle");
-        if (
-          savedStyle &&
-          Object.values(MapboxGL.StyleURL).includes(
-            savedStyle as MapboxGL.StyleURL
-          )
-        ) {
+        const savedStyle = await storage.get<string>('mapStyle');
+        if (savedStyle && Object.values(MapboxGL.StyleURL).includes(savedStyle as MapboxGL.StyleURL)) {
           setMapStyleState(savedStyle as MapboxGL.StyleURL);
         }
       } catch (error) {
-        console.error("Error loading map style:", error);
+        console.error('Error loading map style:', error);
       }
     };
 
@@ -81,19 +71,20 @@ export const MapProvider = ({ children }: MapProviderProps) => {
       setMapStyleState(style);
       setShowMapStyles(false);
       // Save the selected style to storage
-      await storage.set("mapStyle", style);
+      await storage.set('mapStyle', style);
     } catch (error) {
-      console.error("Error saving map style:", error);
+      console.error('Error saving map style:', error);
     }
   }, []);
 
   const toggleMapStyles = useCallback(() => {
-    setShowMapStyles((prev) => !prev);
+    setShowMapStyles(prev => !prev);
   }, []);
 
   // Function that triggers when user presses the map
   const handlePress = useCallback(
     (event: any) => {
+      setActiveStatusCoords(false);
       // Try to extract coordinates from the event
       let mapCoords = null;
 
@@ -103,15 +94,9 @@ export const MapProvider = ({ children }: MapProviderProps) => {
       } else if (event && event.coordinates) {
         mapCoords = event.coordinates;
       } else if (event && event.nativeEvent && event.nativeEvent.coordinate) {
-        mapCoords = [
-          event.nativeEvent.coordinate.longitude,
-          event.nativeEvent.coordinate.latitude,
-        ];
+        mapCoords = [event.nativeEvent.coordinate.longitude, event.nativeEvent.coordinate.latitude];
       } else {
-        console.error(
-          "Could not extract coordinates from event. Event keys:",
-          Object.keys(event || {})
-        );
+        console.error('Could not extract coordinates from event. Event keys:', Object.keys(event || {}));
         return;
       }
 
@@ -119,23 +104,26 @@ export const MapProvider = ({ children }: MapProviderProps) => {
       if (
         !mapCoords ||
         mapCoords.length !== 2 ||
-        typeof mapCoords[0] !== "number" ||
-        typeof mapCoords[1] !== "number"
+        typeof mapCoords[0] !== 'number' ||
+        typeof mapCoords[1] !== 'number'
       ) {
-        console.error("Invalid coordinates:", mapCoords);
+        console.error('Invalid coordinates:', mapCoords);
         return;
       }
 
-      console.log("Setting marker coordinate to:", mapCoords);
+      console.log('Setting marker coordinate to:', mapCoords);
 
       const markerCoordinate: [number, number] = [mapCoords[0], mapCoords[1]];
       setCoords(markerCoordinate);
+      // Always set activeStatusCoords to false when user taps a new location
+      setActiveStatusCoords(false);
+      console.log('🔵 Set activeStatusCoords to false - should turn blue');
     },
-    [setCoords]
+    [setCoords, setActiveStatusCoords]
   );
 
   const mapContainer = useMemo(() => {
-    console.log("Creating map container");
+    console.log('Creating map container with activeStatusCoords:', activeStatusCoords);
     return (
       <View style={styles.mapStyle}>
         <MapboxGL.MapView
@@ -164,51 +152,64 @@ export const MapProvider = ({ children }: MapProviderProps) => {
             //   sw: [120.6989, 14.2214],
             // }}
           />
-          <MapboxGL.VectorSource
-            id="buildingSource"
-            url="mapbox://mapbox.mapbox-streets-v8"
-          >
+          <MapboxGL.VectorSource id="buildingSource" url="mapbox://mapbox.mapbox-streets-v8">
             <MapboxGL.FillExtrusionLayer
               id="3d-buildings"
               sourceLayerID="building"
               minZoomLevel={11}
               maxZoomLevel={20}
               style={{
-                fillExtrusionColor: "#aaa",
-                fillExtrusionHeight: ["get", "height"],
-                fillExtrusionBase: ["get", "min_height"],
+                fillExtrusionColor: '#aaa',
+                fillExtrusionHeight: ['get', 'height'],
+                fillExtrusionBase: ['get', 'min_height'],
                 fillExtrusionOpacity: 0.6,
               }}
             />
           </MapboxGL.VectorSource>
-          {oneTimeLocationCoords && coords && (
-            <>
-              <MapboxGL.PointAnnotation
-                id="user-marker"
-                coordinate={oneTimeLocationCoords}
-              >
-                <View style={styles.GpsMarker} />
-              </MapboxGL.PointAnnotation>
-              <MapboxGL.PointAnnotation id="user-marker" coordinate={coords}>
-                <View style={styles.tapMarker} />
-              </MapboxGL.PointAnnotation>
-            </>
-          )}
 
-          {!coords && oneTimeLocationCoords && (
+          {oneTimeLocationCoords && (
             <MapboxGL.PointAnnotation
+              key={`user-marker-${oneTimeLocationCoords[0]}-${oneTimeLocationCoords[1]}`}
               id="user-marker"
               coordinate={oneTimeLocationCoords}
             >
               <View style={styles.GpsMarker} />
             </MapboxGL.PointAnnotation>
           )}
+          {coords &&
+            (() => {
+              const markerColor = activeStatusCoords ? Colors.semantic.success : Colors.brand.dark;
 
-          {coords && !oneTimeLocationCoords && (
-            <MapboxGL.PointAnnotation id="user-marker" coordinate={coords}>
+              return (
+                <MapboxGL.PointAnnotation
+                  key={`tap-marker-${activeStatusCoords ? 'green' : 'blue'}-${coords[0]}-${coords[1]}`}
+                  id={`tap-marker-${activeStatusCoords ? 'green' : 'blue'}-${coords[0]}-${coords[1]}`}
+                  coordinate={coords}
+                >
+                  <View style={[styles.tapMarker, { backgroundColor: markerColor }]} />
+                </MapboxGL.PointAnnotation>
+              );
+            })()}
+
+          {/* {coords && (
+            <MapboxGL.PointAnnotation
+              key={`tap-marker-${coords[0]}-${coords[1]}`}
+              id={`tap-marker-${coords[0]}-${coords[1]}`}
+              coordinate={coords}
+            >
               <View style={styles.tapMarker} />
             </MapboxGL.PointAnnotation>
           )}
+
+          {activeStatusCoords && coords && (
+            <MapboxGL.PointAnnotation
+              key={`active-marker-${coords[0]}-${coords[1]}`}
+              id={`active-marker-${coords[0]}-${coords[1]}`}
+              coordinate={coords}
+            >
+              <View style={[styles.tapMarker, { backgroundColor: Colors.semantic.success }]} />
+            </MapboxGL.PointAnnotation>
+          )} */}
         </MapboxGL.MapView>
 
         {isVisible && (
@@ -220,16 +221,11 @@ export const MapProvider = ({ children }: MapProviderProps) => {
               style={[
                 styles.toggleButton,
                 {
-                  backgroundColor: isDark
-                    ? Colors.border.dark
-                    : Colors.border.light,
+                  backgroundColor: isDark ? Colors.border.dark : Colors.border.light,
                 },
               ]}
             >
-              <ChevronLeft
-                size={24}
-                color={isDark ? Colors.border.light : Colors.border.dark}
-              />
+              <ChevronLeft size={24} color={isDark ? Colors.border.light : Colors.border.dark} />
             </HoveredButton>
 
             <HoveredButton
@@ -237,16 +233,11 @@ export const MapProvider = ({ children }: MapProviderProps) => {
               style={[
                 styles.mapStyleButton,
                 {
-                  backgroundColor: isDark
-                    ? Colors.border.dark
-                    : Colors.border.light,
+                  backgroundColor: isDark ? Colors.border.dark : Colors.border.light,
                 },
               ]}
             >
-              <MapIcon
-                size={24}
-                color={isDark ? Colors.border.light : Colors.border.dark}
-              />
+              <MapIcon size={24} color={isDark ? Colors.border.light : Colors.border.dark} />
             </HoveredButton>
 
             {showMapStyles && (
@@ -254,34 +245,26 @@ export const MapProvider = ({ children }: MapProviderProps) => {
                 style={[
                   styles.mapStyleSelector,
                   {
-                    backgroundColor: isDark
-                      ? Colors.background.dark
-                      : Colors.background.light,
-                    borderColor: isDark
-                      ? Colors.border.dark
-                      : Colors.border.light,
+                    backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+                    borderColor: isDark ? Colors.border.dark : Colors.border.light,
                   },
                 ]}
               >
                 {[
-                  { label: "Street", value: MapboxGL.StyleURL.Street },
+                  { label: 'Street', value: MapboxGL.StyleURL.Street },
                   {
-                    label: "Satellite",
+                    label: 'Satellite',
                     value: MapboxGL.StyleURL.SatelliteStreet,
                   },
-                  { label: "Dark", value: MapboxGL.StyleURL.Dark },
-                ].map((option) => (
+                  { label: 'Dark', value: MapboxGL.StyleURL.Dark },
+                ].map(option => (
                   <TouchableOpacity
                     key={option.value}
                     style={[
                       styles.mapStyleOption,
                       {
                         backgroundColor:
-                          mapStyle === option.value
-                            ? isDark
-                              ? Colors.brand.dark
-                              : Colors.brand.light
-                            : "transparent",
+                          mapStyle === option.value ? (isDark ? Colors.brand.dark : Colors.brand.light) : 'transparent',
                       },
                     ]}
                     onPress={() => setMapStyle(option.value)}
@@ -290,12 +273,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
                       style={[
                         styles.mapStyleText,
                         {
-                          color:
-                            mapStyle === option.value
-                              ? "white"
-                              : isDark
-                              ? Colors.text.dark
-                              : Colors.text.light,
+                          color: mapStyle === option.value ? 'white' : isDark ? Colors.text.dark : Colors.text.light,
                         },
                       ]}
                     >
@@ -318,6 +296,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
     isDark,
     isVisible,
     followUserLocation,
+    activeStatusCoords,
   ]);
 
   const value = {
@@ -337,7 +316,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
 export const useMap = () => {
   const context = useContext(MapContext);
   if (!context) {
-    throw new Error("useMap must be used within MapProvider");
+    throw new Error('useMap must be used within MapProvider');
   }
   return context;
 };
@@ -358,9 +337,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: Colors.brand.dark,
     borderWidth: 2,
-    borderColor: "#FFFFFF",
-    justifyContent: "center",
-    alignItems: "center",
+    borderColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   GpsMarker: {
     width: 20,
@@ -368,45 +347,45 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: Colors.semantic.error,
     borderWidth: 2,
-    borderColor: "#FFFFFF",
-    justifyContent: "center",
-    alignItems: "center",
+    borderColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   toggleButton: {
-    position: "absolute",
+    position: 'absolute',
     top: 25,
     left: 20,
     padding: 12,
-    alignSelf: "flex-start", // Prevents stretching to full width
+    alignSelf: 'flex-start', // Prevents stretching to full width
     borderRadius: 24, // Changed from '50%' to numeric value
     elevation: 5, // Android shadow
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 4,
   },
   mapStyleButton: {
-    position: "absolute",
+    position: 'absolute',
     top: 80,
     right: 20,
     padding: 12,
-    alignSelf: "flex-start",
+    alignSelf: 'flex-start',
     borderRadius: 24,
     elevation: 5,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 4,
   },
   mapStyleSelector: {
-    position: "absolute",
+    position: 'absolute',
     top: 130,
     right: 20,
     borderRadius: 12,
     borderWidth: 1,
     padding: 8,
     elevation: 5,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 4,
@@ -420,6 +399,6 @@ const styles = StyleSheet.create({
   },
   mapStyleText: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: '500',
   },
 });
