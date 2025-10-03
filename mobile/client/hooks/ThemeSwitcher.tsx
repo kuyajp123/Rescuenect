@@ -1,55 +1,48 @@
-import { ToggleButton } from '@/components/components/button/Button';
 import { useTheme } from '@/contexts/ThemeContext';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { CustomRadio } from '@/components/ui/CustomRadio';
+import type { ColorMode } from '@/contexts/ThemeContext';
+import { Text } from '@/components/ui/text';
 
 const ThemeSwitcher = () => {
-  const { setColorMode, isDark } = useTheme();
+  const { setColorMode, isDark, colorMode } = useTheme();
 
-  const toggleTheme = () => {
-    setColorMode(isDark ? 'light' : 'dark');
+  const options = [
+    { label: 'On', value: 'dark' as ColorMode },
+    { label: 'Off', value: 'light' as ColorMode },
+    { label: 'System', value: 'system' as ColorMode },
+  ];
+
+  const handleSelect = (value: string | number) => {
+    setColorMode(value as ColorMode);
   };
 
   return (
     <View>
-      <ToggleButton 
-        isEnabled={isDark}
-        onToggle={toggleTheme}
-      />
+      {options.map(option => (
+        <CustomRadio
+          key={option.value}
+          style={styles.radioButton}
+          label={option.label}
+          value={option.value}
+          selectedValue={colorMode}
+          onSelect={handleSelect}
+          isDark={isDark}
+        />
+      ))}
+      {colorMode === 'system' && (
+        <Text emphasis="light" size="xs" style={{ marginTop: 4 }}>
+          Please restart the app to apply the System theme mode.
+        </Text>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  labelContainer: {
-    flex: 1,
-    marginRight: 16,
-  },
-  label: {
-    marginBottom: 4,
-  },
-  description: {
-    opacity: 0.7,
-  },
-  toggleButton: {
-    width: 50,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  toggleIndicator: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    position: 'absolute',
+  radioButton: {
+    marginVertical: 8,
   },
 });
 

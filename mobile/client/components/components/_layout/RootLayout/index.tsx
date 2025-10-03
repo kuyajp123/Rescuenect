@@ -5,9 +5,10 @@ import { useFontSize } from '@/contexts/FontSizeContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFonts } from 'expo-font';
 import { Stack, useRouter } from 'expo-router';
-import { Bell, ChevronLeft } from 'lucide-react-native';
+import { Bell } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { HeaderBackButton } from '@/components/components/button/Button';
 
 function RootLayoutContent() {
   const { isDark, isLoading: themeLoading } = useTheme();
@@ -17,22 +18,14 @@ function RootLayoutContent() {
   const [isMounted, setIsMounted] = useState(false);
 
   // Enhanced back button component
-  const BackButton = () => {
-    return (
-      <IconButton 
-        onPress={() => router.back()}
-      >
-        <ChevronLeft size={24} color={isDark ? Colors.text.dark : Colors.text.light} />
-      </IconButton>
-    );
+  const handleBack = () => {
+    router.back();
   };
 
   // Enhanced notification button component
   const NotificationButton = () => {
     return (
-      <IconButton 
-        onPress={() => router.push('/notification')}
-      >
+      <IconButton onPress={() => router.push('/notification')}>
         <Bell size={20} color={isDark ? Colors.text.dark : Colors.text.light} />
       </IconButton>
     );
@@ -73,32 +66,32 @@ function RootLayoutContent() {
 
   return (
     <GluestackUIProvider mode={gluestackMode}>
-      <Stack 
+      <Stack
         screenOptions={{
           gestureEnabled: true,
         }}
       >
-        <Stack.Screen 
-          name="index" 
+        <Stack.Screen
+          name="index"
           options={{
-            headerShown: false, 
-          }} 
+            headerShown: false,
+          }}
         />
-        <Stack.Screen 
-          name="(tabs)" 
+        <Stack.Screen
+          name="(tabs)"
           options={{
-            title: 'Rescuenect', 
-            headerShown: true, 
+            title: 'Rescuenect',
+            headerShown: true,
             animation: 'fade',
             animationDuration: 500,
             headerTintColor: isDark ? Colors.text.dark : Colors.brand.light,
-            headerStyle: { 
+            headerStyle: {
               backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
             },
-            headerTitleStyle: { 
-              fontSize: 24, 
+            headerTitleStyle: {
+              fontSize: 24,
               fontWeight: 'bold',
-              color: isDark ? Colors.text.dark : Colors.brand.light 
+              color: isDark ? Colors.text.dark : Colors.brand.light,
             },
             headerShadowVisible: false,
             headerRight: () => (
@@ -106,31 +99,31 @@ function RootLayoutContent() {
                 <NotificationButton />
               </View>
             ),
-          }} 
+          }}
         />
-        <Stack.Screen 
-          name="notification" 
-          options={{ 
+        <Stack.Screen
+          name="notification"
+          options={{
             headerShown: true,
             title: '',
             headerTintColor: isDark ? Colors.text.dark : Colors.text.light,
-            headerStyle: { 
+            headerStyle: {
               backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
             },
-            headerTitleStyle: { 
-              fontSize: 24, 
+            headerTitleStyle: {
+              fontSize: 24,
               fontWeight: 'bold',
               color: isDark ? Colors.text.dark : Colors.brand.light,
             },
             headerShadowVisible: false,
-            headerLeft: () => <BackButton />,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
             animation: 'slide_from_right',
             animationDuration: 150,
             animationTypeForReplace: 'push',
           }}
         />
         <Stack.Screen
-          name='post'
+          name="post"
           options={{
             headerShown: true,
             title: '',
@@ -138,12 +131,12 @@ function RootLayoutContent() {
               backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
             },
             headerShadowVisible: false,
-            headerLeft: () => <BackButton />,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
             animation: 'none',
           }}
         />
         <Stack.Screen
-          name='settings'
+          name="settings"
           options={{
             headerShown: true,
             title: '',
@@ -151,12 +144,12 @@ function RootLayoutContent() {
               backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
             },
             headerShadowVisible: false,
-            headerLeft: () => <BackButton />,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
             animation: 'none',
           }}
         />
         <Stack.Screen
-          name='status'
+          name="status"
           options={{
             headerShown: false,
             title: '',
@@ -164,12 +157,12 @@ function RootLayoutContent() {
               backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
             },
             headerShadowVisible: false,
-            headerLeft: () => <BackButton />,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
             animation: 'none',
           }}
         />
         <Stack.Screen
-          name='Weather'
+          name="Weather"
           options={{
             headerShown: false,
             title: '',
@@ -177,12 +170,12 @@ function RootLayoutContent() {
               backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
             },
             headerShadowVisible: false,
-            headerLeft: () => <BackButton />,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
             animation: 'none',
           }}
         />
         <Stack.Screen
-          name='auth'
+          name="auth"
           options={{
             headerShown: false,
             title: '',
@@ -190,7 +183,7 @@ function RootLayoutContent() {
               backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
             },
             headerShadowVisible: false,
-            headerLeft: () => <BackButton />,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
             animation: 'none',
           }}
         />
@@ -200,7 +193,7 @@ function RootLayoutContent() {
   );
 }
 
-export default RootLayoutContent
+export default RootLayoutContent;
 
 const styles = StyleSheet.create({
   backButton: {

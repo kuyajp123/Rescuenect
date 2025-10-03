@@ -1,14 +1,14 @@
-import { HoveredButton } from '@/components/components/button/Button'
-import HighContrastOption from '@/hooks/HighContrastOption'
-import { Body } from '@/components/ui/layout/Body'
-import { Text } from '@/components/ui/text'
-import { ColorCombinations, Colors } from '@/constants/Colors'
-import { useHighContrast } from '@/contexts/HighContrastContext'
-import { useTheme } from '@/contexts/ThemeContext'
-import { router } from 'expo-router'
-import { AArrowUp, ChevronRight, TypeOutline } from 'lucide-react-native'
-import React from 'react'
-import { StyleSheet, View } from 'react-native'
+import HighContrastOption from '@/hooks/HighContrastOption';
+import { Body } from '@/components/ui/layout/Body';
+import { Text } from '@/components/ui/text';
+import { ColorCombinations, Colors } from '@/constants/Colors';
+import { useHighContrast } from '@/contexts/HighContrastContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import { router } from 'expo-router';
+import { AArrowUp, TypeOutline } from 'lucide-react-native';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import NavigationButton from '@/components/components/button/NavigationButton';
 
 export const index = () => {
   const { isDark } = useTheme();
@@ -16,58 +16,44 @@ export const index = () => {
 
   return (
     <Body style={styles.bodyContainer}>
-      <Text size='3xl' bold style={styles.titleText}>Settings</Text>
-      
+      <Text size="3xl" bold style={styles.titleText}>
+        Settings
+      </Text>
+
       <View>
         <View style={styles.sectionTitle}>
-          <Text emphasis='light'>Accessibility</Text>
+          <Text emphasis="light">Accessibility</Text>
         </View>
-        
-        <View style={[
-          styles.sectionContainer,
-          {
-            borderColor: isDark ? Colors.border.dark : Colors.border.light,
-            backgroundColor: isDark ? ColorCombinations.statusTemplate.dark : ColorCombinations.statusTemplate.light,
-          }
-        ]}>
-          <HoveredButton style={styles.menuButton}
+
+        <View
+          style={[
+            styles.sectionContainer,
+            {
+              borderColor: isDark ? Colors.border.dark : Colors.border.light,
+              backgroundColor: isDark ? ColorCombinations.statusTemplate.dark : ColorCombinations.statusTemplate.light,
+            },
+          ]}
+        >
+          <NavigationButton
+            label="Font size"
             onPress={() => router.push('settings/font-size' as any)}
-            >
-              <View style={styles.menuButtonContent}>
-                <AArrowUp size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-                <View style={styles.textContainer}>
-                  <Text>Font size</Text>
-                  <Text emphasis='light' size='2xs' style={styles.descriptionText}>Change the size of the text to make it easier to read.</Text>
-                </View>
-              </View>
-              <View>
-                <ChevronRight size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-              </View>
-          </HoveredButton>
-          <HoveredButton 
+            description="Change the size of the text to make it easier to read."
+            iconLeft={<AArrowUp size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
+          />
+          <NavigationButton
+            label="Text Contrast"
             onPress={toggleHighContrast}
-            style={styles.contrastButton}>
-              <View style={styles.menuButtonContent}>
-                <TypeOutline size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-                <View style={styles.textContainer}>
-                  <Text>Text Contrast</Text>
-                  <Text emphasis='light' size='2xs' style={styles.descriptionText}>Adjust the contrast of text to improve readability.</Text>
-                </View>
-              </View>
-              <View>
-                <View style={styles.highContrastContainer}>
-                  <HighContrastOption />
-                </View>
-              </View>
-          </HoveredButton>
+            description="Adjust the contrast of text to improve readability."
+            iconLeft={<TypeOutline size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
+            iconRight={<HighContrastOption />}
+          />
         </View>
       </View>
-      
     </Body>
-  )
-}
+  );
+};
 
-export default index
+export default index;
 
 const styles = StyleSheet.create({
   bodyContainer: {
@@ -110,4 +96,4 @@ const styles = StyleSheet.create({
   highContrastContainer: {
     pointerEvents: 'none',
   },
-})
+});

@@ -1,7 +1,7 @@
 import GoogleIMG from '@/assets/images/google/google.svg';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
-import { ChevronRight } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
@@ -76,9 +76,7 @@ export const Button = ({
   // Variant styles
   let variantStyle = '';
   if (variant === 'outline') {
-    variantStyle = `bg-transparent border-2 ${
-      isDark ? 'border-text_dark-500' : 'border-zinc-400'
-    }`;
+    variantStyle = `bg-transparent border-2 ${isDark ? 'border-text_dark-500' : 'border-zinc-400'}`;
   } else if (variant === 'link') {
     variantStyle = 'bg-transparent';
   }
@@ -96,113 +94,81 @@ export const Button = ({
 };
 
 // Predefined Button Components
-export const OutlineButton = ({ 
-  onPress, 
-  children, 
+export const OutlineButton = ({
+  onPress,
+  children,
   isDark = false,
   style,
-  className = ''
-}: { 
-  onPress?: () => void; 
-  children?: React.ReactNode; 
+  className = '',
+}: {
+  onPress?: () => void;
+  children?: React.ReactNode;
   isDark?: boolean;
   style?: object;
   className?: string;
 }) => (
-  <Button
-    variant="outline"
-    onPress={onPress}
-    isDark={isDark}
-    style={style}
-    className={className}
-  >
-    <Text className={'dark:text-text_dark-500 text-text_light-500'}>
-      {children || 'Outline Button'}
-    </Text>
+  <Button variant="outline" onPress={onPress} isDark={isDark} style={style} className={className}>
+    <Text className={'dark:text-text_dark-500 text-text_light-500'}>{children || 'Outline Button'}</Text>
   </Button>
 );
 
-export const PrimaryButton = ({ 
-  onPress, 
-  children, 
-  style,
-  className = ''
-}: { 
-  onPress?: () => void; 
-  children?: React.ReactNode; 
-  style?: object;
-  className?: string;
-}) => (
-  <Button
-    action="primary"
-    variant="solid"
-    style={style}
-    onPress={onPress}
-    className={className}
-  >
-    <Text className="text-white font-semibold">
-      {children || 'Primary Button'}
-    </Text>
-  </Button>
-);
-
-export const ErrorButton = ({ 
-  onPress, 
-  children, 
-  style,
-  className = ''
-}: { 
-  onPress?: () => void; 
-  children?: React.ReactNode; 
-  style?: object;
-  className?: string;
-}) => (
-  <Button
-    action="error"
-    variant="solid"
-    style={style}
-    onPress={onPress}
-    className={className}
-  >
-    <Text className="text-white font-semibold">
-      {children || 'Error Button'}
-    </Text>
-  </Button>
-);
-
-export const WarningButton = ({ 
-  onPress, 
-  children, 
-  style,
-  className = ''
-}: { 
-  onPress?: () => void; 
-  children?: React.ReactNode; 
-  style?: object;
-  className?: string;
-}) => (
-  <Button
-    action="warning"
-    variant="solid"
-    style={style}
-    onPress={onPress}
-    className={className}
-  >
-    <Text className="text-white font-semibold">
-      {children || 'Warning Button'}
-    </Text>
-  </Button>
-);
-
-export const SuccessButton = ({ 
-  onPress, 
-  children, 
+export const PrimaryButton = ({
+  onPress,
+  children,
   style,
   className = '',
-  showIcon = true
-}: { 
-  onPress?: () => void; 
-  children?: React.ReactNode; 
+}: {
+  onPress?: () => void;
+  children?: React.ReactNode;
+  style?: object;
+  className?: string;
+}) => (
+  <Button action="primary" variant="solid" style={style} onPress={onPress} className={className}>
+    <Text className="text-white font-semibold">{children || 'Primary Button'}</Text>
+  </Button>
+);
+
+export const ErrorButton = ({
+  onPress,
+  children,
+  style,
+  className = '',
+}: {
+  onPress?: () => void;
+  children?: React.ReactNode;
+  style?: object;
+  className?: string;
+}) => (
+  <Button action="error" variant="solid" style={style} onPress={onPress} className={className}>
+    <Text className="text-white font-semibold">{children || 'Error Button'}</Text>
+  </Button>
+);
+
+export const WarningButton = ({
+  onPress,
+  children,
+  style,
+  className = '',
+}: {
+  onPress?: () => void;
+  children?: React.ReactNode;
+  style?: object;
+  className?: string;
+}) => (
+  <Button action="warning" variant="solid" style={style} onPress={onPress} className={className}>
+    <Text className="text-white font-semibold">{children || 'Warning Button'}</Text>
+  </Button>
+);
+
+export const SuccessButton = ({
+  onPress,
+  children,
+  style,
+  className = '',
+  showIcon = true,
+}: {
+  onPress?: () => void;
+  children?: React.ReactNode;
   style?: object;
   className?: string;
   showIcon?: boolean;
@@ -214,53 +180,57 @@ export const SuccessButton = ({
     onPress={onPress}
     className={className}
   >
-    <Text className="text-white font-semibold">
-      {children || 'Success Button'}
-    </Text>
+    <Text className="text-white font-semibold">{children || 'Success Button'}</Text>
     {showIcon && <ChevronRight size={24} color={'#FFFFFF'} />}
   </Button>
 );
 
-export const CustomOutlineButton = ({ 
-  onPress, 
-  children, 
+export const CustomOutlineButton = ({
+  onPress,
+  children,
   color = Colors.semantic?.success || '#4CAF50',
   style,
-  className = ''
-}: { 
-  onPress?: () => void; 
-  children?: React.ReactNode; 
+  className = '',
+}: {
+  onPress?: () => void;
+  children?: React.ReactNode;
   color?: string;
   style?: object;
   className?: string;
 }) => (
   <Button
-    variant='outline'
+    variant="outline"
     style={{ borderColor: color, borderWidth: 2, ...style }}
     onPress={onPress}
     className={className}
   >
-    <Text style={{ color }}>
-      {children || 'Custom Button'}
-    </Text>
+    <Text style={{ color }}>{children || 'Custom Button'}</Text>
   </Button>
 );
 
 export const HoveredButton = ({ children, style, onPress }: ButtonProps) => {
-    const { isDark } = useTheme();
+  const { isDark } = useTheme();
 
-    return (
-      <Pressable 
-        android_ripple={{ color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
-        onPress={onPress}
-        style={[style]}
-      >
-        {children}
-      </Pressable>
-    );
-  };
+  return (
+    <Pressable
+      android_ripple={{ color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
+      onPress={onPress}
+      style={[style]}
+    >
+      {children}
+    </Pressable>
+  );
+};
 
-export const IconButton = ({ children, onPress, style }: { children?: React.ReactNode; onPress: () => void; style?: object }) => {
+export const IconButton = ({
+  children,
+  onPress,
+  style,
+}: {
+  children?: React.ReactNode;
+  onPress: () => void;
+  style?: object;
+}) => {
   const [isPressed, setIsPressed] = useState(false);
   const { isDark } = useTheme();
 
@@ -273,12 +243,10 @@ export const IconButton = ({ children, onPress, style }: { children?: React.Reac
         {
           borderRadius: 50,
           padding: 8,
-          backgroundColor: isPressed 
-              ? (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)')
-              : 'transparent',
-            transform: [{ scale: isPressed ? 0.95 : 1 }],
+          backgroundColor: isPressed ? (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)') : 'transparent',
+          transform: [{ scale: isPressed ? 0.95 : 1 }],
         },
-        style
+        style,
       ]}
     >
       {children}
@@ -286,14 +254,14 @@ export const IconButton = ({ children, onPress, style }: { children?: React.Reac
   );
 };
 
-export const ToggleButton = ({ 
-  isEnabled, 
-  onToggle, 
-  style 
-}: { 
-  isEnabled: boolean; 
-  onToggle: () => void; 
-  style?: object; 
+export const ToggleButton = ({
+  isEnabled,
+  onToggle,
+  style,
+}: {
+  isEnabled: boolean;
+  onToggle: () => void;
+  style?: object;
 }) => {
   const { isDark } = useTheme();
 
@@ -305,10 +273,14 @@ export const ToggleButton = ({
       justifyContent: 'center' as const,
       position: 'relative' as const,
       backgroundColor: isEnabled
-        ? (isDark ? Colors.brand.dark : Colors.brand.light)
-        : (isDark ? Colors.border.dark : '#767577'),
+        ? isDark
+          ? Colors.brand.dark
+          : Colors.brand.light
+        : isDark
+        ? Colors.border.dark
+        : '#767577',
     },
-    style
+    style,
   ];
 
   const toggleIndicatorStyle = {
@@ -316,45 +288,41 @@ export const ToggleButton = ({
     height: 26,
     borderRadius: 13,
     position: 'absolute' as const,
-    backgroundColor: isEnabled
-      ? '#f4f3f4'
-      : (isDark ? Colors.text.dark : '#f4f3f4'),
+    backgroundColor: isEnabled ? '#f4f3f4' : isDark ? Colors.text.dark : '#f4f3f4',
     transform: [{ translateX: isEnabled ? 22 : 2 }],
   };
 
   return (
-    <Pressable 
-      style={toggleButtonStyle}
-      onPress={onToggle}
-      android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
-    >
+    <Pressable style={toggleButtonStyle} onPress={onToggle} android_ripple={{ color: 'rgba(0,0,0,0.1)' }}>
       <View style={toggleIndicatorStyle} />
     </Pressable>
   );
 };
 
-export const GoogleButtonComponent = ({ 
-  onPress, 
-  disabled = false 
-}: { 
-  onPress: () => void; 
-  disabled?: boolean; 
-}) => {
+export const GoogleButtonComponent = ({ onPress, disabled = false }: { onPress: () => void; disabled?: boolean }) => {
   return (
     <Button
       onPress={disabled ? undefined : onPress}
-      style={{ 
-        opacity: disabled ? 0.6 : 1 
+      style={{
+        opacity: disabled ? 0.6 : 1,
       }}
     >
-      <GoogleIMG  />
-      <Text style={{ color: 'white' }}>
-        {disabled ? 'Signing in...' : 'Sign in with Google'}
-      </Text>
+      <GoogleIMG />
+      <Text style={{ color: 'white' }}>{disabled ? 'Signing in...' : 'Sign in with Google'}</Text>
     </Button>
-  )
-}
+  );
+};
 
+// header back button
+export const HeaderBackButton = ({ router }: { router: any }) => {
+  const { isDark } = useTheme();
+
+  return (
+    <IconButton onPress={router}>
+      <ChevronLeft size={24} color={isDark ? Colors.text.dark : Colors.text.light} />
+    </IconButton>
+  );
+};
 
 // Usage Examples:
 /*

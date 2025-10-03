@@ -27,25 +27,27 @@ import { Colors } from '@/constants/Colors';
 import { StatusStateData, AddressState, StatusFormErrors } from '@/types/components';
 import axios from 'axios';
 import { isEqual } from 'lodash';
-import { Bookmark, Info, Navigation, SquarePen } from 'lucide-react-native';
+import { Bookmark, Ellipsis, Info, Navigation, Settings, SquarePen, Trash } from 'lucide-react-native';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Animated, Linking, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAddress } from '@/API/getAddress';
+import { useTheme } from '@/contexts/ThemeContext';
+import { navigateToStatusSettings } from '@/routes/route';
 
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
   const scaleValue = useRef(new Animated.Value(0)).current;
   const image = useImagePickerStore(state => state.image);
-  const [formErrors, setFormErrors] = useState<StatusFormErrors>({});
   const isOnline = useNetwork(state => state.isOnline);
+  const { isDark } = useTheme();
   const { authUser } = useAuth();
 
+  // Coords states
   const coords = useCoords(state => state.coords);
   const setCoords = useCoords(state => state.setCoords);
   const oneTimeLocationCoords = useCoords(state => state.oneTimeLocationCoords);
   const setOneTimeLocationCoords = useCoords(state => state.setOneTimeLocationCoords);
-  const activeStatusCoords = useCoords(state => state.activeStatusCoords);
   const setActiveStatusCoords = useCoords(state => state.setActiveStatusCoords);
   const savedLocation: [number, number] = [120.7752839, 14.2919325]; // simulate saved location
   // const savedLocation: [number, number] | null = null; // simulate saved location
@@ -58,6 +60,7 @@ export const createStatus = () => {
   const setAddressCoordsLoading = useGetAddress(state => state.setAddressCoordsLoading);
   const setAddressGPSLoading = useGetAddress(state => state.setAddressGPSLoading);
 
+  // settings states
   const setFollowUserLocation = useCoords(state => state.setFollowUserLocation);
   const [selectedCoords, setSelectedCoords] = useState<[number, number]>([0, 0]);
   const [hasUserTappedMap, setHasUserTappedMap] = useState(false); // Track if user has tapped on map
@@ -67,24 +70,15 @@ export const createStatus = () => {
   const [isGPSselection, setIsGPSselection] = useState(false); // Track if user has selected GPS option
   const debounceTimerRefGPS = useRef<NodeJS.Timeout | null>(null); // For debouncing GPS address calls
 
+  // Form related states
   const [submitStatusLoading, setSubmitStatusLoading] = useState(false);
   const formData = useStatusFormStore(state => state.formData);
   const setFormData = useStatusFormStore(state => state.setFormData);
   const isLoading = useStatusFormStore(state => state.isLoading);
   const setLoadingFetch = useStatusFormStore(state => state.setLoading);
+  const [formErrors, setFormErrors] = useState<StatusFormErrors>({});
   const errorFetching = useStatusFormStore(state => state.error);
   const setErrorFetching = useStatusFormStore(state => state.setError);
-
-  const [modals, setModals] = useState({
-    noChanges: false,
-    errorFetchStatus: errorFetching,
-    noNetwork: false,
-    submitSuccess: false,
-    submitFailure: false,
-  });
-  const toggleModal = (name: keyof typeof modals, value: boolean) => {
-    setModals(prev => ({ ...prev, [name]: value }));
-  };
 
   const [statusForm, setStatusForm] = useState<StatusStateData>({
     uid: authUser?.uid || '',
@@ -101,6 +95,23 @@ export const createStatus = () => {
     shareContact: true,
     expirationDuration: 24,
   });
+
+  const [modals, setModals] = useState({
+    noChanges: false,
+    errorFetchStatus: errorFetching,
+    noNetwork: false,
+    submitSuccess: false,
+    submitFailure: false,
+  });
+  const toggleModal = (name: keyof typeof modals, value: boolean) => {
+    setModals(prev => ({ ...prev, [name]: value }));
+  };
+
+  // useEffect(() => {
+  //   if (formData) {
+  //     console.log('Form data loaded:', JSON.stringify(formData, null, 2));
+  //   }
+  // }, [formData]);
 
   // Auto hide after 3 seconds
   useEffect(() => {
@@ -155,11 +166,8 @@ export const createStatus = () => {
   // Load form data from Zustand store on mount
   useEffect(() => {
     if (formData) {
-      console.log('📋 Loading formData coordinates - setting isFormDataLoading flag');
-
       // Set ref flag FIRST for immediate synchronous access
       isFormDataLoadingRef.current = true;
-      console.log('🚩 Set formData loading flag to TRUE');
 
       setCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : null);
       setSelectedCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : [0, 0]);
@@ -172,7 +180,6 @@ export const createStatus = () => {
       // Reset the flag after a short delay
       setTimeout(() => {
         isFormDataLoadingRef.current = false;
-        console.log('✅ FormData loading complete - cleared isFormDataLoading flag');
       }, 300);
     }
   }, [formData]);
@@ -196,7 +203,7 @@ export const createStatus = () => {
         setSelectedCoords(coords); // Tapped location becomes default
       }
     } else if (isFormDataLoadingRef.current) {
-      console.log('📋 Ignoring coordinate change - formData is loading (ref:', isFormDataLoadingRef.current, ')');
+      // 📋 Ignoring coordinate change - formData is loading
     }
 
     // Reset manual selection flag after processing
@@ -204,10 +211,6 @@ export const createStatus = () => {
       setIsManualSelection(false);
     }
   }, [coords, selectedCoords, isManualSelection]);
-
-  useEffect(() => {
-    console.log('MapContext activeStatusCoords changed:', activeStatusCoords);
-  }, [activeStatusCoords]);
 
   // Handle GPS availability (secondary priority)
   useEffect(() => {
@@ -237,27 +240,22 @@ export const createStatus = () => {
   useLayoutEffect(() => {
     // Get the current formData from Zustand store
     const currentFormData = useStatusFormStore.getState().formData;
-    console.log('🎯 useLayoutEffect - Initializing activeStatusCoords - formData exists:', !!currentFormData);
 
     if (currentFormData) {
-      console.log('🟢 Component mounting WITH formData - setting activeStatusCoords to TRUE');
       setActiveStatusCoords(true);
     } else {
-      console.log('🔵 Component mounting WITHOUT formData - setting activeStatusCoords to FALSE');
       setActiveStatusCoords(false);
     }
   }, []); // Run once before first render
 
   // Reset coordinate states on component mount and cleanup on unmount
   useEffect(() => {
-    console.log('🔄 Component mounted - resetting location states');
     setOneTimeLocationCoords(null);
     setFollowUserLocation(false);
     isFormDataLoadingRef.current = false; // Reset formData loading flag
 
     // Cleanup function - reset activeStatusCoords when component unmounts
     return () => {
-      console.log('🧹 Component unmounting - resetting activeStatusCoords to FALSE');
       setActiveStatusCoords(false);
     };
   }, []);
@@ -462,7 +460,6 @@ export const createStatus = () => {
     setSubmitStatusLoading(true);
 
     if (isEqual(statusForm, formData)) {
-      console.log('No changes detected in the form, skipping submission.');
       toggleModal('noChanges', true);
       setSubmitStatusLoading(false);
       return;
@@ -470,7 +467,6 @@ export const createStatus = () => {
 
     // If offline, skip submission but save to store
     if (!isOnline) {
-      console.log('🔄 Triggering noNetwork modal...');
       toggleModal('noNetwork', true);
       setSubmitStatusLoading(false);
       return;
@@ -571,20 +567,20 @@ export const createStatus = () => {
   ];
 
   // Define toggle fields
-  const toggleFields: ToggleField[] = [
-    {
-      key: 'shareLocation',
-      label: 'Share my Location',
-      isEnabled: statusForm.shareLocation,
-      onToggle: () => handleInputChange('shareLocation', !statusForm.shareLocation),
-    },
-    {
-      key: 'shareContact',
-      label: 'Share my Contact Number',
-      isEnabled: statusForm.shareContact,
-      onToggle: () => handleInputChange('shareContact', !statusForm.shareContact),
-    },
-  ];
+  // const toggleFields: ToggleField[] = [
+  //   {
+  //     key: 'shareLocation',
+  //     label: 'Share my Location',
+  //     isEnabled: statusForm.shareLocation,
+  //     onToggle: () => handleInputChange('shareLocation', !statusForm.shareLocation),
+  //   },
+  //   {
+  //     key: 'shareContact',
+  //     label: 'Share my Contact Number',
+  //     isEnabled: statusForm.shareContact,
+  //     onToggle: () => handleInputChange('shareContact', !statusForm.shareContact),
+  //   },
+  // ];
 
   // Define quick action buttons
   const buttons: CustomButton[] = [
@@ -593,11 +589,9 @@ export const createStatus = () => {
       label: 'Saved location',
       icon: <Bookmark size={16} color={'white'} />,
       onPress: () => {
-        console.log('Loading saved location');
         if (savedLocation) {
           setCoords(savedLocation);
           setHasUserTappedMap(false);
-          console.log('Set saved location as coords:', savedLocation);
         }
       },
     },
@@ -606,7 +600,6 @@ export const createStatus = () => {
       label: 'Turn on location',
       icon: <Navigation size={16} color={'white'} />,
       onPress: async () => {
-        console.log('Fetching current location...');
         if (authUser) {
           setAddressGPSLoading(true);
         }
@@ -614,7 +607,6 @@ export const createStatus = () => {
           const currentCoords = await getCurrentPositionOnce();
           if (currentCoords) {
             setOneTimeLocationCoords(currentCoords);
-            console.log('Current location set:', currentCoords);
             setFollowUserLocation(true);
           } else {
             console.warn('Failed to get current location');
@@ -659,7 +651,6 @@ export const createStatus = () => {
       ...prev,
       location: prev.location ? prev.location : null,
     }));
-    console.log('GPS tracking stopped and coordinates cleared');
   };
 
   const handleTapLocationSelect = (value: string | [number, number]) => {
@@ -749,9 +740,9 @@ export const createStatus = () => {
       )
     ),
 
-    <Text key="info-text" style={{ marginTop: 10 }}>
-      What information you want to share with community?
-    </Text>,
+    // <Text key="info-text" style={{ marginTop: 10 }}>
+    //   What information you want to share with community?
+    // </Text>,
     // Info banner
     <HStack key="info-banner" style={styles.infoContainer}>
       <Info size={20} color={Colors.icons.light} />
@@ -764,47 +755,42 @@ export const createStatus = () => {
   const renderImageState = (imageType: string) => {
     if (imageType === 'noChanges') {
       return (
-        <StateImage
-          type="noChanges"
-          onLoad={() => console.log('✅ noChanges image loaded successfully')}
-          onError={error => console.log('❌ noChanges image failed to load:', error)}
-        />
+        <StateImage type="noChanges" onError={error => console.log('❌ noChanges image failed to load:', error)} />
       );
     }
 
     if (imageType === 'errorFetchStatus') {
-      return (
-        <StateImage
-          type="error"
-          onLoad={() => console.log('✅ error image loaded successfully')}
-          onError={error => console.log('❌ error image failed to load:', error)}
-        />
-      );
+      return <StateImage type="error" onError={error => console.log('❌ error image failed to load:', error)} />;
     }
 
     if (imageType === 'noNetwork') {
       return (
-        <StateImage
-          type="noNetwork"
-          onLoad={() => console.log('✅ noNetwork image loaded successfully')}
-          onError={error => console.log('❌ noNetwork image failed to load:', error)}
-        />
+        <StateImage type="noNetwork" onError={error => console.log('❌ noNetwork image failed to load:', error)} />
       );
     }
 
     if (imageType === 'submitFailure') {
       return (
-        <StateImage
-          type="error"
-          onLoad={() => console.log('✅ submitFailure image loaded successfully')}
-          onError={error => console.log('❌ submitFailure image failed to load:', error)}
-        />
+        <StateImage type="error" onError={error => console.log('❌ submitFailure image failed to load:', error)} />
       );
     }
 
     // Fallback return
     console.log('⚠️ Unknown image type:', imageType);
     return null;
+  };
+
+  const onLocationClear = () => {
+    setStatusForm(prev => ({
+      ...prev,
+      lat: null,
+      lng: null,
+      location: null,
+    }));
+
+    setCoords(null);
+    setHasUserTappedMap(false);
+    setAddressCoords(null); // Clear tapped location address
   };
 
   const handleClose = () => {
@@ -903,6 +889,9 @@ export const createStatus = () => {
           setAddressGPS(addressState);
           setAddressGPSLoading(false);
         }
+      } else {
+        setAddressCoordsLoading(false);
+        setAddressGPSLoading(false);
       }
     } catch (error) {
       console.error('Error fetching address:', error);
@@ -910,6 +899,49 @@ export const createStatus = () => {
       setAddressGPSLoading(false);
     }
   };
+
+  const headerActions = formData
+    ? {
+        headerActionWithData: {
+          expirationTime: '24 h', // You can customize this based on formData.expirationDuration
+          rightAction: {
+            icon: <Ellipsis size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+            onPress: () => {
+              const sheet = require('react-native-actions-sheet').SheetManager;
+              sheet.show('status-more-action', {
+                payload: {
+                  items: [
+                    {
+                      id: 'details',
+                      name: 'Details',
+                      icon: <Info size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+                      onPress: () => {},
+                    },
+                    {
+                      id: 'settings',
+                      name: 'Settings',
+                      icon: <Settings size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+                      onPress: navigateToStatusSettings,
+                    },
+                    {
+                      id: 'delete',
+                      name: 'Delete',
+                      icon: <Trash size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+                      onPress: () => {},
+                    },
+                  ],
+                },
+              });
+            },
+          },
+        },
+      }
+    : {
+        headerActionNoData: {
+          icon: <Settings size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+          onPress: navigateToStatusSettings,
+        },
+      };
 
   return (
     <>
@@ -929,28 +961,17 @@ export const createStatus = () => {
           tappedLocationLabel={addressCoords ? addressCoords.formatted : 'Coordinates'}
           textInputFields={textInputFields}
           radioFields={radioFields}
-          toggleFields={toggleFields}
+          // toggleFields={toggleFields}
           customComponents={customComponents}
           quickActionButtons={quickActionButtons}
+          headerActions={headerActions}
           stopTracking={handleStopTracking}
           primaryButton={{
             label: formData ? 'Update' : 'Submit',
             onPress: handleSubmit,
           }}
-          onLocationClear={() => {
-            setStatusForm(prev => ({
-              ...prev,
-              lat: null,
-              lng: null,
-              location: null,
-            }));
-
-            setCoords(null);
-            setHasUserTappedMap(false);
-            setAddressCoords(null); // Clear tapped location address
-          }}
+          onLocationClear={onLocationClear}
           errMessage={formErrors.errMessage || ''}
-          secondaryButton={formData ? { label: 'Delete', onPress: () => {} } : undefined}
         />
         <Modal
           modalVisible={modals.noChanges}

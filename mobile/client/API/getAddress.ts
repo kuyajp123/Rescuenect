@@ -12,7 +12,8 @@ export const getAddress = async (lat: number, lng: number, idToken: string): Pro
 	try {
 		const response = await axios.get(API_ROUTES.GEOCODING.GET_ADDRESS, {
 			params: { lat, lng },
-			headers: { Authorization: `Bearer ${idToken}` }
+			headers: { Authorization: `Bearer ${idToken}` },
+			timeout: 10000 // 10 seconds timeout
 		});
 		
 		return {

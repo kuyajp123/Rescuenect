@@ -21,7 +21,7 @@ export const FontSizeSwitch = () => {
   const currentIndex = fontScales.findIndex(scale => scale.scale === fontScale);
   const currentScale = fontScales[currentIndex];
 
-  const handleRadioChange = (selectedScale: string) => {
+  const handleRadioChange = (selectedScale: string | number) => {
     setFontScale(selectedScale as FontSizeScale);
   };
 

@@ -1,73 +1,75 @@
 export default ({ config }: { config: any }) => {
   return {
     ...config,
-    name: "Rescuenect",
-    slug: "client",
-    version: "1.0.0",
-    orientation: "portrait",
-    icon: "./assets/images/logo/adaptive-icon.png",
-    scheme: "client",
-    userInterfaceStyle: "automatic",
+    name: 'Rescuenect',
+    slug: 'client',
+    version: '1.0.0',
+    orientation: 'portrait',
+    icon: './assets/images/logo/adaptive-icon.png',
+    scheme: 'client',
+    userInterfaceStyle: 'automatic',
     newArchEnabled: true,
     ios: {
-      supportsTablet: true
+      supportsTablet: true,
+      userInterfaceStyle: 'automatic',
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/images/logo/adaptive-icon.png",
-        backgroundColor: "#ffffff"
+        foregroundImage: './assets/images/logo/adaptive-icon.png',
+        backgroundColor: '#ffffff',
       },
       edgeToEdgeEnabled: true,
-      package: "com.yajeyps.client",
-      googleServicesFile: "./google-services.json"
+      package: 'com.yajeyps.client',
+      googleServicesFile: './google-services.json',
+      userInterfaceStyle: 'automatic',
     },
     web: {
-      bundler: "metro",
-      output: "static",
-      favicon: "./assets/images/favicon.png"
+      bundler: 'metro',
+      output: 'static',
+      favicon: './assets/images/favicon.png',
     },
     plugins: [
-      "expo-router",
-      "expo-secure-store",
+      'expo-router',
+      'expo-secure-store',
       [
-        "expo-splash-screen",
+        'expo-splash-screen',
         {
-          image: "./assets/images/logo/splash-icon-dark.png",
+          image: './assets/images/logo/splash-icon-dark.png',
           imageWidth: 200,
-          resizeMode: "contain",
-          backgroundColor: "#ffffff",
+          resizeMode: 'contain',
+          backgroundColor: '#ffffff',
           dark: {
-            image: "./assets/images/logo/splash-icon-light.png",
-            resizeMode: "contain",
-            backgroundColor: "#000000",
-          }
-        }
+            image: './assets/images/logo/splash-icon-light.png',
+            resizeMode: 'contain',
+            backgroundColor: '#000000',
+          },
+        },
       ],
-      "expo-font",
-      "expo-web-browser",
+      'expo-font',
+      'expo-web-browser',
       [
-        "@react-native-google-signin/google-signin",
+        '@react-native-google-signin/google-signin',
         {
           webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
-          iosUrlScheme: "com.googleusercontent.apps.554379793893"
-        }
+          iosUrlScheme: 'com.googleusercontent.apps.554379793893',
+        },
       ],
       [
-        "@rnmapbox/maps",
+        '@rnmapbox/maps',
         {
-          "RNMapboxMapsDownloadToken": process.env.EXPO_PUBLIC_MAPBOX_API_TOKEN
-        }
-      ]
+          RNMapboxMapsDownloadToken: process.env.EXPO_PUBLIC_MAPBOX_API_TOKEN,
+        },
+      ],
     ],
     experiments: {
-      typedRoutes: true
+      typedRoutes: true,
     },
     extra: {
       router: {},
       eas: {
-        projectId: "b0c098eb-8a7f-4cbd-b1ea-2e6557df75f7"
+        projectId: 'b0c098eb-8a7f-4cbd-b1ea-2e6557df75f7',
       },
     },
-    owner: "yajeyps"
+    owner: 'yajeyps',
   };
 };

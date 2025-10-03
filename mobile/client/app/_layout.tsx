@@ -22,16 +22,16 @@ MapboxGL.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_API_TOKEN!);
 export default function RootLayout() {
   const authUser = useAuth(state => state.authUser);
   const { idToken } = useIdToken();
-  const setFormData = useStatusFormStore(state => state.setFormData);
-  const statusData = useStatusFetchBackgroundData(authUser ? authUser.uid : null, idToken);
+  // const setFormData = useStatusFormStore(state => state.setFormData);
+  // const statusData = useStatusFetchBackgroundData(authUser ? authUser.uid : null, idToken);
 
   useNetworkStatus();
 
-  useEffect(() => {
-    if (statusData) {
-      setFormData({ ...statusData, uid: authUser ? authUser.uid : '' });
-    }
-  }, [statusData]);
+  // useEffect(() => {
+  //   if (statusData) {
+  //     setFormData({ ...statusData, uid: authUser ? authUser.uid : '' });
+  //   }
+  // }, [statusData]);
 
   return (
     <GestureHandlerRootView style={styles.gestureHandlerContainer}>

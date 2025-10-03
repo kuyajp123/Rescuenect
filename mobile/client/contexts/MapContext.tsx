@@ -46,10 +46,6 @@ export const MapProvider = ({ children }: MapProviderProps) => {
   const { isDark } = useTheme();
 
   // Load saved map style from storage
-  // Debug activeStatusCoords changes
-  useEffect(() => {
-    console.log('🗺️ MapContext activeStatusCoords changed:', activeStatusCoords);
-  }, [activeStatusCoords]);
 
   useEffect(() => {
     const loadMapStyle = async () => {
@@ -117,13 +113,11 @@ export const MapProvider = ({ children }: MapProviderProps) => {
       setCoords(markerCoordinate);
       // Always set activeStatusCoords to false when user taps a new location
       setActiveStatusCoords(false);
-      console.log('🔵 Set activeStatusCoords to false - should turn blue');
     },
     [setCoords, setActiveStatusCoords]
   );
 
   const mapContainer = useMemo(() => {
-    console.log('Creating map container with activeStatusCoords:', activeStatusCoords);
     return (
       <View style={styles.mapStyle}>
         <MapboxGL.MapView
@@ -190,26 +184,6 @@ export const MapProvider = ({ children }: MapProviderProps) => {
                 </MapboxGL.PointAnnotation>
               );
             })()}
-
-          {/* {coords && (
-            <MapboxGL.PointAnnotation
-              key={`tap-marker-${coords[0]}-${coords[1]}`}
-              id={`tap-marker-${coords[0]}-${coords[1]}`}
-              coordinate={coords}
-            >
-              <View style={styles.tapMarker} />
-            </MapboxGL.PointAnnotation>
-          )}
-
-          {activeStatusCoords && coords && (
-            <MapboxGL.PointAnnotation
-              key={`active-marker-${coords[0]}-${coords[1]}`}
-              id={`active-marker-${coords[0]}-${coords[1]}`}
-              coordinate={coords}
-            >
-              <View style={[styles.tapMarker, { backgroundColor: Colors.semantic.success }]} />
-            </MapboxGL.PointAnnotation>
-          )} */}
         </MapboxGL.MapView>
 
         {isVisible && (

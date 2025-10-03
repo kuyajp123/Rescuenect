@@ -5,7 +5,7 @@ import { Colors } from '@/constants/Colors';
 import { useMap } from '@/contexts/MapContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Bookmark, Navigation, X } from 'lucide-react-native';
+import { Bookmark, Navigation, X, Ellipsis, Settings } from 'lucide-react-native';
 import React, { useRef } from 'react';
 import {
   Keyboard,
@@ -66,6 +66,30 @@ export interface CustomButton {
   style?: any;
 }
 
+// Header actions (has data)
+interface HeaderActionWithData {
+  expirationTime?: string | number; // Optional expiration time
+  leftAction?: {
+    icon?: React.ReactNode;
+    onPress?: () => void;
+  };
+  rightAction?: {
+    icon?: React.ReactNode;
+    onPress?: () => void;
+  };
+}
+
+// header actions (no data)
+interface HeaderActionNoData {
+  icon?: React.ReactNode;
+  onPress?: () => void;
+}
+
+export interface HeaderActionsProps {
+  headerActionWithData?: HeaderActionWithData;
+  headerActionNoData?: HeaderActionNoData;
+}
+
 export interface MapNewProps {
   // Bottom sheet content customization
   title?: string;
@@ -77,6 +101,9 @@ export interface MapNewProps {
   radioFields?: RadioField[];
   toggleFields?: ToggleField[];
   errMessage?: string;
+
+  // header actions prop
+  headerActions?: HeaderActionsProps;
 
   // Custom components
   customComponents?: React.ReactNode[];
@@ -137,6 +164,7 @@ const Map = ({
   tappedLocationLabel = 'Coordinates',
   showCoordinates = true,
   stopTracking,
+  headerActions,
   snapPoints = ['14%', '90%'],
   onLocationClear,
   errMessage = '',
@@ -175,7 +203,7 @@ const Map = ({
 
   // Bottom Sheet callbacks
   const handleSheetChanges = (index: number) => {
-    console.log('handleSheetChanges', index);
+    // console.log('handleSheetChanges', index);
 
     if (index === 2 || index === 1) {
       setIsVisible(false);
@@ -386,6 +414,55 @@ const Map = ({
               {renderActionContents()}
             </VStack>
 
+            {/* Conditional Header Actions */}
+            {headerActions && (
+              <>
+                {headerActions.headerActionWithData ? (
+                  <HStack space="4xl" style={{ marginTop: 20, alignItems: 'center', justifyContent: 'space-between' }}>
+                    {/* Left Action (optional) */}
+                    {headerActions.headerActionWithData.leftAction && (
+                      <IconButton onPress={headerActions.headerActionWithData.leftAction.onPress || (() => {})}>
+                        {headerActions.headerActionWithData.leftAction.icon || (
+                          <Settings color={isDark ? Colors.icons.dark : Colors.icons.light} />
+                        )}
+                      </IconButton>
+                    )}
+
+                    {/* Expiration Time (center) */}
+                    {headerActions.headerActionWithData.expirationTime && (
+                      <View
+                        style={{
+                          flex: 1,
+                          justifyContent: 'flex-end',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Text>{headerActions.headerActionWithData.expirationTime}</Text>
+                      </View>
+                    )}
+
+                    {/* Right Action (optional) */}
+                    {headerActions.headerActionWithData.rightAction && (
+                      <IconButton onPress={headerActions.headerActionWithData.rightAction.onPress || (() => {})}>
+                        {headerActions.headerActionWithData.rightAction.icon || (
+                          <Ellipsis color={isDark ? Colors.icons.dark : Colors.icons.light} />
+                        )}
+                      </IconButton>
+                    )}
+                  </HStack>
+                ) : headerActions.headerActionNoData ? (
+                  <HStack style={{ marginTop: 20, alignItems: 'center', justifyContent: 'flex-end' }}>
+                    <IconButton onPress={headerActions.headerActionNoData.onPress || (() => {})}>
+                      {headerActions.headerActionNoData.icon || (
+                        <Settings color={isDark ? Colors.icons.dark : Colors.icons.light} />
+                      )}
+                    </IconButton>
+                  </HStack>
+                ) : null}
+              </>
+            )}
+
             {/* Dynamic Form Content */}
             {(coords || oneTimeLocationCoords) && (
               <VStack style={styles.bottomSheetForm}>
@@ -412,7 +489,15 @@ const Map = ({
                       numberOfLines={field.numberOfLines}
                       maxLength={field.maxLength}
                       style={[
-                        field.multiline ? styles.textInputMultiline : styles.textInput,
+                        field.multiline
+                          ? {
+                              ...styles.textInputMultiline,
+                              borderColor: isDark ? Colors.border.dark : Colors.border.light,
+                            }
+                          : {
+                              ...styles.textInput,
+                              borderColor: isDark ? Colors.border.dark : Colors.border.light,
+                            },
                         { color: textValueColor },
                       ]}
                     />

@@ -139,6 +139,7 @@ export type CreateStatusData = Omit<
 export type StatusStateData = CreateStatusData & {
   parentId?: string;
   versionId?: string;
+  expiresAt?: string;
 };
 
 export type StatusFormErrors = {
@@ -147,6 +148,7 @@ export type StatusFormErrors = {
   errMessage?: string;
   parentId?: string;
   versionId?: string;
+  expiresAt?: string;
 };
 
 

@@ -4,6 +4,7 @@ import { MyActionSheet } from './index';
 registerSheet('image-picker-actionSheet', MyActionSheet);
 registerSheet('map-image-picker-actionSheet', MyActionSheet);
 registerSheet('FAB', MyActionSheet);
+registerSheet('status-more-action', MyActionSheet);
 
 export { };
 

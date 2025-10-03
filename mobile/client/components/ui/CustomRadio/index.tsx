@@ -1,40 +1,45 @@
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
-import React, { memo } from "react";
+import React, { memo } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 // Custom Radio Component - moved outside to prevent re-creation
-export const CustomRadio = memo(({ label, value, selectedValue, onSelect, isDark }: {
-    label: string;
-    value: string;
-    selectedValue: string;
-    onSelect: (value: string) => void;
-    isDark: boolean;
-}) => {
+export const CustomRadio = memo(
+  ({
+    label,
+    value,
+    selectedValue,
+    onSelect,
+    isDark,
+    labelSize = 'md',
+    style,
+  }: {
+    label: string | number;
+    value: string | number;
+    selectedValue: string | number;
+    onSelect: (value: string | number) => void;
+    isDark?: boolean;
+    labelSize?: 'sm' | 'md' | 'lg';
+    style?: object;
+  }) => {
     const isSelected = selectedValue === value;
     const brandColor = isDark ? Colors.brand.dark : Colors.brand.light;
-    
+
     return (
-        <TouchableOpacity 
-            style={styles.radioOption} 
-            onPress={() => onSelect(value)}
-            activeOpacity={0.7}
+      <TouchableOpacity style={[styles.radioOption, style]} onPress={() => onSelect(value)} activeOpacity={0.7}>
+        <View
+          style={[
+            styles.radioCircle,
+            { borderColor: isSelected ? brandColor : isDark ? Colors.border.dark : Colors.border.light },
+          ]}
         >
-            <View style={[
-                styles.radioCircle,
-                { borderColor: isSelected ? brandColor : (isDark ? Colors.border.dark : Colors.border.light) }
-            ]}>
-                {isSelected && (
-                    <View style={[
-                        styles.radioInner,
-                        { backgroundColor: brandColor }
-                    ]} />
-                )}
-            </View>
-            <Text size='sm'>{label}</Text>
-        </TouchableOpacity>
+          {isSelected && <View style={[styles.radioInner, { backgroundColor: brandColor }]} />}
+        </View>
+        <Text size={labelSize}>{label}</Text>
+      </TouchableOpacity>
     );
-});
+  }
+);
 
 CustomRadio.displayName = 'CustomRadio';
 
@@ -44,7 +49,7 @@ export { ButtonRadio } from './ButtonRadio';
 export default CustomRadio;
 
 const styles = StyleSheet.create({
-    radioGroup: {
+  radioGroup: {
     display: 'flex',
     flexDirection: 'column',
     marginTop: 12,
@@ -74,7 +79,7 @@ const styles = StyleSheet.create({
   radioItem: {
     marginBottom: 8,
   },
-})
+});
 
 // example usage:
 // export const RadioGroupExample = () => {

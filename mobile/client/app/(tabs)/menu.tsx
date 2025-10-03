@@ -8,17 +8,31 @@ import { Text } from '@/components/ui/text';
 import { ColorCombinations, Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
-import { BadgeInfo, BadgeQuestionMark, ChevronRight, LogOut, Moon, ReceiptText, Settings, Sun } from 'lucide-react-native';
+import {
+  BadgeInfo,
+  BadgeQuestionMark,
+  ChevronRight,
+  LogOut,
+  Moon,
+  ReceiptText,
+  Settings,
+  Sun,
+} from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import NavigationButton from '@/components/components/button/NavigationButton';
 
 export const MenuScreen = () => {
-  const { isDark, setColorMode } = useTheme();
+  const { isDark, setColorMode, colorMode } = useTheme();
+  const [selected, setSelected] = useState(colorMode);
   const router = useRouter();
 
   const toggleTheme = () => {
     setColorMode(isDark ? 'light' : 'dark');
   };
 
+  if (colorMode === 'system') {
+  }
   return (
     <Body style={styles.bodyContainer}>
       <View>
@@ -48,141 +62,129 @@ export const MenuScreen = () => {
           </View>
         </HoveredButton> */}
 
-          <Card style={styles.card}>
-            <Text className='text-center mb-4'>Continue with Google to save your progress</Text>
-            <GoogleButton />
-          </Card>
+        <Card style={styles.card}>
+          <Text className="text-center mb-4">Continue with Google to save your progress</Text>
+          <GoogleButton />
+        </Card>
 
         <View style={styles.sectionTitle}>
-          <Text emphasis='light'>System</Text>
+          <Text emphasis="light">System</Text>
         </View>
-        
-        <View style={[
-          styles.sectionContainer,
-          {
-            borderColor: isDark ? Colors.border.dark : Colors.border.light,
-            backgroundColor: isDark ? ColorCombinations.statusTemplate.dark : ColorCombinations.statusTemplate.light,
-          }
-        ]}>
-          <HoveredButton style={styles.menuButton}
-            onPress={() => router.push('settings' as any)}>
-              <View style={styles.menuButtonContent}>
-                <Settings size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-                <Text>Settings</Text>
-              </View>
-              <View>
-                <ChevronRight size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-              </View>
-          </HoveredButton>
-          <HoveredButton 
-            onPress={toggleTheme}
-            style={styles.menuButton}>
-              <View style={styles.menuButtonContent}>
-                {isDark ? <Moon size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} /> : <Sun size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
-                <Text>Dark mode</Text>
-              </View>
-              <View>
-                <View style={styles.themeSwitcherContainer}>
-                  <ThemeSwitcher />
-                </View>
-              </View>
-          </HoveredButton>
+
+        <View
+          style={[
+            styles.sectionContainer,
+            {
+              borderColor: isDark ? Colors.border.dark : Colors.border.light,
+              backgroundColor: isDark ? ColorCombinations.statusTemplate.dark : ColorCombinations.statusTemplate.light,
+            },
+          ]}
+        >
+          <NavigationButton
+            label="Settings"
+            onPress={() => router.push('settings' as any)}
+            iconLeft={<Settings size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
+          />
+          <NavigationButton
+            label="Dark mode"
+            onPress={() => router.push('settings/darkMode' as any)}
+            iconLeft={
+              isDark ? (
+                <Moon size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
+              ) : (
+                <Sun size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
+              )
+            }
+          />
         </View>
 
         <View style={styles.legalSectionTitle}>
-          <Text emphasis='light'>Legal</Text>
+          <Text emphasis="light">Legal</Text>
         </View>
 
-          
-        <View style={[
-          styles.legalSectionContainer,
-          {
-            borderColor: isDark ? Colors.border.dark : Colors.border.light,
-            backgroundColor: isDark ? ColorCombinations.statusTemplate.dark : ColorCombinations.statusTemplate.light,
-          }
-        ]}>
-          <HoveredButton style={styles.menuButton}>
-              <View style={styles.menuButtonContent}>
-                <BadgeQuestionMark size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-                <Text>FAQ</Text>
-              </View>
-              <View>
-                <ChevronRight size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-              </View>
-          </HoveredButton>
-          <HoveredButton style={styles.menuButton}>
-              <View style={styles.menuButtonContent}>
-                <ReceiptText size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-                <Text>Terms and Condition</Text>
-              </View>
-              <View>
-                <ChevronRight size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-              </View>
-          </HoveredButton>
-          <HoveredButton style={styles.menuButton}>
-              <View style={styles.menuButtonContent}>
-                <BadgeInfo size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-                <Text>About us</Text>
-              </View>
-              <View>
-                <ChevronRight size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-              </View>
-          </HoveredButton>
-        </View>
-
-        <Button 
-        onPress={handleLogout}
-        variant='outline' 
-        style={[
-          styles.logoutButton,
-          {
-            borderColor: isDark ? Colors.button.errorDark.pressed : Colors.button.error.default
-          }
-        ]}>
-          <LogOut size={20} color={isDark ? Colors.button.errorDark.default : Colors.button.error.default} />
-          <Text style={[
-            styles.logoutText,
+        <View
+          style={[
+            styles.legalSectionContainer,
             {
-              color: isDark ? Colors.button.errorDark.default : Colors.button.error.default
-            }
-          ]}>Logout</Text>
-        </Button>
+              borderColor: isDark ? Colors.border.dark : Colors.border.light,
+              backgroundColor: isDark ? ColorCombinations.statusTemplate.dark : ColorCombinations.statusTemplate.light,
+            },
+          ]}
+        >
+          <NavigationButton
+            label="FAQ"
+            onPress={() => {}}
+            iconLeft={<BadgeQuestionMark size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
+          />
+          <NavigationButton
+            label="Terms and Condition"
+            onPress={() => {}}
+            iconLeft={<ReceiptText size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
+          />
+          <NavigationButton
+            label="About us"
+            onPress={() => {}}
+            iconLeft={<BadgeInfo size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
+          />
+        </View>
 
+        <Button
+          onPress={handleLogout}
+          variant="outline"
+          style={[
+            styles.logoutButton,
+            {
+              borderColor: isDark ? Colors.button.errorDark.pressed : Colors.button.error.default,
+            },
+          ]}
+        >
+          <LogOut size={20} color={isDark ? Colors.button.errorDark.default : Colors.button.error.default} />
+          <Text
+            style={[
+              styles.logoutText,
+              {
+                color: isDark ? Colors.button.errorDark.default : Colors.button.error.default,
+              },
+            ]}
+          >
+            Logout
+          </Text>
+        </Button>
       </View>
     </Body>
   );
-}
+};
 
 const styles = StyleSheet.create({
   bodyContainer: {
     paddingHorizontal: 0,
   },
   HoveredButton: {
-    // marginTop: 20, 
-    padding: 20, 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between' 
+    // marginTop: 20,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   card: {
-    margin: 20
+    margin: 20,
   },
-  mainContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'flex-start', 
-    gap: 10, 
+  mainContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
   },
-  nameContainer: { 
-    width: '70%', 
-    flexWrap: 'wrap', 
-    marginTop: 5 
+  nameContainer: {
+    width: '70%',
+    flexWrap: 'wrap',
+    marginTop: 5,
   },
   nameSectionText: {
-    width: '100%'
+    width: '100%',
   },
-  sectionTitle: { 
-    marginTop: 20, 
-    marginLeft: 20
+  sectionTitle: {
+    marginTop: 20,
+    marginLeft: 20,
   },
   sectionContainer: {
     borderWidth: 1,
