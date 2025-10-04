@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import React from 'react';
+import React, { useEffect } from 'react';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { ToggleButton } from '@/components/components/button/Button';
@@ -9,18 +9,34 @@ import NavigationButton from '@/components/components/button/NavigationButton';
 
 const statusSettings = () => {
   const formData = useStatusFormStore(state => state.formData);
-  const [selected, setSelected] = React.useState<string>('24 hours');
-  const options = ['24 hours', '12 hours'];
+  const setFormData = useStatusFormStore(state => state.setFormData);
+  const options = [
+    { key: '24 hours', value: 24 },
+    { key: '12 hours', value: 12 },
+  ];
+  const [selectedDuration, setSelectedDuration] = React.useState<string | number>(options[0].value);
 
-  const timeFormat = () => {
-    switch (formData?.expirationDuration) {
-      case 24:
-        return '24 hours';
-      case 12:
-        return '12 hours';
-      default:
-        return undefined;
+  // Sync selectedDuration with formData when it exists
+  useEffect(() => {
+    if (formData?.expirationDuration) {
+      setSelectedDuration(formData.expirationDuration);
+      console.log('Expiration Duration from formData:', formData.expirationDuration);
     }
+  }, [formData?.expirationDuration]);
+
+  const handleDurationSelect = (value: string | number) => {
+    const duration = value as 12 | 24;
+    setSelectedDuration(duration);
+
+    // Update formData - the store will handle merging properly
+    if (formData) {
+      // Update existing formData
+      setFormData({
+        ...formData,
+        expirationDuration: duration,
+      });
+    }
+    // Note: Don't create new formData here - let the main form handle initial creation
   };
 
   return (
@@ -51,17 +67,25 @@ const statusSettings = () => {
           Show your status for
         </Text>
         <View style={[styles.buttons, { marginTop: 0 }]}>
-          {options.map(option => (
-            <CustomRadio
-              style={styles.radioGroup}
-              key={option}
-              label={option}
-              value={option}
-              selectedValue={timeFormat() ?? selected}
-              onSelect={value => setSelected(value as string)}
-              labelSize="sm"
-            />
-          ))}
+          {formData && formData.expirationDuration ? (
+            // Show read-only value when formData exists with expirationDuration
+            <Text size="sm" style={{ marginTop: 10 }}>
+              {formData.expirationDuration} hours
+            </Text>
+          ) : (
+            // Show radio buttons when no formData or no expirationDuration
+            options.map(option => (
+              <CustomRadio
+                style={styles.radioGroup}
+                key={option.key}
+                label={option.key}
+                value={option.value}
+                selectedValue={selectedDuration}
+                onSelect={handleDurationSelect}
+                labelSize="sm"
+              />
+            ))
+          )}
         </View>
       </View>
     </Body>

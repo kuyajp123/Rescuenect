@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Appearance, useColorScheme } from 'react-native';
+import { storageHelpers } from '@/components/helper/storage';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
 
 export type ColorMode = 'light' | 'dark' | 'system';
 
@@ -17,8 +19,6 @@ interface ThemeProviderProps {
   children?: React.ReactNode;
 }
 
-const THEME_STORAGE_KEY = '@theme_preference';
-
 export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   const systemColorScheme = useColorScheme();
   const [colorMode, setColorModeState] = useState<ColorMode>('system');
@@ -31,7 +31,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     let isMounted = true;
     const loadTheme = async () => {
       try {
-        const savedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
+        const savedTheme = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'theme_preference');
         if (isMounted && savedTheme && ['light', 'dark', 'system'].includes(savedTheme)) {
           setColorModeState(savedTheme as ColorMode);
         }
@@ -53,7 +53,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   const setColorMode = async (mode: ColorMode) => {
     try {
       setColorModeState(mode);
-      await AsyncStorage.setItem(THEME_STORAGE_KEY, mode);
+      await storageHelpers.setField(STORAGE_KEYS.USER_SETTINGS, 'theme_preference', mode);
 
       // Force a re-check of system theme when switching to system mode
       if (mode === 'system') {

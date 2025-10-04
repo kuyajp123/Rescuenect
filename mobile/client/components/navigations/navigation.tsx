@@ -1,5 +1,6 @@
 import { useBackendResponse, handleLogout } from '@/components/auth/auth';
-import { storage } from '@/components/helper/storage';
+import { storage, storageHelpers } from '@/components/helper/storage';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { navigateToBarangayForm, navigateToNameAndContactForm, navigateToSignIn, navigateToTabs } from '@/routes/route';
 
 export const handleAuthNavigation = async (user: any) => {
@@ -25,11 +26,11 @@ export const handleAuthNavigation = async (user: any) => {
           return;
         }
 
-        await storage.set('@barangay', userResponse.barangay);
-        await storage.set('@user', {
+        await storageHelpers.setData(STORAGE_KEYS.USER, {
           firstName: userResponse.firstName || '',
           lastName: userResponse.lastName || '',
           phoneNumber: userResponse.phoneNumber || '',
+          barangay: userResponse.barangay || '',
         });
 
         // User has complete data from backend - go to main app
@@ -59,32 +60,23 @@ export const handleAuthNavigation = async (user: any) => {
 // Handle navigation for guests (no authenticated user)
 export const handleGuestNavigation = async () => {
   try {
-    const savedBarangay = await storage.get('@barangay');
-    const savedUser = await storage.get('@user');
-    const hasSignedOut = await storage.get('@hasSignedOut');
-
-    // console.log('🔍 Checking saved data:', {
-    //   savedBarangay: savedBarangay,
-    //   savedUser: savedUser,
-    //   hasSignedOut: hasSignedOut,
-    // });
+    const savedUser = await storageHelpers.getData(STORAGE_KEYS.USER);
+    const hasSignedOut = await storageHelpers.getField(STORAGE_KEYS.APP_STATE, 'hasSignedOut');
 
     // If user previously signed out, stay on sign-in page to let them choose
     if (hasSignedOut) {
-      // console.log('🚪 User previously signed out - staying on sign-in page for choice');
       navigateToSignIn();
       return;
     }
 
     // First-time user or continuing guest - check data requirements
-    if (!savedBarangay) {
-      // console.log('❌ User is missing barangay information');
+    if (!savedUser?.barangay) {
       navigateToBarangayForm();
       return;
     }
 
-    if (!savedUser) {
-      // console.log('❌ User is missing phone number information');
+    // Check if user has name and contact info
+    if (!savedUser?.firstName || !savedUser?.lastName || !savedUser?.phoneNumber) {
       navigateToNameAndContactForm();
       return;
     }

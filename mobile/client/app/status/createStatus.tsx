@@ -93,7 +93,7 @@ export const createStatus = () => {
     note: '',
     shareLocation: true,
     shareContact: true,
-    expirationDuration: 24,
+    expirationDuration: formData?.expirationDuration || 24,
   });
 
   const [modals, setModals] = useState({
@@ -510,6 +510,12 @@ export const createStatus = () => {
       setSubmitStatusLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (statusForm) {
+      console.log('statusForm updated: ', statusForm.expirationDuration)
+    }
+  }, [statusForm]);
 
   // Define text input fields
   const textInputFields: TextInputField[] = [

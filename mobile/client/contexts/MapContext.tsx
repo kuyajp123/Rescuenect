@@ -9,6 +9,8 @@ import { ChevronLeft, MapIcon } from 'lucide-react-native';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useCoords } from '@/components/store/useCoords';
+import { storageHelpers } from '@/components/helper/storage';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
 
 type coordTypes = [number, number] | null;
 
@@ -50,7 +52,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
   useEffect(() => {
     const loadMapStyle = async () => {
       try {
-        const savedStyle = await storage.get<string>('mapStyle');
+        const savedStyle = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'mapStyle');
         if (savedStyle && Object.values(MapboxGL.StyleURL).includes(savedStyle as MapboxGL.StyleURL)) {
           setMapStyleState(savedStyle as MapboxGL.StyleURL);
         }
@@ -67,7 +69,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
       setMapStyleState(style);
       setShowMapStyles(false);
       // Save the selected style to storage
-      await storage.set('mapStyle', style);
+      await storageHelpers.setField(STORAGE_KEYS.USER_SETTINGS, 'mapStyle', style);
     } catch (error) {
       console.error('Error saving map style:', error);
     }

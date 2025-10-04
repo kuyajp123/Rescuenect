@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { storageHelpers } from '@/components/helper/storage';
 
 type EmphasisType = 'light' | 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold';
 
@@ -11,8 +13,6 @@ interface HighContrastContextType {
 
 const HighContrastContext = createContext<HighContrastContextType | undefined>(undefined);
 
-const HIGH_CONTRAST_STORAGE_KEY = 'high-contrast-mode';
-
 export const HighContrastProvider: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const [isHighContrast, setIsHighContrast] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -21,9 +21,9 @@ export const HighContrastProvider: React.FC<{ children?: React.ReactNode }> = ({
   useEffect(() => {
     const loadHighContrastPreference = async () => {
       try {
-        const savedPreference = await AsyncStorage.getItem(HIGH_CONTRAST_STORAGE_KEY);
+        const savedPreference = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'high_contrast_mode');
         if (savedPreference !== null) {
-          setIsHighContrast(JSON.parse(savedPreference));
+          setIsHighContrast(savedPreference);
         }
       } catch (error) {
         console.error('Error loading high contrast preference:', error);
@@ -38,7 +38,7 @@ export const HighContrastProvider: React.FC<{ children?: React.ReactNode }> = ({
   // Save high contrast preference
   const saveHighContrastPreference = async (value: boolean) => {
     try {
-      await AsyncStorage.setItem(HIGH_CONTRAST_STORAGE_KEY, JSON.stringify(value));
+      await storageHelpers.setField(STORAGE_KEYS.USER_SETTINGS, 'high_contrast_mode', value);
     } catch (error) {
       console.error('Error saving high contrast preference:', error);
     }

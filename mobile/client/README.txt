@@ -2,6 +2,10 @@ To run the project: npx expo start
 To update and fix the mismatch packages: npx expo install --fix
 
 
+DEVELOPMENT SERVER:
+URL: http://192.168.100.86:8081
+
+
 React Native Boilerplate shortcut:
 
 rnf → React Native Function Component
