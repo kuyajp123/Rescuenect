@@ -120,7 +120,7 @@ const barangayForm = () => {
       setErrorMessage('Please wait for authentication to complete.');
     } else {
       await storageHelpers.setField(STORAGE_KEYS.USER, 'barangay', selectedBarangay);
-      await storageHelpers.removeField(STORAGE_KEYS.APP_STATE, 'hasSignedOut');
+      await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', false);
 
       console.log('🧭 Navigating to nameAndContactForm...');
       router.push('/auth/nameAndContactForm' as any);

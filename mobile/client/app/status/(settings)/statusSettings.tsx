@@ -6,37 +6,68 @@ import { ToggleButton } from '@/components/components/button/Button';
 import { useStatusFormStore } from '@/components/store/useStatusForm';
 import { CustomRadio } from '@/components/ui/CustomRadio';
 import NavigationButton from '@/components/components/button/NavigationButton';
+import { storageHelpers } from '@/components/helper/storage';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
 
 const statusSettings = () => {
   const formData = useStatusFormStore(state => state.formData);
-  const setFormData = useStatusFormStore(state => state.setFormData);
   const options = [
     { key: '24 hours', value: 24 },
     { key: '12 hours', value: 12 },
   ];
   const [selectedDuration, setSelectedDuration] = React.useState<string | number>(options[0].value);
+  const [enabledShareLocation, setEnabledShareLocation] = React.useState(formData?.shareLocation ?? true);
+  const [enabledShareContactNumber, setEnabledShareContactNumber] = React.useState(formData?.shareContact ?? true);
 
-  // Sync selectedDuration with formData when it exists
+  const LoadStorage = async () => {
+    const expirationDuration = await storageHelpers.getField(
+      STORAGE_KEYS.USER_SETTINGS,
+      'status_settings.expirationDuration'
+    );
+    const privacySettings = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'status_settings.shareLocation');
+    const contactSettings = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'status_settings.shareContact');
+
+    const data = { expirationDuration, privacySettings, contactSettings };
+    return data;
+  };
+
+  // Load settings from storage on mount
   useEffect(() => {
-    if (formData?.expirationDuration) {
-      setSelectedDuration(formData.expirationDuration);
-      console.log('Expiration Duration from formData:', formData.expirationDuration);
-    }
-  }, [formData?.expirationDuration]);
+    LoadStorage().then(data => {
+      // Set duration - prefer storage over formData for settings
+      const duration = data.expirationDuration ?? formData?.expirationDuration ?? 24;
+      setSelectedDuration(duration);
+
+      // Set privacy settings - prefer storage over formData for settings
+      const shareLocation = data.privacySettings ?? formData?.shareLocation ?? true;
+      setEnabledShareLocation(shareLocation);
+
+      // Set contact settings - prefer storage over formData for settings
+      const shareContact = data.contactSettings ?? formData?.shareContact ?? true;
+      setEnabledShareContactNumber(shareContact);
+    });
+  }, []);
+
+  const saveStorage = async (key: string, value: any) => {
+    await storageHelpers.setField(STORAGE_KEYS.USER_SETTINGS, key, value);
+  };
 
   const handleDurationSelect = (value: string | number) => {
     const duration = value as 12 | 24;
     setSelectedDuration(duration);
+    saveStorage('status_settings.expirationDuration', duration);
+  };
 
-    // Update formData - the store will handle merging properly
-    if (formData) {
-      // Update existing formData
-      setFormData({
-        ...formData,
-        expirationDuration: duration,
-      });
-    }
-    // Note: Don't create new formData here - let the main form handle initial creation
+  const toggleShareLocation = () => {
+    const newValue = !enabledShareLocation;
+    setEnabledShareLocation(newValue);
+    saveStorage('status_settings.shareLocation', newValue);
+  };
+
+  const toggleShareContactNumber = () => {
+    const newValue = !enabledShareContactNumber;
+    setEnabledShareContactNumber(newValue);
+    saveStorage('status_settings.shareContact', newValue);
   };
 
   return (
@@ -51,14 +82,14 @@ const statusSettings = () => {
         <NavigationButton
           label="Share my location"
           description="Enable to share your location with the community"
-          iconRight={<ToggleButton isEnabled={formData?.shareLocation ?? true} onToggle={() => {}} />}
-          onPress={() => {}}
+          iconRight={<ToggleButton isEnabled={enabledShareLocation} onToggle={toggleShareLocation} />}
+          onPress={toggleShareLocation}
         />
         <NavigationButton
-          label="Share my location"
+          label="Share my contact number"
           description="Enable to share your contact number with the community"
-          iconRight={<ToggleButton isEnabled={formData?.shareLocation ?? true} onToggle={() => {}} />}
-          onPress={() => {}}
+          iconRight={<ToggleButton isEnabled={enabledShareContactNumber} onToggle={toggleShareContactNumber} />}
+          onPress={toggleShareContactNumber}
         />
       </View>
 

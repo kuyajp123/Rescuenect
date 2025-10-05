@@ -93,8 +93,7 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
     await auth.currentUser?.reload();
 
     // Clear sign-out flag since user is now signed in
-    // await storage.remove('@hasSignedOut');
-    await storageHelpers.removeField(STORAGE_KEYS.APP_STATE, 'hasSignedOut');
+    await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', false);
 
     setLoading?.(false);
     // Note: Navigation for complete users will be handled by the auth state listener in firebaseAuth.ts
@@ -130,10 +129,8 @@ export const handleLogout = async () => {
     resetFormData();
     resetCoords?.();
     // Clear user data from storage
-    await storage.remove('@barangay');
-    await storage.remove('@user');
+    await storageHelpers.removeData(STORAGE_KEYS.USER);
     // Set sign-out flag to indicate intentional sign-out
-    // await storage.set('@hasSignedOut', true);
     await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', true);
     // console.log("✅ Storage cleared and sign-out flag set");
 

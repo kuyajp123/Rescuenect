@@ -1,5 +1,5 @@
 import CustomImagePicker from '@/components/components/CustomImagePicker';
-import Map, { CustomButton, RadioField, TextInputField, ToggleField } from '@/components/components/Map';
+import Map, { CustomButton, RadioField, TextInputField } from '@/components/components/Map';
 import Modal from '@/components/components/Modal';
 import {
   formatContactNumber,
@@ -8,7 +8,7 @@ import {
   isValidContactNumber,
 } from '@/components/helper/commonHelpers';
 import { GetDate, GetTime } from '@/components/helper/DateAndTime';
-import { storage } from '@/components/helper/storage';
+import { storageHelpers } from '@/components/helper/storage';
 import { useAuth } from '@/components/store/useAuth';
 import { useCoords } from '@/components/store/useCoords';
 import { useGetAddress } from '@/components/store/useGetAddress';
@@ -28,12 +28,15 @@ import { StatusStateData, AddressState, StatusFormErrors } from '@/types/compone
 import axios from 'axios';
 import { isEqual } from 'lodash';
 import { Bookmark, Ellipsis, Info, Navigation, Settings, SquarePen, Trash } from 'lucide-react-native';
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { Animated, Linking, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAddress } from '@/API/getAddress';
 import { useTheme } from '@/contexts/ThemeContext';
 import { navigateToStatusSettings } from '@/routes/route';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { useFocusEffect } from '@react-navigation/native';
+
 
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
@@ -124,24 +127,71 @@ export const createStatus = () => {
   }, [modals.submitSuccess]);
 
   const getStorage = async () => {
-    const user = await storage.get('@user');
-    return user;
+    try {
+      const userData = await storageHelpers.getData(STORAGE_KEYS.USER);
+      const shareLocation = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'status_settings.shareLocation');
+      const shareContact = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'status_settings.shareContact');
+      const expirationDuration = await storageHelpers.getField(
+        STORAGE_KEYS.USER_SETTINGS,
+        'status_settings.expirationDuration'
+      );
+
+      return {
+        userData,
+        shareLocation,
+        shareContact,
+        expirationDuration,
+      };
+    } catch (error) {
+      console.error('Error loading storage data:', error);
+      return null;
+    }
   };
 
   useEffect(() => {
     if (!formData) {
-      getStorage().then(data => {
-        if (data) {
-          setStatusForm(prev => ({
-            ...prev,
-            firstName: data.firstName || '',
-            lastName: data.lastName || '',
-            phoneNumber: data.phoneNumber || '',
-          }));
-        }
-      });
+      getStorage()
+        .then(data => {
+          if (data && data.userData) {
+            setStatusForm(prev => ({
+              ...prev,
+              firstName: data.userData.firstName || '',
+              lastName: data.userData.lastName || '',
+              phoneNumber: data.userData.phoneNumber || '',
+              shareLocation: data.shareLocation ?? true,
+              shareContact: data.shareContact ?? true,
+              expirationDuration: data.expirationDuration || 24,
+            }));
+          } else {
+            console.log('❌ No user data found in storage');
+          }
+        })
+        .catch(error => {
+          console.error('Error in getStorage useEffect:', error);
+        });
     }
   }, [formData]);
+
+  // syncs the expirationDuration from storage to local statusForm state
+  useFocusEffect(
+    useCallback(() => {
+      // Sync settings from storage when screen comes into focus
+      getStorage()
+        .then(data => {
+          if (data) {
+            setStatusForm(prev => ({
+              ...prev,
+              expirationDuration: data.expirationDuration || 24,
+              shareLocation: data.shareLocation ?? prev.shareLocation,
+              shareContact: data.shareContact ?? prev.shareContact,
+            }));
+          }
+        })
+        .catch(error => {
+          console.error('Error syncing settings on focus:', error);
+        });
+    }, [])
+  );
 
   // Update form coordinates and handle default selection priority
   useEffect(() => {
@@ -511,12 +561,6 @@ export const createStatus = () => {
     }
   };
 
-  useEffect(() => {
-    if (statusForm) {
-      console.log('statusForm updated: ', statusForm.expirationDuration)
-    }
-  }, [statusForm]);
-
   // Define text input fields
   const textInputFields: TextInputField[] = [
     {
@@ -571,22 +615,6 @@ export const createStatus = () => {
       errorText: formErrors.condition,
     },
   ];
-
-  // Define toggle fields
-  // const toggleFields: ToggleField[] = [
-  //   {
-  //     key: 'shareLocation',
-  //     label: 'Share my Location',
-  //     isEnabled: statusForm.shareLocation,
-  //     onToggle: () => handleInputChange('shareLocation', !statusForm.shareLocation),
-  //   },
-  //   {
-  //     key: 'shareContact',
-  //     label: 'Share my Contact Number',
-  //     isEnabled: statusForm.shareContact,
-  //     onToggle: () => handleInputChange('shareContact', !statusForm.shareContact),
-  //   },
-  // ];
 
   // Define quick action buttons
   const buttons: CustomButton[] = [
@@ -746,9 +774,6 @@ export const createStatus = () => {
       )
     ),
 
-    // <Text key="info-text" style={{ marginTop: 10 }}>
-    //   What information you want to share with community?
-    // </Text>,
     // Info banner
     <HStack key="info-banner" style={styles.infoContainer}>
       <Info size={20} color={Colors.icons.light} />

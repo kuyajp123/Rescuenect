@@ -19,11 +19,6 @@ export const StateImage: React.FC<StateImageProps> = ({
   const { isDark } = useTheme();
   const imageSource = getStateImage(type, isDark);
 
-  console.log(
-    `🖼️ StateImage rendering ${type} (${isDark ? "dark" : "light"}):`,
-    imageSource
-  );
-
   return (
     <Image
       source={imageSource}
