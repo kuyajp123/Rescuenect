@@ -8,9 +8,15 @@ import { CustomRadio } from '@/components/ui/CustomRadio';
 import NavigationButton from '@/components/components/button/NavigationButton';
 import { storageHelpers } from '@/components/helper/storage';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { Button } from '@/components/components/button/Button';
+import { API_ROUTES } from '@/config/endpoints';
+import axios from 'axios';
+import { useAuth } from '@/components/store/useAuth';
 
 const statusSettings = () => {
   const formData = useStatusFormStore(state => state.formData);
+  const setFormData = useStatusFormStore(state => state.setFormData);
+  const authUser = useAuth(state => state.authUser);
   const options = [
     { key: '24 hours', value: 24 },
     { key: '12 hours', value: 12 },
@@ -18,6 +24,7 @@ const statusSettings = () => {
   const [selectedDuration, setSelectedDuration] = React.useState<string | number>(options[0].value);
   const [enabledShareLocation, setEnabledShareLocation] = React.useState(formData?.shareLocation ?? true);
   const [enabledShareContactNumber, setEnabledShareContactNumber] = React.useState(formData?.shareContact ?? true);
+  const [renderButton, setRenderButton] = React.useState(false);
 
   const LoadStorage = async () => {
     const expirationDuration = await storageHelpers.getField(
@@ -70,6 +77,48 @@ const statusSettings = () => {
     saveStorage('status_settings.shareContact', newValue);
   };
 
+  const updateStatus = async () => {
+    if (formData) {
+      const updatedData = {
+        ...formData,
+        shareLocation: enabledShareLocation,
+        shareContact: enabledShareContactNumber,
+        expirationDuration: selectedDuration as 12 | 24,
+      };
+      try {
+        const response = await axios.post(API_ROUTES.STATUS.SAVE_STATUS, updatedData, {
+          headers: {
+            Authorization: `Bearer ${await authUser?.getIdToken()}`,
+          },
+          timeout: 30000,
+        });
+        if (response.status === 200) {
+          console.log('Status updated successfully');
+          setFormData(updatedData);
+          setRenderButton(false);
+        }
+      } catch (error) {
+        console.error('Error updating status:', error);
+      }
+    }
+  };
+
+  const conditionalUpdateButtonRender = () => {
+    if (formData) {
+      if (formData.shareContact !== enabledShareContactNumber || formData.shareLocation !== enabledShareLocation) {
+        return (
+          <View style={styles.updateButton}>
+            <Button onPress={updateStatus}>
+              <Text size="sm" bold>
+                Update Status
+              </Text>
+            </Button>
+          </View>
+        );
+      }
+    }
+  };
+
   return (
     <Body style={styles.bodyContainer}>
       <Text size="3xl" bold style={styles.title}>
@@ -119,6 +168,8 @@ const statusSettings = () => {
           )}
         </View>
       </View>
+
+      {conditionalUpdateButtonRender()}
     </Body>
   );
 };
@@ -153,6 +204,12 @@ const styles = StyleSheet.create({
   },
   radioGroup: {
     marginTop: 10,
+    width: '100%',
+  },
+  updateButton: {
+    paddingHorizontal: 20,
+    position: 'absolute',
+    bottom: 30,
     width: '100%',
   },
 });

@@ -37,7 +37,6 @@ import { navigateToStatusSettings } from '@/routes/route';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { useFocusEffect } from '@react-navigation/native';
 
-
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
   const scaleValue = useRef(new Animated.Value(0)).current;
@@ -109,12 +108,6 @@ export const createStatus = () => {
   const toggleModal = (name: keyof typeof modals, value: boolean) => {
     setModals(prev => ({ ...prev, [name]: value }));
   };
-
-  // useEffect(() => {
-  //   if (formData) {
-  //     console.log('Form data loaded:', JSON.stringify(formData, null, 2));
-  //   }
-  // }, [formData]);
 
   // Auto hide after 3 seconds
   useEffect(() => {
@@ -190,6 +183,15 @@ export const createStatus = () => {
         .catch(error => {
           console.error('Error syncing settings on focus:', error);
         });
+    }, [])
+  );
+
+  // Ensure Zustand store is in sync with local statusForm state
+  useFocusEffect(
+    useCallback(() => {
+      if (formData) {
+        setFormData(formData); // Ensure Zustand store is in sync
+      }
     }, [])
   );
 

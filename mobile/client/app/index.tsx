@@ -1,4 +1,4 @@
-import { storage } from '@/components/helper/storage';
+import { storage, storageHelpers } from '@/components/helper/storage';
 import { handleLogout } from '@/components/auth/auth';
 import { initializeAuth } from '@/components/auth/firebaseAuth';
 import SplashScreen from '@/components/ui/loading/SplashScreen';
@@ -15,6 +15,7 @@ const Index = () => {
       try {
         // Initialize storage with defaults FIRST
         await inititallizeAppStorage();
+        console.log('✅ Storage initialization completed');
 
         // Initialize auth LAST (this triggers navigation)
         await initializeAuth();
