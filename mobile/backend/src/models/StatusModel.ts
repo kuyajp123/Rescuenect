@@ -32,8 +32,6 @@ export class StatusModel {
       // Check if user already has an active status
       const existingStatusQuery = await this.pathRef(userId).where('statusType', '==', 'current').limit(1).get();
 
-      // console.log(`Existing status query for userId ${userId}:`, existingStatusQuery.empty ? "No active status found" : "Active status exists");
-
       if (!existingStatusQuery.empty) {
         // Update existing status instead of creating new one
         const existingDoc = existingStatusQuery.docs[0];
@@ -67,7 +65,6 @@ export class StatusModel {
         createdAt: FieldValue.serverTimestamp(),
       });
 
-      console.log(`✅ Status created with ID: ${parentId}`);
       return { parentId, versionId };
     } catch (error) {
       console.error('❌ Error creating status:', error);
@@ -118,10 +115,7 @@ export class StatusModel {
       // Compare only user-editable fields
       const currentFieldsToCompare = pick(currentData, Object.keys(filteredNewData));
 
-      console.log('Current fields to compare:', JSON.stringify(currentFieldsToCompare, null, 2));
-      console.log('Filtered new data for comparison:', JSON.stringify(filteredNewData, null, 2));
       const isSame = isEqual(currentFieldsToCompare, filteredNewData);
-      console.log('Is same check result:', isSame);
 
       if (isSame) {
         console.log('⏸️ No changes detected, skipping update');
@@ -191,7 +185,6 @@ export class StatusModel {
 
       await batch.commit();
 
-      console.log(`✅ Status updated to version ${nextVersionNumber}`);
       return { parentId, versionId: newVersionId };
     } catch (error) {
       console.error('❌ Error updating status:', error);

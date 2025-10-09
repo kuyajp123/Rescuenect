@@ -7,6 +7,8 @@ export interface StatusData {
   // User identification
   uid: string;
 
+  profileImage: string;
+
   // Personal information
   firstName: string;
   lastName: string;

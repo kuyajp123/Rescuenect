@@ -1,5 +1,5 @@
-import { StyleSheet, View } from 'react-native';
-import React, { useEffect } from 'react';
+import { Animated, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { ToggleButton } from '@/components/components/button/Button';
@@ -12,19 +12,24 @@ import { Button } from '@/components/components/button/Button';
 import { API_ROUTES } from '@/config/endpoints';
 import axios from 'axios';
 import { useAuth } from '@/components/store/useAuth';
+import { LoadingOverlay } from '@/components/ui/loading';
+import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 
 const statusSettings = () => {
   const formData = useStatusFormStore(state => state.formData);
   const setFormData = useStatusFormStore(state => state.setFormData);
   const authUser = useAuth(state => state.authUser);
+  const scaleValue = useRef(new Animated.Value(0)).current;
   const options = [
     { key: '24 hours', value: 24 },
     { key: '12 hours', value: 12 },
   ];
-  const [selectedDuration, setSelectedDuration] = React.useState<string | number>(options[0].value);
-  const [enabledShareLocation, setEnabledShareLocation] = React.useState(formData?.shareLocation ?? true);
-  const [enabledShareContactNumber, setEnabledShareContactNumber] = React.useState(formData?.shareContact ?? true);
-  const [renderButton, setRenderButton] = React.useState(false);
+
+  const [selectedDuration, setSelectedDuration] = useState<string | number>(options[0].value);
+  const [enabledShareLocation, setEnabledShareLocation] = useState(formData?.shareLocation ?? true);
+  const [enabledShareContactNumber, setEnabledShareContactNumber] = useState(formData?.shareContact ?? true);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const LoadStorage = async () => {
     const expirationDuration = await storageHelpers.getField(
@@ -55,6 +60,27 @@ const statusSettings = () => {
     });
   }, []);
 
+  // Auto hide after 3 seconds
+  useEffect(() => {
+    if (showSuccessDialog) {
+      const timer = setTimeout(() => {
+        handleClose();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessDialog]);
+
+  const handleClose = () => {
+    // Scale out animation
+    Animated.timing(scaleValue, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowSuccessDialog(false);
+    });
+  };
+
   const saveStorage = async (key: string, value: any) => {
     await storageHelpers.setField(STORAGE_KEYS.USER_SETTINGS, key, value);
   };
@@ -79,6 +105,7 @@ const statusSettings = () => {
 
   const updateStatus = async () => {
     if (formData) {
+      setIsLoading(true);
       const updatedData = {
         ...formData,
         shareLocation: enabledShareLocation,
@@ -92,13 +119,15 @@ const statusSettings = () => {
           },
           timeout: 30000,
         });
-        if (response.status === 200) {
+        if (response.status === 201) {
           console.log('Status updated successfully');
           setFormData(updatedData);
-          setRenderButton(false);
+          setShowSuccessDialog(true);
         }
       } catch (error) {
         console.error('Error updating status:', error);
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -170,6 +199,12 @@ const statusSettings = () => {
       </View>
 
       {conditionalUpdateButtonRender()}
+      <LoadingOverlay visible={isLoading} message="Updating Status..." />
+      <CustomAlertDialog
+        showAlertDialog={showSuccessDialog}
+        handleClose={handleClose}
+        text="Status submitted successfully!"
+      />
     </Body>
   );
 };

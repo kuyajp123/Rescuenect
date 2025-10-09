@@ -27,7 +27,7 @@ import { Colors } from '@/constants/Colors';
 import { StatusStateData, AddressState, StatusFormErrors } from '@/types/components';
 import axios from 'axios';
 import { isEqual } from 'lodash';
-import { Bookmark, Ellipsis, Info, Navigation, Settings, SquarePen, Trash } from 'lucide-react-native';
+import { Bookmark, Ellipsis, Info, Navigation, Settings, SquarePen, Trash } from 'lucide-react-native'; 
 import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { Animated, Linking, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -84,6 +84,7 @@ export const createStatus = () => {
 
   const [statusForm, setStatusForm] = useState<StatusStateData>({
     uid: authUser?.uid || '',
+    profileImage: authUser?.photoURL || '',
     firstName: '',
     lastName: '',
     condition: '',
@@ -183,15 +184,6 @@ export const createStatus = () => {
         .catch(error => {
           console.error('Error syncing settings on focus:', error);
         });
-    }, [])
-  );
-
-  // Ensure Zustand store is in sync with local statusForm state
-  useFocusEffect(
-    useCallback(() => {
-      if (formData) {
-        setFormData(formData); // Ensure Zustand store is in sync
-      }
     }, [])
   );
 
@@ -936,9 +928,9 @@ export const createStatus = () => {
   const headerActions = formData
     ? {
         headerActionWithData: {
-          expirationTime: '24 h', // You can customize this based on formData.expirationDuration
+          expirationTime: formData.expirationDuration + ' hours',
           rightAction: {
-            icon: <Ellipsis size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+            icon: <Ellipsis size={24} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
             onPress: () => {
               const sheet = require('react-native-actions-sheet').SheetManager;
               sheet.show('status-more-action', {
