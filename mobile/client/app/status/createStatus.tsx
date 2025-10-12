@@ -540,7 +540,14 @@ export const createStatus = () => {
       if (value !== null && value !== undefined) {
         // Don't append image field here - it will be handled separately
         if (key !== 'image') {
-          statusData.append(key, value.toString());
+          // Handle different data types properly for FormData
+          if (typeof value === 'boolean') {
+            statusData.append(key, value ? 'true' : 'false');
+          } else if (typeof value === 'number') {
+            statusData.append(key, value.toString());
+          } else {
+            statusData.append(key, value.toString());
+          }
         }
       }
     });

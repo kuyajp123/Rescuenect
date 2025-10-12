@@ -6,17 +6,41 @@ export class StatusController {
     const data = req.body;
     const file = req.file;
 
-    // console.log("Received status creation request:", JSON.stringify(data, null, 2));
+    console.log('Received status creation request:', JSON.stringify(data, null, 2));
 
     try {
       // Extract uid from the request body (frontend sends 'uid', not 'userId')
-      const { uid, ...statusData } = data;
+      const { uid, ...rawStatusData } = data;
 
       // Validate uid exists
       if (!uid) {
         res.status(400).json({ message: 'uid is required in request body' });
         return;
       }
+
+      // Parse FormData string values back to proper types
+      const statusData = {
+        ...rawStatusData,
+        // Parse boolean fields
+        shareLocation: rawStatusData.shareLocation === 'true' || rawStatusData.shareLocation === true,
+        shareContact: rawStatusData.shareContact === 'true' || rawStatusData.shareContact === true,
+        // Parse number fields
+        expirationDuration: rawStatusData.expirationDuration
+          ? parseInt(rawStatusData.expirationDuration.toString()) || 24
+          : 24,
+        lat: rawStatusData.lat ? parseFloat(rawStatusData.lat.toString()) : null,
+        lng: rawStatusData.lng ? parseFloat(rawStatusData.lng.toString()) : null,
+      };
+
+      console.log('Parsed status data types:', {
+        shareLocation: typeof statusData.shareLocation,
+        shareContact: typeof statusData.shareContact,
+        expirationDuration: typeof statusData.expirationDuration,
+        lat: typeof statusData.lat,
+        lng: typeof statusData.lng,
+      });
+
+      console.log('Parsed status data:', JSON.stringify(statusData, null, 2));
 
       const result = await StatusModel.createOrUpdateStatus(uid, file, statusData);
 
