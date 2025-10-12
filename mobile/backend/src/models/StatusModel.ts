@@ -4,6 +4,7 @@ import * as admin from 'firebase-admin';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import { StatusData } from '@/types/types';
+import { ImageUploadService } from '@/services/imageUploadService';
 
 export class StatusModel {
   private static pathRef(userId: string) {
@@ -16,6 +17,7 @@ export class StatusModel {
 
   static async createOrUpdateStatus(
     userId: string,
+    file: Express.Multer.File | undefined,
     statusData: Omit<
       StatusData,
       'parentId' | 'versionId' | 'statusType' | 'createdAt' | 'expiresAt' | 'retentionUntil'
@@ -54,12 +56,19 @@ export class StatusModel {
       // Create document reference
       const statusRef = db.collection('status').doc(userId).collection('statuses').doc(versionId);
 
+      let imageUrl = '';
+
+      if (file) {
+        imageUrl = await ImageUploadService.uploadStatusImage(file, userId, parentId, versionId);
+      }
+
       // Create the status document
       await statusRef.set({
         parentId: parentId,
         versionId: versionId,
         statusType: 'current',
         ...statusData,
+        image: imageUrl || '', // Use uploaded image URL or empty string
         expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
         retentionUntil: admin.firestore.Timestamp.fromDate(retentionUntil),
         createdAt: FieldValue.serverTimestamp(),

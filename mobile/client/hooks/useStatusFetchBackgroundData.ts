@@ -36,6 +36,7 @@ export const useStatusFetchBackgroundData = (
           const response = await fetchAndSaveStatusData(statusId, idToken);
           if (response.success) {
             setData(response.data);
+            // console.log('✅ Background data from useStatusFetchBackgroundData:', JSON.stringify(response.data, null, 2));
           } else {
             console.error('❌ Failed to fetch background data:', response.error);
             setError(true);

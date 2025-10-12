@@ -27,15 +27,16 @@ import { Colors } from '@/constants/Colors';
 import { StatusStateData, AddressState, StatusFormErrors } from '@/types/components';
 import axios from 'axios';
 import { isEqual } from 'lodash';
-import { Bookmark, Ellipsis, Info, Navigation, Settings, SquarePen, Trash } from 'lucide-react-native'; 
+import { Bookmark, Ellipsis, Info, Navigation, Settings, SquarePen, Trash } from 'lucide-react-native';
 import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
-import { Animated, Linking, StyleSheet, View } from 'react-native';
+import { Animated, Linking, StyleSheet, View, Image, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAddress } from '@/API/getAddress';
 import { useTheme } from '@/contexts/ThemeContext';
 import { navigateToStatusSettings } from '@/routes/route';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { useFocusEffect } from '@react-navigation/native';
+import { ImageModal } from '@/components/components/image-modal/ImageModal';
 
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
@@ -92,7 +93,7 @@ export const createStatus = () => {
     lat: null,
     lng: null,
     location: null,
-    image: '',
+    image: formData?.image || '',
     note: '',
     shareLocation: true,
     shareContact: true,
@@ -105,6 +106,7 @@ export const createStatus = () => {
     noNetwork: false,
     submitSuccess: false,
     submitFailure: false,
+    isImageModalVisible: false,
   });
   const toggleModal = (name: keyof typeof modals, value: boolean) => {
     setModals(prev => ({ ...prev, [name]: value }));
@@ -238,7 +240,6 @@ export const createStatus = () => {
 
       if (latDiff > distanceThreshold || lngDiff > distanceThreshold) {
         // User tapped a new location on map
-        console.log('👆 User tapped map, new default location:', coords);
         if (authUser) {
           setAddressCoordsLoading(true);
           setHasUserTappedMap(true);
@@ -274,11 +275,13 @@ export const createStatus = () => {
 
   // Update image when image picker store changes
   useEffect(() => {
-    setStatusForm(prev => ({
-      ...prev,
-      image: image || '',
-    }));
-  }, [image]);
+    if (!formData?.image) {
+      setStatusForm(prev => ({
+        ...prev,
+        image: image || '',
+      }));
+    }
+  }, [image, formData?.image]);
 
   // Initialize activeStatusCoords synchronously before component renders
   useLayoutEffect(() => {
@@ -476,6 +479,14 @@ export const createStatus = () => {
     }
   };
 
+  const handleCloseImageModal = () => {
+    toggleModal('isImageModalVisible', false);
+  };
+
+  const handleImageModalOpen = () => {
+    toggleModal('isImageModalVisible', true);
+  };
+
   const handleSubmit = async () => {
     // Validate form
     const errors: StatusFormErrors = {};
@@ -522,11 +533,57 @@ export const createStatus = () => {
       return;
     }
 
+    const statusData = new FormData();
+
+    Object.keys(statusForm).forEach(key => {
+      const value = statusForm[key as keyof StatusStateData];
+      if (value !== null && value !== undefined) {
+        // Don't append image field here - it will be handled separately
+        if (key !== 'image') {
+          statusData.append(key, value.toString());
+        }
+      }
+    });
+
+    // Add image if exists - check both statusForm.image and image store
+    const imageToUpload = statusForm.image || image;
+
+    if (imageToUpload) {
+      let imageUri: string;
+
+      // Handle both string URI and object with uri property
+      if (typeof imageToUpload === 'string') {
+        imageUri = imageToUpload;
+      } else if (typeof imageToUpload === 'object' && 'uri' in imageToUpload) {
+        imageUri = (imageToUpload as { uri: string }).uri;
+      } else {
+        console.log('📝 Creating status without image - invalid image format');
+        console.log('Image value:', imageToUpload);
+        imageUri = '';
+      }
+
+      if (imageUri && imageUri.trim() !== '') {
+        const filename = imageUri.split('/').pop() || 'image.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+        statusData.append('image', {
+          uri: imageUri,
+          name: filename,
+          type,
+        } as any);
+      } else {
+        console.log('📝 Creating status without image - empty URI');
+      }
+    } else {
+      console.log('📝 Creating status without image - no image provided in either source');
+    }
+
     // Submit form online
     try {
-      const response = await axios.post(API_ROUTES.STATUS.SAVE_STATUS, statusForm, {
+      const response = await axios.post(API_ROUTES.STATUS.SAVE_STATUS, statusData, {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${await authUser?.getIdToken()}`,
         },
         timeout: 30000, // 30 seconds timeout
@@ -714,7 +771,13 @@ export const createStatus = () => {
 
   // Custom components
   const customComponents = [
-    <CustomImagePicker key="image-picker" id="map-image-picker-actionSheet" />,
+    formData?.image ? (
+      <Pressable key="current-status-image-pressable" onPress={handleImageModalOpen}>
+        <Image key="current-status-image" style={styles.statusImage} source={{ uri: formData.image }} />
+      </Pressable>
+    ) : (
+      <CustomImagePicker key="image-picker" id="map-image-picker-actionSheet" />
+    ),
     <View key="spacer" style={{ marginVertical: 20 }} />,
 
     // Show ButtonRadio choice when user has both tapped location AND GPS available
@@ -759,9 +822,11 @@ export const createStatus = () => {
           </Text>
           <Text>
             {coords
-              ? `Lat: ${coords[1].toFixed(6)}, Lng: ${coords[0].toFixed(6)}`
+              ? `Lat: ${Number(coords[1]).toFixed(6)}, Lng: ${Number(coords[0]).toFixed(6)}`
               : oneTimeLocationCoords
-              ? `Lat: ${oneTimeLocationCoords[1].toFixed(6)}, Lng: ${oneTimeLocationCoords[0].toFixed(6)}`
+              ? `Lat: ${Number(oneTimeLocationCoords[1]).toFixed(6)}, Lng: ${Number(oneTimeLocationCoords[0]).toFixed(
+                  6
+                )}`
               : 'No location selected'}
           </Text>
         </View>
@@ -1064,6 +1129,9 @@ export const createStatus = () => {
           setLoadingFetch(false);
         }}
       />
+      {modals.isImageModalVisible && formData?.image && (
+        <ImageModal visible={modals.isImageModalVisible} imageUri={formData.image} onClose={handleCloseImageModal} />
+      )}
     </>
   );
 };
@@ -1095,6 +1163,12 @@ const styles = StyleSheet.create({
   markerInfoTitle: {
     fontWeight: 'bold',
     marginBottom: 4,
+  },
+  statusImage: {
+    width: '100%',
+    height: 200,
+    resizeMode: 'cover',
+    borderRadius: 8,
   },
   infoContainer: {
     marginTop: 12,

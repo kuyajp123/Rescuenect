@@ -22,6 +22,7 @@ import { useMapButtonStore } from '@/components/store/useMapButton';
 import { Button, IconButton, ToggleButton } from '../button/Button';
 import { useStatusFormStore } from '@/components/store/useStatusForm';
 import { useGetAddress } from '@/components/store/useGetAddress';
+import { useCoords } from '@/components/store/useCoords';
 
 // Types for flexible form fields
 export interface TextInputField {
@@ -170,7 +171,9 @@ const Map = ({
   errMessage = '',
 }: MapNewProps) => {
   const { setIsVisible } = useMapButtonStore();
-  const { coords, mapContainer, oneTimeLocationCoords } = useMap();
+  const { mapContainer } = useMap();
+  const coords = useCoords(state => state.coords);
+  const oneTimeLocationCoords = useCoords(state => state.oneTimeLocationCoords);
   const { isDark } = useTheme();
   const [bottomSheetEnabled, setBottomSheetEnabled] = React.useState(false);
   const statusForm = useStatusFormStore(state => state.formData);
@@ -182,7 +185,14 @@ const Map = ({
   // Single variable that handles all snap point logic
   let memoizedSnapPoints;
   // If both coordinates exist, use larger initial height
-  if (coords && oneTimeLocationCoords) {
+  const hasValidCoords = coords && coords.length >= 2 && coords[0] !== null && coords[1] !== null;
+  const hasValidOneTimeCoords =
+    oneTimeLocationCoords &&
+    oneTimeLocationCoords.length >= 2 &&
+    oneTimeLocationCoords[0] !== null &&
+    oneTimeLocationCoords[1] !== null;
+
+  if (hasValidCoords && hasValidOneTimeCoords) {
     memoizedSnapPoints = ['25%', '90%'];
   } else {
     // If only one or no coordinates, use default
@@ -194,7 +204,14 @@ const Map = ({
 
   // Control bottom sheet enabled state based on coords
   React.useEffect(() => {
-    if (coords || oneTimeLocationCoords) {
+    const hasValidCoords = coords && coords.length >= 2 && coords[0] !== null && coords[1] !== null;
+    const hasValidOneTimeCoords =
+      oneTimeLocationCoords &&
+      oneTimeLocationCoords.length >= 2 &&
+      oneTimeLocationCoords[0] !== null &&
+      oneTimeLocationCoords[1] !== null;
+
+    if (hasValidCoords || hasValidOneTimeCoords) {
       setBottomSheetEnabled(true);
     } else {
       setBottomSheetEnabled(false);
@@ -225,14 +242,21 @@ const Map = ({
 
   const handleInputFocus = () => {
     // Only expand bottom sheet when input is focused if there's a marker coordinate
-    if (coords) {
+    if (coords && coords.length >= 2 && coords[0] !== null && coords[1] !== null) {
       bottomSheetRef.current?.snapToIndex(2);
     }
   };
 
   const renderActionContents = () => {
+    const hasValidCoords = coords && coords.length >= 2 && coords[0] !== null && coords[1] !== null;
+    const hasValidOneTimeCoords =
+      oneTimeLocationCoords &&
+      oneTimeLocationCoords.length >= 2 &&
+      oneTimeLocationCoords[0] !== null &&
+      oneTimeLocationCoords[1] !== null;
+
     // Show both coordinates if both are available
-    if (coords && oneTimeLocationCoords) {
+    if (hasValidCoords && hasValidOneTimeCoords) {
       return (
         <VStack space="md" style={{ width: '100%' }}>
           {/* Tapped Location */}
@@ -245,9 +269,9 @@ const Map = ({
                   <Text size="md">{tappedLocationLabel}</Text>
                 )}
               </View>
-              {showCoordinates && (
+              {showCoordinates && coords && coords.length >= 2 && coords[0] !== null && coords[1] !== null && (
                 <Text emphasis="light" size="sm">
-                  {`${coords[1].toFixed(6)}, ${coords[0].toFixed(6)}`}
+                  {`${Number(coords[1]).toFixed(6)}, ${Number(coords[0]).toFixed(6)}`}
                 </Text>
               )}
             </VStack>
@@ -266,11 +290,15 @@ const Map = ({
                   <Text size="md">{GPSlocationLabel}</Text>
                 )}
               </View>
-              {showCoordinates && oneTimeLocationCoords && (
-                <Text emphasis="light" size="sm">
-                  {`${oneTimeLocationCoords[1].toFixed(6)}, ${oneTimeLocationCoords[0].toFixed(6)}`}
-                </Text>
-              )}
+              {showCoordinates &&
+                oneTimeLocationCoords &&
+                oneTimeLocationCoords.length >= 2 &&
+                oneTimeLocationCoords[0] !== null &&
+                oneTimeLocationCoords[1] !== null && (
+                  <Text emphasis="light" size="sm">
+                    {`${Number(oneTimeLocationCoords[1]).toFixed(6)}, ${Number(oneTimeLocationCoords[0]).toFixed(6)}`}
+                  </Text>
+                )}
             </VStack>
             <Button
               width="fit"
@@ -286,7 +314,7 @@ const Map = ({
     }
 
     // Show only tapped coordinates if only coords is available
-    if (coords) {
+    if (hasValidCoords) {
       return (
         <HStack style={styles.head}>
           <VStack>
@@ -297,9 +325,9 @@ const Map = ({
                 <Text size="md">{tappedLocationLabel}</Text>
               )}
             </View>
-            {showCoordinates && coords && (
+            {showCoordinates && coords && coords.length >= 2 && coords[0] !== null && coords[1] !== null && (
               <Text emphasis="light" size="sm">
-                {`${coords[1].toFixed(6)}, ${coords[0].toFixed(6)}`}
+                {`${Number(coords[1]).toFixed(6)}, ${Number(coords[0]).toFixed(6)}`}
               </Text>
             )}
           </VStack>
@@ -311,7 +339,7 @@ const Map = ({
     }
 
     // Show only GPS coordinates if only oneTimeLocationCoords is available
-    if (oneTimeLocationCoords) {
+    if (hasValidOneTimeCoords) {
       return (
         <HStack style={styles.head}>
           <VStack>
@@ -322,11 +350,15 @@ const Map = ({
                 <Text size="md">{GPSlocationLabel}</Text>
               )}
             </View>
-            {showCoordinates && oneTimeLocationCoords && (
-              <Text emphasis="light" size="sm">
-                {`${oneTimeLocationCoords[1].toFixed(6)}, ${oneTimeLocationCoords[0].toFixed(6)}`}
-              </Text>
-            )}
+            {showCoordinates &&
+              oneTimeLocationCoords &&
+              oneTimeLocationCoords.length >= 2 &&
+              oneTimeLocationCoords[0] !== null &&
+              oneTimeLocationCoords[1] !== null && (
+                <Text emphasis="light" size="sm">
+                  {`${Number(oneTimeLocationCoords[1]).toFixed(6)}, ${Number(oneTimeLocationCoords[0]).toFixed(6)}`}
+                </Text>
+              )}
           </VStack>
           <Button
             width="fit"
@@ -384,20 +416,29 @@ const Map = ({
           backgroundStyle={{
             backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
           }}
-          handleComponent={() => (
-            <View style={styles.handleContainer}>
-              {(coords || oneTimeLocationCoords) && (
-                <View
-                  style={[
-                    styles.defaultHandle,
-                    {
-                      backgroundColor: isDark ? Colors.border.light : Colors.border.dark,
-                    },
-                  ]}
-                />
-              )}
-            </View>
-          )}
+          handleComponent={() => {
+            const hasValidCoords = coords && coords.length >= 2 && coords[0] !== null && coords[1] !== null;
+            const hasValidOneTimeCoords =
+              oneTimeLocationCoords &&
+              oneTimeLocationCoords.length >= 2 &&
+              oneTimeLocationCoords[0] !== null &&
+              oneTimeLocationCoords[1] !== null;
+
+            return (
+              <View style={styles.handleContainer}>
+                {(hasValidCoords || hasValidOneTimeCoords) && (
+                  <View
+                    style={[
+                      styles.defaultHandle,
+                      {
+                        backgroundColor: isDark ? Colors.border.light : Colors.border.dark,
+                      },
+                    ]}
+                  />
+                )}
+              </View>
+            );
+          }}
         >
           <BottomSheetScrollView
             style={styles.bottomSheetContent}
@@ -464,14 +505,23 @@ const Map = ({
             )}
 
             {/* Dynamic Form Content */}
-            {(coords || oneTimeLocationCoords) && (
+            {((coords && coords.length >= 2 && coords[0] !== null && coords[1] !== null) ||
+              (oneTimeLocationCoords &&
+                oneTimeLocationCoords.length >= 2 &&
+                oneTimeLocationCoords[0] !== null &&
+                oneTimeLocationCoords[1] !== null)) && (
               <VStack style={styles.bottomSheetForm}>
                 {/* Custom Title */}
-                {title && (coords || oneTimeLocationCoords) && (
-                  <Text size="lg" style={[styles.bottomSheetTitle, titleStyle]}>
-                    {title}
-                  </Text>
-                )}
+                {title &&
+                  ((coords && coords.length >= 2 && coords[0] !== null && coords[1] !== null) ||
+                    (oneTimeLocationCoords &&
+                      oneTimeLocationCoords.length >= 2 &&
+                      oneTimeLocationCoords[0] !== null &&
+                      oneTimeLocationCoords[1] !== null)) && (
+                    <Text size="lg" style={[styles.bottomSheetTitle, titleStyle]}>
+                      {title}
+                    </Text>
+                  )}
 
                 {/* Text Input Fields */}
                 {textInputFields.map(field => (

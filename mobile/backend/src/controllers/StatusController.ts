@@ -4,6 +4,7 @@ import { Request, Response, NextFunction } from 'express';
 export class StatusController {
   static async createStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     const data = req.body;
+    const file = req.file;
 
     // console.log("Received status creation request:", JSON.stringify(data, null, 2));
 
@@ -17,7 +18,7 @@ export class StatusController {
         return;
       }
 
-      const result = await StatusModel.createOrUpdateStatus(uid, statusData);
+      const result = await StatusModel.createOrUpdateStatus(uid, file, statusData);
 
       // Check if no changes were detected
       if (result && typeof result === 'object' && 'updated' in result && result.updated === false) {
