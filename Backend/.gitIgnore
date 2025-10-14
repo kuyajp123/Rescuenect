@@ -1,3 +1,4 @@
 node_modules/
 .env
-src/data/rescuenect-private-key.json
+src/data/rescuenect-private-key.json]
+.vscode/

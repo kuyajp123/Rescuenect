@@ -7,26 +7,31 @@ export class WeatherModel {
     const docRef = db.collection('weather').doc(groupId);
     const hourlyData = data.timelines.hourly;
 
-    try {      
+    try {
       // Hourly Forecast
       const hourlyPromises = [];
-      for (let i = 0; i < 24; i++ ){
-          const hour = hourlyData[i];
-          const localTime = convertToManilaTime(hour.time);
-          const paddedId = i.toString().padStart(3, '0');
+      for (let i = 0; i < 24; i++) {
+        const hour = hourlyData[i];
+        const localTime = convertToManilaTime(hour.time);
+        const paddedId = i.toString().padStart(3, '0');
 
-          hourlyPromises.push(docRef.collection('hourly').doc(paddedId).set({
-            time: localTime,
-            ...hour.values,
-          }));
+        hourlyPromises.push(
+          docRef
+            .collection('hourly')
+            .doc(paddedId)
+            .set({
+              time: localTime,
+              ...hour.values,
+            })
+        );
       }
-      
+
       await Promise.all(hourlyPromises);
     } catch (error) {
       console.error('Error inserting weather data:', error);
       throw new Error(`Failed to insert weather data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }
+  };
 
   public static insertDailyData = async (groupId: string, data: any): Promise<void> => {
     const docRef = db.collection('weather').doc(groupId);
@@ -34,37 +39,49 @@ export class WeatherModel {
 
     try {
       // Daily Forecast
-      const dailyPromises: Promise<FirebaseFirestore.WriteResult>[] = dailyData.map((day: forecastData, index: number): Promise<FirebaseFirestore.WriteResult> => {
-        const localTime: string = convertToManilaTime(day.time);
-        const paddedId = index.toString().padStart(3, '0');
-        return docRef.collection('daily').doc(paddedId).set({
-          time: localTime,
-          ...day.values,
-        });
-      });
+      const dailyPromises: Promise<FirebaseFirestore.WriteResult>[] = dailyData.map(
+        (day: forecastData, index: number): Promise<FirebaseFirestore.WriteResult> => {
+          const localTime: string = convertToManilaTime(day.time);
+          const paddedId = index.toString().padStart(3, '0');
+          return docRef
+            .collection('daily')
+            .doc(paddedId)
+            .set({
+              time: localTime,
+              ...day.values,
+            });
+        }
+      );
 
       await Promise.all(dailyPromises);
     } catch (error) {
       console.error('Error inserting daily weather data:', error);
-      throw new Error(`Failed to insert daily weather data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to insert daily weather data: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
-  }
+  };
 
   public static insertRealtimeData = async (groupId: string, data: any): Promise<void> => {
     const docRef = db.collection('weather').doc(groupId);
 
     try {
       const localTime = convertToManilaTime(data.data.time);
-      await docRef.collection('realtime').doc('data').set({ 
-        localTime, 
-        ...data 
-      });
+      await docRef
+        .collection('realtime')
+        .doc('data')
+        .set({
+          localTime,
+          ...data,
+        });
       // console.log('✅ Realtime weather data inserted successfully');
     } catch (error) {
       console.error('Error inserting realtime weather data:', error);
-      throw new Error(`Failed to insert realtime weather data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to insert realtime weather data: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
-  }
+  };
 
   static selectRealtimeData = async (): Promise<FirebaseFirestore.DocumentData> => {
     const docRef = db.collection('weather').doc('central_naic').collection('realtime').doc('data');
@@ -73,7 +90,7 @@ export class WeatherModel {
       throw new Error('No realtime weather data found');
     }
     return { id: doc.id, ...doc.data() };
-  }
+  };
 
   static selectDailyData = async (): Promise<FirebaseFirestore.DocumentData> => {
     const collectionRef = db.collection('weather').doc('central_naic').collection('daily');
@@ -83,7 +100,7 @@ export class WeatherModel {
     }
     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     return data;
-  }
+  };
 
   static selectHourlyData = async (): Promise<FirebaseFirestore.DocumentData> => {
     const collectionRef = db.collection('weather').doc('central_naic').collection('hourly');
@@ -93,5 +110,5 @@ export class WeatherModel {
     }
     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     return data;
-  }
+  };
 }

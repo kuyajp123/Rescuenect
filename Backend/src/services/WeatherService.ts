@@ -1,11 +1,11 @@
 import axios from 'axios';
-import { 
-  getHourlyTimestamp, 
+import {
+  getHourlyTimestamp,
   updateHourlyTimestamp,
   getRealtimeTimestamp,
   updateRealtimeTimestamp,
   getDailyTimestamp,
-  updateDailyTimestamp
+  updateDailyTimestamp,
 } from '@/shared/utils/localTimestamp';
 import { WeatherModel } from '@/models/WeatherModel';
 import { getWeatherAPIEndpoints } from '@/shared/functions/WeatherAPIEndpoints';
@@ -17,7 +17,7 @@ const weatherGroups: WeatherLocationKey[] = [
   'central_naic',
   'sabang',
   'farm_area',
-  'naic_boundary'
+  'naic_boundary',
 ];
 
 export class WeatherService {
@@ -39,29 +39,28 @@ export class WeatherService {
         for (const locationKey of weatherGroups) {
           const forecastUrl = getWeatherAPIEndpoints(locationKey, 'forecast');
           const forecastResponse = await axios.get(forecastUrl);
-          
+
           if (forecastResponse.status === 200) {
             await WeatherModel.insertHourlyData(locationKey, forecastResponse.data);
             console.log(`✅ Hourly Data saved for ${locationKey}`);
           } else {
             console.warn(`⚠️ Failed to fetch for ${locationKey}`);
           }
-          
+
           await delay(1500); // Add delay to avoid 429 error
         }
-        
+
         updateHourlyTimestamp();
         console.log('✅ All hourly data fetched successfully.');
       } catch (error) {
-         console.error(`Hourly error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.error(`Hourly error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
-
     } else {
       console.log('🌤️ Using cached hourly data');
     }
 
     // !realtimeLastFetch || now.getTime() - realtimeLastFetch.getTime() > thirtyMinutes
-    if(!realtimeLastFetch || now.getTime() - realtimeLastFetch.getTime() > thirtyMinutes) {
+    if (!realtimeLastFetch || now.getTime() - realtimeLastFetch.getTime() > thirtyMinutes) {
       console.log('⏰ Fetching realtime weather data for all locations...');
 
       try {
@@ -75,16 +74,16 @@ export class WeatherService {
           } else {
             console.warn(`⚠️ Failed to fetch realtime data for ${locationKey}`);
           }
-          
+
           await delay(1500); // Add delay to avoid 429 error
         }
-        
+
         updateRealtimeTimestamp();
         console.log('✅ All realtime weather data fetched successfully.');
       } catch (error) {
-         console.error(`realtime error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.error(`realtime error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
-    }else{
+    } else {
       console.log('🌤️ Using cached realtime data');
     }
 
@@ -111,11 +110,8 @@ export class WeatherService {
       } catch (error) {
         console.error(`daily error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
-
     } else {
       console.log('🌤️ Using cached daily data');
     }
-
   };
-    
 }
