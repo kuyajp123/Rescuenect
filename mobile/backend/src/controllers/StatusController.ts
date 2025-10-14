@@ -6,8 +6,6 @@ export class StatusController {
     const data = req.body;
     const file = req.file;
 
-    console.log('Received status creation request:', JSON.stringify(data, null, 2));
-
     try {
       // Extract uid from the request body (frontend sends 'uid', not 'userId')
       const { uid, ...rawStatusData } = data;
@@ -31,16 +29,6 @@ export class StatusController {
         lat: rawStatusData.lat ? parseFloat(rawStatusData.lat.toString()) : null,
         lng: rawStatusData.lng ? parseFloat(rawStatusData.lng.toString()) : null,
       };
-
-      console.log('Parsed status data types:', {
-        shareLocation: typeof statusData.shareLocation,
-        shareContact: typeof statusData.shareContact,
-        expirationDuration: typeof statusData.expirationDuration,
-        lat: typeof statusData.lat,
-        lng: typeof statusData.lng,
-      });
-
-      console.log('Parsed status data:', JSON.stringify(statusData, null, 2));
 
       const result = await StatusModel.createOrUpdateStatus(uid, file, statusData);
 
@@ -79,6 +67,21 @@ export class StatusController {
     } catch (error: any) {
       res.status(500).json({ message: 'Failed to fetch status', error: error.message });
       console.error('Status fetching error:', error);
+    }
+  }
+
+  static async deleteStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    console.log('req.body: ', req.body);
+    console.log('req.params: ', req.params);
+    const uid = req.params.uid;
+    const { parentId } = req.body;
+
+    try {
+      const result = await StatusModel.deleteStatus(uid, parentId);
+      res.status(200).json({ message: 'Status deleted successfully', data: result });
+    } catch (error: any) {
+      res.status(500).json({ message: 'Failed to delete status', error: error.message });
+      console.error('Status deletion error:', error);
     }
   }
 }

@@ -26,9 +26,9 @@ import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { StatusStateData, AddressState, StatusFormErrors } from '@/types/components';
 import axios from 'axios';
-import { isEqual } from 'lodash';
+import { isEqual, set } from 'lodash';
 import { Bookmark, Ellipsis, Info, Navigation, Settings, SquarePen, Trash } from 'lucide-react-native';
-import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Animated, Linking, StyleSheet, View, Image, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAddress } from '@/API/getAddress';
@@ -42,6 +42,7 @@ export const createStatus = () => {
   const insets = useSafeAreaInsets();
   const scaleValue = useRef(new Animated.Value(0)).current;
   const image = useImagePickerStore(state => state.image);
+  const setImagePickerImage = useImagePickerStore(state => state.setImage);
   const isOnline = useNetwork(state => state.isOnline);
   const { isDark } = useTheme();
   const { authUser } = useAuth();
@@ -52,6 +53,7 @@ export const createStatus = () => {
   const oneTimeLocationCoords = useCoords(state => state.oneTimeLocationCoords);
   const setOneTimeLocationCoords = useCoords(state => state.setOneTimeLocationCoords);
   const setActiveStatusCoords = useCoords(state => state.setActiveStatusCoords);
+  const resetCoordsState = useCoords(state => state.resetState);
   const savedLocation: [number, number] = [120.7752839, 14.2919325]; // simulate saved location
   // const savedLocation: [number, number] | null = null; // simulate saved location
 
@@ -77,6 +79,7 @@ export const createStatus = () => {
   const [submitStatusLoading, setSubmitStatusLoading] = useState(false);
   const formData = useStatusFormStore(state => state.formData);
   const setFormData = useStatusFormStore(state => state.setFormData);
+  const resetFormData = useStatusFormStore(state => state.resetFormData);
   const isLoading = useStatusFormStore(state => state.isLoading);
   const setLoadingFetch = useStatusFormStore(state => state.setLoading);
   const [formErrors, setFormErrors] = useState<StatusFormErrors>({});
@@ -105,6 +108,8 @@ export const createStatus = () => {
     errorFetchStatus: errorFetching,
     noNetwork: false,
     submitSuccess: false,
+    deleteSuccess: false,
+    deleteConfirm: false,
     submitFailure: false,
     isImageModalVisible: false,
   });
@@ -121,6 +126,15 @@ export const createStatus = () => {
       return () => clearTimeout(timer);
     }
   }, [modals.submitSuccess]);
+
+  useEffect(() => {
+    if (modals.deleteSuccess) {
+      const timer = setTimeout(() => {
+        handleClose();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [modals.deleteSuccess]);
 
   const getStorage = async () => {
     try {
@@ -211,6 +225,7 @@ export const createStatus = () => {
 
   // Load form data from Zustand store on mount
   useEffect(() => {
+    console.log('📋 formData useEffect triggered, formData:', formData ? 'exists' : 'null');
     if (formData) {
       // Set ref flag FIRST for immediate synchronous access
       isFormDataLoadingRef.current = true;
@@ -227,6 +242,19 @@ export const createStatus = () => {
       setTimeout(() => {
         isFormDataLoadingRef.current = false;
       }, 300);
+    } else {
+      // When formData is null (deleted), clear coordinates and reset states
+      console.log('🧹 Clearing all states because formData is null');
+      setCoords(null);
+      setSelectedCoords([0, 0]);
+      setActiveStatusCoords(false);
+      setHasUserTappedMap(false);
+      setIsGPSselection(false);
+      setIsManualSelection(false);
+
+      // Clear addresses
+      setAddressCoords(null);
+      setAddressGPS(null);
     }
   }, [formData]);
 
@@ -552,8 +580,8 @@ export const createStatus = () => {
       }
     });
 
-    // Add image if exists - check both statusForm.image and image store
-    const imageToUpload = statusForm.image || image;
+    // Add image if exists - check statusForm.image
+    const imageToUpload = statusForm.image;
 
     if (imageToUpload) {
       let imageUri: string;
@@ -898,6 +926,7 @@ export const createStatus = () => {
       useNativeDriver: true,
     }).start(() => {
       toggleModal('submitSuccess', false);
+      toggleModal('deleteSuccess', false);
     });
   };
 
@@ -997,48 +1026,111 @@ export const createStatus = () => {
     }
   };
 
-  const headerActions = formData
-    ? {
-        headerActionWithData: {
-          expirationTime: formData.expirationDuration + ' hours',
-          rightAction: {
-            icon: <Ellipsis size={24} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-            onPress: () => {
-              const sheet = require('react-native-actions-sheet').SheetManager;
-              sheet.show('status-more-action', {
-                payload: {
-                  items: [
-                    {
-                      id: 'details',
-                      name: 'Details',
-                      icon: <Info size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-                      onPress: () => {},
-                    },
-                    {
-                      id: 'settings',
-                      name: 'Settings',
-                      icon: <Settings size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-                      onPress: navigateToStatusSettings,
-                    },
-                    {
-                      id: 'delete',
-                      name: 'Delete',
-                      icon: <Trash size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-                      onPress: () => {},
-                    },
-                  ],
-                },
-              });
+  const deleteStatus = async () => {
+    if (!formData || !formData.parentId || !authUser || !isOnline) {
+      toggleModal('noNetwork', true);
+      return;
+    }
+
+    setSubmitStatusLoading(true);
+
+    try {
+      const response = await axios.delete(`${API_ROUTES.STATUS.DELETE_STATUS}/${authUser.uid}`, {
+        data: { parentId: formData.parentId },
+        headers: {
+          Authorization: `Bearer ${await authUser?.getIdToken()}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000, // 30 seconds timeout
+      });
+      if (response.status === 200) {
+
+        // Clear form data from Zustand store using proper reset functions
+        resetFormData();
+
+        // Reset all coordinate states using the resetState function
+        if (resetCoordsState) {
+          resetCoordsState();
+        }
+
+        // Reset local component state
+        setSelectedCoords([0, 0]);
+        setHasUserTappedMap(false);
+        setIsGPSselection(false);
+        setIsManualSelection(false);
+
+        // Clear addresses
+        setAddressCoords(null);
+        setAddressGPS(null);
+
+        // Clear image picker
+        setImagePickerImage(null);
+
+        // dont reset status form to default state
+        // Keep the current form values
+
+        toggleModal('deleteSuccess', true);
+        toggleModal('deleteConfirm', false);
+      }
+    } catch (error) {
+      console.error('Error deleting status:', error);
+      // Show error modal
+      toggleModal('submitFailure', true);
+    } finally {
+      setSubmitStatusLoading(false);
+    }
+  };
+
+  const deleteModalConfirm = async () => {
+    toggleModal('deleteConfirm', true);
+    const sheet = require('react-native-actions-sheet').SheetManager;
+    sheet.hide('status-more-action');
+  };
+
+  const headerActions = useMemo(() => {
+    return formData
+      ? {
+          headerActionWithData: {
+            expirationTime: formData.expirationDuration + ' hours',
+            rightAction: {
+              icon: <Ellipsis size={24} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+              onPress: () => {
+                const sheet = require('react-native-actions-sheet').SheetManager;
+                sheet.show('status-more-action', {
+                  payload: {
+                    items: [
+                      {
+                        id: 'details',
+                        name: 'Details',
+                        icon: <Info size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+                        onPress: () => {},
+                      },
+                      {
+                        id: 'settings',
+                        name: 'Settings',
+                        icon: <Settings size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+                        onPress: navigateToStatusSettings,
+                      },
+                      {
+                        id: 'delete',
+                        name: 'Delete',
+                        icon: <Trash size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+                        onPress: deleteModalConfirm,
+                      },
+                    ],
+                  },
+                });
+              },
             },
           },
-        },
-      }
-    : {
-        headerActionNoData: {
-          icon: <Settings size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-          onPress: navigateToStatusSettings,
-        },
-      };
+        }
+      : {
+          headerActionNoData: {
+            icon: <Settings size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+            onPress: navigateToStatusSettings,
+          },
+        };
+  }, [formData, isDark]);
 
   return (
     <>
@@ -1122,10 +1214,27 @@ export const createStatus = () => {
           primaryText="An error occurred."
           secondaryText="Would you like to send the details you entered through your messaging app instead?"
         />
+        <Modal
+          modalVisible={modals.deleteConfirm}
+          onClose={() => toggleModal('deleteConfirm', false)}
+          size="md"
+          iconOnPress={() => toggleModal('deleteConfirm', false)}
+          sizeIcon={20}
+          primaryButtonText="Confirm"
+          primaryButtonOnPress={() => deleteStatus()}
+          secondaryButtonText="Cancel"
+          secondaryButtonOnPress={() => toggleModal('deleteConfirm', false)}
+          primaryText="Are you sure you want to delete this status?"
+        />
         <CustomAlertDialog
           showAlertDialog={modals.submitSuccess}
           handleClose={handleClose}
           text="Status submitted successfully!"
+        />
+        <CustomAlertDialog
+          showAlertDialog={modals.deleteSuccess}
+          handleClose={handleClose}
+          text="Status deleted successfully!"
         />
       </Body>
       <LoadingOverlay visible={submitStatusLoading} message="Saving your status..." />

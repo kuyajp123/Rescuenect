@@ -489,230 +489,581 @@ await currentDoc.ref.update({
 
 ### Cleanup Implementation Options
 
-**Firebase Scheduled Functions (Recommended)**
+**Supabase Edge Functions (Recommended)**
+
+Supabase Edge Functions provide serverless execution for automated status cleanup with integrated storage management. This approach handles both Firestore document cleanup and Supabase Storage image deletion automatically.
 
 ```typescript
-// Deploy with Firebase Functions
-import { onSchedule } from 'firebase-functions/v2/scheduler';
-import * as admin from 'firebase-admin';
+// supabase/functions/status-cleanup/index.ts
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-export const cleanupExpiredStatuses = onSchedule('every 1 hours', async () => {
-  const db = admin.firestore();
-  const batch = db.batch();
-  let batchCount = 0;
-  const maxBatchSize = 500; // Firestore batch limit
+interface StatusDocument {
+  parentId: string;
+  versionId: string;
+  statusType: 'current' | 'history' | 'deleted';
+  uid: string;
+  image?: string;
+  expiresAt: string;
+  retentionUntil: string;
+  // ... other fields
+}
 
-  console.log('🔄 Starting cleanup of expired statuses...');
+serve(async req => {
+  try {
+    // Initialize Supabase client with service role key
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    console.log('🔄 Starting automated status cleanup...');
+
+    const results = {
+      expiredStatuses: 0,
+      retentionExpired: 0,
+      imagesDeleted: 0,
+      errors: [],
+    };
+
+    // 1. EXPIRE CURRENT STATUSES (move to history)
+    await expireCurrentStatuses(supabaseAdmin, results);
+
+    // 2. DELETE RETENTION-EXPIRED DOCUMENTS (with image cleanup)
+    await deleteRetentionExpiredStatuses(supabaseAdmin, results);
+
+    console.log('✅ Cleanup completed:', results);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: 'Status cleanup completed successfully',
+        results,
+      }),
+      {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    );
+  } catch (error) {
+    console.error('❌ Error in status cleanup:', error);
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        message: 'Status cleanup failed',
+        error: error.message,
+      }),
+      {
+        headers: { 'Content-Type': 'application/json' },
+        status: 500,
+      }
+    );
+  }
+});
+
+async function expireCurrentStatuses(supabaseAdmin: any, results: any) {
+  console.log('⏰ Processing expired current statuses...');
 
   try {
-    // Query ALL expired current statuses across ALL users at once
-    const expiredStatuses = await db
-      .collectionGroup('statuses') // ← This queries across ALL users
-      .where('statusType', '==', 'current')
-      .where('expiresAt', '<=', admin.firestore.Timestamp.now())
-      .limit(500) // Process in chunks to avoid memory issues
-      .get();
+    const now = new Date().toISOString();
 
-    console.log(`📊 Found ${expiredStatuses.size} expired current statuses`);
+    // Query all expired current statuses across all users via Firestore
+    // Note: This assumes you have a Firestore connection in the Edge Function
+    // Alternative: Store status data in Supabase database for direct querying
+
+    // For Firestore integration in Edge Functions, you'll need to:
+    // 1. Use Firestore REST API, or
+    // 2. Store status metadata in Supabase database
+
+    // Example with Firestore REST API:
+    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${Deno.env.get(
+      'FIREBASE_PROJECT_ID'
+    )}/databases/(default)/documents:runQuery`;
+
+    const query = {
+      structuredQuery: {
+        from: [{ collectionId: 'statuses', allDescendants: true }],
+        where: {
+          compositeFilter: {
+            op: 'AND',
+            filters: [
+              {
+                fieldFilter: {
+                  field: { fieldPath: 'statusType' },
+                  op: 'EQUAL',
+                  value: { stringValue: 'current' },
+                },
+              },
+              {
+                fieldFilter: {
+                  field: { fieldPath: 'expiresAt' },
+                  op: 'LESS_THAN',
+                  value: { timestampValue: now },
+                },
+              },
+            ],
+          },
+        },
+        limit: 500,
+      },
+    };
+
+    const response = await fetch(firestoreUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${Deno.env.get('FIREBASE_SERVICE_ACCOUNT_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(query),
+    });
+
+    const data = await response.json();
+
+    if (data.length === 0) {
+      console.log('ℹ️ No expired current statuses found');
+      return;
+    }
+
+    console.log(`📋 Found ${data.length} expired current statuses`);
+
+    // Update statuses to history type using Firestore REST API
+    for (const doc of data) {
+      try {
+        const docPath = doc.document.name;
+        const updateUrl = `https://firestore.googleapis.com/v1/${docPath}`;
+
+        const updateResponse = await fetch(updateUrl, {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${Deno.env.get('FIREBASE_SERVICE_ACCOUNT_KEY')}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fields: {
+              statusType: { stringValue: 'history' },
+              updatedAt: { timestampValue: new Date().toISOString() },
+            },
+          }),
+        });
+
+        if (updateResponse.ok) {
+          results.expiredStatuses++;
+          console.log(`✅ Expired status: ${doc.document.fields.versionId?.stringValue}`);
+        } else {
+          const error = await updateResponse.text();
+          console.error(`❌ Failed to update status:`, error);
+          results.errors.push(`Failed to expire status: ${error}`);
+        }
+      } catch (error) {
+        console.error(`❌ Error processing status:`, error);
+        results.errors.push(`Error expiring status: ${error.message}`);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error in expireCurrentStatuses:', error);
+    results.errors.push(`Expire process error: ${error.message}`);
+  }
+}
+
+async function deleteRetentionExpiredStatuses(supabaseAdmin: any, results: any) {
+  console.log('🗑️ Processing retention-expired statuses...');
+
+  try {
+    const now = new Date().toISOString();
+
+    // Query retention-expired documents
+    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${Deno.env.get(
+      'FIREBASE_PROJECT_ID'
+    )}/databases/(default)/documents:runQuery`;
+
+    const query = {
+      structuredQuery: {
+        from: [{ collectionId: 'statuses', allDescendants: true }],
+        where: {
+          compositeFilter: {
+            op: 'AND',
+            filters: [
+              {
+                fieldFilter: {
+                  field: { fieldPath: 'statusType' },
+                  op: 'IN',
+                  value: { arrayValue: { values: [{ stringValue: 'history' }, { stringValue: 'deleted' }] } },
+                },
+              },
+              {
+                fieldFilter: {
+                  field: { fieldPath: 'retentionUntil' },
+                  op: 'LESS_THAN',
+                  value: { timestampValue: now },
+                },
+              },
+            ],
+          },
+        },
+        limit: 500,
+      },
+    };
+
+    const response = await fetch(firestoreUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${Deno.env.get('FIREBASE_SERVICE_ACCOUNT_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(query),
+    });
+
+    const data = await response.json();
+
+    if (data.length === 0) {
+      console.log('ℹ️ No retention-expired statuses found');
+      return;
+    }
+
+    console.log(`📋 Found ${data.length} retention-expired statuses`);
 
     // Process each expired status
-    for (const doc of expiredStatuses.docs) {
-      // Move from "current" to "history"
-      batch.update(doc.ref, {
-        statusType: 'history',
-        expiredAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+    for (const doc of data) {
+      try {
+        const fields = doc.document.fields;
+        const imageUrl = fields.image?.stringValue || '';
+        const uid = fields.uid?.stringValue || '';
+        const parentId = fields.parentId?.stringValue || '';
+        const versionId = fields.versionId?.stringValue || '';
 
-      batchCount++;
+        // 1. Delete associated image from Supabase Storage (if exists)
+        if (imageUrl && imageUrl !== '') {
+          await deleteStatusImage(supabaseAdmin, imageUrl, uid, parentId, versionId);
+          results.imagesDeleted++;
+        }
 
-      // Commit batch when it reaches limit
-      if (batchCount >= maxBatchSize) {
-        await batch.commit();
-        console.log(`✅ Committed batch of ${batchCount} status updates`);
-        batchCount = 0;
+        // 2. Delete the Firestore document
+        const docPath = doc.document.name;
+        const deleteUrl = `https://firestore.googleapis.com/v1/${docPath}`;
+
+        const deleteResponse = await fetch(deleteUrl, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${Deno.env.get('FIREBASE_SERVICE_ACCOUNT_KEY')}`,
+          },
+        });
+
+        if (deleteResponse.ok) {
+          results.retentionExpired++;
+          console.log(`✅ Deleted expired status: ${versionId}`);
+        } else {
+          const error = await deleteResponse.text();
+          console.error(`❌ Failed to delete status:`, error);
+          results.errors.push(`Failed to delete status: ${error}`);
+        }
+      } catch (error) {
+        console.error(`❌ Error processing retention-expired status:`, error);
+        results.errors.push(`Error deleting status: ${error.message}`);
       }
     }
-
-    // Commit remaining documents
-    if (batchCount > 0) {
-      await batch.commit();
-      console.log(`✅ Committed final batch of ${batchCount} status updates`);
-    }
-
-    console.log(`✅ Successfully moved ${expiredStatuses.size} statuses to history`);
   } catch (error) {
-    console.error('❌ Error in status expiration cleanup:', error);
-    throw error;
+    console.error('❌ Error in deleteRetentionExpiredStatuses:', error);
+    results.errors.push(`Retention cleanup error: ${error.message}`);
   }
-});
+}
 
-export const cleanupRetentionExpired = onSchedule('every 24 hours', async () => {
-  const db = admin.firestore();
-  const batch = db.batch();
-  let batchCount = 0;
-  const maxBatchSize = 500;
-
-  console.log('🗑️ Starting cleanup of retention-expired documents...');
-
+async function deleteStatusImage(
+  supabaseAdmin: any,
+  imageUrl: string,
+  userId: string,
+  parentId: string,
+  versionId: string
+) {
   try {
-    // Query ALL retention-expired documents across ALL users at once
-    const expiredHistory = await db
-      .collectionGroup('statuses') // ← This queries across ALL users
-      .where('statusType', 'in', ['history', 'deleted'])
-      .where('retentionUntil', '<=', admin.firestore.Timestamp.now())
-      .limit(500) // Process in chunks
-      .get();
+    if (!imageUrl || imageUrl === '') {
+      return; // Nothing to delete
+    }
 
-    console.log(`📊 Found ${expiredHistory.size} retention-expired documents`);
+    // Extract file path from public URL or construct it
+    let filePath: string;
 
-    // Delete each expired document
-    for (const doc of expiredHistory.docs) {
-      batch.delete(doc.ref);
-      batchCount++;
-
-      // Commit batch when it reaches limit
-      if (batchCount >= maxBatchSize) {
-        await batch.commit();
-        console.log(`🗑️ Deleted batch of ${batchCount} expired documents`);
-        batchCount = 0;
+    if (imageUrl.includes('supabase')) {
+      // Extract path from Supabase public URL
+      // URL format: https://project.supabase.co/storage/v1/object/public/status-images/userId/filename
+      const url = new URL(imageUrl);
+      const pathSegments = url.pathname.split('/');
+      // Find 'status-images' in path and take everything after it
+      const bucketIndex = pathSegments.findIndex(segment => segment === 'status-images');
+      if (bucketIndex !== -1) {
+        filePath = pathSegments.slice(bucketIndex + 1).join('/');
+      } else {
+        // Fallback: construct path based on naming convention
+        const fileExtension = imageUrl.split('.').pop() || 'jpg';
+        filePath = `${userId}/${parentId}-${versionId}.${fileExtension}`;
       }
+    } else {
+      // Construct path based on our naming convention from IMAGE_UPLOAD_ARCHITECTURE.md
+      const fileExtension = imageUrl.split('.').pop() || 'jpg';
+      filePath = `${userId}/${parentId}-${versionId}.${fileExtension}`;
     }
 
-    // Commit remaining documents
-    if (batchCount > 0) {
-      await batch.commit();
-      console.log(`🗑️ Deleted final batch of ${batchCount} expired documents`);
-    }
+    console.log(`🗑️ Deleting image from Supabase Storage: ${filePath}`);
 
-    console.log(`✅ Successfully deleted ${expiredHistory.size} expired documents`);
+    const { error } = await supabaseAdmin.storage.from('status-images').remove([filePath]);
+
+    if (error) {
+      console.error('❌ Error deleting image from storage:', error);
+      // Don't throw - continue with document deletion even if image deletion fails
+    } else {
+      console.log(`✅ Successfully deleted image: ${filePath}`);
+    }
   } catch (error) {
-    console.error('❌ Error in retention cleanup:', error);
-    throw error;
+    console.error('❌ Error in deleteStatusImage:', error);
+    // Don't throw - continue with document deletion even if image deletion fails
   }
-});
+}
+```
 
-// Optional: Cleanup function for very large datasets
-export const cleanupExpiredStatusesLarge = onSchedule('every 6 hours', async () => {
+**Cron Job Setup for Supabase Edge Functions**
+
+```sql
+-- Enable the pg_cron extension (if not already enabled)
+-- Run this in your Supabase SQL editor
+
+-- Schedule cleanup every hour
+SELECT cron.schedule(
+  'status-cleanup-hourly',
+  '0 * * * *', -- Every hour at minute 0
+  $$
+    SELECT
+      net.http_post(
+        url:='https://your-project-ref.supabase.co/functions/v1/status-cleanup',
+        headers:='{"Content-Type": "application/json", "Authorization": "Bearer YOUR_ANON_KEY"}'::jsonb,
+        body:='{}'::jsonb
+      ) as request_id;
+  $$
+);
+
+-- Alternative: Run every 6 hours for large datasets
+SELECT cron.schedule(
+  'status-cleanup-large',
+  '0 */6 * * *', -- Every 6 hours
+  $$
+    SELECT
+      net.http_post(
+        url:='https://your-project-ref.supabase.co/functions/v1/status-cleanup',
+        headers:='{"Content-Type": "application/json", "Authorization": "Bearer YOUR_ANON_KEY"}'::jsonb,
+        body:='{"batchSize": 1000}'::jsonb
+      ) as request_id;
+  $$
+);
+
+-- Check scheduled jobs
+SELECT * FROM cron.job;
+
+-- Remove a scheduled job if needed
+SELECT cron.unschedule('status-cleanup-hourly');
+```
+
+**Alternative: Firebase Functions with Supabase Storage Integration**
+
+For existing Firebase projects that want to add Supabase Storage cleanup:
+
+```typescript
+// Firebase Functions with Supabase Storage cleanup
+import { onSchedule } from 'firebase-functions/v2/scheduler';
+import * as admin from 'firebase-admin';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client for image deletion
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+
+export const cleanupExpiredStatusesWithImages = onSchedule('every 1 hours', async () => {
   const db = admin.firestore();
   let totalProcessed = 0;
-  let hasMore = true;
+  let imagesDeleted = 0;
 
-  console.log('🔄 Starting large-scale cleanup process...');
+  console.log('🔄 Starting cleanup of expired statuses with image deletion...');
 
-  // Process in multiple rounds for very large datasets
-  while (hasMore && totalProcessed < 10000) {
-    // Safety limit
-    const batch = db.batch();
-    let batchCount = 0;
-
-    // Query next batch of expired documents
-    const expiredDocs = await db
+  try {
+    // 1. Expire current statuses (move to history)
+    const expiredQuery = db
       .collectionGroup('statuses')
       .where('statusType', '==', 'current')
       .where('expiresAt', '<=', admin.firestore.Timestamp.now())
-      .limit(500)
-      .get();
+      .limit(500);
 
-    if (expiredDocs.empty) {
-      hasMore = false;
-      break;
-    }
+    const expiredSnapshot = await expiredQuery.get();
 
-    // Process each document in current batch
-    for (const doc of expiredDocs.docs) {
-      batch.update(doc.ref, {
-        statusType: 'history',
-        expiredAt: admin.firestore.FieldValue.serverTimestamp(),
+    if (!expiredSnapshot.empty) {
+      const batch = db.batch();
+      let batchCount = 0;
+
+      expiredSnapshot.docs.forEach(doc => {
+        batch.update(doc.ref, {
+          statusType: 'history',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        batchCount++;
+        totalProcessed++;
+
+        if (batchCount === 500) {
+          // Execute batch and start a new one
+          batch.commit();
+          batchCount = 0;
+        }
       });
-      batchCount++;
+
+      if (batchCount > 0) {
+        await batch.commit();
+      }
+
+      console.log(`✅ Moved ${expiredSnapshot.size} statuses to history`);
     }
 
-    // Commit current batch
-    if (batchCount > 0) {
-      await batch.commit();
-      totalProcessed += batchCount;
-      console.log(`📊 Processed ${totalProcessed} documents so far...`);
+    // 2. Delete retention-expired statuses with images
+    const retentionQuery = db
+      .collectionGroup('statuses')
+      .where('statusType', 'in', ['history', 'deleted'])
+      .where('retentionUntil', '<=', admin.firestore.Timestamp.now())
+      .limit(500);
+
+    const retentionSnapshot = await retentionQuery.get();
+
+    if (!retentionSnapshot.empty) {
+      const batch = db.batch();
+      let batchCount = 0;
+
+      for (const doc of retentionSnapshot.docs) {
+        const data = doc.data();
+
+        // Delete associated image from Supabase Storage
+        if (data.image && data.image !== '') {
+          try {
+            await deleteImageFromSupabase(data.image, data.uid, data.parentId, data.versionId);
+            imagesDeleted++;
+            console.log(`🗑️ Deleted image for status: ${data.versionId}`);
+          } catch (imageError) {
+            console.error(`⚠️ Failed to delete image for ${data.versionId}:`, imageError);
+            // Continue with document deletion even if image deletion fails
+          }
+        }
+
+        // Delete the Firestore document
+        batch.delete(doc.ref);
+        batchCount++;
+        totalProcessed++;
+
+        if (batchCount === 500) {
+          await batch.commit();
+          batchCount = 0;
+        }
+      }
+
+      if (batchCount > 0) {
+        await batch.commit();
+      }
+
+      console.log(`✅ Deleted ${retentionSnapshot.size} expired documents`);
     }
 
-    // Small delay to avoid overwhelming Firestore
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log(`🎉 Cleanup completed. Total processed: ${totalProcessed}, Images deleted: ${imagesDeleted}`);
+  } catch (error) {
+    console.error('❌ Error in status cleanup:', error);
+    throw error;
   }
-
-  console.log(`✅ Large-scale cleanup completed. Total processed: ${totalProcessed}`);
 });
+
+async function deleteImageFromSupabase(imageUrl: string, userId: string, parentId: string, versionId: string) {
+  try {
+    if (!imageUrl || imageUrl === '') return;
+
+    // Extract file path based on IMAGE_UPLOAD_ARCHITECTURE.md naming convention
+    let filePath: string;
+
+    if (imageUrl.includes('supabase')) {
+      // Extract from Supabase URL: /storage/v1/object/public/status-images/userId/filename
+      const url = new URL(imageUrl);
+      const pathParts = url.pathname.split('/');
+      const bucketIndex = pathParts.findIndex(part => part === 'status-images');
+      if (bucketIndex !== -1) {
+        filePath = pathParts.slice(bucketIndex + 1).join('/'); // userId/filename
+      } else {
+        // Fallback to naming convention
+        const fileExtension = imageUrl.split('.').pop() || 'jpg';
+        filePath = `${userId}/${parentId}-${versionId}.${fileExtension}`;
+      }
+    } else {
+      // Construct based on our naming convention
+      const fileExtension = imageUrl.split('.').pop() || 'jpg';
+      filePath = `${userId}/${parentId}-${versionId}.${fileExtension}`;
+    }
+
+    console.log(`🗑️ Deleting image: status-images/${filePath}`);
+
+    const { error } = await supabase.storage.from('status-images').remove([filePath]);
+
+    if (error) {
+      throw new Error(`Supabase storage deletion failed: ${error.message}`);
+    }
+
+    console.log(`✅ Successfully deleted image: ${filePath}`);
+  } catch (error) {
+    console.error('❌ Error deleting image from Supabase:', error);
+    throw error;
+  }
+}
 ```
 
 **Key Points:**
 
-1. **Collection Group Queries**: Uses `collectionGroup("statuses")` to query across ALL user subcollections at once
-2. **Efficient Processing**: Processes up to 500 documents per batch to stay within Firestore limits
-3. **No User Iteration**: Never loops through individual users - queries all expired documents directly
-4. **Batch Operations**: Uses Firestore batch writes for efficient updates/deletes
-5. **Chunked Processing**: Handles large datasets by processing in manageable chunks
-6. **Safety Limits**: Includes limits and delays to prevent overwhelming Firestore
+1. **Integrated Storage Management**: Automatically handles both Firestore document cleanup and Supabase Storage image deletion
+2. **Serverless Execution**: Supabase Edge Functions provide cost-effective, scalable cleanup automation
+3. **Coordinated Cleanup**: Ensures images are deleted before documents to maintain data consistency
+4. **Error Resilience**: Continues document deletion even if image deletion fails, preventing orphaned data
+5. **Batch Processing**: Handles large datasets by processing in manageable chunks (500 documents per batch)
+6. **Comprehensive Logging**: Detailed logging and error tracking for monitoring cleanup operations
 
-**Performance Benefits:**
+**Architecture Benefits:**
 
-- ✅ **Single Query**: One query finds all expired documents across all users
-- ✅ **Batch Operations**: Up to 500 operations per batch (Firestore limit)
-- ✅ **Parallel Processing**: Firestore handles the parallel execution
-- ✅ **Automatic Scaling**: Scales with your user base without code changes
+- ✅ **Single Platform**: Both storage and serverless functions in Supabase ecosystem
+- ✅ **Automated Scheduling**: Built-in cron job scheduling with pg_cron extension
+- ✅ **Image Cleanup**: Automatic deletion of associated images from Supabase Storage
+- ✅ **Cost Effective**: Serverless functions only run when needed, reducing operational costs
+- ✅ **Firestore Integration**: Works seamlessly with existing Firestore document structure
+- ✅ **Naming Convention Support**: Follows IMAGE_UPLOAD_ARCHITECTURE.md file naming patterns
 
-**External Cron Jobs Example**
+**Deployment Requirements:**
 
-```typescript
-// Run on external server with Admin SDK
-import * as admin from 'firebase-admin';
+1. **Supabase Edge Function Setup**
 
-const cleanupExpiredStatusesExternal = async () => {
-  const db = admin.firestore();
-  let lastDoc = null;
-  let totalProcessed = 0;
+   ```bash
+   # Initialize Supabase project (if not already done)
+   supabase init
 
-  console.log('🔄 Starting external cleanup process...');
+   # Create the edge function
+   supabase functions new status-cleanup
 
-  do {
-    // Build query with pagination
-    let query = db
-      .collectionGroup('statuses')
-      .where('statusType', '==', 'current')
-      .where('expiresAt', '<=', admin.firestore.Timestamp.now())
-      .limit(1000); // Larger batches for external processing
+   # Deploy the function
+   supabase functions deploy status-cleanup
 
-    // Add pagination cursor
-    if (lastDoc) {
-      query = query.startAfter(lastDoc);
-    }
+   # Set required environment variables
+   supabase secrets set FIREBASE_PROJECT_ID=your-firebase-project
+   supabase secrets set FIREBASE_SERVICE_ACCOUNT_KEY=your-service-account-key
+   ```
 
-    const snapshot = await query.get();
+2. **Required Environment Variables**
 
-    if (snapshot.empty) {
-      break;
-    }
+   - `SUPABASE_URL`: Your Supabase project URL
+   - `SUPABASE_SERVICE_ROLE_KEY`: Service role key for storage operations
+   - `FIREBASE_PROJECT_ID`: Firebase project ID for Firestore access
+   - `FIREBASE_SERVICE_ACCOUNT_KEY`: Firebase service account key for authentication
 
-    // Process current batch
-    const batch = db.batch();
-    snapshot.docs.forEach(doc => {
-      batch.update(doc.ref, {
-        statusType: 'history',
-        expiredAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-    });
+3. **Supabase Storage Bucket Setup**
 
-    await batch.commit();
+   ```sql
+   -- Ensure the status-images bucket exists and is properly configured
+   INSERT INTO storage.buckets (id, name, public)
+   VALUES ('status-images', 'status-images', true);
 
-    totalProcessed += snapshot.size;
-    lastDoc = snapshot.docs[snapshot.docs.length - 1];
-
-    console.log(`📊 Processed ${totalProcessed} documents...`);
-
-    // Rate limiting
-    await new Promise(resolve => setTimeout(resolve, 500));
-  } while (lastDoc);
-
-  console.log(`✅ External cleanup completed. Total: ${totalProcessed}`);
-};
-```
+   -- Set appropriate RLS policies for cleanup operations
+   ```
 
 ### Expiration Rules
 

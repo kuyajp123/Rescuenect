@@ -12,5 +12,7 @@ statusRoutes.post('/createStatus', upload.single('image'), StatusController.crea
 
 statusRoutes.get('/getStatus/:uid', StatusController.getStatus);
 
+statusRoutes.delete('/deleteStatus/:uid', StatusController.deleteStatus);
+
 export default statusRoutes;
 

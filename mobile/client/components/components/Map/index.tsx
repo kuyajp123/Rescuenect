@@ -6,7 +6,7 @@ import { useMap } from '@/contexts/MapContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Bookmark, Navigation, X, Ellipsis, Settings } from 'lucide-react-native';
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -194,16 +194,34 @@ const Map = ({
 
   if (hasValidCoords && hasValidOneTimeCoords) {
     memoizedSnapPoints = ['25%', '90%'];
-  } else {
-    // If only one or no coordinates, use default
+  } else if (hasValidCoords || hasValidOneTimeCoords) {
+    // If only one coordinate exists, use default from props
     memoizedSnapPoints = snapPoints;
+  } else {
+    // If no coordinates exist (after deletion), use 14% as initial height
+    memoizedSnapPoints = ['14%', '90%'];
   }
+
+  // Auto-snap to index 0 when no coordinates are available (after deletion)
+  useEffect(() => {
+    const hasValidCoords = coords && coords.length >= 2 && coords[0] !== null && coords[1] !== null;
+    const hasValidOneTimeCoords =
+      oneTimeLocationCoords &&
+      oneTimeLocationCoords.length >= 2 &&
+      oneTimeLocationCoords[0] !== null &&
+      oneTimeLocationCoords[1] !== null;
+
+    // If no coordinates exist, snap to the first snap point (14%)
+    if (!hasValidCoords && !hasValidOneTimeCoords) {
+      bottomSheetRef.current?.snapToIndex(0);
+    }
+  }, [coords, oneTimeLocationCoords]);
 
   // Compute values on each render
   const textValueColor = isDark ? Colors.text.dark : Colors.text.light;
 
   // Control bottom sheet enabled state based on coords
-  React.useEffect(() => {
+  useEffect(() => {
     const hasValidCoords = coords && coords.length >= 2 && coords[0] !== null && coords[1] !== null;
     const hasValidOneTimeCoords =
       oneTimeLocationCoords &&
