@@ -1,4 +1,5 @@
 node_modules/
 .env
-src/data/rescuenect-private-key.json]
+src/data/rescuenect-private-key.json
 .vscode/
+lively-metrics-453114-q3-firebase-adminsdk-fbsvc-00389d6f8c.json
