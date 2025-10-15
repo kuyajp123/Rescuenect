@@ -1,3 +1,7 @@
 {
-  "imports": {}
+  "imports": {
+    "@supabase/functions-js/edge-runtime.d.ts": "jsr:@supabase/functions-js@^2.0.0/edge-runtime.d.ts",
+    "@supabase/functions-js": "jsr:@supabase/functions-js@^2.0.0/mod.ts",
+    "@std/http": "jsr:@std/http@0.177.0/mod.ts"
+  }
 }
