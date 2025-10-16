@@ -3,8 +3,7 @@ import { serve } from 'serve';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 interface CleanupResults {
-  retentionExpired: number;
-  imagesDeleted: number;
+  expiredStatuses: number;
   errors: string[];
 }
 
@@ -13,7 +12,7 @@ interface FirebaseAuth {
   projectId: string;
 }
 
-console.log('Retention cleanup function starting...');
+console.log('Status expire function starting...');
 
 serve(async () => {
   try {
@@ -22,11 +21,10 @@ serve(async () => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    console.log('🔄 Starting retention cleanup...');
+    console.log('🔄 Starting status expiration...');
 
     const results: CleanupResults = {
-      retentionExpired: 0,
-      imagesDeleted: 0,
+      expiredStatuses: 0,
       errors: [],
     };
 
@@ -36,15 +34,15 @@ serve(async () => {
       console.log('❌ Firebase credentials not configured');
     } else {
       console.log('✅ Firebase authentication successful');
-      await deleteRetentionExpiredStatuses(supabaseAdmin, results, firebaseAuth);
+      await expireCurrentStatuses(supabaseAdmin, results, firebaseAuth);
     }
 
-    console.log('✅ Retention cleanup completed:', results);
+    console.log('✅ Status expiration completed:', results);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Retention cleanup completed successfully',
+        message: 'Status expiration completed successfully',
         results,
       }),
       {
@@ -53,11 +51,11 @@ serve(async () => {
       }
     );
   } catch (error) {
-    console.error('❌ Error in retention cleanup:', error);
+    console.error('❌ Error in status expiration:', error);
     return new Response(
       JSON.stringify({
         success: false,
-        message: 'Retention cleanup failed',
+        message: 'Status expiration failed',
         error: error instanceof Error ? error.message : String(error),
       }),
       {
@@ -248,17 +246,17 @@ async function createJWT(
   }
 }
 
-async function deleteRetentionExpiredStatuses(
-  supabaseAdmin: SupabaseClient,
+async function expireCurrentStatuses(
+  _supabaseAdmin: SupabaseClient,
   results: CleanupResults,
   firebaseAuth: FirebaseAuth
 ) {
-  console.log('🗑️ Processing retention-expired statuses...');
+  console.log('⏰ Processing expired current statuses...');
 
   try {
     const now = new Date().toISOString();
 
-    // Query retention-expired documents
+    // Query all expired current statuses across all users via Firestore REST API
     const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${firebaseAuth.projectId}/databases/(default)/documents:runQuery`;
 
     const query = {
@@ -271,17 +269,13 @@ async function deleteRetentionExpiredStatuses(
               {
                 fieldFilter: {
                   field: { fieldPath: 'statusType' },
-                  op: 'IN',
-                  value: {
-                    arrayValue: {
-                      values: [{ stringValue: 'history' }, { stringValue: 'deleted' }],
-                    },
-                  },
+                  op: 'EQUAL',
+                  value: { stringValue: 'current' },
                 },
               },
               {
                 fieldFilter: {
-                  field: { fieldPath: 'retentionUntil' },
+                  field: { fieldPath: 'expiresAt' },
                   op: 'LESS_THAN',
                   value: { timestampValue: now },
                 },
@@ -293,7 +287,7 @@ async function deleteRetentionExpiredStatuses(
       },
     };
 
-    console.log('🔍 Querying Firestore for retention-expired statuses...');
+    console.log('🔍 Querying Firestore for expired statuses...');
 
     const response = await fetch(firestoreUrl, {
       method: 'POST',
@@ -306,122 +300,69 @@ async function deleteRetentionExpiredStatuses(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Firestore retention query failed:', response.status, errorText);
-      results.errors.push(`Firestore retention query failed: ${response.status} ${errorText}`);
+      console.error('❌ Firestore query failed:', response.status, errorText);
+      results.errors.push(`Firestore query failed: ${response.status} ${errorText}`);
       return;
     }
 
     const data = await response.json();
-    console.log('📋 Firestore retention response:', JSON.stringify(data, null, 2));
+    console.log('📋 Firestore response:', JSON.stringify(data, null, 2));
 
     // Handle empty results
     if (!data || !Array.isArray(data) || data.length === 0) {
-      console.log('ℹ️ No retention-expired statuses found');
+      console.log('ℹ️ No expired current statuses found');
       return;
     }
 
-    console.log(`📋 Found ${data.length} retention-expired statuses`);
+    console.log(`📋 Found ${data.length} expired current statuses`);
 
-    // Process each expired status
+    // Update statuses to history type using Firestore REST API
     for (const docResult of data) {
       try {
         // Handle different response structures
         const document = docResult.document || docResult;
 
-        if (!document || !document.name || !document.fields) {
+        if (!document || !document.name) {
           console.log('⚠️ Skipping invalid document structure:', docResult);
           continue;
         }
 
-        const fields = document.fields;
-        const imageUrl = fields.image?.stringValue || '';
-        const uid = fields.uid?.stringValue || '';
-        const parentId = fields.parentId?.stringValue || '';
-        const versionId = fields.versionId?.stringValue || '';
-
-        // 1. Delete associated image from Supabase Storage (if exists)
-        if (imageUrl && imageUrl !== '') {
-          await deleteStatusImage(supabaseAdmin, imageUrl, uid, parentId, versionId);
-          results.imagesDeleted++;
-        }
-
-        // 2. Delete the Firestore document
         const docPath = document.name;
-        const deleteUrl = `https://firestore.googleapis.com/v1/${docPath}`;
+        const updateUrl = `https://firestore.googleapis.com/v1/${docPath}`;
 
-        const deleteResponse = await fetch(deleteUrl, {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${firebaseAuth.token}`,
-          },
-        });
+        const updateResponse = await fetch(
+          updateUrl + '?updateMask.fieldPaths=statusType&updateMask.fieldPaths=updatedAt',
+          {
+            method: 'PATCH',
+            headers: {
+              Authorization: `Bearer ${firebaseAuth.token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fields: {
+                statusType: { stringValue: 'history' },
+                updatedAt: { timestampValue: new Date().toISOString() },
+              },
+            }),
+          }
+        );
 
-        if (deleteResponse.ok) {
-          results.retentionExpired++;
-          console.log(`✅ Deleted expired status: ${versionId}`);
+        if (updateResponse.ok) {
+          results.expiredStatuses++;
+          const versionId = document.fields?.versionId?.stringValue || 'unknown';
+          console.log(`✅ Expired status: ${versionId}`);
         } else {
-          const error = await deleteResponse.text();
-          console.error(`❌ Failed to delete status:`, error);
-          results.errors.push(`Failed to delete status: ${error}`);
+          const error = await updateResponse.text();
+          console.error(`❌ Failed to update status:`, error);
+          results.errors.push(`Failed to expire status: ${error}`);
         }
       } catch (error) {
-        console.error(`❌ Error processing retention-expired status:`, error);
-        results.errors.push(`Error deleting status: ${error instanceof Error ? error.message : String(error)}`);
+        console.error(`❌ Error processing status:`, error);
+        results.errors.push(`Error expiring status: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
   } catch (error) {
-    console.error('❌ Error in deleteRetentionExpiredStatuses:', error);
-    results.errors.push(`Retention cleanup error: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
-async function deleteStatusImage(
-  supabaseAdmin: SupabaseClient,
-  imageUrl: string,
-  userId: string,
-  parentId: string,
-  versionId: string
-) {
-  try {
-    if (!imageUrl || imageUrl === '') {
-      return; // Nothing to delete
-    }
-
-    // Extract file path from public URL or construct it
-    let filePath: string;
-
-    if (imageUrl.includes('supabase')) {
-      // Extract path from Supabase public URL
-      // URL format: https://project.supabase.co/storage/v1/object/public/status-images/userId/filename
-      const url = new URL(imageUrl);
-      const pathSegments = url.pathname.split('/');
-      // Find 'status-images' in path and take everything after it
-      const bucketIndex = pathSegments.findIndex(segment => segment === 'status-images');
-      if (bucketIndex !== -1) {
-        filePath = pathSegments.slice(bucketIndex + 1).join('/');
-      } else {
-        // Fallback: construct path based on naming convention
-        const fileExtension = imageUrl.split('.').pop() || 'jpg';
-        filePath = `${userId}/${parentId}-${versionId}.${fileExtension}`;
-      }
-    } else {
-      // Construct path based on our naming convention from IMAGE_UPLOAD_ARCHITECTURE.md
-      const fileExtension = imageUrl.split('.').pop() || 'jpg';
-      filePath = `${userId}/${parentId}-${versionId}.${fileExtension}`;
-    }
-
-    console.log(`🗑️ Deleting image from Supabase Storage: ${filePath}`);
-
-    const { error } = await supabaseAdmin.storage.from('status-images').remove([filePath]);
-
-    if (error) {
-      console.error('❌ Error deleting image from storage:', error);
-      // Don't throw - continue with document deletion even if image deletion fails
-    } else {
-      console.log(`✅ Successfully deleted image: ${filePath}`);
-    }
-  } catch (error) {
-    console.error('❌ Error in deleteStatusImage:', error);
-    // Don't throw - continue with document deletion even if image deletion fails
+    console.error('❌ Error in expireCurrentStatuses:', error);
+    results.errors.push(`Expire process error: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
