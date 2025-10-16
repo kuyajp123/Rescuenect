@@ -94,9 +94,40 @@ async function getFirebaseAuthToken(): Promise<FirebaseAuth | null> {
     if (serviceAccountJson && projectId) {
       try {
         console.log('🔄 Parsing service account JSON...');
-        const serviceAccount = JSON.parse(serviceAccountJson);
+        console.log('📋 First 100 chars of JSON:', serviceAccountJson.substring(0, 100));
+
+        let serviceAccount;
+
+        // Check if the JSON is Base64 encoded
+        if (serviceAccountJson.startsWith('ew') || !serviceAccountJson.startsWith('{')) {
+          console.log('🔄 Detected Base64 encoded service account, decoding...');
+          try {
+            const decodedJson = atob(serviceAccountJson);
+            console.log('📋 Decoded JSON first 100 chars:', decodedJson.substring(0, 100));
+            serviceAccount = JSON.parse(decodedJson);
+          } catch (decodeError) {
+            console.error('❌ Failed to decode Base64:', decodeError);
+            throw new Error('Failed to decode Base64 service account JSON');
+          }
+        } else {
+          // Clean up the JSON string - remove any potential escape characters
+          const cleanedJson = serviceAccountJson
+            .replace(/\\"/g, '"') // Replace escaped quotes
+            .replace(/\\\\/g, '\\') // Replace double backslashes
+            .trim(); // Remove whitespace
+
+          console.log('📋 Cleaned JSON first 100 chars:', cleanedJson.substring(0, 100));
+          serviceAccount = JSON.parse(cleanedJson);
+        }
+
         console.log('✅ Service account parsed successfully');
         console.log('📧 Client email:', serviceAccount.client_email);
+
+        // Validate required fields
+        if (!serviceAccount.private_key || !serviceAccount.client_email) {
+          console.error('❌ Missing required fields in service account JSON');
+          throw new Error('Invalid service account JSON - missing private_key or client_email');
+        }
 
         // Create JWT for service account authentication
         const now = Math.floor(Date.now() / 1000);
@@ -114,7 +145,7 @@ async function getFirebaseAuthToken(): Promise<FirebaseAuth | null> {
           aud: 'https://oauth2.googleapis.com/token',
           iat,
           exp,
-          scope: 'https://www.googleapis.com/auth/datastore',
+          scope: 'https://www.googleapis.com/auth/cloud-platform',
         };
 
         console.log('🔄 Creating JWT...');
@@ -136,17 +167,18 @@ async function getFirebaseAuthToken(): Promise<FirebaseAuth | null> {
 
         const responseText = await tokenResponse.text();
         console.log('📋 Token response status:', tokenResponse.status);
-        console.log('📋 Token response:', responseText);
 
         if (tokenResponse.ok) {
           const tokenData = JSON.parse(responseText);
-          console.log('✅ Access token obtained successfully');
+          console.log('✅ Access token obtained successfully via JWT');
           return { token: tokenData.access_token, projectId };
         } else {
-          console.error('❌ Failed to get access token:', responseText);
+          console.error('❌ Failed to get access token via JWT:', responseText);
         }
-      } catch (error) {
-        console.error('❌ Error in service account authentication:', error);
+      } catch (parseError) {
+        console.error('❌ Error in service account authentication:', parseError);
+        console.error('❌ Raw service account JSON (first 200 chars):', serviceAccountJson?.substring(0, 200));
+        console.log('ℹ️ Falling back to access token method...');
       }
     }
 
@@ -314,19 +346,22 @@ async function expireCurrentStatuses(
         const docPath = document.name;
         const updateUrl = `https://firestore.googleapis.com/v1/${docPath}`;
 
-        const updateResponse = await fetch(updateUrl, {
-          method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${firebaseAuth.token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fields: {
-              statusType: { stringValue: 'history' },
-              updatedAt: { timestampValue: new Date().toISOString() },
+        const updateResponse = await fetch(
+          updateUrl + '?updateMask.fieldPaths=statusType&updateMask.fieldPaths=updatedAt',
+          {
+            method: 'PATCH',
+            headers: {
+              Authorization: `Bearer ${firebaseAuth.token}`,
+              'Content-Type': 'application/json',
             },
-          }),
-        });
+            body: JSON.stringify({
+              fields: {
+                statusType: { stringValue: 'history' },
+                updatedAt: { timestampValue: new Date().toISOString() },
+              },
+            }),
+          }
+        );
 
         if (updateResponse.ok) {
           results.expiredStatuses++;
