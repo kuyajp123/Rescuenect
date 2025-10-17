@@ -13,7 +13,7 @@ interface FirebaseAuth {
   projectId: string;
 }
 
-console.log('Retention cleanup function starting...');
+console.log('🗑️ Retention Cleanup Function - Initializing...');
 
 serve(async () => {
   try {
@@ -21,8 +21,6 @@ serve(async () => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
-
-    console.log('🔄 Starting retention cleanup...');
 
     const results: CleanupResults = {
       retentionExpired: 0,
@@ -33,13 +31,18 @@ serve(async () => {
     const firebaseAuth = await getFirebaseAuthToken();
     if (!firebaseAuth) {
       results.errors.push('Firebase authentication not configured');
-      console.log('❌ Firebase credentials not configured');
+      console.error('❌ Authentication failed - Firebase credentials not available');
     } else {
-      console.log('✅ Firebase authentication successful');
       await deleteRetentionExpiredStatuses(supabaseAdmin, results, firebaseAuth);
     }
 
-    console.log('✅ Retention cleanup completed:', results);
+    if (results.errors.length > 0) {
+      console.error('⚠️ Retention cleanup completed with errors:', results);
+    } else {
+      console.log(
+        `✅ Retention cleanup completed successfully - Deleted: ${results.retentionExpired} documents, ${results.imagesDeleted} images`
+      );
+    }
 
     return new Response(
       JSON.stringify({
@@ -71,28 +74,19 @@ serve(async () => {
 async function getFirebaseAuthToken(): Promise<FirebaseAuth | null> {
   try {
     const projectId = Deno.env.get('FIREBASE_PROJECT_ID');
-    console.log('🔍 Project ID found:', projectId ? 'Yes' : 'No');
-
-    // Option A: Use service account JSON
     const serviceAccountJson = Deno.env.get('FIREBASE_SERVICE_ACCOUNT_JSON');
-    console.log('🔍 Service Account JSON found:', serviceAccountJson ? 'Yes' : 'No');
 
     if (serviceAccountJson && projectId) {
       try {
-        console.log('🔄 Parsing service account JSON...');
-        console.log('📋 First 100 chars of JSON:', serviceAccountJson.substring(0, 100));
-
         let serviceAccount;
 
         // Check if the JSON is Base64 encoded
         if (serviceAccountJson.startsWith('ew') || !serviceAccountJson.startsWith('{')) {
-          console.log('🔄 Detected Base64 encoded service account, decoding...');
           try {
             const decodedJson = atob(serviceAccountJson);
-            console.log('📋 Decoded JSON first 100 chars:', decodedJson.substring(0, 100));
             serviceAccount = JSON.parse(decodedJson);
           } catch (decodeError) {
-            console.error('❌ Failed to decode Base64:', decodeError);
+            console.error('❌ Failed to decode Base64 service account JSON:', decodeError);
             throw new Error('Failed to decode Base64 service account JSON');
           }
         } else {
@@ -102,83 +96,63 @@ async function getFirebaseAuthToken(): Promise<FirebaseAuth | null> {
             .replace(/\\\\/g, '\\') // Replace double backslashes
             .trim(); // Remove whitespace
 
-          console.log('📋 Cleaned JSON first 100 chars:', cleanedJson.substring(0, 100));
           serviceAccount = JSON.parse(cleanedJson);
         }
 
-        console.log('✅ Service account parsed successfully');
-        console.log('📧 Client email:', serviceAccount.client_email);
+        console.log('🔐 Authenticating with Firebase using service account:', serviceAccount.client_email);
 
         // Validate required fields
         if (!serviceAccount.private_key || !serviceAccount.client_email) {
-          console.error('❌ Missing required fields in service account JSON');
-          throw new Error('Invalid service account JSON - missing private_key or client_email');
+          throw new Error('Invalid service account JSON - missing required fields');
         }
 
         // Create JWT for service account authentication
         const now = Math.floor(Date.now() / 1000);
-        const iat = now;
-        const exp = now + 3600; // 1 hour expiry
-
-        const header = {
-          alg: 'RS256',
-          typ: 'JWT',
-        };
-
+        const header = { alg: 'RS256', typ: 'JWT' };
         const payload = {
           iss: serviceAccount.client_email,
           sub: serviceAccount.client_email,
           aud: 'https://oauth2.googleapis.com/token',
-          iat,
-          exp,
+          iat: now,
+          exp: now + 3600,
           scope: 'https://www.googleapis.com/auth/cloud-platform',
         };
 
-        console.log('🔄 Creating JWT...');
-        // Get access token using service account
         const jwt = await createJWT(header, payload, serviceAccount.private_key);
-        console.log('✅ JWT created successfully');
 
-        console.log('🔄 Requesting access token...');
         const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({
             grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
             assertion: jwt,
           }),
         });
 
-        const responseText = await tokenResponse.text();
-        console.log('📋 Token response status:', tokenResponse.status);
-
         if (tokenResponse.ok) {
-          const tokenData = JSON.parse(responseText);
-          console.log('✅ Access token obtained successfully via JWT');
+          const tokenData = await tokenResponse.json();
+          console.log('✅ Firebase authentication successful');
           return { token: tokenData.access_token, projectId };
         } else {
-          console.error('❌ Failed to get access token via JWT:', responseText);
+          const errorText = await tokenResponse.text();
+          console.error('❌ Failed to obtain Firebase access token:', errorText);
         }
       } catch (parseError) {
-        console.error('❌ Error in service account authentication:', parseError);
-        console.error('❌ Raw service account JSON (first 200 chars):', serviceAccountJson?.substring(0, 200));
-        console.log('ℹ️ Falling back to access token method...');
+        console.error('❌ Service account authentication failed:', parseError);
       }
     }
 
-    // Option B: Use pre-generated access token
+    // Fallback: Use pre-generated access token
     const accessToken = Deno.env.get('FIREBASE_ACCESS_TOKEN');
     if (accessToken && projectId) {
-      console.log('✅ Using pre-generated access token');
+      console.log('🔐 Using fallback access token for Firebase authentication');
       return { token: accessToken, projectId };
     }
 
-    console.log('ℹ️ No Firebase credentials found');
+    console.error('❌ No valid Firebase credentials found');
     return null;
   } catch (error) {
-    console.error('❌ Error getting Firebase auth token:', error);
+    console.error('❌ Firebase authentication error:', error);
     return null;
   }
 }
@@ -188,19 +162,14 @@ async function createJWT(
   payload: Record<string, string | number>,
   privateKey: string
 ): Promise<string> {
-  console.log('🔄 Starting JWT creation...');
   const encoder = new TextEncoder();
 
   // Base64URL encode header and payload
   const encodedHeader = btoa(JSON.stringify(header)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-
   const encodedPayload = btoa(JSON.stringify(payload)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-
   const signingInput = `${encodedHeader}.${encodedPayload}`;
-  console.log('📋 Signing input prepared');
 
   try {
-    console.log('🔄 Processing private key...');
     // Clean up the private key
     const cleanPrivateKey = privateKey
       .replace(/\\n/g, '\n')
@@ -208,42 +177,26 @@ async function createJWT(
       .replace(/-----END PRIVATE KEY-----/, '')
       .replace(/\s/g, '');
 
-    console.log('🔄 Converting private key to binary...');
-    // Convert base64 to binary
+    // Convert base64 to binary and import key
     const binaryKey = Uint8Array.from(atob(cleanPrivateKey), c => c.charCodeAt(0));
-    console.log('📋 Private key converted, length:', binaryKey.length);
-
-    console.log('🔄 Importing crypto key...');
-    // Import the private key for signing
     const key = await crypto.subtle.importKey(
       'pkcs8',
       binaryKey,
-      {
-        name: 'RSASSA-PKCS1-v1_5',
-        hash: 'SHA-256',
-      },
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
       false,
       ['sign']
     );
-    console.log('✅ Crypto key imported successfully');
 
-    console.log('🔄 Signing JWT...');
-    // Sign the input
+    // Sign and encode
     const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, encoder.encode(signingInput));
-    console.log('✅ JWT signed successfully');
-
-    // Base64URL encode the signature
     const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)))
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=/g, '');
 
-    const finalJWT = `${signingInput}.${encodedSignature}`;
-    console.log('✅ JWT creation completed');
-    return finalJWT;
+    return `${signingInput}.${encodedSignature}`;
   } catch (error) {
-    console.error('❌ Error creating JWT:', error);
-    console.error('❌ Error details:', error instanceof Error ? error.message : String(error));
+    console.error('❌ JWT creation failed:', error instanceof Error ? error.message : String(error));
     throw error;
   }
 }
@@ -253,12 +206,8 @@ async function deleteRetentionExpiredStatuses(
   results: CleanupResults,
   firebaseAuth: FirebaseAuth
 ) {
-  console.log('🗑️ Processing retention-expired statuses...');
-
   try {
     const now = new Date().toISOString();
-
-    // Query retention-expired documents
     const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${firebaseAuth.projectId}/databases/(default)/documents:runQuery`;
 
     const query = {
@@ -293,8 +242,6 @@ async function deleteRetentionExpiredStatuses(
       },
     };
 
-    console.log('🔍 Querying Firestore for retention-expired statuses...');
-
     const response = await fetch(firestoreUrl, {
       method: 'POST',
       headers: {
@@ -306,30 +253,27 @@ async function deleteRetentionExpiredStatuses(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Firestore retention query failed:', response.status, errorText);
-      results.errors.push(`Firestore retention query failed: ${response.status} ${errorText}`);
+      console.error('❌ Firestore query failed:', response.status, errorText);
+      results.errors.push(`Firestore query failed: ${response.status}`);
       return;
     }
 
     const data = await response.json();
-    console.log('📋 Firestore retention response:', JSON.stringify(data, null, 2));
 
     // Handle empty results
     if (!data || !Array.isArray(data) || data.length === 0) {
-      console.log('ℹ️ No retention-expired statuses found');
+      console.log('ℹ️ No retention-expired documents found');
       return;
     }
 
-    console.log(`📋 Found ${data.length} retention-expired statuses`);
+    console.log(`📋 Found ${data.length} retention-expired documents to delete`);
 
-    // Process each expired status
+    // Process each expired document
     for (const docResult of data) {
       try {
-        // Handle different response structures
         const document = docResult.document || docResult;
 
         if (!document || !document.name || !document.fields) {
-          console.log('⚠️ Skipping invalid document structure:', docResult);
           continue;
         }
 
@@ -358,15 +302,14 @@ async function deleteRetentionExpiredStatuses(
 
         if (deleteResponse.ok) {
           results.retentionExpired++;
-          console.log(`✅ Deleted expired status: ${versionId}`);
         } else {
           const error = await deleteResponse.text();
-          console.error(`❌ Failed to delete status:`, error);
-          results.errors.push(`Failed to delete status: ${error}`);
+          console.error(`❌ Failed to delete document: ${error}`);
+          results.errors.push('Failed to delete document');
         }
       } catch (error) {
-        console.error(`❌ Error processing retention-expired status:`, error);
-        results.errors.push(`Error deleting status: ${error instanceof Error ? error.message : String(error)}`);
+        console.error(`❌ Error processing document:`, error);
+        results.errors.push('Error processing document');
       }
     }
   } catch (error) {
@@ -384,44 +327,35 @@ async function deleteStatusImage(
 ) {
   try {
     if (!imageUrl || imageUrl === '') {
-      return; // Nothing to delete
+      return;
     }
 
     // Extract file path from public URL or construct it
     let filePath: string;
 
     if (imageUrl.includes('supabase')) {
-      // Extract path from Supabase public URL
-      // URL format: https://project.supabase.co/storage/v1/object/public/status-images/userId/filename
       const url = new URL(imageUrl);
       const pathSegments = url.pathname.split('/');
-      // Find 'status-images' in path and take everything after it
       const bucketIndex = pathSegments.findIndex(segment => segment === 'status-images');
       if (bucketIndex !== -1) {
         filePath = pathSegments.slice(bucketIndex + 1).join('/');
       } else {
-        // Fallback: construct path based on naming convention
         const fileExtension = imageUrl.split('.').pop() || 'jpg';
         filePath = `${userId}/${parentId}-${versionId}.${fileExtension}`;
       }
     } else {
-      // Construct path based on our naming convention from IMAGE_UPLOAD_ARCHITECTURE.md
       const fileExtension = imageUrl.split('.').pop() || 'jpg';
       filePath = `${userId}/${parentId}-${versionId}.${fileExtension}`;
     }
 
-    console.log(`🗑️ Deleting image from Supabase Storage: ${filePath}`);
-
     const { error } = await supabaseAdmin.storage.from('status-images').remove([filePath]);
 
     if (error) {
-      console.error('❌ Error deleting image from storage:', error);
+      console.error('❌ Failed to delete image:', error.message);
       // Don't throw - continue with document deletion even if image deletion fails
-    } else {
-      console.log(`✅ Successfully deleted image: ${filePath}`);
     }
   } catch (error) {
-    console.error('❌ Error in deleteStatusImage:', error);
+    console.error('❌ Error deleting image:', error instanceof Error ? error.message : String(error));
     // Don't throw - continue with document deletion even if image deletion fails
   }
 }
