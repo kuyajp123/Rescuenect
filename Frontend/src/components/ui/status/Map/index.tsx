@@ -23,7 +23,7 @@ const defaultIcon = new L.Icon({
   shadowSize: shadowSize,
 });
 
-export const Map = ({ 
+export const Map = ({
   data,
   center = [14.2965, 120.7925],
   zoom = 13,
@@ -32,20 +32,21 @@ export const Map = ({
   height = '100%',
   width = '100%',
   markerType = 'default',
-  tileLayerUrl = "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  tileLayerUrl = 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
   attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   renderPopup,
   popupType = 'default',
   showCoordinates = true,
   onMarkerClick,
-  className
+  className,
 }: MapProps) => {
-  
   // lat lng popup render
   const latLngPopupRenderer = (item: MapMarkerData) => (
     <div>
-      <strong>Coordinates:</strong><br />
-      <strong>Latitude:</strong> {item.lat}<br />
+      <strong>Coordinates:</strong>
+      <br />
+      <strong>Latitude:</strong> {item.lat}
+      <br />
       <strong>Longitude:</strong> {item.lng}
     </div>
   );
@@ -55,51 +56,52 @@ export const Map = ({
     <div className="space-y-2">
       {showCoordinates && (
         <div>
-          <strong>Coordinates:</strong><br />
-          <strong>Lat:</strong> {item.lat}<br />
+          <strong>Coordinates:</strong>
+          <br />
+          <strong>Lat:</strong> {item.lat}
+          <br />
           <strong>Lng:</strong> {item.lng}
         </div>
       )}
-      
+
       {/* Show additional data if available */}
       {item.firstName && item.lastName && (
         <div>
           <strong>Name:</strong> {item.firstName} {item.lastName}
         </div>
       )}
-      
-      {item.status && (
+
+      {item.condition && (
         <div>
-          <strong>Status:</strong> <span className={`capitalize ${getStatusColor(item.status)}`}>
-            {item.status}
-          </span>
+          <strong>condition:</strong>{' '}
+          <span className={`capitalize ${getconditionColor(item.condition)}`}>{item.condition}</span>
         </div>
       )}
-      
+
       {item.date && (
         <div>
           <strong>Date:</strong> {item.date}
         </div>
       )}
-      
+
       {item.time && (
         <div>
           <strong>Time:</strong> {item.time}
         </div>
       )}
-      
+
       {item.loc && (
         <div>
           <strong>Location:</strong> {item.loc}
         </div>
       )}
-      
+
       {item.contact && (
         <div>
           <strong>Contact:</strong> {item.contact}
         </div>
       )}
-      
+
       {item.description && (
         <div>
           <strong>Description:</strong> {item.description}
@@ -108,9 +110,9 @@ export const Map = ({
     </div>
   );
 
-  // Helper function to get status color
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
+  // Helper function to get condition color
+  const getconditionColor = (condition: string) => {
+    switch (condition?.toLowerCase()) {
       case 'safe':
         return 'text-green-600';
       case 'evacuated':
@@ -127,43 +129,43 @@ export const Map = ({
   const renderMarkerIcon = (item: MapMarkerData) => {
     let icon = defaultIcon;
 
-    switch (item.status) {
+    switch (item.condition) {
       case 'safe':
-        return icon = new L.Icon({
+        return (icon = new L.Icon({
           iconUrl: safeIcon,
           shadowUrl: shadowUrl,
           iconSize: iconSize,
           iconAnchor: iconAnchor,
           popupAnchor: popupAnchor,
           shadowSize: shadowSize,
-        });
+        }));
       case 'evacuated':
-        return icon = new L.Icon({
+        return (icon = new L.Icon({
           iconUrl: evacuatedIcon,
           shadowUrl: shadowUrl,
           iconSize: iconSize,
           iconAnchor: iconAnchor,
           popupAnchor: popupAnchor,
           shadowSize: shadowSize,
-        });
+        }));
       case 'affected':
-        return icon = new L.Icon({
+        return (icon = new L.Icon({
           iconUrl: affectedIcon,
           shadowUrl: shadowUrl,
           iconSize: iconSize,
           iconAnchor: iconAnchor,
           popupAnchor: popupAnchor,
           shadowSize: shadowSize,
-        });
+        }));
       case 'missing':
-        return icon = new L.Icon({
+        return (icon = new L.Icon({
           iconUrl: missingIcon,
           shadowUrl: shadowUrl,
           iconSize: iconSize,
           iconAnchor: iconAnchor,
           popupAnchor: popupAnchor,
           shadowSize: shadowSize,
-        });
+        }));
       default:
         icon = defaultIcon;
     }
@@ -174,7 +176,6 @@ export const Map = ({
       return renderMarkerIcon(item);
     } else if (markerType === 'default') {
       return defaultIcon;
-
     }
   };
 
@@ -198,25 +199,20 @@ export const Map = ({
       style={{ height, width, zIndex: 0 }}
       className={className}
     >
-      <TileLayer
-        attribution={attribution}
-        url={tileLayerUrl}
-      />
-      
+      <TileLayer attribution={attribution} url={tileLayerUrl} />
+
       {data.map(item => (
-        <Marker 
-          position={[item.lat, item.lng]} 
+        <Marker
+          position={[item.lat, item.lng]}
           icon={getMarkerIcon(item)}
-          key={item.id}
+          key={item.uid}
           eventHandlers={{
-            click: () => onMarkerClick?.(item)
+            click: () => onMarkerClick?.(item),
           }}
         >
-          <Popup className='custom-popup'>
-            {getPopupRenderer(item)}
-          </Popup>
+          <Popup className="custom-popup">{getPopupRenderer(item)}</Popup>
         </Marker>
       ))}
     </MapContainer>
-  )
-}
+  );
+};

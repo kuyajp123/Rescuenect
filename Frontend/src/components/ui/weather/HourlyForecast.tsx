@@ -10,7 +10,7 @@ export const HourlyForecast = ({ time, weatherCode, temperature }: ForecastDataP
   return (
     <TableRow key={time} className="h-20">
         <TableCell className="p-0 pr-4">
-        <span className='text-[12px] opacity-70'>{dateString === today ? "Today" : "Tomorrow"}</span> <br />
+        <span className='text-[12px] opacity-70'>{dateString === today ? "Today" : dateString < today ? "Yesterday" : "Tomorrow"}</span> <br />
         {new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
         </TableCell>
         <TableCell className="px-4">

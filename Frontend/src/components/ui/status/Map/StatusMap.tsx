@@ -1,16 +1,16 @@
 import { Map } from './index';
-import status from '@/data/statusData.json';
+import condition from '@/data/statusData.json';
 
-// Example: Status Map - shows how to use the reusable Map component
-export const StatusMap = () => {
+// Example: condition Map - shows how to use the reusable Map component
+export const conditionMap = () => {
   const handleMarkerClick = (item: any) => {
     console.log('Marker clicked:', item);
     // You can add your custom logic here (e.g., open modal, navigate, etc.)
   };
 
   return (
-    <Map 
-      data={status}
+    <Map
+      data={condition}
       center={[14.2965, 120.7925]}
       zoom={13}
       minZoom={10}
@@ -24,41 +24,48 @@ export const StatusMap = () => {
 };
 
 // Example: Custom popup renderer
-export const StatusMapWithCustomPopup = () => {
+export const conditionMapWithCustomPopup = () => {
   const customPopupRenderer = (item: any) => (
     <div className="p-2 min-w-[200px]">
       <div className="flex items-center space-x-2 mb-2">
-        <img 
-          src={item.picture} 
+        <img
+          src={item.picture}
           alt={`${item.firstName} ${item.lastName}`}
           className="w-10 h-10 rounded-full object-cover"
         />
         <div>
-          <h3 className="font-semibold">{item.firstName} {item.lastName}</h3>
-          <span className={`text-sm px-2 py-1 rounded ${getStatusBadgeColor(item.status)}`}>
-            {item.status}
-          </span>
+          <h3 className="font-semibold">
+            {item.firstName} {item.lastName}
+          </h3>
+          <span className={`text-sm px-2 py-1 rounded ${getconditionBadgeColor(item.condition)}`}>{item.condition}</span>
         </div>
       </div>
-      
+
       <div className="space-y-1 text-sm">
-        <p><strong>Date:</strong> {item.date}</p>
-        <p><strong>Time:</strong> {item.time}</p>
-        {item.loc && <p><strong>Location:</strong> {item.loc}</p>}
-        {item.contact && <p><strong>Contact:</strong> {item.contact}</p>}
-        {item.person && <p><strong>People:</strong> {item.person}</p>}
+        <p>
+          <strong>Date:</strong> {item.date}
+        </p>
+        <p>
+          <strong>Time:</strong> {item.time}
+        </p>
+        {item.loc && (
+          <p>
+            <strong>Location:</strong> {item.loc}
+          </p>
+        )}
+        {item.contact && (
+          <p>
+            <strong>Contact:</strong> {item.contact}
+          </p>
+        )}
       </div>
-      
-      {item.description && (
-        <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
-          {item.description}
-        </div>
-      )}
+
+      {item.description && <div className="mt-2 p-2 bg-gray-50 rounded text-sm">{item.description}</div>}
     </div>
   );
 
-  const getStatusBadgeColor = (status: string) => {
-    switch (status?.toLowerCase()) {
+  const getconditionBadgeColor = (condition: string) => {
+    switch (condition?.toLowerCase()) {
       case 'safe':
         return 'bg-green-100 text-green-800';
       case 'evacuated':
@@ -72,27 +79,14 @@ export const StatusMapWithCustomPopup = () => {
     }
   };
 
-  return (
-    <Map 
-      data={status}
-      renderPopup={customPopupRenderer}
-      showCoordinates={false}
-      height="600px"
-    />
-  );
+  return <Map data={condition} renderPopup={customPopupRenderer} showCoordinates={false} height="600px" />;
 };
 
 // Example: Filtered map (only missing persons)
 export const MissingPersonsMap = () => {
-  const missingPersons = status.filter(person => person.status === 'missing');
+  const missingPersons = condition.filter(person => person.condition === 'missing');
 
   return (
-    <Map 
-      data={missingPersons}
-      center={[14.2965, 120.7925]}
-      zoom={14}
-      height="400px"
-      className="border rounded-lg"
-    />
+    <Map data={missingPersons} center={[14.2965, 120.7925]} zoom={14} height="400px" className="border rounded-lg" />
   );
 };

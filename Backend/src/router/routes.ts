@@ -5,10 +5,11 @@ import { LoginController } from '@/controllers/LoginController';
 
 const router = express.Router();
 
-const weatherController = new WeatherController();
-router.get('/api/weather', async (req: Request, res: Response, next: NextFunction) => {
-    await weatherController.getWeatherData(req, res);
-});
+// suspected of not being used
+// const weatherController = new WeatherController();
+// router.get('/api/weather', async (req: Request, res: Response, next: NextFunction) => {
+//     await weatherController.getWeatherData(req, res);
+// });
 
 router.post('/auth/signin', AuthMiddleware.verifyToken, async (req: Request, res: Response, next: NextFunction) => {
     await LoginController.handleLogin(req, res);

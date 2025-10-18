@@ -33,7 +33,7 @@ export class WeatherService {
 
     // !hourlyLastFetch || now.getTime() - hourlyLastFetch.getTime() > oneHour
     if (!hourlyLastFetch || now.getTime() - hourlyLastFetch.getTime() > oneHour) {
-      console.log('⏰ Fetching forecast data for all locations...');
+      // console.log('⏰ Fetching forecast data for all locations...');
 
       try {
         for (const locationKey of weatherGroups) {
@@ -42,21 +42,21 @@ export class WeatherService {
 
           if (forecastResponse.status === 200) {
             await WeatherModel.insertHourlyData(locationKey, forecastResponse.data);
-            console.log(`✅ Hourly Data saved for ${locationKey}`);
+            // console.log(`✅ Hourly Data saved for ${locationKey}`);
           } else {
-            console.warn(`⚠️ Failed to fetch for ${locationKey}`);
+            // console.warn(`⚠️ Failed to fetch for ${locationKey}`);
           }
 
           await delay(1500); // Add delay to avoid 429 error
         }
 
         updateHourlyTimestamp();
-        console.log('✅ All hourly data fetched successfully.');
+        // console.log('✅ All hourly data fetched successfully.');
       } catch (error) {
         console.error(`Hourly error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     } else {
-      console.log('🌤️ Using cached hourly data');
+      // console.log('🌤️ Using cached hourly data');
     }
 
     // !realtimeLastFetch || now.getTime() - realtimeLastFetch.getTime() > thirtyMinutes
@@ -70,25 +70,25 @@ export class WeatherService {
 
           if (realtimeResponse.status === 200) {
             await WeatherModel.insertRealtimeData(locationKey, realtimeResponse.data);
-            console.log(`✅ Realtime data saved for ${locationKey}`);
+            // console.log(`✅ Realtime data saved for ${locationKey}`);
           } else {
-            console.warn(`⚠️ Failed to fetch realtime data for ${locationKey}`);
+            // console.warn(`⚠️ Failed to fetch realtime data for ${locationKey}`);
           }
 
           await delay(1500); // Add delay to avoid 429 error
         }
 
         updateRealtimeTimestamp();
-        console.log('✅ All realtime weather data fetched successfully.');
+        // console.log('✅ All realtime weather data fetched successfully.');
       } catch (error) {
-        console.error(`realtime error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // console.error(`realtime error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     } else {
-      console.log('🌤️ Using cached realtime data');
+      // console.log('🌤️ Using cached realtime data');
     }
 
     if (!dailyLastFetch || now.getTime() - dailyLastFetch.getTime() > twelveHours) {
-      console.log('⏰ Fetching daily weather data for all locations...');
+      // console.log('⏰ Fetching daily weather data for all locations...');
 
       try {
         for (const locationKey of weatherGroups) {
@@ -97,21 +97,21 @@ export class WeatherService {
 
           if (dailyResponse.status === 200) {
             await WeatherModel.insertDailyData(locationKey, dailyResponse.data);
-            console.log(`✅ Daily data saved for ${locationKey}`);
+            // console.log(`✅ Daily data saved for ${locationKey}`);
           } else {
-            console.warn(`⚠️ Failed to fetch daily data for ${locationKey}`);
+            // console.warn(`⚠️ Failed to fetch daily data for ${locationKey}`);
           }
 
           await delay(1500); // Add delay to avoid 429 error
         }
 
         updateDailyTimestamp();
-        console.log('✅ All daily weather data fetched successfully.');
+        // console.log('✅ All daily weather data fetched successfully.');
       } catch (error) {
         console.error(`daily error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     } else {
-      console.log('🌤️ Using cached daily data');
+      // console.log('🌤️ Using cached daily data');
     }
   };
 }

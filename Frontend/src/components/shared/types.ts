@@ -1,22 +1,24 @@
+import FirebaseFirestore from 'firebase/firestore';
+
 export type WeatherIconProps = {
   height?: string | number;
   width?: string | number;
 };
 
 export type WeatherCardProps = {
-    key?: string | number;
-    name: string;
-    icon: number;
-    precipitationProbability: number; // chance of rain
-    rainIntensity: number;
-    rainAccumulation?: number; // total rain accumulation
-    humidity: number;
-    temperature: number;
-    temperatureApparent: number; // feels like temperature
-    uvIndex?: number; // UV index, optional
-    windSpeed: number;
-    weatherCode: number; // weather condition code
-    cloudCover: number; // percentage of cloud cover
+  key?: string | number;
+  name: string;
+  icon: number;
+  precipitationProbability: number; // chance of rain
+  rainIntensity: number;
+  rainAccumulation?: number; // total rain accumulation
+  humidity: number;
+  temperature: number;
+  temperatureApparent: number; // feels like temperature
+  uvIndex?: number; // UV index, optional
+  windSpeed: number;
+  weatherCode: number; // weather condition code
+  cloudCover: number; // percentage of cloud cover
 };
 
 export interface ForecastDataProps {
@@ -27,15 +29,15 @@ export interface ForecastDataProps {
 }
 
 export interface GetDateAndTimeProps {
-    date?: string;
-    year?: string;
-    month?: string;
-    weekday?: string;
-    day?: string;
-    hour?: string;
-    minute?: string;
-    second?: string;
-    hour12?: boolean;
+  date?: string;
+  year?: string;
+  month?: string;
+  weekday?: string;
+  day?: string;
+  hour?: string;
+  minute?: string;
+  second?: string;
+  hour12?: boolean;
 }
 
 //weather data types
@@ -73,27 +75,71 @@ export type WeatherData = {
   realTimeData: RealTimeData;
 };
 
-export type StatusTemplateProps = {
-  style?: object
-  id: string | number
-  picture: string
-  firstName: string
-  lastName: string
-  loc: string
-  lat?: number
-  lng?: number
-  status: string
-  description?: string
-  image?: string
-  person?: number
-  contact?: string
-  date: string
-  time: string
+export interface StatusData {
+  // Core versioning fields
+  parentId: string;
+  versionId: string;
+  statusType: 'current' | 'history' | 'deleted';
+
+  // User identification
+  uid: string;
+
+  profileImage: string;
+
+  // Personal information
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+
+  // Status information
+  condition: 'safe' | 'evacuated' | 'affected' | 'missing' | '';
+
+  // Location data
+  lat: number | null;
+  lng: number | null;
+  location?: string | null;
+
+  // Additional information
+  note: string;
+  image: string;
+
+  // Privacy settings
+  shareLocation: boolean;
+  shareContact: boolean;
+
+  // Expiration settings (user-controlled)
+  expirationDuration: 12 | 24; // hours
+  expiresAt: FirebaseFirestore.Timestamp; // when status becomes inactive
+
+  // Timestamps
+  createdAt: FirebaseFirestore.Timestamp | string;
+  updatedAt?: FirebaseFirestore.Timestamp | string;
+  deletedAt?: FirebaseFirestore.Timestamp | string;
+
+  // System-managed cleanup (30 days retention for history)
+  retentionUntil: FirebaseFirestore.Timestamp; // when history is permanently deleted
 }
+
+export type StatusTemplateProps = Omit<
+  StatusData,
+  | 'parentId'
+  | 'versionId'
+  | 'statusType'
+  | 'shareLocation'
+  | 'shareContact'
+  | 'expirationDuration'
+  | 'updatedAt'
+  | 'deletedAt'
+  | 'retentionUntil'
+  | 'lat'
+  | 'lng'
+> & {
+  style?: React.CSSProperties;
+};
 
 // Define the data structure for map markers
 export interface MapMarkerData {
-  id: number | string;
+  uid: string;
   lat: number;
   lng: number;
   [key: string]: any; // Allow additional properties
@@ -103,7 +149,7 @@ export interface MapMarkerData {
 export interface MapProps {
   // Required props
   data: MapMarkerData[];
-  
+
   // Optional props with defaults
   center?: [number, number];
   zoom?: number;
@@ -111,17 +157,17 @@ export interface MapProps {
   maxZoom?: number;
   height?: string;
   width?: string;
-  
+
   // Customization props
   markerType?: 'status' | 'default';
   tileLayerUrl?: string;
   attribution?: string;
-  
+
   // Popup customization
   renderPopup?: (item: MapMarkerData) => React.ReactNode;
   popupType?: 'default' | 'coordinates' | 'custom';
   showCoordinates?: boolean;
-  
+
   // Event handlers
   onMarkerClick?: (item: MapMarkerData) => void;
   className?: string;
