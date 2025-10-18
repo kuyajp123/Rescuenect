@@ -1,6 +1,6 @@
 import { WeatherCard, DailyForecastCard, HourlyForecast } from '@/components/ui/weather';
-import { DisplayDateAndTime } from '@/components/helper/DateAndTime';
-import { useWeatherStore } from '@/components/stores/useWeatherStores';
+import { DisplayDateAndTime } from '@/helper/DateAndTime';
+import { useWeatherStore } from '@/stores/useWeatherStores';
 import GlassCard from '@/components/ui/card/GlassCard';
 import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@heroui/react';
 

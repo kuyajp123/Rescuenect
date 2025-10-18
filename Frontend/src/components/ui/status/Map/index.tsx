@@ -6,7 +6,7 @@ import evacuatedIcon from 'leaflet/dist/images/marker-icon-blue.png';
 import affectedIcon from 'leaflet/dist/images/marker-icon-orange.png';
 import missingIcon from 'leaflet/dist/images/marker-icon-red.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-import { MapMarkerData, MapProps } from '@/components/shared/types';
+import { MapMarkerData, MapProps } from '@/types/types';
 
 const shadowUrl = markerShadow;
 const iconSize: [number, number] = [25, 41];

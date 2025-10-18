@@ -1,8 +1,8 @@
-import { ThemeSwitcher } from '@/components/hooks/ThemeSwitcher';
+import { ThemeSwitcher } from '@/hooks/ThemeSwitcher';
 import { Bell, PlusIcon, Settings } from 'lucide-react';
 import { Avatar } from '@heroui/avatar';
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownSection, DropdownItem, User } from '@heroui/react';
-import { UrlLocation } from '@/components/helper/commonHelpers';
+import { UrlLocation } from '@/helper/commonHelpers';
 import { useNavigate } from 'react-router-dom';
 import { getAuth, signOut } from 'firebase/auth';
 

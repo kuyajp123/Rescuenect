@@ -1,6 +1,6 @@
 import GridShape from '@/components/ui/grid/GridShape';
 import { Outlet } from 'react-router-dom';
-import { ThemeSwitcher } from '@/components/hooks/ThemeSwitcher';
+import { ThemeSwitcher } from '@/hooks/ThemeSwitcher';
 
 const AuthLayout = () => {
   return (
@@ -10,16 +10,16 @@ const AuthLayout = () => {
           <div className="relative flex items-center justify-center z-1">
             {/* <!-- ===== Common Grid Shape Start ===== --> */}
             <GridShape />
-            
+
             <div className="flex flex-col items-center max-w-xs">
-              <div className='flex flex-col items-center mb-6 sm:mb-8'>
+              <div className="flex flex-col items-center mb-6 sm:mb-8">
                 {/* <img
                   width={231}
                   height={48}
                   src="/images/logo/auth-logo.svg"
                   alt="Logo"
                 /> */}
-                <p className='text-4xl text-white font-semibold'>Rescuenect</p>
+                <p className="text-4xl text-white font-semibold">Rescuenect</p>
               </div>
               <p className="text-center text-gray-400 dark:text-white/60">
                 A Disaster Risk Management System For Naic Cavite
@@ -34,6 +34,6 @@ const AuthLayout = () => {
       </div>
     </div>
   );
-}
+};
 
-export default AuthLayout
+export default AuthLayout;

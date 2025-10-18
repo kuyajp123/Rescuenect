@@ -8,8 +8,6 @@ import {
     PartlyCloudyNightIcon,
     RainyIcon,
     ThunderStormIcon,
-    HeavyGustIcon,
-    WindyIcon
 } from '@/components/ui/weather';
 
 // Helper function to determine if it's day or night

@@ -14,24 +14,23 @@ import WeatherCard from './WeatherCard';
 import DailyForecastCard from './DailyForecast';
 import HourlyForecast from './HourlyForecast';
 
-import { WeatherIconProps } from '@/components/shared/types';
+import { WeatherIconProps } from '@/types/types';
 
-const iconFactory = (src: string, alt: string) => 
-  ({ height = 40, width = 50 }: WeatherIconProps) => (
-    <img src={src} height={height} width={width} alt={alt} />
-  );
+const iconFactory =
+  (src: string, alt: string) =>
+  ({ height = 40, width = 50 }: WeatherIconProps) => <img src={src} height={height} width={width} alt={alt} />;
 
-const ClearDayIcon = iconFactory(ClearDay, "Clear Day Icon");
-const ClearNightIcon = iconFactory(ClearNight, "Clear Night Icon");
-const CloudyIcon = iconFactory(Cloudy, "Cloudy Icon");
-const DrizzleRainIcon = iconFactory(DrizzleRain, "Drizzle Rain Icon");
-const FogIcon = iconFactory(Fog, "Fog Icon");
-const HeavyGustIcon = iconFactory(HeavyGust, "Heavy Gust Icon");
-const PartlyCloudyDayIcon = iconFactory(PartlyCloudyDay, "Partly Cloudy Day Icon");
-const PartlyCloudyNightIcon = iconFactory(PartlyCloudyNight, "Partly Cloudy Night Icon");
-const RainyIcon = iconFactory(Rainy, "Rainy Icon");
-const ThunderStormIcon = iconFactory(ThunderStorm, "Thunder Storm Icon");
-const WindyIcon = iconFactory(Windy, "Windy Icon");
+const ClearDayIcon = iconFactory(ClearDay, 'Clear Day Icon');
+const ClearNightIcon = iconFactory(ClearNight, 'Clear Night Icon');
+const CloudyIcon = iconFactory(Cloudy, 'Cloudy Icon');
+const DrizzleRainIcon = iconFactory(DrizzleRain, 'Drizzle Rain Icon');
+const FogIcon = iconFactory(Fog, 'Fog Icon');
+const HeavyGustIcon = iconFactory(HeavyGust, 'Heavy Gust Icon');
+const PartlyCloudyDayIcon = iconFactory(PartlyCloudyDay, 'Partly Cloudy Day Icon');
+const PartlyCloudyNightIcon = iconFactory(PartlyCloudyNight, 'Partly Cloudy Night Icon');
+const RainyIcon = iconFactory(Rainy, 'Rainy Icon');
+const ThunderStormIcon = iconFactory(ThunderStorm, 'Thunder Storm Icon');
+const WindyIcon = iconFactory(Windy, 'Windy Icon');
 
 export {
   ClearDayIcon,
@@ -44,7 +43,7 @@ export {
   PartlyCloudyNightIcon,
   RainyIcon,
   ThunderStormIcon,
-  WindyIcon
+  WindyIcon,
 };
 
 export { WeatherCard, DailyForecastCard, HourlyForecast };

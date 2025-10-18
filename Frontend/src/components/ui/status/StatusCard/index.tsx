@@ -1,8 +1,8 @@
 import { Card, CardHeader, CardBody, CardFooter, Avatar, Chip, Image } from '@heroui/react';
 import { Ellipsis } from 'lucide-react';
 import { Phone } from 'lucide-react';
-import { StatusTemplateProps } from '@/components/shared/types';
-import { formatTimeSince, formatTimeRemaining } from '@/components/helper/commonHelpers';
+import { StatusTemplateProps } from '@/types/types';
+import { formatTimeSince, formatTimeRemaining } from '@/helper/commonHelpers';
 
 export const StatusCard = ({
   style,
