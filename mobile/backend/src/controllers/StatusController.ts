@@ -8,7 +8,7 @@ export class StatusController {
 
     try {
       // Extract uid from the request body (frontend sends 'uid', not 'userId')
-      const { uid, ...rawStatusData } = data;
+      const { uid } = data;
 
       // Validate uid exists
       if (!uid) {
@@ -18,16 +18,14 @@ export class StatusController {
 
       // Parse FormData string values back to proper types
       const statusData = {
-        ...rawStatusData,
+        ...data,
         // Parse boolean fields
-        shareLocation: rawStatusData.shareLocation === 'true' || rawStatusData.shareLocation === true,
-        shareContact: rawStatusData.shareContact === 'true' || rawStatusData.shareContact === true,
+        shareLocation: data.shareLocation === 'true' || data.shareLocation === true,
+        shareContact: data.shareContact === 'true' || data.shareContact === true,
         // Parse number fields
-        expirationDuration: rawStatusData.expirationDuration
-          ? parseInt(rawStatusData.expirationDuration.toString()) || 24
-          : 24,
-        lat: rawStatusData.lat ? parseFloat(rawStatusData.lat.toString()) : null,
-        lng: rawStatusData.lng ? parseFloat(rawStatusData.lng.toString()) : null,
+        expirationDuration: data.expirationDuration ? parseInt(data.expirationDuration.toString()) || 24 : 24,
+        lat: data.lat ? parseFloat(data.lat.toString()) : null,
+        lng: data.lng ? parseFloat(data.lng.toString()) : null,
       };
 
       const result = await StatusModel.createOrUpdateStatus(uid, file, statusData);
@@ -71,13 +69,15 @@ export class StatusController {
   }
 
   static async deleteStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
-    console.log('req.body: ', req.body);
-    console.log('req.params: ', req.params);
     const uid = req.params.uid;
     const { parentId } = req.body;
 
+    // Clean and validate the inputs
+    const cleanUid = uid?.trim();
+    const cleanParentId = parentId?.trim();
+
     try {
-      const result = await StatusModel.deleteStatus(uid, parentId);
+      const result = await StatusModel.deleteStatus(cleanUid, cleanParentId);
       res.status(200).json({ message: 'Status deleted successfully', data: result });
     } catch (error: any) {
       res.status(500).json({ message: 'Failed to delete status', error: error.message });

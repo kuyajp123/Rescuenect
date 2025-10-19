@@ -219,17 +219,14 @@ export class StatusModel {
   static async deleteStatus(uid: string, parentId: string): Promise<{ parentId: string; deletedAt: Date }> {
     try {
       // Find current version
-      const currentQuery = await this.pathRef(uid)
-        .where('parentId', '==', parentId)
-        .where('statusType', '==', 'current')
-        .limit(1)
-        .get();
+      const currentQuery = await this.pathRef(uid).where('statusType', '==', 'current').limit(1).get();
 
       if (currentQuery.empty) {
-        throw new Error('Current status not found');
+        throw new Error('No current status found for this user');
       }
 
       const currentDoc = currentQuery.docs[0];
+      const currentData = currentDoc.data();
 
       // Mark as deleted (soft delete) and set 30-day retention
       const retentionDate = new Date();
@@ -241,8 +238,7 @@ export class StatusModel {
         retentionUntil: admin.firestore.Timestamp.fromDate(retentionDate),
       });
 
-      console.log(`✅ Status ${parentId} marked as deleted`);
-      return { parentId, deletedAt: new Date() };
+      return { parentId: currentData.parentId, deletedAt: new Date() };
     } catch (error) {
       console.error('❌ Error deleting status:', error);
       throw new Error('Failed to delete status');

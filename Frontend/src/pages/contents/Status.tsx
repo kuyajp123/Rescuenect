@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Select, SelectItem } from '@heroui/react';
 import { StatusCard, StatusList, Map } from '@/components/ui/status';
 import { SecondaryButton } from '@/components/ui/button';
-import status from '@/data/statusData.json';
+import { useStatusStore } from '@/stores/useStatusStore';
+import { MapMarkerData } from '@/types/types';
 
 export const statuses = [
   { key: 'safe', label: 'Safe' },
@@ -14,12 +15,13 @@ export const statuses = [
 const Status = () => {
   const [selectedStatuses, setSelectedStatuses] = useState(new Set(['all']));
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const statusData = useStatusStore(state => state.statusData);
 
-  const statusCount = status.length;
-  const safeCount = status.filter(item => item.condition === 'safe').length;
-  const evacuatedCount = status.filter(item => item.condition === 'evacuated').length;
-  const affectedCount = status.filter(item => item.condition === 'affected').length;
-  const missingCount = status.filter(item => item.condition === 'missing').length;
+  const statusCount = statusData.length;
+  const safeCount = statusData.filter(item => item.condition === 'safe').length;
+  const evacuatedCount = statusData.filter(item => item.condition === 'evacuated').length;
+  const affectedCount = statusData.filter(item => item.condition === 'affected').length;
+  const missingCount = statusData.filter(item => item.condition === 'missing').length;
 
   const statusOptions = ['safe', 'evacuated', 'affected', 'missing'];
 
@@ -84,7 +86,7 @@ const Status = () => {
   const getFilteredData = () => {
     // If "all" is selected or all individual statuses are selected, show all data
     if (selectedStatuses.has('all') || allStatusesSelected) {
-      return status;
+      return statusData;
     }
 
     // If no statuses selected, show nothing
@@ -93,10 +95,10 @@ const Status = () => {
     }
 
     // Otherwise, filter by selected statuses
-    return status.filter(item => selectedStatuses.has(item.condition));
+    return statusData.filter(item => selectedStatuses.has(item.condition));
   };
 
-  const filteredData = getFilteredData();
+  const filteredData: MapMarkerData[] = getFilteredData() as MapMarkerData[];
 
   // Update counts to reflect filtered data
   const filteredStatusCount = filteredData.length;
@@ -123,7 +125,7 @@ const Status = () => {
               ))}
             </Select>
             <SecondaryButton>
-              <p>history</p>
+              <p>History</p>
             </SecondaryButton>
           </div>
           <div className="flex justify-between grid-cols-1 items-center mb-2">

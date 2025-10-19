@@ -92,7 +92,7 @@ export interface StatusData {
   phoneNumber: string;
 
   // Status information
-  condition: 'safe' | 'evacuated' | 'affected' | 'missing' | '';
+  condition: 'safe' | 'evacuated' | 'affected' | 'missing';
 
   // Location data
   lat: number | null;
@@ -142,7 +142,7 @@ export interface MapMarkerData {
   uid: string;
   lat: number;
   lng: number;
-  [key: string]: any; // Allow additional properties
+  condition: 'safe' | 'evacuated' | 'affected' | 'missing';
 }
 
 // Define props for the Map component

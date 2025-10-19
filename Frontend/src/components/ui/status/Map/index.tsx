@@ -63,50 +63,6 @@ export const Map = ({
           <strong>Lng:</strong> {item.lng}
         </div>
       )}
-
-      {/* Show additional data if available */}
-      {item.firstName && item.lastName && (
-        <div>
-          <strong>Name:</strong> {item.firstName} {item.lastName}
-        </div>
-      )}
-
-      {item.condition && (
-        <div>
-          <strong>condition:</strong>{' '}
-          <span className={`capitalize ${getconditionColor(item.condition)}`}>{item.condition}</span>
-        </div>
-      )}
-
-      {item.date && (
-        <div>
-          <strong>Date:</strong> {item.date}
-        </div>
-      )}
-
-      {item.time && (
-        <div>
-          <strong>Time:</strong> {item.time}
-        </div>
-      )}
-
-      {item.loc && (
-        <div>
-          <strong>Location:</strong> {item.loc}
-        </div>
-      )}
-
-      {item.contact && (
-        <div>
-          <strong>Contact:</strong> {item.contact}
-        </div>
-      )}
-
-      {item.description && (
-        <div>
-          <strong>Description:</strong> {item.description}
-        </div>
-      )}
     </div>
   );
 
