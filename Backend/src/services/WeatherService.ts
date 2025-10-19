@@ -8,7 +8,7 @@ import {
   updateDailyTimestamp,
 } from '@/shared/utils/localTimestamp';
 import { WeatherModel } from '@/models/WeatherModel';
-import { getWeatherAPIEndpoints } from '@/shared/functions/WeatherAPIEndpoints';
+import { getWeatherAPIEndpoints } from '@/config/WeatherAPIEndpoints';
 import { WeatherLocationKey } from '@/shared/types/types';
 
 const weatherGroups: WeatherLocationKey[] = [

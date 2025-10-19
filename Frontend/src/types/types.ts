@@ -170,5 +170,11 @@ export interface MapProps {
 
   // Event handlers
   onMarkerClick?: (item: MapMarkerData) => void;
+  onTileLayerChange?: (url: string) => void;
   className?: string;
+
+  // Overlay components
+  overlayComponent?: React.ReactNode;
+  overlayPosition?: 'topright' | 'topleft' | 'bottomright' | 'bottomleft';
+  overlayClassName?: string;
 }

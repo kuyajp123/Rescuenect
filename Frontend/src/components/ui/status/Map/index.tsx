@@ -1,4 +1,7 @@
-import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
+import { MapContainer, Marker, Popup } from 'react-leaflet';
+import { useEffect, useRef } from 'react';
+import { useMap } from 'react-leaflet';
+import { createRoot } from 'react-dom/client';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import safeIcon from 'leaflet/dist/images/marker-icon-green.png';
@@ -23,6 +26,81 @@ const defaultIcon = new L.Icon({
   shadowSize: shadowSize,
 });
 
+// Custom Control Component for rendering React components in map
+interface CustomControlProps {
+  position?: 'topright' | 'topleft' | 'bottomright' | 'bottomleft';
+  children: React.ReactNode;
+  className?: string;
+}
+
+const CustomControl = ({ position = 'topright', children, className = '' }: CustomControlProps) => {
+  const map = useMap();
+
+  useEffect(() => {
+    const customControl = L.Control.extend({
+      options: {
+        position: position,
+      },
+
+      onAdd: function () {
+        const container = L.DomUtil.create('div', `leaflet-control-custom ${className}`);
+        container.style.background = 'transparent';
+        container.style.border = 'none';
+
+        // Prevent map events on this control
+        L.DomEvent.disableClickPropagation(container);
+        L.DomEvent.disableScrollPropagation(container);
+
+        // Render React component into the container
+        const root = createRoot(container);
+        root.render(children);
+
+        return container;
+      },
+    });
+
+    const control = new customControl();
+    map.addControl(control);
+
+    return () => {
+      map.removeControl(control);
+    };
+  }, [map, position, children, className]);
+
+  return null;
+};
+
+// Dynamic TileLayer component that updates when URL changes
+interface DynamicTileLayerProps {
+  url: string;
+  attribution: string;
+}
+
+const DynamicTileLayer = ({ url, attribution }: DynamicTileLayerProps) => {
+  const map = useMap();
+  const currentLayerRef = useRef<L.TileLayer | null>(null);
+
+  useEffect(() => {
+    // Remove existing tile layer
+    if (currentLayerRef.current) {
+      map.removeLayer(currentLayerRef.current);
+    }
+
+    // Add new tile layer
+    const newLayer = L.tileLayer(url, { attribution });
+    newLayer.addTo(map);
+    currentLayerRef.current = newLayer;
+
+    return () => {
+      if (currentLayerRef.current) {
+        map.removeLayer(currentLayerRef.current);
+      }
+    };
+  }, [map, url, attribution]);
+
+  return null;
+};
+
 export const Map = ({
   data,
   center = [14.2965, 120.7925],
@@ -32,13 +110,17 @@ export const Map = ({
   height = '100%',
   width = '100%',
   markerType = 'default',
-  tileLayerUrl = 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  tileLayerUrl = 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png', // Light (default)
+  // Alternative: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png' // Dark
   attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   renderPopup,
   popupType = 'default',
   showCoordinates = true,
   onMarkerClick,
   className,
+  overlayComponent,
+  overlayPosition = 'topright',
+  overlayClassName = '',
 }: MapProps) => {
   // lat lng popup render
   const latLngPopupRenderer = (item: MapMarkerData) => (
@@ -65,22 +147,6 @@ export const Map = ({
       )}
     </div>
   );
-
-  // Helper function to get condition color
-  const getconditionColor = (condition: string) => {
-    switch (condition?.toLowerCase()) {
-      case 'safe':
-        return 'text-green-600';
-      case 'evacuated':
-        return 'text-blue-600';
-      case 'missing':
-        return 'text-red-600';
-      case 'affected':
-        return 'text-orange-600';
-      default:
-        return 'text-gray-600';
-    }
-  };
 
   const renderMarkerIcon = (item: MapMarkerData) => {
     switch (item.condition) {
@@ -152,8 +218,21 @@ export const Map = ({
       maxZoom={maxZoom}
       style={{ height, width, zIndex: 0 }}
       className={className}
+      // maxBounds={[
+      //   [14.2214, 120.6989],
+      //   [14.3628, 120.8739],
+      // ]}
+      // maxBoundsViscosity={1.0} // prevents moving outside bounds
     >
-      <TileLayer attribution={attribution} url={tileLayerUrl} />
+      {/* Use DynamicTileLayer for style switching */}
+      <DynamicTileLayer url={tileLayerUrl} attribution={attribution} />
+
+      {/* Render custom overlay component if provided */}
+      {overlayComponent && (
+        <CustomControl position={overlayPosition} className={overlayClassName}>
+          {overlayComponent}
+        </CustomControl>
+      )}
 
       {data.map(item => (
         <Marker

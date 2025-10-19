@@ -1,5 +1,5 @@
 import { db } from '@/db/firestoreConfig';
-import { convertToManilaTime } from '@/shared/functions/DateAndTime';
+import { convertToManilaTime } from '@/helpers/DateAndTime';
 import { WeatherData, forecastData } from '@/shared/types/types';
 
 export class WeatherModel {

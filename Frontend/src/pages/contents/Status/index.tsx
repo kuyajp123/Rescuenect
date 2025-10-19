@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Select, SelectItem } from '@heroui/react';
 import { StatusCard, StatusList, Map } from '@/components/ui/status';
+import { MapStyleSelector } from '@/components/ui/status/Map/MapStyleSelector';
 import { SecondaryButton } from '@/components/ui/button';
 import { useStatusStore } from '@/stores/useStatusStore';
 import { MapMarkerData } from '@/types/types';
@@ -16,6 +17,7 @@ export const statuses = [
 const Status = () => {
   const [selectedStatuses, setSelectedStatuses] = useState(new Set(['all']));
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [mapTileUrl, setMapTileUrl] = useState('https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'); // Default to light
   const statusData = useStatusStore(state => state.statusData);
   const navigate = useNavigate();
 
@@ -39,9 +41,18 @@ const Status = () => {
   // Combined statuses with dynamic select all option
   const allStatusOptions = [selectAllOption, ...statuses];
 
-  const handleMarkerClick = (item: any) => {
-    setSelectedItem(item);
+  const handleMarkerClick = (marker: MapMarkerData) => {
+    // Find the full status data that corresponds to this marker
+    const fullStatusData = statusData.find(item => item.uid === marker.uid);
+    if (fullStatusData) {
+      setSelectedItem(fullStatusData);
+    }
   };
+
+  // Handle map style changes
+  const handleMapStyleChange = useCallback((styleUrl: string) => {
+    setMapTileUrl(styleUrl);
+  }, []);
 
   // Handle status selection with "Select All" logic
   const handleStatusChange = (keys: any) => {
@@ -86,29 +97,54 @@ const Status = () => {
 
   // Filter data based on selected statuses
   const getFilteredData = () => {
+    let data = statusData;
+
     // If "all" is selected or all individual statuses are selected, show all data
-    if (selectedStatuses.has('all') || allStatusesSelected) {
-      return statusData;
+    if (!selectedStatuses.has('all') && !allStatusesSelected) {
+      // If no statuses selected, show nothing
+      if (selectedStatuses.size === 0) {
+        data = [];
+      } else {
+        // Otherwise, filter by selected statuses
+        data = statusData.filter(item => selectedStatuses.has(item.condition));
+      }
     }
 
-    // If no statuses selected, show nothing
-    if (selectedStatuses.size === 0) {
-      return [];
-    }
-
-    // Otherwise, filter by selected statuses
-    return statusData.filter(item => selectedStatuses.has(item.condition));
+    // Convert StatusData to MapMarkerData and filter out entries without coordinates
+    return data
+      .filter(item => item.lat !== null && item.lng !== null)
+      .map(item => ({
+        uid: item.uid,
+        lat: item.lat as number,
+        lng: item.lng as number,
+        condition: item.condition,
+      }));
   };
 
-  const filteredData: MapMarkerData[] = getFilteredData() as MapMarkerData[];
+  const filteredData: MapMarkerData[] = getFilteredData();
 
   // Update counts to reflect filtered data
   const filteredStatusCount = filteredData.length;
 
+  // Memoize MapStyleSelector to prevent recreation on every render
+  const mapStyleSelector = useMemo(
+    () => <MapStyleSelector onStyleChange={handleMapStyleChange} />,
+    [handleMapStyleChange]
+  );
+
   return (
     <div className="grid grid-cols-[2fr_1fr] gap-4" style={{ height: '100%', width: '100%' }}>
       <div style={{ height: '100%', width: '100%' }}>
-        <Map data={filteredData} onMarkerClick={handleMarkerClick} popupType="coordinates" markerType="status" />
+        <Map
+          data={filteredData}
+          onMarkerClick={handleMarkerClick}
+          popupType="coordinates"
+          markerType="status"
+          tileLayerUrl={mapTileUrl}
+          overlayComponent={mapStyleSelector}
+          overlayPosition="topright"
+          overlayClassName="custom-map-overlay"
+        />
       </div>
       <div className="h-fit">
         <div className="flex flex-col justify-between">
