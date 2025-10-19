@@ -6,6 +6,8 @@ export const UrlLocation = () => {
 
   if (location.pathname) {
     if (location.pathname === '/') {
+      return 'Dashboard';
+    } else if (location.pathname === '/status') {
       return 'Status';
     } else if (location.pathname === '/weather') {
       return 'Weather';
@@ -68,7 +70,7 @@ export const formatTimeSince = (dateValue: any): string => {
       // For future dates, show "in X minutes/hours" or the actual date
       const diffInHours = differenceInHours(date, now);
       if (diffInHours < 24) {
-        return formatDistanceToNow(date, { addSuffix: true });
+        return formatDistanceToNow(date, { addSuffix: true, includeSeconds: true }).replace(/^about\s+/, '');
       } else {
         return date.toLocaleDateString('en-US', {
           month: 'short',
@@ -91,7 +93,7 @@ export const formatTimeSince = (dateValue: any): string => {
     }
 
     // For recent times (less than 24 hours), show relative time
-    return formatDistanceToNow(date, { addSuffix: true });
+    return formatDistanceToNow(date, { addSuffix: true, includeSeconds: true }).replace(/^about\s+/, '');
   } catch (error) {
     return 'Unknown';
   }

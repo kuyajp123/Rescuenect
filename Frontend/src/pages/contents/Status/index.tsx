@@ -4,6 +4,7 @@ import { StatusCard, StatusList, Map } from '@/components/ui/status';
 import { SecondaryButton } from '@/components/ui/button';
 import { useStatusStore } from '@/stores/useStatusStore';
 import { MapMarkerData } from '@/types/types';
+import { useNavigate } from 'react-router-dom';
 
 export const statuses = [
   { key: 'safe', label: 'Safe' },
@@ -16,6 +17,7 @@ const Status = () => {
   const [selectedStatuses, setSelectedStatuses] = useState(new Set(['all']));
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const statusData = useStatusStore(state => state.statusData);
+  const navigate = useNavigate();
 
   const statusCount = statusData.length;
   const safeCount = statusData.filter(item => item.condition === 'safe').length;
@@ -124,7 +126,7 @@ const Status = () => {
                 <SelectItem key={statusOption.key}>{statusOption.label}</SelectItem>
               ))}
             </Select>
-            <SecondaryButton>
+            <SecondaryButton onClick={() => navigate('/status/history')}>
               <p>History</p>
             </SecondaryButton>
           </div>
@@ -156,7 +158,7 @@ const Status = () => {
               expiresAt={selectedItem.expiresAt}
             />
           ) : (
-            <div className="text-center flex h-full items-center justify-center">Selected marker display here</div>
+            <div className="text-center flex h-full items-center justify-center">Selected marker displays here</div>
           )}
         </div>
       </div>

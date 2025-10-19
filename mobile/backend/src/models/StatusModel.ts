@@ -183,12 +183,9 @@ export class StatusModel {
         parentId: parentId, // Maintain lineage
         versionId: newVersionId,
         statusType: 'current',
-        createdAt: FieldValue.serverTimestamp(),
+        createdAt: currentData.createdAt,
         updatedAt: FieldValue.serverTimestamp(),
-        // Update expiration based on new user choice, keep original retention
-        expiresAt: admin.firestore.Timestamp.fromDate(
-          new Date(Date.now() + (updatedData.expirationDuration || currentData.expirationDuration) * 60 * 60 * 1000)
-        ),
+        expiresAt: currentData.expiresAt,
         retentionUntil: currentData.retentionUntil,
       });
 

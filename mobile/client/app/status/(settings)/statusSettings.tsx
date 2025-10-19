@@ -1,5 +1,5 @@
 import { Animated, StyleSheet, View } from 'react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { ToggleButton } from '@/components/components/button/Button';
@@ -14,6 +14,7 @@ import axios from 'axios';
 import { useAuth } from '@/components/store/useAuth';
 import { LoadingOverlay } from '@/components/ui/loading';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
+import { useFocusEffect } from '@react-navigation/native';
 
 const statusSettings = () => {
   const formData = useStatusFormStore(state => state.formData);
@@ -44,21 +45,23 @@ const statusSettings = () => {
   };
 
   // Load settings from storage on mount
-  useEffect(() => {
-    LoadStorage().then(data => {
-      // Set duration - prefer storage over formData for settings
-      const duration = data.expirationDuration ?? formData?.expirationDuration ?? 24;
-      setSelectedDuration(duration);
+  useFocusEffect(
+    useCallback(() => {
+      LoadStorage().then(data => {
+        // Set duration - prefer storage over formData for settings
+        const duration = formData?.expirationDuration ?? data.expirationDuration ?? 24;
+        setSelectedDuration(duration);
 
-      // Set privacy settings - prefer storage over formData for settings
-      const shareLocation = data.privacySettings ?? formData?.shareLocation ?? true;
-      setEnabledShareLocation(shareLocation);
+        // Set privacy settings - prefer storage over formData for settings
+        const shareLocation = formData?.shareLocation ?? data.privacySettings ?? true;
+        setEnabledShareLocation(shareLocation);
 
-      // Set contact settings - prefer storage over formData for settings
-      const shareContact = data.contactSettings ?? formData?.shareContact ?? true;
-      setEnabledShareContactNumber(shareContact);
-    });
-  }, []);
+        // Set contact settings - prefer storage over formData for settings
+        const shareContact = formData?.shareContact ?? data.contactSettings ?? true;
+        setEnabledShareContactNumber(shareContact);
+      });
+    }, [])
+  );
 
   // Auto hide after 3 seconds
   useEffect(() => {
@@ -198,7 +201,8 @@ const statusSettings = () => {
         </View>
       </View>
 
-      {conditionalUpdateButtonRender()}
+      {/* Temporary */}
+      {/* {conditionalUpdateButtonRender()} */}
       <LoadingOverlay visible={isLoading} message="Updating Status..." />
       <CustomAlertDialog
         showAlertDialog={showSuccessDialog}

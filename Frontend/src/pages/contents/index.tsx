@@ -1,19 +1,7 @@
-import Status from "./Status";
-import Weather from "./Weather";
-import Earthquake from "./Earthquake";
-import AddNotification from "./AddNotification";
-import AddEvent from "./AddEvents";
-import Donation from "./Donation";
-import Volunteer from "./Volunteer";
-import City from "./City";
+import Status from '@/pages/contents/Status';
+import { StatusHistory } from '@/pages/contents/Status/History';
+import { Dashboard } from './Dashboard';
+import Weather from './Weather';
+import Earthquake from './Earthquake';
 
-export {
-  Status,
-  City,
-  Weather,
-  Earthquake,
-  AddNotification,
-  AddEvent,
-  Donation,
-  Volunteer
-};
+export { Dashboard, Status, StatusHistory, Weather, Earthquake };

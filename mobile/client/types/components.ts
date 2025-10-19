@@ -141,7 +141,8 @@ export type CreateStatusData = Omit<
 export type StatusStateData = CreateStatusData & {
   parentId?: string;
   versionId?: string;
-  expiresAt?: string;
+  createdAt?: FirebaseFirestore.Timestamp | undefined;
+  expirationDuration?: 12 | 24;
 };
 
 export type StatusFormErrors = {
@@ -150,7 +151,7 @@ export type StatusFormErrors = {
   errMessage?: string;
   parentId?: string;
   versionId?: string;
-  expiresAt?: string;
+  createdAt?: string;
 };
 
 

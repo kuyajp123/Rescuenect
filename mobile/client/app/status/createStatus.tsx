@@ -4,6 +4,7 @@ import Modal from '@/components/components/Modal';
 import {
   formatContactNumber,
   formatName,
+  formatTimeSince,
   getCurrentPositionOnce,
   isValidContactNumber,
 } from '@/components/helper/commonHelpers';
@@ -26,7 +27,7 @@ import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { StatusStateData, AddressState, StatusFormErrors } from '@/types/components';
 import axios from 'axios';
-import { isEqual, set } from 'lodash';
+import { isEqual } from 'lodash';
 import { Bookmark, Ellipsis, Info, Navigation, Settings, SquarePen, Trash } from 'lucide-react-native';
 import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Animated, Linking, StyleSheet, View, Image, Pressable } from 'react-native';
@@ -100,6 +101,7 @@ export const createStatus = () => {
     note: '',
     shareLocation: true,
     shareContact: true,
+    createdAt: formData?.createdAt || undefined,
     expirationDuration: formData?.expirationDuration || 24,
   });
 
@@ -191,16 +193,16 @@ export const createStatus = () => {
           if (data) {
             setStatusForm(prev => ({
               ...prev,
-              expirationDuration: data.expirationDuration || 24,
-              shareLocation: data.shareLocation ?? prev.shareLocation,
-              shareContact: data.shareContact ?? prev.shareContact,
+              expirationDuration: formData?.expirationDuration ?? data.expirationDuration ?? 24,
+              shareLocation: formData?.shareLocation ?? data.shareLocation ?? prev.shareLocation,
+              shareContact: formData?.shareContact ?? data.shareContact ?? prev.shareContact,
             }));
           }
         })
         .catch(error => {
           console.error('Error syncing settings on focus:', error);
         });
-    }, [])
+    }, [formData])
   );
 
   // Update form coordinates and handle default selection priority
@@ -810,7 +812,7 @@ export const createStatus = () => {
       <Pressable key="current-status-image-pressable" onPress={handleImageModalOpen}>
         <Image key="current-status-image" style={styles.statusImage} source={{ uri: formData.image }} />
       </Pressable>
-    ) : (
+    ) : formData != null && formData.image === '' ? null : (
       <CustomImagePicker key="image-picker" id="map-image-picker-actionSheet" />
     ),
     <View key="spacer" style={{ marginVertical: 20 }} />,
@@ -1044,7 +1046,6 @@ export const createStatus = () => {
         timeout: 30000, // 30 seconds timeout
       });
       if (response.status === 200) {
-
         // Clear form data from Zustand store using proper reset functions
         resetFormData();
 
@@ -1091,7 +1092,7 @@ export const createStatus = () => {
     return formData
       ? {
           headerActionWithData: {
-            expirationTime: formData.expirationDuration + ' hours',
+            createdAt: formatTimeSince(formData.createdAt),
             rightAction: {
               icon: <Ellipsis size={24} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
               onPress: () => {
@@ -1155,10 +1156,18 @@ export const createStatus = () => {
           quickActionButtons={quickActionButtons}
           headerActions={headerActions}
           stopTracking={handleStopTracking}
-          primaryButton={{
-            label: formData ? 'Update' : 'Submit',
-            onPress: handleSubmit,
-          }}
+          {...(!isEqual(formData, statusForm) && {
+            primaryButton: {
+              label: 'Update',
+              onPress: handleSubmit,
+            },
+          })}
+          {...(!formData && {
+            primaryButton: {
+              label: 'Submit',
+              onPress: handleSubmit,
+            },
+          })}
           onLocationClear={onLocationClear}
           errMessage={formErrors.errMessage || ''}
         />

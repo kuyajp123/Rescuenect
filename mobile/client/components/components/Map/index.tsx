@@ -69,7 +69,7 @@ export interface CustomButton {
 
 // Header actions (has data)
 interface HeaderActionWithData {
-  expirationTime?: string | number; // Optional expiration time
+  createdAt?: string | number; // Optional created at time
   leftAction?: {
     icon?: React.ReactNode;
     onPress?: () => void;
@@ -488,7 +488,7 @@ const Map = ({
                     )}
 
                     {/* Expiration Time (center) */}
-                    {headerActions.headerActionWithData.expirationTime && (
+                    {headerActions.headerActionWithData.createdAt && (
                       <View
                         style={{
                           flex: 1,
@@ -497,7 +497,7 @@ const Map = ({
                           alignItems: 'center',
                         }}
                       >
-                        <Text>{headerActions.headerActionWithData.expirationTime}</Text>
+                        <Text>{headerActions.headerActionWithData.createdAt}</Text>
                       </View>
                     )}
 

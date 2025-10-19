@@ -83,47 +83,45 @@ export const Map = ({
   };
 
   const renderMarkerIcon = (item: MapMarkerData) => {
-    let icon = defaultIcon;
-
     switch (item.condition) {
       case 'safe':
-        return (icon = new L.Icon({
+        return new L.Icon({
           iconUrl: safeIcon,
           shadowUrl: shadowUrl,
           iconSize: iconSize,
           iconAnchor: iconAnchor,
           popupAnchor: popupAnchor,
           shadowSize: shadowSize,
-        }));
+        });
       case 'evacuated':
-        return (icon = new L.Icon({
+        return new L.Icon({
           iconUrl: evacuatedIcon,
           shadowUrl: shadowUrl,
           iconSize: iconSize,
           iconAnchor: iconAnchor,
           popupAnchor: popupAnchor,
           shadowSize: shadowSize,
-        }));
+        });
       case 'affected':
-        return (icon = new L.Icon({
+        return new L.Icon({
           iconUrl: affectedIcon,
           shadowUrl: shadowUrl,
           iconSize: iconSize,
           iconAnchor: iconAnchor,
           popupAnchor: popupAnchor,
           shadowSize: shadowSize,
-        }));
+        });
       case 'missing':
-        return (icon = new L.Icon({
+        return new L.Icon({
           iconUrl: missingIcon,
           shadowUrl: shadowUrl,
           iconSize: iconSize,
           iconAnchor: iconAnchor,
           popupAnchor: popupAnchor,
           shadowSize: shadowSize,
-        }));
+        });
       default:
-        icon = defaultIcon;
+        return defaultIcon;
     }
   };
 
