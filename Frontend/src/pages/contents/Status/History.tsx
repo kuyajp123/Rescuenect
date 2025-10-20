@@ -1,4 +1,4 @@
-import type { ChipProps } from '@heroui/react';
+import type { ChipProps, Selection, SortDescriptor } from '@heroui/react';
 import {
   Button,
   Chip,
@@ -19,6 +19,10 @@ import {
 import { useAsyncList } from '@react-stately/data';
 import { ChevronDown, EllipsisVertical, History, Info, MapPin, Plus, Search, UserRound } from 'lucide-react';
 import React, { useCallback, useMemo } from 'react';
+
+export function capitalize(s: string) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
+}
 
 export const columns = [
   {
@@ -211,10 +215,36 @@ const statusColorMap: Record<string, string> = {
   deleted: 'text-red-500',
 };
 
+export const statusOptions = [
+  { name: 'Active', uid: 'current' },
+  { name: 'History', uid: 'history' },
+  { name: 'Deleted', uid: 'deleted' },
+];
+
+export const conditionsOptions = [
+  { name: 'Safe', uid: 'safe' },
+  { name: 'Evacuated', uid: 'evacuated' },
+  { name: 'Affected', uid: 'affected' },
+  { name: 'Missing', uid: 'missing' },
+];
+
 type User = (typeof users)[0];
 
 export const StatusHistory = () => {
   const [isLoading, setIsLoading] = React.useState(true);
+  const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set([]));
+  const [filterValue, setFilterValue] = React.useState('');
+  const [statusFilter, setStatusFilter] = React.useState<Selection>(new Set(['current']));
+  const [conditionFilter, setConditionFilter] = React.useState<Selection>('all');
+  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+    column: 'status',
+    direction: 'ascending',
+  });
+
+  const [page, setPage] = React.useState(1);
+
+  const hasSearchFilter = Boolean(filterValue);
 
   const list = useAsyncList({
     async load() {
@@ -327,7 +357,7 @@ export const StatusHistory = () => {
                 <Button
                   id={user.id}
                   onPress={() => {
-                    console.log(user.id);
+                    // console.log(user.id);
                   }}
                   isIconOnly
                   variant="light"
@@ -361,6 +391,87 @@ export const StatusHistory = () => {
     }
   }, []);
 
+  const filteredItems = React.useMemo(() => {
+    let filteredUsers = [...users];
+
+    if (hasSearchFilter) {
+      filteredUsers = filteredUsers.filter(
+        user =>
+          user.name.toLowerCase().includes(filterValue.toLowerCase()) ||
+          user.vid.toLowerCase().includes(filterValue.toLowerCase())
+      );
+    }
+    if (statusFilter !== 'all' && Array.from(statusFilter).length !== statusOptions.length) {
+      filteredUsers = filteredUsers.filter(user => Array.from(statusFilter).includes(user.status));
+    }
+    if (conditionFilter !== 'all' && Array.from(conditionFilter).length !== conditionsOptions.length) {
+      filteredUsers = filteredUsers.filter(user => Array.from(conditionFilter).includes(user.condition));
+    }
+
+    return filteredUsers;
+  }, [users, filterValue, statusFilter, conditionFilter]);
+
+  const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    return filteredItems.slice(start, end);
+  }, [page, filteredItems, rowsPerPage]);
+
+  const sortedItems = React.useMemo(() => {
+    return [...items].sort((a: User, b: User) => {
+      let first = a[sortDescriptor.column as keyof User];
+      let second = b[sortDescriptor.column as keyof User];
+
+      // Handle different data types
+      if (typeof first === 'string' && typeof second === 'string') {
+        first = first.toLowerCase();
+        second = second.toLowerCase();
+      }
+
+      let cmp = first < second ? -1 : first > second ? 1 : 0;
+
+      if (sortDescriptor.direction === 'descending') {
+        cmp *= -1;
+      }
+
+      return cmp;
+    });
+  }, [sortDescriptor, items]);
+
+  const onNextPage = React.useCallback(() => {
+    if (page < pages) {
+      setPage(page + 1);
+    }
+  }, [page, pages]);
+
+  const onPreviousPage = React.useCallback(() => {
+    if (page > 1) {
+      setPage(page - 1);
+    }
+  }, [page]);
+
+  const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setRowsPerPage(Number(e.target.value));
+    setPage(1);
+  }, []);
+
+  const onSearchChange = React.useCallback((value?: string) => {
+    if (value) {
+      setFilterValue(value);
+      setPage(1);
+    } else {
+      setFilterValue('');
+    }
+  }, []);
+
+  const onClear = React.useCallback(() => {
+    setFilterValue('');
+    setPage(1);
+  }, []);
+
   const topContent = useMemo(() => {
     return (
       <div className="flex flex-col gap-4">
@@ -368,11 +479,11 @@ export const StatusHistory = () => {
           <Input
             isClearable
             className="w-full sm:max-w-[44%]"
-            placeholder="Search by name..."
+            placeholder="Search by name or version ID"
             startContent={<Search />}
-            value={'asd'}
-            onClear={() => {}}
-            onValueChange={() => {}}
+            value={filterValue}
+            onClear={() => onClear()}
+            onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
             <Dropdown>
@@ -383,17 +494,20 @@ export const StatusHistory = () => {
               </DropdownTrigger>
               <DropdownMenu
                 disallowEmptySelection
-                aria-label="Table Columns"
+                aria-label="Condition Filter"
                 closeOnSelect={false}
-                selectedKeys={'asd'}
+                selectedKeys={conditionFilter}
                 selectionMode="multiple"
-                onSelectionChange={() => {}}
+                onSelectionChange={setConditionFilter}
               >
-                <DropdownItem key={'status.uid'} className="capitalize">
-                  Test
-                </DropdownItem>
+                {conditionsOptions.map(condition => (
+                  <DropdownItem key={condition.uid} className="capitalize">
+                    {capitalize(condition.name)}
+                  </DropdownItem>
+                ))}
               </DropdownMenu>
             </Dropdown>
+            {/* Conditions Filter */}
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button endContent={<ChevronDown className="text-small" />} variant="flat">
@@ -402,15 +516,17 @@ export const StatusHistory = () => {
               </DropdownTrigger>
               <DropdownMenu
                 disallowEmptySelection
-                aria-label="Table Columns"
+                aria-label="Status Filter"
                 closeOnSelect={false}
-                selectedKeys={'asd'}
+                selectedKeys={statusFilter}
                 selectionMode="multiple"
-                onSelectionChange={() => {}}
+                onSelectionChange={setStatusFilter}
               >
-                <DropdownItem key={'status.uid'} className="capitalize">
-                  Test
-                </DropdownItem>
+                {statusOptions.map(status => (
+                  <DropdownItem key={status.uid} className="capitalize">
+                    {capitalize(status.name)}
+                  </DropdownItem>
+                ))}
               </DropdownMenu>
             </Dropdown>
             <Button color="primary" endContent={<Plus />}>
@@ -419,43 +535,62 @@ export const StatusHistory = () => {
           </div>
         </div>
         <div className="flex justify-between mt-3 items-center">
-          <span className="text-default-400 text-small">Total {list.items.length} users</span>
+          <span className="text-default-400 text-small">Total {filteredItems.length} users</span>
           <label className="flex items-center text-default-400 text-small">
             Rows per page:
             <select
               className="bg-transparent outline-solid outline-transparent text-default-400 text-small"
-              onChange={() => {}}
+              onChange={onRowsPerPageChange}
             >
               <option value="5">5</option>
-              <option value="10">10</option>
+              <option selected value="10">
+                10
+              </option>
               <option value="15">15</option>
             </select>
           </label>
         </div>
       </div>
     );
-  }, [list.items.length]);
+  }, [
+    filteredItems.length,
+    filterValue,
+    statusFilter,
+    conditionFilter,
+    onSearchChange,
+    onRowsPerPageChange,
+    hasSearchFilter,
+  ]);
 
   const bottomContent = useMemo(() => {
     return (
       <div className="relative py-2 px-2 flex items-center">
         {/* Centered Pagination */}
         <div className="absolute left-1/2 transform -translate-x-1/2">
-          <Pagination isCompact showControls showShadow color="primary" page={1} total={5} onChange={() => {}} />
+          <Pagination
+            className="cursor-pointer"
+            isCompact
+            showControls
+            showShadow
+            color="primary"
+            page={page}
+            total={pages}
+            onChange={setPage}
+          />
         </div>
 
         {/* Right-aligned Buttons */}
         <div className="ml-auto hidden sm:flex w-[30%] justify-end gap-2">
-          <Button isDisabled={false} size="sm" variant="flat" onPress={() => {}}>
+          <Button isDisabled={false} size="sm" variant="flat" onPress={onPreviousPage}>
             Previous
           </Button>
-          <Button isDisabled={false} size="sm" variant="flat" onPress={() => {}}>
+          <Button isDisabled={false} size="sm" variant="flat" onPress={onNextPage}>
             Next
           </Button>
         </div>
       </div>
     );
-  }, []);
+  }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
 
   return (
     <Table
@@ -464,21 +599,15 @@ export const StatusHistory = () => {
       selectionMode="single"
       aria-label="Example table with infinite pagination"
       classNames={{
-        wrapper: 'max-h-[800px]',
+        wrapper: 'max-h-[650px]',
       }}
       topContent={topContent}
+      topContentPlacement="outside"
       bottomContent={bottomContent}
-      sortDescriptor={list.sortDescriptor}
-      onSortChange={list.sort}
-      onSelectionChange={selectedKeys => {
-        // 'selectedKeys' is a Set of the selected row keys (e.g. item IDs)
-        const selectedId = Array.from(selectedKeys)[0];
-
-        // find the actual row data from your list.items
-        const selectedRow = list.items.find(item => item.id === selectedId);
-
-        console.log('Selected row data:', selectedRow);
-      }}
+      bottomContentPlacement="outside"
+      sortDescriptor={sortDescriptor}
+      onSortChange={setSortDescriptor}
+      onSelectionChange={setSelectedKeys}
     >
       <TableHeader columns={columns}>
         {column => (
@@ -492,7 +621,7 @@ export const StatusHistory = () => {
           </TableColumn>
         )}
       </TableHeader>
-      <TableBody isLoading={isLoading} items={list.items}>
+      <TableBody isLoading={isLoading} items={sortedItems}>
         {(item: User) => (
           <TableRow key={item.id}>{columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>
         )}
