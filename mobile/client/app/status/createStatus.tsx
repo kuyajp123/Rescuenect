@@ -119,10 +119,6 @@ export const createStatus = () => {
     setModals(prev => ({ ...prev, [name]: value }));
   };
 
-  useEffect(() => {
-    console.log(JSON.stringify(formData, null, 2));
-  }, [formData]);
-
   // Auto hide after 3 seconds
   useEffect(() => {
     if (modals.submitSuccess) {

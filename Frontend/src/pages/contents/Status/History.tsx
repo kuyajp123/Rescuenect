@@ -1,3 +1,23 @@
+/**
+ * Status History Table Component
+ *
+ * This component displays the latest status version for each parentId across all users.
+ *
+ * Key Features:
+ * - Shows latest status per parentId (not just current statuses)
+ * - Real-time updates from Firebase using collection group queries
+ * - Action buttons: View Details, View History, View Profile
+ * - Filtering by condition, status type, and search
+ * - Compatible with Firebase status data structure
+ *
+ * Integration Notes:
+ * - Replace useLatestStatusesForHistory with your real Firebase hook
+ * - Implement handleViewDetails, handleViewHistory, handleViewUserProfile
+ * - See FIRESTORE_STATUS_QUERIES.md for query documentation
+ */
+
+import { db } from '@/lib/firebaseConfig';
+import { StatusData } from '@/types/types';
 import type { ChipProps, Selection, SortDescriptor } from '@heroui/react';
 import {
   Button,
@@ -16,15 +36,90 @@ import {
   TableRow,
   User,
 } from '@heroui/react';
-import { useAsyncList } from '@react-stately/data';
-import { ChevronDown, EllipsisVertical, History, Info, MapPin, Plus, Search, UserRound } from 'lucide-react';
+import { collectionGroup, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { ChevronDown, EllipsisVertical, History, Info, Plus, Search, UserRound } from 'lucide-react';
 import React, { useCallback, useMemo } from 'react';
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 }
 
+// Helper function to format Firestore timestamp
+const formatTimeSince = (timestamp: any): string => {
+  if (!timestamp) return 'Unknown';
+
+  try {
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
+    const now = new Date();
+    const diffInHours = Math.abs(now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+    if (diffInHours < 1) {
+      return 'Just now';
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)} hours ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  } catch (error) {
+    return 'Unknown';
+  }
+};
+
+// Transform Firebase data to table format
+interface FirebaseStatusData {
+  id: string;
+  note: string;
+  retentionUntil: any;
+  lng: number;
+  profileImage: string;
+  parentId: string;
+  phoneNumber: string;
+  image?: string;
+  firstName: string;
+  condition: 'missing' | 'safe' | 'affected' | 'evacuated';
+  expirationDuration: number;
+  location: string;
+  shareLocation: boolean;
+  expiresAt: any;
+  versionId: string;
+  shareContact: boolean;
+  createdAt: any;
+  lastName: string;
+  lat: number;
+  uid: string;
+  statusType: 'current' | 'history' | 'deleted';
+  updatedAt?: any;
+}
+
+const transformStatusData = (dynamicData: StatusData[]): User[] => {
+  return dynamicData.map((item, index) => ({
+    no: index + 1,
+    id: item.uid || '',
+    vid: item.versionId || '',
+    email: `${item.firstName?.toLowerCase() || 'unknown'}.${item.lastName?.toLowerCase() || 'user'}@example.com`,
+    profileImage: item.profileImage || '',
+    name: `${item.firstName || 'Unknown'} ${item.lastName || 'User'}`,
+    condition: item.condition,
+    location: item.location || 'Unknown Location',
+    lat: item.lat || 0,
+    lng: item.lng || 0,
+    status: item.statusType,
+    createdAt: formatTimeSince(item.createdAt),
+    expirationDuration: `${item.expirationDuration || 0} hours`,
+    // Additional fields for action handlers
+    parentId: item.parentId,
+    originalStatus: {
+      ...item,
+      id: item.uid || item.versionId || '', // Add the required id property
+    } as FirebaseStatusData, // Keep original for detailed actions
+  }));
+};
+
 export const columns = [
+  {
+    uid: 'no',
+    name: 'NO',
+  },
   {
     uid: 'vid',
     name: 'VERSION ID',
@@ -74,132 +169,6 @@ export const users = [
     createdAt: '2 hours ago',
     expirationDuration: '24 hours',
   },
-  {
-    id: '2',
-    vid: 'status-654321-v1',
-    email: 'jane.smith@example.com',
-    profileImage: 'https://i.pravatar.cc/150?u=b124581f4e29026024d',
-    name: 'Jane Smith',
-    condition: 'safe',
-    location: 'Tanza, Cavite',
-    lat: 14.331292,
-    lng: 120.855431,
-    status: 'current',
-    createdAt: '1 hour ago',
-    expirationDuration: '12 hours',
-  },
-  {
-    id: '3',
-    vid: 'status-987654-v1',
-    email: 'michael.lee@example.com',
-    profileImage: 'https://i.pravatar.cc/150?u=c042581f4e29026024d',
-    name: 'Michael Lee',
-    condition: 'affected',
-    location: 'Trece Martires, Cavite',
-    lat: 14.280522,
-    lng: 120.866113,
-    status: 'current',
-    createdAt: '30 minutes ago',
-    expirationDuration: '12 hours',
-  },
-  {
-    id: '4',
-    vid: 'status-192837-v1',
-    email: 'sarah.ang@example.com',
-    profileImage: 'https://i.pravatar.cc/150?u=d042581f4e29026024d',
-    name: 'Sarah Ang',
-    condition: 'missing',
-    location: 'General Trias, Cavite',
-    lat: 14.386457,
-    lng: 120.881721,
-    status: 'current',
-    createdAt: '5 hours ago',
-    expirationDuration: '24 hours',
-  },
-  {
-    id: '5',
-    vid: 'status-283746-v1',
-    email: 'kevin.bautista@example.com',
-    profileImage: 'https://i.pravatar.cc/150?u=e042581f4e29026024d',
-    name: 'Kevin Bautista',
-    condition: 'safe',
-    location: 'Indang, Cavite',
-    lat: 14.195382,
-    lng: 120.876425,
-    status: 'history',
-    createdAt: '1 day ago',
-    expirationDuration: '24 hours',
-  },
-  {
-    id: '6',
-    vid: 'status-564738-v1',
-    email: 'anna.torres@example.com',
-    profileImage: 'https://i.pravatar.cc/150?u=f042581f4e29026024d',
-    name: 'Anna Torres',
-    condition: 'evacuated',
-    location: 'Maragondon, Cavite',
-    lat: 14.268938,
-    lng: 120.735421,
-    status: 'current',
-    createdAt: '3 hours ago',
-    expirationDuration: '12 hours',
-  },
-  {
-    id: '7',
-    vid: 'status-918273-v1',
-    email: 'carlo.mendoza@example.com',
-    profileImage: 'https://i.pravatar.cc/150?u=g042581f4e29026024d',
-    name: 'Carlo Mendoza',
-    condition: 'affected',
-    location: 'Naic, Cavite',
-    lat: 14.318947,
-    lng: 120.769354,
-    status: 'history',
-    createdAt: '2 days ago',
-    expirationDuration: '24 hours',
-  },
-  {
-    id: '8',
-    vid: 'status-726354-v1',
-    email: 'diana.garcia@example.com',
-    profileImage: 'https://i.pravatar.cc/150?u=h042581f4e29026024d',
-    name: 'Diana Garcia',
-    condition: 'safe',
-    location: 'Silang, Cavite',
-    lat: 14.220846,
-    lng: 120.971291,
-    status: 'current',
-    createdAt: '4 hours ago',
-    expirationDuration: '24 hours',
-  },
-  {
-    id: '9',
-    vid: 'status-839201-v1',
-    email: 'paul.santos@example.com',
-    profileImage: 'https://i.pravatar.cc/150?u=i042581f4e29026024d',
-    name: 'Paul Santos',
-    condition: 'missing',
-    location: 'Tagaytay, Cavite',
-    lat: 14.115034,
-    lng: 120.962155,
-    status: 'deleted',
-    createdAt: '3 days ago',
-    expirationDuration: '12 hours',
-  },
-  {
-    id: '10',
-    vid: 'status-192020-v1',
-    email: 'lisa.delacruz@example.com',
-    profileImage: 'https://i.pravatar.cc/150?u=j042581f4e29026024d',
-    name: 'Lisa Dela Cruz',
-    condition: 'evacuated',
-    location: 'Naic, Cavite',
-    lat: 14.304192,
-    lng: 120.796781,
-    status: 'current',
-    createdAt: '45 minutes ago',
-    expirationDuration: '24 hours',
-  },
 ];
 
 const conditionColorMap: Record<string, ChipProps['color']> = {
@@ -228,10 +197,96 @@ export const conditionsOptions = [
   { name: 'Missing', uid: 'missing' },
 ];
 
-type User = (typeof users)[0];
+type User = (typeof users)[0] & {
+  parentId?: string;
+  originalStatus?: FirebaseStatusData;
+};
+
+// Placeholder hook - replace this with your real Firebase integration
+const useLatestStatusesForHistory = () => {
+  const [statuses, setStatuses] = React.useState<StatusData[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setLoading(true);
+
+    const unsubscribe = onSnapshot(
+      query(
+        collectionGroup(db, 'statuses'),
+        orderBy('createdAt', 'desc')
+      ),
+        snapshot => {
+          const latestStatusMap = new Map<string, StatusData>();
+
+          // Process all statuses and keep only latest version per parentId
+          snapshot.docs.forEach(doc => {
+            const statusData = { id: doc.id, ...doc.data() } as unknown as StatusData;
+            const parentId = statusData.parentId;
+
+            // Check if this is the latest version for this parentId
+            const existing = latestStatusMap.get(parentId);
+            
+            // Helper function to get timestamp value
+            const getTimestamp = (timestamp: any): number => {
+              if (!timestamp) return 0;
+              if (typeof timestamp === 'string') return new Date(timestamp).getTime();
+              if (timestamp.seconds) return timestamp.seconds * 1000;
+              if (timestamp.toDate) return timestamp.toDate().getTime();
+              return new Date(timestamp).getTime();
+            };
+            
+            if (!existing || getTimestamp(statusData.createdAt) > getTimestamp(existing.createdAt)) {
+              latestStatusMap.set(parentId, statusData);
+            }
+          });
+
+          const latestStatuses = Array.from(latestStatusMap.values()).sort(
+            (a, b) => {
+              const getTimestamp = (timestamp: any): number => {
+                if (!timestamp) return 0;
+                if (typeof timestamp === 'string') return new Date(timestamp).getTime();
+                if (timestamp.seconds) return timestamp.seconds * 1000;
+                if (timestamp.toDate) return timestamp.toDate().getTime();
+                return new Date(timestamp).getTime();
+              };
+              return getTimestamp(b.createdAt) - getTimestamp(a.createdAt);
+            }
+          );
+
+          setStatuses(latestStatuses);
+          setLoading(false);
+          setError(null);
+        },
+        err => {
+          console.error('Error fetching latest statuses:', err);
+          setError(err.message);
+          setLoading(false);
+        }
+      );
+
+    return () => unsubscribe();
+  }, []);
+
+  const transformedStatuses = React.useMemo(() => {
+    return transformStatusData(statuses);
+  }, [statuses]);
+
+  return {
+    statuses: transformedStatuses,
+    loading,
+    error,
+    totalCount: transformedStatuses.length,
+  };
+};
 
 export const StatusHistory = () => {
-  const [isLoading, setIsLoading] = React.useState(true);
+  // Use Firebase data instead of static data
+  const { statuses: firebaseStatuses, loading: firebaseLoading, totalCount } = useLatestStatusesForHistory();
+
+  // Use Firebase data as the source
+  const users = React.useMemo(() => firebaseStatuses, [firebaseStatuses]);
+  const [isLoading, setIsLoading] = React.useState(firebaseLoading);
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set([]));
   const [filterValue, setFilterValue] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<Selection>(new Set(['current']));
@@ -244,59 +299,42 @@ export const StatusHistory = () => {
 
   const [page, setPage] = React.useState(1);
 
+  // Update loading state when Firebase loading changes
+  React.useEffect(() => {
+    setIsLoading(firebaseLoading);
+  }, [firebaseLoading]);
+
   const hasSearchFilter = Boolean(filterValue);
 
-  const list = useAsyncList({
-    async load() {
-      let res = users;
-
-      setIsLoading(false);
-
-      return {
-        items: res,
-      };
-    },
-    async sort({ items, sortDescriptor }) {
-      return {
-        items: items.sort((a: any, b: any) => {
-          let first = a[sortDescriptor.column];
-          let second = b[sortDescriptor.column];
-
-          // Handle different data types
-          if (typeof first === 'string' && typeof second === 'string') {
-            first = first.toLowerCase();
-            second = second.toLowerCase();
-          }
-
-          let cmp = first < second ? -1 : first > second ? 1 : 0;
-
-          if (sortDescriptor.direction === 'descending') {
-            cmp *= -1;
-          }
-
-          return cmp;
-        }),
-      };
-    },
-  });
-
-  const handleAction = (key: any, user: User) => {
+  const handleAction = async (key: any, user: User) => {
     switch (key) {
       case 'details':
-        console.log('View Details for:', user.name, user);
-        // Add your logic for viewing details
+        // View latest status details for this parentId
+        console.log('View Details for:', user.name, {
+          parentId: user.parentId,
+          versionId: user.vid,
+          status: user.originalStatus,
+        });
+        // TODO: Open status details modal with full information
+        // await handleViewDetails(user);
         break;
       case 'history':
-        console.log('View History for:', user.name, user);
-        // Add your logic for viewing history
-        break;
-      case 'map':
-        console.log('Show in Map:', user.name, user.lat, user.lng);
-        // Add your logic for showing on map
+        // View all versions of this parentId status
+        console.log('View History for:', user.name, {
+          parentId: user.parentId,
+          uid: user.id,
+        });
+        // TODO: Fetch and display all versions of this parentId
+        // await handleViewHistory(user);
         break;
       case 'user':
-        console.log('View Profile for:', user.name, user);
-        // Add your logic for viewing profile
+        // View user profile with all their parent statuses
+        console.log('View Profile for:', user.name, {
+          uid: user.id,
+          profileImage: user.profileImage,
+        });
+        // TODO: Open user profile modal
+        // await handleViewUserProfile(user);
         break;
     }
   };
@@ -308,43 +346,47 @@ export const StatusHistory = () => {
       case 'vid':
         return (
           <div className="flex flex-col">
-            <p className="text-bold text-sm capitalize">{cellValue}</p>
+            <p className="text-bold text-sm capitalize">{String(cellValue)}</p>
           </div>
         );
       case 'name':
         return (
-          <User avatarProps={{ radius: 'lg', src: user.profileImage }} description={user.email} name={cellValue}>
-            {user.name}
+          <User
+            avatarProps={{ radius: 'lg', src: user.profileImage }}
+            description={user.email}
+            name={String(cellValue)}
+          >
+            {String(user.name)}
           </User>
         );
       case 'condition':
         return (
           <Chip className="capitalize" color={conditionColorMap[user.condition]} size="sm" variant="flat">
-            {cellValue}
+            {String(cellValue)}
           </Chip>
         );
       case 'location':
         return (
           <div className="flex flex-col max-w-[200px]">
             <p className="text-bold text-sm capitalize flex-wrap" title={cellValue as string}>
-              {cellValue}
+              {String(cellValue)}
             </p>
-            <p className="text-bold text-tiny capitalize text-default-400">lat: {user.lat}</p>
-            <p className="text-bold text-tiny capitalize text-default-400">lng: {user.lng}</p>
+            <p className="text-bold text-tiny capitalize text-default-400">lat: {String(user.lat)}</p>
+            <p className="text-bold text-tiny capitalize text-default-400">lng: {String(user.lng)}</p>
           </div>
         );
       case 'status':
         return (
           <div className="flex flex-col">
             <p className={`text-bold text-sm capitalize ${statusColorMap[user.status]}`}>
-              {cellValue === 'current' ? 'Active' : cellValue}
+              {String(cellValue === 'current' ? 'Active' : cellValue)}
             </p>
           </div>
         );
       case 'createdAt':
         return (
           <div className="flex flex-col">
-            <p className="text-bold text-sm">{cellValue}</p>
+            <p className="text-bold text-sm">{String(cellValue)}</p>
           </div>
         );
       case 'actions':
@@ -370,16 +412,13 @@ export const StatusHistory = () => {
                 variant="faded"
                 onAction={key => handleAction(key, user)}
               >
-                <DropdownItem key="details" shortcut="⌘N" startContent={<Info size={20} className={iconClasses} />}>
+                <DropdownItem key="details" shortcut="⌘D" startContent={<Info size={20} className={iconClasses} />}>
                   View Details
                 </DropdownItem>
-                <DropdownItem key="history" shortcut="⌘C" startContent={<History size={20} className={iconClasses} />}>
+                <DropdownItem key="history" shortcut="⌘H" startContent={<History size={20} className={iconClasses} />}>
                   View History
                 </DropdownItem>
-                <DropdownItem key="map" shortcut="⌘⇧E" startContent={<MapPin size={20} className={iconClasses} />}>
-                  Show in Map
-                </DropdownItem>
-                <DropdownItem key="user" shortcut="⌘⇧E" startContent={<UserRound size={20} className={iconClasses} />}>
+                <DropdownItem key="user" shortcut="⌘U" startContent={<UserRound size={20} className={iconClasses} />}>
                   View Profile
                 </DropdownItem>
               </DropdownMenu>
@@ -387,7 +426,7 @@ export const StatusHistory = () => {
           </div>
         );
       default:
-        return cellValue;
+        return String(cellValue);
     }
   }, []);
 
@@ -431,7 +470,7 @@ export const StatusHistory = () => {
         second = second.toLowerCase();
       }
 
-      let cmp = first < second ? -1 : first > second ? 1 : 0;
+      let cmp = String(first) < String(second) ? -1 : String(first) > String(second) ? 1 : 0;
 
       if (sortDescriptor.direction === 'descending') {
         cmp *= -1;
@@ -535,7 +574,9 @@ export const StatusHistory = () => {
           </div>
         </div>
         <div className="flex justify-between mt-3 items-center">
-          <span className="text-default-400 text-small">Total {filteredItems.length} users</span>
+          <span className="text-default-400 text-small">
+            Showing {filteredItems.length} of {totalCount} statuses
+          </span>
           <label className="flex items-center text-default-400 text-small">
             Rows per page:
             <select
@@ -596,7 +637,6 @@ export const StatusHistory = () => {
     <Table
       // isStriped={list.items.length > 2}
       isHeaderSticky
-      selectionMode="single"
       aria-label="Example table with infinite pagination"
       classNames={{
         wrapper: 'max-h-[650px]',
@@ -623,7 +663,7 @@ export const StatusHistory = () => {
       </TableHeader>
       <TableBody isLoading={isLoading} items={sortedItems}>
         {(item: User) => (
-          <TableRow key={item.id}>{columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>
+          <TableRow key={item.vid}>{columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>
         )}
       </TableBody>
     </Table>
