@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides comprehensive guidance on querying the status collection to retrieve all currently active statuses across all users in the disaster response app. It covers collection group queries, real-time listeners, and performance optimizations.
+This document provides comprehensive guidance on querying the status collection to retrieve the latest status version for each parent status across all users in the disaster response app. The History table displays the most recent status version per `parentId`, while individual status histories are fetched when viewing details.
 
 ## Key Concepts
 
@@ -12,55 +12,70 @@ This document provides comprehensive guidance on querying the status collection 
 status (collection)
 ├── {userId} (document)
 │   └── statuses (subcollection)
-│       ├── {statusId-v1} (document) - statusType: "current" | "history" | "deleted"
-│       ├── {statusId-v2} (document) - statusType: "current" | "history" | "deleted"
-│       └── {statusId-v3} (document) - statusType: "current" | "history" | "deleted"
+│       ├── {parentId-v1} (document) - Original status
+│       ├── {parentId-v2} (document) - Updated version
+│       ├── {parentId-v3} (document) - Latest version
+│       ├── {newParentId-v1} (document) - New status after deletion
+│       └── {newParentId-v2} (document) - Updated new status
 ```
 
-### User Status States
+### Status Version Logic
 
-1. **User doesn't exist in status collection** → Never created a status
-2. **User exists but no "current" status** → Had a status that expired/was deleted
-3. **User exists with "current" status** → Has an active status
+1. **parentId Groups**: Each `parentId` represents a unique status timeline
+2. **Version Evolution**: v1 → v2 → v3 (same parentId, different versions)
+3. **New Status Creation**: Creates new `parentId` when user deletes and creates fresh status
+4. **Latest Status Display**: Show only the highest version number for each `parentId`
 
-**Important**: Only users with `statusType: "current"` will appear in query results.
+**Key Requirement**: Display latest version of each `parentId` per user in the History table.
 
-## 🎯 Primary Solution: Collection Group Query
+## 🎯 Primary Solution: Latest Status Per Parent Query
 
-### Basic Real-time Listener
+### Basic Real-time Listener for History Table
 
 ```typescript
 import { db } from '@/lib/firebaseConfig';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, QuerySnapshot } from 'firebase/firestore';
 
-// Listen to ALL current statuses across all users
-const listenToAllCurrentStatuses = (callback: (statuses: StatusData[]) => void) => {
+// Listen to ALL status versions and filter for latest per parentId
+const listenToLatestStatusPerParent = (callback: (statuses: StatusData[]) => void) => {
   return db
     .collectionGroup('statuses') // Queries ALL 'statuses' subcollections
-    .where('statusType', '==', 'current')
     .orderBy('createdAt', 'desc')
     .onSnapshot(
       snapshot => {
-        const currentStatuses = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as StatusData[];
+        const latestStatusMap = new Map<string, StatusData>();
 
-        console.log(`📋 Found ${currentStatuses.length} active statuses`);
-        callback(currentStatuses);
+        // Process all statuses and keep only latest version per parentId
+        snapshot.docs.forEach(doc => {
+          const statusData = { id: doc.id, ...doc.data() } as StatusData;
+          const parentId = statusData.parentId;
+
+          // Check if this is the latest version for this parentId
+          const existing = latestStatusMap.get(parentId);
+          if (!existing || statusData.createdAt > existing.createdAt) {
+            latestStatusMap.set(parentId, statusData);
+          }
+        });
+
+        const latestStatuses = Array.from(latestStatusMap.values()).sort(
+          (a, b) => b.createdAt.seconds - a.createdAt.seconds
+        );
+
+        console.log(`📋 Found ${latestStatuses.length} latest statuses across all parent IDs`);
+        callback(latestStatuses);
       },
       error => {
-        console.error('❌ Error listening to current statuses:', error);
+        console.error('❌ Error listening to latest statuses:', error);
       }
     );
 };
 ```
 
-### React Hook Implementation
+### React Hook for History Table
 
 ```typescript
-// Custom hook for status management
-const useCurrentStatuses = () => {
+// Custom hook for History table data
+const useLatestStatusesForHistory = () => {
   const [statuses, setStatuses] = useState<StatusData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,21 +85,33 @@ const useCurrentStatuses = () => {
 
     const unsubscribe = db
       .collectionGroup('statuses')
-      .where('statusType', '==', 'current')
       .orderBy('createdAt', 'desc')
       .onSnapshot(
         snapshot => {
-          const currentStatuses = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as StatusData[];
+          const latestStatusMap = new Map<string, StatusData>();
 
-          setStatuses(currentStatuses);
+          // Process all statuses and keep only latest version per parentId
+          snapshot.docs.forEach(doc => {
+            const statusData = { id: doc.id, ...doc.data() } as StatusData;
+            const parentId = statusData.parentId;
+
+            // Check if this is the latest version for this parentId
+            const existing = latestStatusMap.get(parentId);
+            if (!existing || statusData.createdAt.seconds > existing.createdAt.seconds) {
+              latestStatusMap.set(parentId, statusData);
+            }
+          });
+
+          const latestStatuses = Array.from(latestStatusMap.values()).sort(
+            (a, b) => b.createdAt.seconds - a.createdAt.seconds
+          );
+
+          setStatuses(latestStatuses);
           setLoading(false);
           setError(null);
         },
         err => {
-          console.error('Error fetching statuses:', err);
+          console.error('Error fetching latest statuses:', err);
           setError(err.message);
           setLoading(false);
         }
@@ -93,25 +120,337 @@ const useCurrentStatuses = () => {
     return () => unsubscribe();
   }, []);
 
-  // Derived state for easy filtering
-  const statusesByCondition = useMemo(() => {
-    return {
-      safe: statuses.filter(s => s.condition === 'safe'),
-      evacuated: statuses.filter(s => s.condition === 'evacuated'),
-      affected: statuses.filter(s => s.condition === 'affected'),
-      missing: statuses.filter(s => s.condition === 'missing'),
-    };
+  // Transform data for History table compatibility
+  const transformedStatuses = useMemo(() => {
+    return statuses.map(status => ({
+      id: status.uid, // Use uid as unique identifier for table
+      vid: status.versionId,
+      email: `${status.firstName?.toLowerCase()}.${status.lastName?.toLowerCase()}@example.com`,
+      profileImage: status.profileImage,
+      name: `${status.firstName} ${status.lastName}`,
+      condition: status.condition,
+      location: status.location,
+      lat: status.lat,
+      lng: status.lng,
+      status: status.statusType === 'current' ? 'current' : 'history',
+      createdAt: formatTimeSince(status.createdAt),
+      expirationDuration: `${status.expirationDuration} hours`,
+      parentId: status.parentId, // Keep parentId for history viewing
+    }));
   }, [statuses]);
 
   return {
-    statuses,
-    statusesByCondition,
+    statuses: transformedStatuses,
     loading,
     error,
-    totalCount: statuses.length,
+    totalCount: transformedStatuses.length,
   };
 };
 ```
+
+## 🔍 Action Handlers for History Table
+
+### 1. View Details Handler
+
+```typescript
+const handleViewDetails = async (user: TransformedUser) => {
+  // Fetch the specific latest status for this parentId
+  const statusQuery = query(
+    collectionGroup(db, 'statuses'),
+    where('parentId', '==', user.parentId),
+    orderBy('createdAt', 'desc'),
+    limit(1)
+  );
+
+  const snapshot = await getDocs(statusQuery);
+  const latestStatus = snapshot.docs[0]?.data();
+
+  // Open details modal/page with full status information
+  openStatusDetailsModal(latestStatus);
+};
+```
+
+### 2. View History Handler
+
+```typescript
+const handleViewHistory = async (user: TransformedUser) => {
+  // Fetch ALL versions of this parentId status
+  const historyQuery = query(
+    collectionGroup(db, 'statuses'),
+    where('parentId', '==', user.parentId),
+    orderBy('createdAt', 'desc')
+  );
+
+  const snapshot = await getDocs(historyQuery);
+  const statusHistory = snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+
+  // Open history modal/page showing version timeline
+  openStatusHistoryModal({
+    parentId: user.parentId,
+    versions: statusHistory,
+    userName: user.name,
+  });
+};
+```
+
+### 3. View User Profile Handler
+
+```typescript
+const handleViewUserProfile = async (user: TransformedUser) => {
+  // Fetch user's complete profile information
+  const userQuery = query(
+    collectionGroup(db, 'statuses'),
+    where('uid', '==', user.id),
+    orderBy('createdAt', 'desc'),
+    limit(10) // Get recent statuses for profile context
+  );
+
+  const snapshot = await getDocs(userQuery);
+  const userStatuses = snapshot.docs.map(doc => doc.data());
+
+  // Open user profile modal/page
+  openUserProfileModal({
+    uid: user.id,
+    name: user.name,
+    profileImage: user.profileImage,
+    recentStatuses: userStatuses,
+  });
+};
+```
+
+## 📄 Advanced Queries for History Features
+
+### Get All Versions of Specific Parent Status
+
+```typescript
+const getStatusHistory = async (parentId: string): Promise<StatusData[]> => {
+  const historyQuery = query(
+    collectionGroup(db, 'statuses'),
+    where('parentId', '==', parentId),
+    orderBy('createdAt', 'desc')
+  );
+
+  const snapshot = await getDocs(historyQuery);
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as StatusData[];
+};
+```
+
+### Get User's All Parent Statuses
+
+```typescript
+const getUserAllStatuses = async (uid: string): Promise<Record<string, StatusData[]>> => {
+  const userQuery = query(collectionGroup(db, 'statuses'), where('uid', '==', uid), orderBy('createdAt', 'desc'));
+
+  const snapshot = await getDocs(userQuery);
+  const allStatuses = snapshot.docs.map(doc => doc.data()) as StatusData[];
+
+  // Group by parentId
+  const groupedByParent = allStatuses.reduce(
+    (acc, status) => {
+      const parentId = status.parentId;
+      if (!acc[parentId]) {
+        acc[parentId] = [];
+      }
+      acc[parentId].push(status);
+      return acc;
+    },
+    {} as Record<string, StatusData[]>
+  );
+
+  return groupedByParent;
+};
+```
+
+## 🔄 Status Type Filtering for History Table
+
+### Filter by Status Type (Current/History)
+
+```typescript
+const useFilteredStatusHistory = (statusTypeFilter: 'current' | 'history' | 'all' = 'all') => {
+  const { statuses, loading, error } = useLatestStatusesForHistory();
+
+  const filteredStatuses = useMemo(() => {
+    if (statusTypeFilter === 'all') return statuses;
+
+    return statuses.filter(status => {
+      if (statusTypeFilter === 'current') {
+        return status.status === 'current';
+      } else {
+        return status.status === 'history';
+      }
+    });
+  }, [statuses, statusTypeFilter]);
+
+  return { statuses: filteredStatuses, loading, error };
+};
+```
+
+## 📋 Data Transformation for History Table
+
+### Complete Transformation Function
+
+```typescript
+// Helper function to format Firestore timestamp
+const formatTimeSince = (timestamp: any): string => {
+  if (!timestamp) return 'Unknown';
+
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
+  const now = new Date();
+  const diffInHours = Math.abs(now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+  if (diffInHours < 1) {
+    return 'Just now';
+  } else if (diffInHours < 24) {
+    return `${Math.floor(diffInHours)} hours ago`;
+  } else {
+    return date.toLocaleDateString();
+  }
+};
+
+// Transform Firebase data to History table format
+const transformStatusForTable = (statuses: StatusData[]): TransformedUser[] => {
+  return statuses.map(status => ({
+    id: status.uid, // Table row identifier
+    vid: status.versionId,
+    email: `${status.firstName?.toLowerCase()}.${status.lastName?.toLowerCase()}@example.com`,
+    profileImage: status.profileImage,
+    name: `${status.firstName} ${status.lastName}`,
+    condition: status.condition as 'safe' | 'evacuated' | 'affected' | 'missing',
+    location: status.location,
+    lat: status.lat,
+    lng: status.lng,
+    status: status.statusType === 'current' ? 'current' : 'history',
+    createdAt: formatTimeSince(status.createdAt),
+    expirationDuration: `${status.expirationDuration} hours`,
+
+    // Additional fields for action handlers
+    parentId: status.parentId,
+    uid: status.uid,
+    originalStatus: status, // Keep original for detailed actions
+  }));
+};
+```
+
+## 🚀 Integration with History Component
+
+### Updated History Component
+
+```typescript
+// History.tsx integration
+import { useLatestStatusesForHistory } from '@/hooks/useLatestStatusesForHistory';
+
+export const StatusHistory = () => {
+  // Get real-time data instead of static users array
+  const { statuses: firebaseStatuses, loading: firebaseLoading } = useLatestStatusesForHistory();
+
+  // Use Firebase data instead of static data
+  const users = useMemo(() => firebaseStatuses, [firebaseStatuses]);
+
+  const [isLoading, setIsLoading] = useState(firebaseLoading);
+
+  useEffect(() => {
+    setIsLoading(firebaseLoading);
+  }, [firebaseLoading]);
+
+  // Updated action handlers
+  const handleAction = async (key: any, user: TransformedUser) => {
+    switch (key) {
+      case 'details':
+        await handleViewDetails(user);
+        break;
+      case 'history':
+        await handleViewHistory(user);
+        break;
+      case 'user':
+        await handleViewUserProfile(user);
+        break;
+    }
+  };
+
+  // Rest of component remains the same...
+};
+```
+
+## 🔍 Required Firestore Indexes
+
+### Optimized Indexes for New Query Pattern
+
+```
+Collection Group: statuses
+
+Required Indexes:
+1. parentId (ASC) + createdAt (DESC)
+2. uid (ASC) + createdAt (DESC)
+3. statusType (ASC) + createdAt (DESC)
+4. condition (ASC) + createdAt (DESC)
+5. parentId (ASC) + statusType (ASC) + createdAt (DESC)
+```
+
+## 📊 Performance Considerations
+
+### Efficient Latest Status Query
+
+```typescript
+// Optimized query with client-side filtering for better performance
+const useOptimizedLatestStatuses = () => {
+  const [statuses, setStatuses] = useState<StatusData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Get all statuses ordered by creation time
+    const unsubscribe = onSnapshot(query(collectionGroup(db, 'statuses'), orderBy('createdAt', 'desc')), snapshot => {
+      const statusMap = new Map<string, StatusData>();
+
+      // Client-side filtering for latest per parentId
+      snapshot.docs.forEach(doc => {
+        const data = { id: doc.id, ...doc.data() } as StatusData;
+        const existing = statusMap.get(data.parentId);
+
+        if (!existing || data.createdAt.seconds > existing.createdAt.seconds) {
+          statusMap.set(data.parentId, data);
+        }
+      });
+
+      setStatuses(Array.from(statusMap.values()));
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  return { statuses, loading };
+};
+```
+
+## 📋 Summary
+
+### What the History Table Shows
+
+✅ **Latest version of each parentId per user**  
+✅ **Real-time updates when users create/update statuses**  
+✅ **Multiple entries per user if they have multiple parent statuses**  
+✅ **Proper filtering by condition, status type, and search**
+
+### Action Button Behaviors
+
+- **View Details**: Shows complete latest status information
+- **View History**: Shows all versions of that specific parentId timeline
+- **View User**: Shows user profile with all their parent statuses
+
+### Key Benefits
+
+- **Accurate representation**: Shows user's current status landscape
+- **Efficient querying**: Single collection group query with client filtering
+- **Real-time updates**: Automatic updates when statuses change
+- **Flexible history**: Detailed version tracking per parent status
+
+This approach ensures your History table displays the most relevant and up-to-date status information while maintaining the ability to drill down into complete status histories when needed.
 
 ## 🔍 Advanced Filtering Options
 

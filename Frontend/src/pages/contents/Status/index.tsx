@@ -1,10 +1,10 @@
-import { useState, useCallback, useMemo } from 'react';
-import { Select, SelectItem } from '@heroui/react';
-import { StatusCard, StatusList, Map } from '@/components/ui/status';
-import { MapStyleSelector } from '@/components/ui/status/Map/MapStyleSelector';
 import { SecondaryButton } from '@/components/ui/button';
+import { Map, StatusCard, StatusList } from '@/components/ui/status';
+import { MapStyleSelector } from '@/components/ui/status/Map/MapStyleSelector';
 import { useStatusStore } from '@/stores/useStatusStore';
 import { MapMarkerData } from '@/types/types';
+import { Select, SelectItem } from '@heroui/react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export const statuses = [
@@ -20,6 +20,10 @@ const Status = () => {
   const [mapTileUrl, setMapTileUrl] = useState('https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'); // Default to light
   const statusData = useStatusStore(state => state.statusData);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    console.log(JSON.stringify(statusData, null, 2));
+  }, [statusData]);
 
   const statusCount = statusData.length;
   const safeCount = statusData.filter(item => item.condition === 'safe').length;

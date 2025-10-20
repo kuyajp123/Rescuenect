@@ -1,11 +1,11 @@
-import { BrowserRouter } from 'react-router-dom';
-import Router from './router';
-import { useEffect } from 'react';
-import { useWeatherStore } from './stores/useWeatherStores';
-import { subscribeToWeatherData } from './helper/getWeatherData';
 import 'leaflet/dist/leaflet.css';
-import { useStatusStore } from './stores/useStatusStore';
+import { useEffect } from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import { subscribeToWeatherData } from './helper/getWeatherData';
 import { useCurrentStatuses } from './hooks/useCurrentStatuses.tsx';
+import Router from './router';
+import { useStatusStore } from './stores/useStatusStore';
+import { useWeatherStore } from './stores/useWeatherStores';
 
 function App() {
   const location = 'bancaan';

@@ -1,8 +1,8 @@
+import { differenceInHours, formatDistanceToNow } from 'date-fns';
+import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
 import * as Network from 'expo-network';
 import { Alert } from 'react-native';
-import * as Linking from 'expo-linking';
-import { formatDistanceToNow, differenceInHours } from 'date-fns';
 
 // Convert contact number to E.164 format (+63xxxxxxxxxx)
 export const convertToE164Format = (contactNumber: string): string => {
@@ -172,7 +172,14 @@ export const formatTimeSince = (dateValue: any): string => {
     }
 
     // For recent times (less than 24 hours), show relative time
-    return formatDistanceToNow(date, { addSuffix: true, includeSeconds: true }).replace(/^about\s+/, '');
+    const relativeTime = formatDistanceToNow(date, { addSuffix: true, includeSeconds: true }).replace(/^about\s+/, '');
+
+    // If it's showing seconds, display "Just now" instead
+    if (relativeTime.includes('second')) {
+      return 'Just now';
+    }
+
+    return relativeTime;
   } catch (error) {
     return 'Unknown';
   }

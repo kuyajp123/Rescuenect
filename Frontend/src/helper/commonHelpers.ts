@@ -1,5 +1,5 @@
+import { differenceInHours, differenceInMinutes, formatDistanceToNow } from 'date-fns';
 import { useLocation } from 'react-router-dom';
-import { formatDistanceToNow, differenceInMinutes, differenceInHours } from 'date-fns';
 
 export const UrlLocation = () => {
   const location = useLocation();
@@ -93,7 +93,14 @@ export const formatTimeSince = (dateValue: any): string => {
     }
 
     // For recent times (less than 24 hours), show relative time
-    return formatDistanceToNow(date, { addSuffix: true, includeSeconds: true }).replace(/^about\s+/, '');
+    const relativeTime = formatDistanceToNow(date, { addSuffix: true, includeSeconds: true }).replace(/^about\s+/, '');
+
+    // If it's showing seconds, display "Just now" instead
+    if (relativeTime.includes('second')) {
+      return 'Just now';
+    }
+
+    return relativeTime;
   } catch (error) {
     return 'Unknown';
   }

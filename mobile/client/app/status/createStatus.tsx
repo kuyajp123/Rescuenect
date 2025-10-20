@@ -1,4 +1,6 @@
+import { getAddress } from '@/API/getAddress';
 import CustomImagePicker from '@/components/components/CustomImagePicker';
+import { ImageModal } from '@/components/components/image-modal/ImageModal';
 import Map, { CustomButton, RadioField, TextInputField } from '@/components/components/Map';
 import Modal from '@/components/components/Modal';
 import {
@@ -23,21 +25,19 @@ import Body from '@/components/ui/layout/Body';
 import { LoadingOverlay } from '@/components/ui/loading/LoadingOverlay';
 import StateImage from '@/components/ui/StateImage/StateImage';
 import { Text } from '@/components/ui/text';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
-import { StatusStateData, AddressState, StatusFormErrors } from '@/types/components';
+import { useTheme } from '@/contexts/ThemeContext';
+import { navigateToStatusSettings } from '@/routes/route';
+import { AddressState, StatusFormErrors, StatusStateData } from '@/types/components';
+import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import { isEqual } from 'lodash';
 import { Bookmark, Ellipsis, Info, Navigation, Settings, SquarePen, Trash } from 'lucide-react-native';
-import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { Animated, Linking, StyleSheet, View, Image, Pressable } from 'react-native';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getAddress } from '@/API/getAddress';
-import { useTheme } from '@/contexts/ThemeContext';
-import { navigateToStatusSettings } from '@/routes/route';
-import { STORAGE_KEYS } from '@/config/asyncStorage';
-import { useFocusEffect } from '@react-navigation/native';
-import { ImageModal } from '@/components/components/image-modal/ImageModal';
 
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
@@ -119,6 +119,10 @@ export const createStatus = () => {
     setModals(prev => ({ ...prev, [name]: value }));
   };
 
+  useEffect(() => {
+    console.log(JSON.stringify(formData, null, 2));
+  }, [formData]);
+
   // Auto hide after 3 seconds
   useEffect(() => {
     if (modals.submitSuccess) {
@@ -193,9 +197,9 @@ export const createStatus = () => {
           if (data) {
             setStatusForm(prev => ({
               ...prev,
-              expirationDuration: formData?.expirationDuration ?? data.expirationDuration ?? 24,
-              shareLocation: formData?.shareLocation ?? data.shareLocation ?? prev.shareLocation,
-              shareContact: formData?.shareContact ?? data.shareContact ?? prev.shareContact,
+              expirationDuration: data.expirationDuration ?? formData?.expirationDuration ?? 24,
+              shareLocation: data.shareLocation ?? formData?.shareLocation ?? prev.shareLocation,
+              shareContact: data.shareContact ?? formData?.shareContact ?? prev.shareContact,
             }));
           }
         })
@@ -631,11 +635,14 @@ export const createStatus = () => {
         toggleModal('noChanges', true);
         return;
       }
+
+      console.log('Form submitted successfully:', response.data);
       // Save to Zustand store with parentId from response
       setFormData({
         ...statusForm,
         parentId: response.data?.data?.parentId,
         versionId: response.data?.data?.versionId,
+        createdAt: response.data?.data?.createdAt,
       });
       setOneTimeLocationCoords(null);
       toggleModal('submitSuccess', true);
