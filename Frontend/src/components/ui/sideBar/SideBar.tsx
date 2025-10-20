@@ -2,14 +2,9 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   MapPin,
-  Map,
   LayoutDashboard,
   Activity,
   Cloud,
-  Megaphone,
-  Heart,
-  CalendarPlus,
-  LifeBuoy,
   PanelRightClose,
   PanelRightOpen,
   Box,

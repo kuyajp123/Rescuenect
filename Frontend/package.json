@@ -21,6 +21,7 @@
     "@heroui/theme": "^2.4.19",
     "@heroui/use-theme": "^2.1.10",
     "@heroui/user": "^2.2.19",
+    "@react-stately/data": "^3.14.1",
     "@react-types/shared": "^3.26.0",
     "axios": "^1.11.0",
     "date-fns": "^4.1.0",

@@ -39,22 +39,22 @@ export const StatusCard = ({
           <div className="flex mt-5 items-center justify-center h-full">
             {condition === 'safe' && (
               <Chip color="success" className="text-white">
-                {condition}
+                Safe
               </Chip>
             )}
             {condition === 'evacuated' && (
               <Chip color="primary" className="text-white">
-                {condition}
+                Evacuated
               </Chip>
             )}
             {condition === 'affected' && (
               <Chip color="warning" className="text-white">
-                {condition}
+                Affected
               </Chip>
             )}
             {condition === 'missing' && (
               <Chip color="danger" className="text-white">
-                {condition}
+                Missing
               </Chip>
             )}
           </div>
