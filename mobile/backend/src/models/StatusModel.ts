@@ -1,10 +1,10 @@
 import db from '@/db/firebaseConfig';
-import { FieldValue } from 'firebase-admin/firestore';
+import { ImageUploadService } from '@/services/imageUploadService';
+import { StatusData } from '@/types/types';
 import * as admin from 'firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
-import { StatusData } from '@/types/types';
-import { ImageUploadService } from '@/services/imageUploadService';
 
 export class StatusModel {
   private static pathRef(userId: string) {
@@ -191,7 +191,7 @@ export class StatusModel {
 
       await batch.commit();
 
-      return { parentId, versionId: newVersionId };
+      return { parentId, versionId: newVersionId, createdAt: currentData.createdAt };
     } catch (error) {
       console.error('❌ Error updating status:', error);
       throw new Error('Failed to update status');

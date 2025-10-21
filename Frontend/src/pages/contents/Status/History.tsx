@@ -16,8 +16,7 @@
  * - See FIRESTORE_STATUS_QUERIES.md for query documentation
  */
 
-import { db } from '@/lib/firebaseConfig';
-import { StatusData } from '@/types/types';
+import { useLatestStatusesForHistory } from '@/hooks/useLatestStatusesForHistory';
 import type { ChipProps, Selection, SortDescriptor } from '@heroui/react';
 import {
   Button,
@@ -36,34 +35,12 @@ import {
   TableRow,
   User,
 } from '@heroui/react';
-import { collectionGroup, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { ChevronDown, EllipsisVertical, History, Info, Plus, Search, UserRound } from 'lucide-react';
+import { ChevronDown, EllipsisVertical, History, Info, RefreshCcw, Search, UserRound } from 'lucide-react';
 import React, { useCallback, useMemo } from 'react';
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 }
-
-// Helper function to format Firestore timestamp
-const formatTimeSince = (timestamp: any): string => {
-  if (!timestamp) return 'Unknown';
-
-  try {
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
-    const now = new Date();
-    const diffInHours = Math.abs(now.getTime() - date.getTime()) / (1000 * 60 * 60);
-
-    if (diffInHours < 1) {
-      return 'Just now';
-    } else if (diffInHours < 24) {
-      return `${Math.floor(diffInHours)} hours ago`;
-    } else {
-      return date.toLocaleDateString();
-    }
-  } catch (error) {
-    return 'Unknown';
-  }
-};
 
 // Transform Firebase data to table format
 interface FirebaseStatusData {
@@ -91,67 +68,16 @@ interface FirebaseStatusData {
   updatedAt?: any;
 }
 
-const transformStatusData = (dynamicData: StatusData[]): User[] => {
-  return dynamicData.map((item, index) => ({
-    no: index + 1,
-    id: item.uid || '',
-    vid: item.versionId || '',
-    email: `${item.firstName?.toLowerCase() || 'unknown'}.${item.lastName?.toLowerCase() || 'user'}@example.com`,
-    profileImage: item.profileImage || '',
-    name: `${item.firstName || 'Unknown'} ${item.lastName || 'User'}`,
-    condition: item.condition,
-    location: item.location || 'Unknown Location',
-    lat: item.lat || 0,
-    lng: item.lng || 0,
-    status: item.statusType,
-    createdAt: formatTimeSince(item.createdAt),
-    expirationDuration: `${item.expirationDuration || 0} hours`,
-    // Additional fields for action handlers
-    parentId: item.parentId,
-    originalStatus: {
-      ...item,
-      id: item.uid || item.versionId || '', // Add the required id property
-    } as FirebaseStatusData, // Keep original for detailed actions
-  }));
-};
-
 export const columns = [
-  {
-    uid: 'no',
-    name: 'NO',
-  },
-  {
-    uid: 'vid',
-    name: 'VERSION ID',
-  },
-  {
-    uid: 'name',
-    name: 'NAME',
-  },
-  {
-    uid: 'condition',
-    name: 'CONDITION',
-  },
-  {
-    uid: 'location',
-    name: 'LOCATION',
-  },
-  {
-    uid: 'status',
-    name: 'STATUS',
-  },
-  {
-    uid: 'createdAt',
-    name: 'CREATED AT',
-  },
-  {
-    uid: 'expirationDuration',
-    name: 'DURATION',
-  },
-  {
-    uid: 'actions',
-    name: 'ACTIONS',
-  },
+  // { uid: 'no', name: 'NO' },
+  { uid: 'vid', name: 'VERSION ID' },
+  { uid: 'name', name: 'NAME' },
+  { uid: 'condition', name: 'CONDITION' },
+  { uid: 'location', name: 'LOCATION' },
+  { uid: 'status', name: 'STATUS' },
+  { uid: 'createdAt', name: 'CREATED AT' },
+  { uid: 'expirationDuration', name: 'DURATION' },
+  { uid: 'actions', name: 'ACTIONS' },
 ];
 
 export const users = [
@@ -202,84 +128,6 @@ type User = (typeof users)[0] & {
   originalStatus?: FirebaseStatusData;
 };
 
-// Placeholder hook - replace this with your real Firebase integration
-const useLatestStatusesForHistory = () => {
-  const [statuses, setStatuses] = React.useState<StatusData[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    setLoading(true);
-
-    const unsubscribe = onSnapshot(
-      query(
-        collectionGroup(db, 'statuses'),
-        orderBy('createdAt', 'desc')
-      ),
-        snapshot => {
-          const latestStatusMap = new Map<string, StatusData>();
-
-          // Process all statuses and keep only latest version per parentId
-          snapshot.docs.forEach(doc => {
-            const statusData = { id: doc.id, ...doc.data() } as unknown as StatusData;
-            const parentId = statusData.parentId;
-
-            // Check if this is the latest version for this parentId
-            const existing = latestStatusMap.get(parentId);
-            
-            // Helper function to get timestamp value
-            const getTimestamp = (timestamp: any): number => {
-              if (!timestamp) return 0;
-              if (typeof timestamp === 'string') return new Date(timestamp).getTime();
-              if (timestamp.seconds) return timestamp.seconds * 1000;
-              if (timestamp.toDate) return timestamp.toDate().getTime();
-              return new Date(timestamp).getTime();
-            };
-            
-            if (!existing || getTimestamp(statusData.createdAt) > getTimestamp(existing.createdAt)) {
-              latestStatusMap.set(parentId, statusData);
-            }
-          });
-
-          const latestStatuses = Array.from(latestStatusMap.values()).sort(
-            (a, b) => {
-              const getTimestamp = (timestamp: any): number => {
-                if (!timestamp) return 0;
-                if (typeof timestamp === 'string') return new Date(timestamp).getTime();
-                if (timestamp.seconds) return timestamp.seconds * 1000;
-                if (timestamp.toDate) return timestamp.toDate().getTime();
-                return new Date(timestamp).getTime();
-              };
-              return getTimestamp(b.createdAt) - getTimestamp(a.createdAt);
-            }
-          );
-
-          setStatuses(latestStatuses);
-          setLoading(false);
-          setError(null);
-        },
-        err => {
-          console.error('Error fetching latest statuses:', err);
-          setError(err.message);
-          setLoading(false);
-        }
-      );
-
-    return () => unsubscribe();
-  }, []);
-
-  const transformedStatuses = React.useMemo(() => {
-    return transformStatusData(statuses);
-  }, [statuses]);
-
-  return {
-    statuses: transformedStatuses,
-    loading,
-    error,
-    totalCount: transformedStatuses.length,
-  };
-};
-
 export const StatusHistory = () => {
   // Use Firebase data instead of static data
   const { statuses: firebaseStatuses, loading: firebaseLoading, totalCount } = useLatestStatusesForHistory();
@@ -289,7 +137,7 @@ export const StatusHistory = () => {
   const [isLoading, setIsLoading] = React.useState(firebaseLoading);
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set([]));
   const [filterValue, setFilterValue] = React.useState('');
-  const [statusFilter, setStatusFilter] = React.useState<Selection>(new Set(['current']));
+  const [statusFilter, setStatusFilter] = React.useState<Selection>('all');
   const [conditionFilter, setConditionFilter] = React.useState<Selection>('all');
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
@@ -351,11 +199,7 @@ export const StatusHistory = () => {
         );
       case 'name':
         return (
-          <User
-            avatarProps={{ radius: 'lg', src: user.profileImage }}
-            description={user.email}
-            name={String(cellValue)}
-          >
+          <User avatarProps={{ radius: 'lg', src: user.profileImage }} description={user.id} name={String(cellValue)}>
             {String(user.name)}
           </User>
         );
@@ -396,14 +240,7 @@ export const StatusHistory = () => {
           <div className="flex justify-center cursor-pointer">
             <Dropdown>
               <DropdownTrigger>
-                <Button
-                  id={user.id}
-                  onPress={() => {
-                    // console.log(user.id);
-                  }}
-                  isIconOnly
-                  variant="light"
-                >
+                <Button isIconOnly variant="light">
                   <EllipsisVertical size={24} />
                 </Button>
               </DropdownTrigger>
@@ -525,6 +362,7 @@ export const StatusHistory = () => {
             onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
+            {/* Conditions Filter */}
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button endContent={<ChevronDown className="text-small" />} variant="flat">
@@ -546,7 +384,8 @@ export const StatusHistory = () => {
                 ))}
               </DropdownMenu>
             </Dropdown>
-            {/* Conditions Filter */}
+
+            {/* Status Filter */}
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button endContent={<ChevronDown className="text-small" />} variant="flat">
@@ -568,9 +407,7 @@ export const StatusHistory = () => {
                 ))}
               </DropdownMenu>
             </Dropdown>
-            <Button color="primary" endContent={<Plus />}>
-              Add New
-            </Button>
+            <Button isIconOnly variant="flat" endContent={<RefreshCcw size={20} />} onPress={() => window.location.reload()}></Button>
           </div>
         </div>
         <div className="flex justify-between mt-3 items-center">

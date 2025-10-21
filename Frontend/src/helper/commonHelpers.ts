@@ -88,7 +88,7 @@ export const formatTimeSince = (dateValue: any): string => {
       return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
-        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+        year: 'numeric',
       });
     }
 

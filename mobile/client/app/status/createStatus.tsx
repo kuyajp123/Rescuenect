@@ -227,7 +227,6 @@ export const createStatus = () => {
 
   // Load form data from Zustand store on mount
   useEffect(() => {
-    console.log('📋 formData useEffect triggered, formData:', formData ? 'exists' : 'null');
     if (formData) {
       // Set ref flag FIRST for immediate synchronous access
       isFormDataLoadingRef.current = true;
@@ -246,7 +245,6 @@ export const createStatus = () => {
       }, 300);
     } else {
       // When formData is null (deleted), clear coordinates and reset states
-      console.log('🧹 Clearing all states because formData is null');
       setCoords(null);
       setSelectedCoords([0, 0]);
       setActiveStatusCoords(false);
@@ -565,55 +563,65 @@ export const createStatus = () => {
 
     const statusData = new FormData();
 
+    // Fields to exclude from FormData (server-generated or shouldn't be updated)
+    const excludeFields = ['image', 'createdAt'];
+
     Object.keys(statusForm).forEach(key => {
       const value = statusForm[key as keyof StatusStateData];
-      if (value !== null && value !== undefined) {
-        // Don't append image field here - it will be handled separately
-        if (key !== 'image') {
-          // Handle different data types properly for FormData
-          if (typeof value === 'boolean') {
-            statusData.append(key, value ? 'true' : 'false');
-          } else if (typeof value === 'number') {
-            statusData.append(key, value.toString());
-          } else {
-            statusData.append(key, value.toString());
-          }
+      if (value !== null && value !== undefined && !excludeFields.includes(key)) {
+        // Handle different data types properly for FormData
+        if (typeof value === 'boolean') {
+          statusData.append(key, value ? 'true' : 'false');
+        } else if (typeof value === 'number') {
+          statusData.append(key, value.toString());
+        } else {
+          statusData.append(key, value.toString());
         }
       }
     });
 
-    // Add image if exists - check statusForm.image
-    const imageToUpload = statusForm.image;
+    // For updates, add parentId and versionId if they exist
+    if (formData && formData.parentId) {
+      statusData.append('parentId', formData.parentId);
+    }
+    if (formData && formData.versionId) {
+      statusData.append('versionId', formData.versionId);
+    }
 
-    if (imageToUpload) {
-      let imageUri: string;
+    // Handle image upload intelligently
+    const isNewImageFromPicker = image && image !== formData?.image; // use this if we change our mind to allow new image on edit put it in (isFirstTimeSubmit || isNewImageFromPicker)
+    const isFirstTimeSubmit = !formData;
 
-      // Handle both string URI and object with uri property
-      if (typeof imageToUpload === 'string') {
-        imageUri = imageToUpload;
-      } else if (typeof imageToUpload === 'object' && 'uri' in imageToUpload) {
-        imageUri = (imageToUpload as { uri: string }).uri;
-      } else {
-        console.log('📝 Creating status without image - invalid image format');
-        console.log('Image value:', imageToUpload);
-        imageUri = '';
+    if (isFirstTimeSubmit) {
+      // Only upload image if it's a new submission OR user picked a new image
+      const imageToUpload = image || statusForm.image;
+
+      if (imageToUpload) {
+        let imageUri: string;
+
+        // Handle both string URI and object with uri property
+        if (typeof imageToUpload === 'string') {
+          imageUri = imageToUpload;
+        } else if (typeof imageToUpload === 'object' && 'uri' in imageToUpload) {
+          imageUri = (imageToUpload as { uri: string }).uri;
+        } else {
+          console.log('📝 Skipping image upload - invalid image format');
+          console.log('Image value:', imageToUpload);
+          imageUri = '';
+        }
+
+        if (imageUri && imageUri.trim() !== '') {
+          const filename = imageUri.split('/').pop() || 'image.jpg';
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+          statusData.append('image', {
+            uri: imageUri,
+            name: filename,
+            type,
+          } as any);
+        }
       }
-
-      if (imageUri && imageUri.trim() !== '') {
-        const filename = imageUri.split('/').pop() || 'image.jpg';
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
-
-        statusData.append('image', {
-          uri: imageUri,
-          name: filename,
-          type,
-        } as any);
-      } else {
-        console.log('📝 Creating status without image - empty URI');
-      }
-    } else {
-      console.log('📝 Creating status without image - no image provided in either source');
     }
 
     // Submit form online
@@ -632,7 +640,7 @@ export const createStatus = () => {
         return;
       }
 
-      console.log('Form submitted successfully:', response.data);
+      console.log('Form submitted successfully:', JSON.stringify(response.data, null, 2));
       // Save to Zustand store with parentId from response
       setFormData({
         ...statusForm,
