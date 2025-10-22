@@ -1,10 +1,10 @@
 import { SecondaryButton } from '@/components/ui/button';
-import { Map, StatusCard, StatusList } from '@/components/ui/status';
-import { MapStyleSelector } from '@/components/ui/status/Map/MapStyleSelector';
+import { StatusCard, StatusList } from '@/components/ui/status';
+import { Map } from '@/components/ui/Map';
 import { useStatusStore } from '@/stores/useStatusStore';
 import { MapMarkerData } from '@/types/types';
 import { Select, SelectItem } from '@heroui/react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export const statuses = [
@@ -17,7 +17,6 @@ export const statuses = [
 const Status = () => {
   const [selectedStatuses, setSelectedStatuses] = useState(new Set(['all']));
   const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [mapTileUrl, setMapTileUrl] = useState('https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'); // Default to light
   const statusData = useStatusStore(state => state.statusData);
   const navigate = useNavigate();
 
@@ -52,11 +51,6 @@ const Status = () => {
       setSelectedItem(fullStatusData);
     }
   };
-
-  // Handle map style changes
-  const handleMapStyleChange = useCallback((styleUrl: string) => {
-    setMapTileUrl(styleUrl);
-  }, []);
 
   // Handle status selection with "Select All" logic
   const handleStatusChange = (keys: any) => {
@@ -130,12 +124,6 @@ const Status = () => {
   // Update counts to reflect filtered data
   const filteredStatusCount = filteredData.length;
 
-  // Memoize MapStyleSelector to prevent recreation on every render
-  const mapStyleSelector = useMemo(
-    () => <MapStyleSelector onStyleChange={handleMapStyleChange} />,
-    [handleMapStyleChange]
-  );
-
   return (
     <div className="grid grid-cols-[2fr_1fr] gap-4" style={{ height: '100%', width: '100%' }}>
       <div style={{ height: '100%', width: '100%' }}>
@@ -144,8 +132,6 @@ const Status = () => {
           onMarkerClick={handleMarkerClick}
           popupType="coordinates"
           markerType="status"
-          tileLayerUrl={mapTileUrl}
-          overlayComponent={mapStyleSelector}
           overlayPosition="topright"
           overlayClassName="custom-map-overlay"
         />

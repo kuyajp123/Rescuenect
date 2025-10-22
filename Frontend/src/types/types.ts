@@ -135,6 +135,7 @@ export type StatusTemplateProps = Omit<
   | 'lng'
 > & {
   style?: React.CSSProperties;
+  className?: string;
 };
 
 // Define the data structure for map markers

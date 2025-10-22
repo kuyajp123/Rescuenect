@@ -16,9 +16,10 @@ export const StatusCard = ({
   image,
   phoneNumber,
   expiresAt,
+  className,
 }: StatusTemplateProps) => {
   return (
-    <Card className="w-full max-h-[580px] dark:border dark:border-gray-700" key={uid} style={style}>
+    <Card className={`w-full max-h-[580px] dark:border dark:border-gray-700 ${className}`} key={uid} style={style}>
       <CardHeader className="justify-between">
         <div className="flex gap-5">
           <Avatar radius="full" size="md" src={profileImage} />

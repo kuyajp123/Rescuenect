@@ -1,16 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
 import { Map } from 'lucide-react';
-import { SecondaryButton } from '../../button';
+import { useEffect, useRef, useState } from 'react';
+import { SecondaryButton } from '../button';
 
 interface MapStyle {
   key: string;
   label: string;
   url: string;
+  attribution: string;
   description: string;
 }
 
 interface MapStyleSelectorProps {
-  onStyleChange: (styleUrl: string) => void;
+  onStyleChange: (styleUrl: string, attribution: string) => void;
   className?: string;
 }
 
@@ -19,12 +20,15 @@ const MAP_STYLES: MapStyle[] = [
     key: 'light',
     label: 'Light',
     url: 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     description: 'Standard OpenStreetMap style with light colors',
   },
   {
     key: 'dark',
     label: 'Dark',
     url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png',
+    attribution:
+      '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
     description: 'Dark theme with smooth styling',
   },
 ];
@@ -60,23 +64,23 @@ export const MapStyleSelector = ({ onStyleChange, className = '' }: MapStyleSele
       const style = MAP_STYLES.find(s => s.key === savedStyle);
       if (style) {
         setSelectedStyle(savedStyle);
-        onStyleChange(style.url);
+        onStyleChange(style.url, style.attribution);
       }
     } else {
       // Default to light style if nothing is saved
       const defaultStyle = MAP_STYLES.find(s => s.key === 'light');
       if (defaultStyle) {
-        onStyleChange(defaultStyle.url);
+        onStyleChange(defaultStyle.url, defaultStyle.attribution);
       }
     }
-  }, []); // Empty dependency array since we only want this to run once on mount
+  }, [onStyleChange]); // Added onStyleChange to dependency array
 
   const handleStyleChange = (styleKey: string) => {
     const style = MAP_STYLES.find(s => s.key === styleKey);
 
     if (style) {
       setSelectedStyle(styleKey);
-      onStyleChange(style.url);
+      onStyleChange(style.url, style.attribution);
 
       // Save to localStorage
       localStorage.setItem(STORAGE_KEY, styleKey);

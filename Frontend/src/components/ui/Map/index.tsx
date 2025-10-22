@@ -1,15 +1,15 @@
-import { MapContainer, Marker, Popup } from 'react-leaflet';
-import { useEffect, useRef } from 'react';
-import { useMap } from 'react-leaflet';
-import { createRoot } from 'react-dom/client';
-import 'leaflet/dist/leaflet.css';
+import { MapMarkerData, MapProps } from '@/types/types';
 import L from 'leaflet';
-import safeIcon from 'leaflet/dist/images/marker-icon-green.png';
 import evacuatedIcon from 'leaflet/dist/images/marker-icon-blue.png';
+import safeIcon from 'leaflet/dist/images/marker-icon-green.png';
 import affectedIcon from 'leaflet/dist/images/marker-icon-orange.png';
 import missingIcon from 'leaflet/dist/images/marker-icon-red.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-import { MapMarkerData, MapProps } from '@/types/types';
+import 'leaflet/dist/leaflet.css';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { MapContainer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapStyleSelector } from './MapStyleSelector';
 
 const shadowUrl = markerShadow;
 const iconSize: [number, number] = [25, 41];
@@ -101,6 +101,36 @@ const DynamicTileLayer = ({ url, attribution }: DynamicTileLayerProps) => {
   return null;
 };
 
+// Map Controller component that handles centering on markers
+interface MapControllerProps {
+  data: MapMarkerData[];
+  center: [number, number];
+  zoom: number;
+}
+
+const MapController = ({ data, center, zoom }: MapControllerProps) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (data.length > 0) {
+      // If there's marker data, center on the first marker
+      const firstMarker = data[0];
+      map.setView([firstMarker.lat, firstMarker.lng], zoom, {
+        animate: true,
+        duration: 0.5,
+      });
+    } else {
+      // If no marker data, use the provided center
+      map.setView(center, zoom, {
+        animate: true,
+        duration: 0.5,
+      });
+    }
+  }, [map, data, center, zoom]);
+
+  return null;
+};
+
 export const Map = ({
   data,
   center = [14.2965, 120.7925],
@@ -110,18 +140,17 @@ export const Map = ({
   height = '100%',
   width = '100%',
   markerType = 'default',
-  tileLayerUrl = 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png', // Light (default)
-  // Alternative: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png' // Dark
-  attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   renderPopup,
   popupType = 'default',
   showCoordinates = true,
   onMarkerClick,
   className,
   overlayComponent,
+  attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', // this is default we dont need to change this
   overlayPosition = 'topright',
   overlayClassName = '',
 }: MapProps) => {
+  const [mapTileUrl, setMapTileUrl] = useState('https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'); // Default to light
   // lat lng popup render
   const latLngPopupRenderer = (item: MapMarkerData) => (
     <div>
@@ -210,6 +239,11 @@ export const Map = ({
     }
   };
 
+  // Handle map style changes
+  const handleMapStyleChange = useCallback((styleUrl: string) => {
+    setMapTileUrl(styleUrl);
+  }, []);
+
   return (
     <MapContainer
       center={center}
@@ -225,7 +259,15 @@ export const Map = ({
       // maxBoundsViscosity={1.0} // prevents moving outside bounds
     >
       {/* Use DynamicTileLayer for style switching */}
-      <DynamicTileLayer url={tileLayerUrl} attribution={attribution} />
+      <DynamicTileLayer url={mapTileUrl} attribution={attribution} />
+
+      {/* Map Controller for dynamic centering */}
+      <MapController data={data} center={center} zoom={zoom} />
+
+      {/* Fixed MapStyleSelector - always included in map */}
+      <CustomControl position="topright" className="map-style-selector-control">
+        <MapStyleSelector onStyleChange={handleMapStyleChange} />
+      </CustomControl>
 
       {/* Render custom overlay component if provided */}
       {overlayComponent && (

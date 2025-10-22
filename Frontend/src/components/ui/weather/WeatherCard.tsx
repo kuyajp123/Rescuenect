@@ -86,7 +86,7 @@ const WeatherCard = ({
   ]);
 
   return (
-    <Card className="w-fit h-auto dark:border dark:border-gray-700">
+    <Card className="w-auto h-auto dark:border dark:border-gray-700">
       <CardBody className="flex flex-row gap-4 p-8">
         <div className="flex flex-col h-auto pt-2 gap-4 justify-between">
           <div className="flex flex-col gap-1">

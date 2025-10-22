@@ -17,6 +17,7 @@
  */
 
 import { useLatestStatusesForHistory } from '@/hooks/useLatestStatusesForHistory';
+import { usePanelStore } from '@/store/panelStore';
 import type { ChipProps, Selection, SortDescriptor } from '@heroui/react';
 import {
   Button,
@@ -87,6 +88,7 @@ export const users = [
     email: 'john.doe@example.com',
     profileImage: 'https://i.pravatar.cc/150?u=a042581f4e29026024d',
     name: 'John Doe',
+    phoneNumber: '+63 912 345 6789',
     condition: 'evacuated',
     location: 'Naic, Cavite',
     lat: 14.305580227490012,
@@ -123,7 +125,20 @@ export const conditionsOptions = [
   { name: 'Missing', uid: 'missing' },
 ];
 
-type User = (typeof users)[0] & {
+type StatusUser = {
+  id: string;
+  vid: string;
+  email?: string;
+  profileImage: string;
+  name: string;
+  phoneNumber?: string;
+  condition: string;
+  location: string;
+  lat: number;
+  lng: number;
+  status: string;
+  createdAt: string;
+  expirationDuration: string;
   parentId?: string;
   originalStatus?: FirebaseStatusData;
 };
@@ -132,8 +147,11 @@ export const StatusHistory = () => {
   // Use Firebase data instead of static data
   const { statuses: firebaseStatuses, loading: firebaseLoading, totalCount } = useLatestStatusesForHistory();
 
+  // Get panel control functions from Zustand store
+  const { openPanel, closePanel, setSelectedUser } = usePanelStore();
+
   // Use Firebase data as the source
-  const users = React.useMemo(() => firebaseStatuses, [firebaseStatuses]);
+  const users = React.useMemo(() => firebaseStatuses as StatusUser[], [firebaseStatuses]);
   const [isLoading, setIsLoading] = React.useState(firebaseLoading);
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set([]));
   const [filterValue, setFilterValue] = React.useState('');
@@ -154,7 +172,43 @@ export const StatusHistory = () => {
 
   const hasSearchFilter = Boolean(filterValue);
 
-  const handleAction = async (key: any, user: User) => {
+  // Handle table row selection
+  const handleRowSelect = React.useCallback(
+    (keys: Selection) => {
+      const selectedKey = Array.from(keys)[0] as string;
+      if (selectedKey) {
+        const selectedUser = users.find(user => user.vid === selectedKey);
+        if (selectedUser) {
+          // Prepare user data for the panel
+          const userData = {
+            id: selectedUser.id,
+            vid: selectedUser.vid,
+            name: selectedUser.name,
+            profileImage: selectedUser.profileImage,
+            phoneNumber: selectedUser.phoneNumber || selectedUser.originalStatus?.phoneNumber || 'N/A',
+            condition: selectedUser.condition as 'missing' | 'safe' | 'affected' | 'evacuated',
+            location: selectedUser.location,
+            lat: selectedUser.lat,
+            lng: selectedUser.lng,
+            status: selectedUser.status as 'current' | 'history' | 'deleted',
+            createdAt: selectedUser.createdAt,
+            expirationDuration: selectedUser.expirationDuration,
+            parentId: selectedUser.parentId,
+            originalStatus: selectedUser.originalStatus,
+          };
+
+          // Update the store and open panel
+          setSelectedUser(userData);
+          openPanel(userData);
+
+          console.log('Selected user for panel:', userData);
+        }
+      }
+    },
+    [users, setSelectedUser, openPanel]
+  );
+
+  const handleAction = async (key: any, user: StatusUser) => {
     switch (key) {
       case 'details':
         // View latest status details for this parentId
@@ -187,8 +241,8 @@ export const StatusHistory = () => {
     }
   };
 
-  const renderCell = useCallback((user: User, columnKey: React.Key) => {
-    const cellValue = user[columnKey as keyof User];
+  const renderCell = useCallback((user: StatusUser, columnKey: React.Key) => {
+    const cellValue = user[columnKey as keyof StatusUser];
 
     switch (columnKey) {
       case 'vid':
@@ -297,9 +351,9 @@ export const StatusHistory = () => {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: User, b: User) => {
-      let first = a[sortDescriptor.column as keyof User];
-      let second = b[sortDescriptor.column as keyof User];
+    return [...items].sort((a: StatusUser, b: StatusUser) => {
+      let first = a[sortDescriptor.column as keyof StatusUser];
+      let second = b[sortDescriptor.column as keyof StatusUser];
 
       // Handle different data types
       if (typeof first === 'string' && typeof second === 'string') {
@@ -407,7 +461,12 @@ export const StatusHistory = () => {
                 ))}
               </DropdownMenu>
             </Dropdown>
-            <Button isIconOnly variant="flat" endContent={<RefreshCcw size={20} />} onPress={() => window.location.reload()}></Button>
+            <Button
+              isIconOnly
+              variant="flat"
+              endContent={<RefreshCcw size={20} />}
+              onPress={() => window.location.reload()}
+            ></Button>
           </div>
         </div>
         <div className="flex justify-between mt-3 items-center">
@@ -484,7 +543,12 @@ export const StatusHistory = () => {
       bottomContentPlacement="outside"
       sortDescriptor={sortDescriptor}
       onSortChange={setSortDescriptor}
-      onSelectionChange={setSelectedKeys}
+      onSelectionChange={keys => {
+        setSelectedKeys(keys);
+        handleRowSelect(keys);
+      }}
+      selectedKeys={selectedKeys}
+      selectionMode="single"
     >
       <TableHeader columns={columns}>
         {column => (
@@ -499,8 +563,13 @@ export const StatusHistory = () => {
         )}
       </TableHeader>
       <TableBody isLoading={isLoading} items={sortedItems}>
-        {(item: User) => (
-          <TableRow key={item.vid}>{columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>
+        {(item: StatusUser) => (
+          <TableRow
+            key={item.vid}
+            className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+          >
+            {columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+          </TableRow>
         )}
       </TableBody>
     </Table>

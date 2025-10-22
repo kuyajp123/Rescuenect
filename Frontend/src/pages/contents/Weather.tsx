@@ -1,8 +1,8 @@
-import { WeatherCard, DailyForecastCard, HourlyForecast } from '@/components/ui/weather';
+import GlassCard from '@/components/ui/card/GlassCard';
+import { DailyForecastCard, HourlyForecast, WeatherCard } from '@/components/ui/weather';
 import { DisplayDateAndTime } from '@/helper/DateAndTime';
 import { useWeatherStore } from '@/stores/useWeatherStores';
-import GlassCard from '@/components/ui/card/GlassCard';
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@heroui/react';
+import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from '@heroui/react';
 
 const Weather = () => {
   const [time, date] = DisplayDateAndTime();
@@ -14,13 +14,13 @@ const Weather = () => {
   return (
     <div className="flex flex-col h-full w-full items-center p-4">
       {/* Today */}
-      <div className="flex flex-col w-full max-w-7xl gap-4">
-        <div className="flex flex-col">
-          <b className="text-2xl sm:text-3xl">{time}</b>
-          <span className="text-sm">{date}</span>
-        </div>
-        <div className="h-full w-full flex flex-col xl:flex-row gap-6 ">
-          <div className="flex flex-col gap-6 w-145">
+      <div className="w-full">
+        <div className="h-full w-full flex justify-center flex-col xl:flex-row gap-6 ">
+          <div className="flex flex-col gap-6 w-fit">
+            <div className="flex flex-col">
+              <b className="text-2xl sm:text-3xl">{time}</b>
+              <span className="text-sm">{date}</span>
+            </div>
             {/* Realtime weather */}
             <div>
               {data && data.realtime && data.realtime.length > 0 && data.realtime[0].data ? (
@@ -84,8 +84,8 @@ const Weather = () => {
           </div>
 
           {/* 24 hour forecast */}
-          <div className="flex flex-col w-full xl:w-2/5 h-full">
-            <GlassCard className="flex flex-col w-full h-[400px] xl:h-[670px] p-4 overflow-y-auto">
+          <div className="flex flex-col h-full">
+            <GlassCard className="flex flex-col w-fit h-[400px] xl:h-[670px] p-4 overflow-y-auto">
               <div className="mb-4">
                 <p>
                   <b>24 Hour Forecast</b>
