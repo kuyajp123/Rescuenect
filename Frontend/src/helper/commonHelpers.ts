@@ -133,7 +133,7 @@ export const formatTimeRemaining = (dateValue: any): string => {
 
     // If 24+ hours, show in days
     const daysRemaining = Math.floor(hoursRemaining / 24);
-    return `in ${daysRemaining}d`;
+    return 'Expired';
   } catch (error) {
     return 'Invalid date';
   }

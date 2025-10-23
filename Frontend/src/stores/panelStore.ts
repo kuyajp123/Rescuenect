@@ -3,7 +3,8 @@ import { create } from 'zustand';
 interface SelectedUserData {
   id: string;
   vid: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   profileImage: string;
   condition: 'safe' | 'evacuated' | 'affected' | 'missing';
   phoneNumber?: string;

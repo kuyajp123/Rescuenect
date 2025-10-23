@@ -152,7 +152,7 @@ const Status = () => {
                 <SelectItem key={statusOption.key}>{statusOption.label}</SelectItem>
               ))}
             </Select>
-            <SecondaryButton onClick={() => navigate('/status/history')}>
+            <SecondaryButton onPress={() => navigate('/status/history')}>
               <p>History</p>
             </SecondaryButton>
           </div>
@@ -182,6 +182,7 @@ const Status = () => {
               image={selectedItem.image}
               phoneNumber={selectedItem.phoneNumber}
               expiresAt={selectedItem.expiresAt}
+              vid={selectedItem.versionId}
             />
           ) : (
             <div className="text-center flex h-full items-center justify-center">Selected marker displays here</div>

@@ -3,9 +3,9 @@ import Header from '@/components/ui/header/Header';
 import { Map } from '@/components/ui/Map';
 import SideBar from '@/components/ui/sideBar/SideBar';
 import { StatusCard } from '@/components/ui/status';
-import { usePanelStore } from '@/store/panelStore';
 import { Button } from '@heroui/react';
 import { useState } from 'react';
+import { usePanelStore } from '../stores/panelStore.ts';
 
 const MainLayout = () => {
   // Initialize sidebar state from localStorage or default to true
@@ -24,10 +24,7 @@ const MainLayout = () => {
 
       {/* Mobile overlay */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-20 bg-black/50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 z-20 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Main content area */}
@@ -53,7 +50,7 @@ const MainLayout = () => {
               {/* Panel Header */}
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                  {selectedUser ? `${selectedUser.name} Details` : 'Status Details'}
+                  {selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName} Details` : 'Status Details'}
                 </h3>
                 <Button variant="light" onPress={closePanel}>
                   Close Panel
@@ -91,15 +88,16 @@ const MainLayout = () => {
                     className="h-fit max-h-[500px]"
                     uid={selectedUser.id}
                     profileImage={selectedUser.profileImage}
-                    firstName={selectedUser.name.split(' ')[0]}
-                    lastName={selectedUser.name.split(' ').slice(1).join(' ')}
+                    firstName={selectedUser.firstName}
+                    lastName={selectedUser.lastName}
                     phoneNumber={selectedUser.phoneNumber || ''}
                     condition={selectedUser.condition}
                     location={selectedUser.location}
                     note={selectedUser.originalStatus?.note || ''}
                     image={selectedUser.originalStatus?.image}
                     expiresAt={selectedUser.originalStatus?.expiresAt}
-                    createdAt={selectedUser.createdAt}
+                    createdAt={selectedUser.originalStatus?.createdAt}
+                    vid={selectedUser.vid}
                   />
                 ) : (
                   <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">

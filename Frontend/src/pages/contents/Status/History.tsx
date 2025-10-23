@@ -16,8 +16,8 @@
  * - See FIRESTORE_STATUS_QUERIES.md for query documentation
  */
 
-import { useLatestStatusesForHistory } from '@/hooks/useLatestStatusesForHistory';
-import { usePanelStore } from '@/store/panelStore';
+import { useStatusHistory } from '@/hooks/useStatusHistory';
+import { usePanelStore } from '@/stores/panelStore';
 import type { ChipProps, Selection, SortDescriptor } from '@heroui/react';
 import {
   Button,
@@ -87,7 +87,8 @@ export const users = [
     vid: 'status-123456-v1',
     email: 'john.doe@example.com',
     profileImage: 'https://i.pravatar.cc/150?u=a042581f4e29026024d',
-    name: 'John Doe',
+    firstName: 'John',
+    lastName: 'Doe',
     phoneNumber: '+63 912 345 6789',
     condition: 'evacuated',
     location: 'Naic, Cavite',
@@ -130,7 +131,8 @@ type StatusUser = {
   vid: string;
   email?: string;
   profileImage: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   phoneNumber?: string;
   condition: string;
   location: string;
@@ -145,7 +147,14 @@ type StatusUser = {
 
 export const StatusHistory = () => {
   // Use Firebase data instead of static data
-  const { statuses: firebaseStatuses, loading: firebaseLoading, totalCount } = useLatestStatusesForHistory();
+  // const { statuses: firebaseStatuses, loading: firebaseLoading, totalCount } = useLatestStatusesForHistory();
+  const {
+    statuses: firebaseStatuses,
+    loading: firebaseLoading,
+    error,
+    totalCount,
+    fetchStatusHistory,
+  } = useStatusHistory();
 
   // Get panel control functions from Zustand store
   const { openPanel, closePanel, setSelectedUser } = usePanelStore();
@@ -183,7 +192,8 @@ export const StatusHistory = () => {
           const userData = {
             id: selectedUser.id,
             vid: selectedUser.vid,
-            name: selectedUser.name,
+            firstName: selectedUser.firstName,
+            lastName: selectedUser.lastName,
             profileImage: selectedUser.profileImage,
             phoneNumber: selectedUser.phoneNumber || selectedUser.originalStatus?.phoneNumber || 'N/A',
             condition: selectedUser.condition as 'missing' | 'safe' | 'affected' | 'evacuated',
@@ -212,7 +222,7 @@ export const StatusHistory = () => {
     switch (key) {
       case 'details':
         // View latest status details for this parentId
-        console.log('View Details for:', user.name, {
+        console.log('View Details for:', user.firstName, user.lastName, {
           parentId: user.parentId,
           versionId: user.vid,
           status: user.originalStatus,
@@ -222,7 +232,7 @@ export const StatusHistory = () => {
         break;
       case 'history':
         // View all versions of this parentId status
-        console.log('View History for:', user.name, {
+        console.log('View History for:', user.firstName, user.lastName, {
           parentId: user.parentId,
           uid: user.id,
         });
@@ -231,7 +241,7 @@ export const StatusHistory = () => {
         break;
       case 'user':
         // View user profile with all their parent statuses
-        console.log('View Profile for:', user.name, {
+        console.log('View Profile for:', user.firstName, user.lastName, {
           uid: user.id,
           profileImage: user.profileImage,
         });
@@ -253,8 +263,12 @@ export const StatusHistory = () => {
         );
       case 'name':
         return (
-          <User avatarProps={{ radius: 'lg', src: user.profileImage }} description={user.id} name={String(cellValue)}>
-            {String(user.name)}
+          <User
+            avatarProps={{ radius: 'lg', src: user.profileImage }}
+            description={user.id}
+            name={`${user.firstName} ${user.lastName}`}
+          >
+            {user.firstName} {user.lastName}
           </User>
         );
       case 'condition':
@@ -327,7 +341,8 @@ export const StatusHistory = () => {
     if (hasSearchFilter) {
       filteredUsers = filteredUsers.filter(
         user =>
-          user.name.toLowerCase().includes(filterValue.toLowerCase()) ||
+          user.firstName.toLowerCase().includes(filterValue.toLowerCase()) ||
+          user.lastName.toLowerCase().includes(filterValue.toLowerCase()) ||
           user.vid.toLowerCase().includes(filterValue.toLowerCase())
       );
     }
@@ -465,7 +480,7 @@ export const StatusHistory = () => {
               isIconOnly
               variant="flat"
               endContent={<RefreshCcw size={20} />}
-              onPress={() => window.location.reload()}
+              onPress={fetchStatusHistory}
             ></Button>
           </div>
         </div>
@@ -545,7 +560,18 @@ export const StatusHistory = () => {
       onSortChange={setSortDescriptor}
       onSelectionChange={keys => {
         setSelectedKeys(keys);
-        handleRowSelect(keys);
+
+        // Determine how many items are selected. `Selection` may be a Set or an Array
+        const selectedCount = (keys as Set<any>)?.size ?? (Array.isArray(keys) ? (keys as any[]).length : 0);
+
+        if (!selectedCount) {
+          // If nothing is selected, clear the panel state and close the panel
+          setSelectedUser(null);
+          closePanel();
+        } else {
+          // Otherwise open/view the selected row
+          handleRowSelect(keys);
+        }
       }}
       selectedKeys={selectedKeys}
       selectionMode="single"

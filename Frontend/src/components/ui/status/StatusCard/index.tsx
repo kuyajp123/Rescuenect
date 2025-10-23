@@ -17,6 +17,7 @@ export const StatusCard = ({
   phoneNumber,
   expiresAt,
   className,
+  vid,
 }: StatusTemplateProps) => {
   return (
     <Card className={`w-full max-h-[580px] dark:border dark:border-gray-700 ${className}`} key={uid} style={style}>
@@ -64,12 +65,20 @@ export const StatusCard = ({
         <p>{note}</p>
         <Image alt="HeroUI hero Image" src={image} className="mt-4" />
       </CardBody>
-      <CardFooter className="gap-3 h-auto">
-        <div className="flex gap-1">
+      <CardFooter className="flex flex-row justify-between h-auto">
+        <div className="flex gap-2">
           {phoneNumber && (
             <>
               <Phone size={20} className="text-default-400" />
               <p className="text-small">{phoneNumber}</p>
+            </>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {vid && (
+            <>
+              <p>VID:</p>
+              <p className="text-small">{vid}</p>
             </>
           )}
         </div>
