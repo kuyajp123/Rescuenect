@@ -18,6 +18,7 @@
 
 import { useStatusHistory } from '@/hooks/useStatusHistory';
 import { usePanelStore } from '@/stores/panelStore';
+import { useStatusStore } from '@/stores/useStatusStore';
 import type { ChipProps, Selection, SortDescriptor } from '@heroui/react';
 import {
   Button,
@@ -36,7 +37,7 @@ import {
   TableRow,
   User,
 } from '@heroui/react';
-import { ChevronDown, EllipsisVertical, History, Info, RefreshCcw, Search, UserRound } from 'lucide-react';
+import { ChevronDown, EllipsisVertical, History, RefreshCcw, Search, UserRound } from 'lucide-react';
 import React, { useCallback, useMemo } from 'react';
 
 export function capitalize(s: string) {
@@ -146,8 +147,7 @@ type StatusUser = {
 };
 
 export const StatusHistory = () => {
-  // Use Firebase data instead of static data
-  // const { statuses: firebaseStatuses, loading: firebaseLoading, totalCount } = useLatestStatusesForHistory();
+  const statusData = useStatusStore(state => state.statusData);
   const {
     statuses: firebaseStatuses,
     loading: firebaseLoading,
@@ -167,6 +167,7 @@ export const StatusHistory = () => {
   const [statusFilter, setStatusFilter] = React.useState<Selection>('all');
   const [conditionFilter, setConditionFilter] = React.useState<Selection>('all');
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [statusChanges, setStatusChanges] = React.useState(false);
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: 'status',
     direction: 'ascending',
@@ -174,10 +175,28 @@ export const StatusHistory = () => {
 
   const [page, setPage] = React.useState(1);
 
+  React.useEffect(() => {
+    const activeStatusCount = statusData.length;
+    const usersStatusesActiveCount = users.filter(
+      user => user.status === 'current' || user.originalStatus?.statusType === 'current'
+    ).length;
+
+    const hasChanges = activeStatusCount !== usersStatusesActiveCount;
+
+    setStatusChanges(hasChanges);
+  }, [statusData, users, statusChanges]);
+
   // Update loading state when Firebase loading changes
   React.useEffect(() => {
     setIsLoading(firebaseLoading);
   }, [firebaseLoading]);
+
+  React.useEffect(() => {
+    return () => {
+      closePanel();
+      setSelectedUser(null);
+    };
+  }, []);
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -210,8 +229,6 @@ export const StatusHistory = () => {
           // Update the store and open panel
           setSelectedUser(userData);
           openPanel(userData);
-
-          console.log('Selected user for panel:', userData);
         }
       }
     },
@@ -220,16 +237,6 @@ export const StatusHistory = () => {
 
   const handleAction = async (key: any, user: StatusUser) => {
     switch (key) {
-      case 'details':
-        // View latest status details for this parentId
-        console.log('View Details for:', user.firstName, user.lastName, {
-          parentId: user.parentId,
-          versionId: user.vid,
-          status: user.originalStatus,
-        });
-        // TODO: Open status details modal with full information
-        // await handleViewDetails(user);
-        break;
       case 'history':
         // View all versions of this parentId status
         console.log('View History for:', user.firstName, user.lastName, {
@@ -317,9 +324,6 @@ export const StatusHistory = () => {
                 variant="faded"
                 onAction={key => handleAction(key, user)}
               >
-                <DropdownItem key="details" shortcut="⌘D" startContent={<Info size={20} className={iconClasses} />}>
-                  View Details
-                </DropdownItem>
                 <DropdownItem key="history" shortcut="⌘H" startContent={<History size={20} className={iconClasses} />}>
                   View History
                 </DropdownItem>
@@ -476,12 +480,24 @@ export const StatusHistory = () => {
                 ))}
               </DropdownMenu>
             </Dropdown>
-            <Button
-              isIconOnly
-              variant="flat"
-              endContent={<RefreshCcw size={20} />}
-              onPress={fetchStatusHistory}
-            ></Button>
+            <div className="relative">
+              <Button
+                isIconOnly
+                variant="flat"
+                onPress={() => {
+                  fetchStatusHistory();
+                  setStatusChanges(false);
+                }}
+              >
+                <RefreshCcw size={20} />
+              </Button>
+              {statusChanges && (
+                <span
+                  className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border border-white"
+                  style={{ zIndex: 9999 }}
+                />
+              )}
+            </div>
           </div>
         </div>
         <div className="flex justify-between mt-3 items-center">
@@ -512,6 +528,7 @@ export const StatusHistory = () => {
     onSearchChange,
     onRowsPerPageChange,
     hasSearchFilter,
+    statusChanges,
   ]);
 
   const bottomContent = useMemo(() => {
@@ -546,7 +563,6 @@ export const StatusHistory = () => {
 
   return (
     <Table
-      // isStriped={list.items.length > 2}
       isHeaderSticky
       aria-label="Example table with infinite pagination"
       classNames={{

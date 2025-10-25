@@ -1,10 +1,10 @@
 import { SecondaryButton } from '@/components/ui/button';
-import { StatusCard, StatusList } from '@/components/ui/status';
 import { Map } from '@/components/ui/Map';
+import { StatusCard, StatusList } from '@/components/ui/status';
 import { useStatusStore } from '@/stores/useStatusStore';
 import { MapMarkerData } from '@/types/types';
 import { Select, SelectItem } from '@heroui/react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export const statuses = [
@@ -20,9 +20,9 @@ const Status = () => {
   const statusData = useStatusStore(state => state.statusData);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    console.log(JSON.stringify(statusData, null, 2));
-  }, [statusData]);
+  // useEffect(() => {
+  //   console.log(JSON.stringify(statusData, null, 2));
+  // }, [statusData]);
 
   const statusCount = statusData.length;
   const safeCount = statusData.filter(item => item.condition === 'safe').length;
@@ -126,7 +126,7 @@ const Status = () => {
 
   return (
     <div className="grid grid-cols-[2fr_1fr] gap-4" style={{ height: '100%', width: '100%' }}>
-      <div style={{ height: '100%', width: '100%' }}>
+      <div className="rounded-lg overflow-hidden" style={{ height: '100%', width: '100%' }}>
         <Map
           data={filteredData}
           onMarkerClick={handleMarkerClick}

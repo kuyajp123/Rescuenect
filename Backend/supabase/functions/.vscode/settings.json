@@ -1,0 +1,6 @@
+{
+  // Enable Deno only for Supabase functions
+  "deno.enable": true,
+  "deno.lint": true,
+  "deno.unstable": []
+}
