@@ -34,7 +34,7 @@ const MainLayout = () => {
         </div>
         <div className="flex-1 flex justify-between overflow-auto py-4 relative">
           {/* Main content area - adjusts width based on panel state */}
-          <div className={`transition-all flex justify-center ${isPanelOpen ? 'w-[68%]' : 'w-full'}`}>
+          <div className={`flex justify-center ${isPanelOpen ? 'w-[68%]' : 'w-full'}`}>
             <Content />
           </div>
 

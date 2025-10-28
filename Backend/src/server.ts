@@ -1,11 +1,10 @@
-import express, { Application, Request, Response, NextFunction } from 'express';
-const app: Application = express();
-import dotenv from 'dotenv';
-dotenv.config();
-import cookieParser from 'cookie-parser';
 import db from '@/db/firestoreConfig';
+import router from '@/routes';
 import cors from 'cors';
-import router from '@/router/routes';
+import dotenv from 'dotenv';
+import express, { Application, NextFunction, Request, Response } from 'express';
+dotenv.config();
+const app: Application = express();
 
 db;
 const PORT = process.env.PORT;
@@ -13,15 +12,23 @@ const PORT = process.env.PORT;
 // weather data service
 import './jobs/weatherSched';
 
+const allowedOrigins = [process.env.FRONTEND_URL, process.env.MOBILE_APP_URL];
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL!,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    // origin: process.env.FRONTEND_URL!,
     // origin: "*",
     credentials: true,
   })
 );
 
-app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
