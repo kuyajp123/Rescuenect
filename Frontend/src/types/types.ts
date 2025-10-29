@@ -159,6 +159,9 @@ export interface MapProps {
   maxZoom?: number;
   height?: string;
   width?: string;
+  zoomControl?: boolean;
+  dragging?: boolean;
+  hasMapControl?: boolean;
 
   // Customization props
   markerType?: 'status' | 'default';
@@ -176,6 +179,7 @@ export interface MapProps {
   className?: string;
 
   // Overlay components
+  hasMapStyleSelector?: boolean;
   overlayComponent?: React.ReactNode;
   overlayPosition?: 'topright' | 'topleft' | 'bottomright' | 'bottomleft';
   overlayClassName?: string;

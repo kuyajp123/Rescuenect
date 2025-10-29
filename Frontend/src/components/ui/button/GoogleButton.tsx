@@ -1,10 +1,11 @@
-import { SecondaryButton } from './';
+import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
-import { signInWithPopup, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
-import axios from 'axios';
 import { useAuth } from '@/stores/useAuth';
 import { useErrorStore } from '@/stores/useErrorMessage';
+import axios from 'axios';
+import { GoogleAuthProvider, signInWithCredential, signInWithPopup } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
+import { SecondaryButton } from './';
 
 export const GoogleButton = () => {
   const isLoading = useAuth(state => state.isLoading);
@@ -31,7 +32,7 @@ export const GoogleButton = () => {
 
       // Backend verification
       await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/admin/auth/signin`,
+        API_ENDPOINTS.AUTH.SIGNIN,
         { email: tempUser.email, uid: tempUser.uid },
         { headers: { Authorization: `Bearer ${idToken}` }, withCredentials: true }
       );

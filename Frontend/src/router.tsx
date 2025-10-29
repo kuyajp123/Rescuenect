@@ -7,6 +7,7 @@ import {
   Dashboard,
   Status,
   StatusHistory,
+  HistoryVersions,
   Weather,
   Earthquake,
 } from '@/pages/contents';
@@ -27,7 +28,7 @@ const Router = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/status" element={<Status />} />
         <Route path="/status/history" element={<StatusHistory />} />
-        {/* <Route path="/city" element={<City />} /> */}
+        <Route path="/status/history/versions" element={<HistoryVersions />} />
         <Route path="/weather" element={<Weather />} />
         <Route path="/earthquake" element={<Earthquake />} />
         {/* <Route path="/add_notification" element={<AddNotification />} /> */}

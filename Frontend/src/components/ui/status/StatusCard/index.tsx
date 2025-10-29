@@ -61,7 +61,7 @@ export const StatusCard = ({
           </div>
         </div>
       </CardHeader>
-      <CardBody className="px-3 py-0 text-small min-h-auto">
+      <CardBody className="px-3 py-0 text-small">
         <p>{note}</p>
         <Image alt="HeroUI hero Image" src={image} className="mt-4" />
       </CardBody>

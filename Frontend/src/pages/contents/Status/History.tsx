@@ -19,6 +19,7 @@
 import { useStatusHistory } from '@/hooks/useStatusHistory';
 import { usePanelStore } from '@/stores/panelStore';
 import { useStatusStore } from '@/stores/useStatusStore';
+import { useVersionHistoryStore } from '@/stores/useVersionHistoryStore';
 import type { ChipProps, Selection, SortDescriptor } from '@heroui/react';
 import {
   Button,
@@ -39,6 +40,7 @@ import {
 } from '@heroui/react';
 import { ChevronDown, EllipsisVertical, History, RefreshCcw, Search, UserRound } from 'lucide-react';
 import React, { useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
@@ -142,12 +144,14 @@ type StatusUser = {
   status: string;
   createdAt: string;
   expirationDuration: string;
-  parentId?: string;
+  parentId: string;
   originalStatus?: FirebaseStatusData;
 };
 
 export const StatusHistory = () => {
   const statusData = useStatusStore(state => state.statusData);
+  const setParentId = useVersionHistoryStore(state => state.setParentId);
+  const navigate = useNavigate();
   const {
     statuses: firebaseStatuses,
     loading: firebaseLoading,
@@ -155,6 +159,8 @@ export const StatusHistory = () => {
     totalCount,
     fetchStatusHistory,
   } = useStatusHistory();
+
+  error;
 
   // Get panel control functions from Zustand store
   const { openPanel, closePanel, setSelectedUser } = usePanelStore();
@@ -243,8 +249,9 @@ export const StatusHistory = () => {
           parentId: user.parentId,
           uid: user.id,
         });
-        // TODO: Fetch and display all versions of this parentId
-        // await handleViewHistory(user);
+
+        setParentId(user.parentId);
+        navigate('/status/history/versions');
         break;
       case 'user':
         // View user profile with all their parent statuses
@@ -325,7 +332,7 @@ export const StatusHistory = () => {
                 onAction={key => handleAction(key, user)}
               >
                 <DropdownItem key="history" shortcut="⌘H" startContent={<History size={20} className={iconClasses} />}>
-                  View History
+                  View Versions
                 </DropdownItem>
                 <DropdownItem key="user" shortcut="⌘U" startContent={<UserRound size={20} className={iconClasses} />}>
                   View Profile

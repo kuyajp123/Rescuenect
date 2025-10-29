@@ -38,7 +38,7 @@ const MainLayout = () => {
             <Content />
           </div>
 
-          {/* Side panel with slide animation */}
+          {/* Side panel */}
           <div
             className={`
             fixed right-0 top-16 h-[calc(100vh-4rem)] w-[28%] bg-white dark:bg-gray-900 shadow-xl z-30
@@ -75,6 +75,10 @@ const MainLayout = () => {
                         : []
                     }
                     center={selectedUser ? [selectedUser.lat, selectedUser.lng] : [14.2965, 120.7925]}
+                    hasMapStyleSelector={false}
+                    zoomControl={false}
+                    dragging={false}
+                    hasMapControl={true}
                     zoom={selectedUser ? 15 : 13}
                     markerType="status"
                   />

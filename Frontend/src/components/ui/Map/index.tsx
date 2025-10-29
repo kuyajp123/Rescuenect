@@ -145,6 +145,10 @@ export const Map = ({
   showCoordinates = true,
   onMarkerClick,
   className,
+  hasMapStyleSelector = true,
+  zoomControl = true,
+  dragging = true,
+  hasMapControl = false,
   overlayComponent,
   attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', // this is default we dont need to change this
   overlayPosition = 'topright',
@@ -244,6 +248,13 @@ export const Map = ({
     setMapTileUrl(styleUrl);
   }, []);
 
+  let displayMapStyleSelector = null;
+  if (hasMapStyleSelector) {
+    displayMapStyleSelector = 'block';
+  } else {
+    displayMapStyleSelector = 'hidden';
+  }
+
   return (
     <MapContainer
       center={center}
@@ -252,6 +263,13 @@ export const Map = ({
       maxZoom={maxZoom}
       style={{ height, width, zIndex: 0 }}
       className={className}
+      zoomControl={zoomControl}
+      dragging={dragging}
+      doubleClickZoom={dragging}
+      touchZoom={dragging}
+      scrollWheelZoom={dragging}
+      keyboard={dragging}
+      boxZoom={dragging}
       // maxBounds={[
       //   [14.2214, 120.6989],
       //   [14.3628, 120.8739],
@@ -262,10 +280,9 @@ export const Map = ({
       <DynamicTileLayer url={mapTileUrl} attribution={attribution} />
 
       {/* Map Controller for dynamic centering */}
-      <MapController data={data} center={center} zoom={zoom} />
+      {hasMapControl && <MapController data={data} center={center} zoom={zoom} />}
 
-      {/* Fixed MapStyleSelector - always included in map */}
-      <CustomControl position="topright" className="map-style-selector-control">
+      <CustomControl position="topright" className={`map-style-selector-control ${displayMapStyleSelector}`}>
         <MapStyleSelector onStyleChange={handleMapStyleChange} />
       </CustomControl>
 

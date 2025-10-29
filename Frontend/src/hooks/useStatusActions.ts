@@ -31,34 +31,6 @@ interface TransformedUser {
  */
 export const useStatusActions = () => {
   /**
-   * View Details: Show complete latest status information for a parentId
-   */
-  const handleViewDetails = async (user: TransformedUser) => {
-    try {
-      // Fetch the specific latest status for this parentId
-      const statusQuery = query(
-        collectionGroup(db, 'statuses'),
-        where('parentId', '==', user.parentId),
-        orderBy('createdAt', 'desc'),
-        limit(1)
-      );
-
-      const snapshot = await getDocs(statusQuery);
-      if (!snapshot.empty) {
-        const latestStatus = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
-
-        console.log('📋 Latest status details:', latestStatus);
-        // TODO: Open details modal/page with full status information
-        // openStatusDetailsModal(latestStatus);
-
-        return latestStatus;
-      }
-    } catch (error) {
-      console.error('❌ Error fetching status details:', error);
-    }
-  };
-
-  /**
    * View History: Show all versions of a parentId status timeline
    */
   const handleViewHistory = async (user: TransformedUser) => {
@@ -152,7 +124,6 @@ export const useStatusActions = () => {
   };
 
   return {
-    handleViewDetails,
     handleViewHistory,
     handleViewUserProfile,
   };

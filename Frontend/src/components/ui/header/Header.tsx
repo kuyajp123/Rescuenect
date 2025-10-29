@@ -1,13 +1,22 @@
 import { ThemeSwitcher } from '@/hooks/ThemeSwitcher';
-import { Bell, PlusIcon, Settings } from 'lucide-react';
 import { Avatar } from '@heroui/avatar';
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownSection, DropdownItem, User } from '@heroui/react';
-import { UrlLocation } from '@/helper/commonHelpers';
-import { useNavigate } from 'react-router-dom';
+import {
+  BreadcrumbItem,
+  Breadcrumbs,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownSection,
+  DropdownTrigger,
+  User,
+} from '@heroui/react';
 import { getAuth, signOut } from 'firebase/auth';
+import { Bell, PlusIcon, Settings } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSignOut = async () => {
     const auth = getAuth();
@@ -19,9 +28,80 @@ const Header = () => {
     }
   };
 
+  // Generate breadcrumb items based on current route
+  const generateBreadcrumbs = () => {
+    const pathSegments = location.pathname.split('/').filter(segment => segment !== '');
+    const breadcrumbs = [];
+
+    // Always start with Dashboard (Home)
+    breadcrumbs.push({
+      label: 'Dashboard',
+      path: '/',
+      isCurrent: location.pathname === '/',
+    });
+
+    // Build breadcrumbs based on path segments
+    let currentPath = '';
+    pathSegments.forEach((segment, index) => {
+      currentPath += `/${segment}`;
+      const isLast = index === pathSegments.length - 1;
+
+      let label = '';
+      switch (currentPath) {
+        case '/status':
+          label = 'Status';
+          break;
+        case '/status/history':
+          label = 'History';
+          break;
+        case '/status/history/versions':
+          label = 'Versions';
+          break;
+        case '/weather':
+          label = 'Weather';
+          break;
+        case '/earthquake':
+          label = 'Earthquake';
+          break;
+        case '/profile':
+          label = 'Profile';
+          break;
+        default:
+          label = segment.charAt(0).toUpperCase() + segment.slice(1);
+      }
+
+      breadcrumbs.push({
+        label,
+        path: currentPath,
+        isCurrent: isLast,
+      });
+    });
+
+    return breadcrumbs;
+  };
+
+  const breadcrumbs = generateBreadcrumbs();
+
   return (
     <div className="flex flex-row justify-between w-full">
-      <div className="text-xl ml-8 font-bold flex items-end pb-4">{UrlLocation()}</div>
+      <div className="text-xl ml-8 font-bold flex items-end pb-4">
+        <Breadcrumbs>
+          {breadcrumbs.map((crumb, index) => (
+            <BreadcrumbItem
+              key={`${crumb.path}-${index}`}
+              className={
+                crumb.isCurrent
+                  ? 'text-foreground font-semibold'
+                  : 'text-default-500 hover:text-foreground cursor-pointer'
+              }
+              aria-current={crumb.isCurrent ? 'page' : undefined}
+              onClick={() => !crumb.isCurrent && navigate(crumb.path)}
+            >
+              {crumb.label}
+            </BreadcrumbItem>
+          ))}
+        </Breadcrumbs>
+      </div>
 
       <div className="flex flex-row space-x-5 items-center p-4">
         <ThemeSwitcher />

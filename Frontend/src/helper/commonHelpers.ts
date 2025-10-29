@@ -13,14 +13,12 @@ export const UrlLocation = () => {
       return 'Weather';
     } else if (location.pathname === '/earthquake') {
       return 'Earthquake';
-    } else if (location.pathname === '/add_notification') {
-      return 'Add Notification';
-    } else if (location.pathname === '/add_event') {
-      return 'Add Event';
-    } else if (location.pathname === '/donation') {
-      return 'Donation';
-    } else if (location.pathname === '/volunteer') {
-      return 'Volunteer';
+    } else if (location.pathname === '/status/history') {
+      return 'History';
+    } else if (location.pathname === '/status/history/versions') {
+      return 'Versions';
+    } else if (location.pathname === '/profile') {
+      return 'Profile';
     } else {
       return '';
     }
@@ -132,7 +130,7 @@ export const formatTimeRemaining = (dateValue: any): string => {
     }
 
     // If 24+ hours, show in days
-    const daysRemaining = Math.floor(hoursRemaining / 24);
+    // const daysRemaining = Math.floor(hoursRemaining / 24);
     return 'Expired';
   } catch (error) {
     return 'Invalid date';
