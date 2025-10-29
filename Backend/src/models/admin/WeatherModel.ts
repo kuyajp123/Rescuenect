@@ -1,6 +1,6 @@
 import { db } from '@/db/firestoreConfig';
 import { convertToManilaTime } from '@/helpers/DateAndTime';
-import { WeatherData, forecastData } from '@/shared/types/types';
+import { WeatherData, forecastData } from '@/types/types';
 
 export class WeatherModel {
   public static insertHourlyData = async (groupId: string, data: WeatherData): Promise<void> => {

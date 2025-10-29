@@ -31,7 +31,7 @@ export const GoogleButton = () => {
 
       // Backend verification
       await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/auth/signin`,
+        `${import.meta.env.VITE_BACKEND_URL}/admin/auth/signin`,
         { email: tempUser.email, uid: tempUser.uid },
         { headers: { Authorization: `Bearer ${idToken}` }, withCredentials: true }
       );

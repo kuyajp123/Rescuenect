@@ -1,4 +1,4 @@
-import { SignInModel } from '@/models/SignInModel';
+import { SignInModel } from '@/models/admin/SignInModel';
 import { Request, Response } from 'express';
 
 export class LoginController {

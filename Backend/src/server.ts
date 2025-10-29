@@ -1,5 +1,5 @@
 import db from '@/db/firestoreConfig';
-import router from '@/routes';
+import mainRouter from '@/routes';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express, { Application, NextFunction, Request, Response } from 'express';
@@ -7,7 +7,7 @@ dotenv.config();
 const app: Application = express();
 
 db;
-const PORT = process.env.PORT;
+const PORT = parseInt(process.env.PORT!);
 
 // weather data service
 import './jobs/weatherSched';
@@ -24,7 +24,7 @@ app.use(
       }
     },
     // origin: process.env.FRONTEND_URL!,
-    // origin: "*",
+    // origin: '*',
     credentials: true,
   })
 );
@@ -32,13 +32,13 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/', router);
+app.use('/', mainRouter);
 
 app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
   console.error('Error occurred:', err);
   res.status(500).json({ error: 'Internal Server Error' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`server running at http://localhost:${PORT}`);
 });

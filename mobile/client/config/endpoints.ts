@@ -7,18 +7,18 @@ if (!BASE_URL) {
 
 export const API_ROUTES = {
   AUTH: {
-    SIGNIN: `${BASE_URL}/auth/signin`,
+    SIGNIN: `${BASE_URL}/mobile/auth/signin`,
   },
   STATUS: {
-    SAVE_STATUS: `${BASE_URL}/status/createStatus`,
-    GET_STATUS: (statusId: string) => `${BASE_URL}/status/getStatus/${statusId}`,
-    DELETE_STATUS: `${BASE_URL}/status/deleteStatus`,
+    SAVE_STATUS: `${BASE_URL}/mobile/status/createStatus`,
+    GET_STATUS: (statusId: string) => `${BASE_URL}/mobile/status/getStatus/${statusId}`,
+    DELETE_STATUS: `${BASE_URL}/mobile/status/deleteStatus`,
   },
   DATA: {
-    SAVE_USER_DATA: `${BASE_URL}/data/saveUserInfo`,
-    SAVE_BARANGAY_DATA: `${BASE_URL}/data/saveBarangay`,
+    SAVE_USER_DATA: `${BASE_URL}/mobile/data/saveUserInfo`,
+    SAVE_BARANGAY_DATA: `${BASE_URL}/mobile/data/saveBarangay`,
   },
   GEOCODING: {
-    GET_ADDRESS: `${BASE_URL}/api/geoCoding`,
+    GET_ADDRESS: `${BASE_URL}/mobile/api/geoCoding`,
   },
 };

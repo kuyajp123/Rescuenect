@@ -1,15 +1,15 @@
-import axios from 'axios';
-import {
-  getHourlyTimestamp,
-  updateHourlyTimestamp,
-  getRealtimeTimestamp,
-  updateRealtimeTimestamp,
-  getDailyTimestamp,
-  updateDailyTimestamp,
-} from '@/shared/utils/localTimestamp';
-import { WeatherModel } from '@/models/WeatherModel';
 import { getWeatherAPIEndpoints } from '@/config/WeatherAPIEndpoints';
-import { WeatherLocationKey } from '@/shared/types/types';
+import { WeatherModel } from '@/models/admin/WeatherModel';
+import {
+  getDailyTimestamp,
+  getHourlyTimestamp,
+  getRealtimeTimestamp,
+  updateDailyTimestamp,
+  updateHourlyTimestamp,
+  updateRealtimeTimestamp,
+} from '@/shared/utils/localTimestamp';
+import { WeatherLocationKey } from '@/types/types';
+import axios from 'axios';
 
 const weatherGroups: WeatherLocationKey[] = [
   'coastal_west',

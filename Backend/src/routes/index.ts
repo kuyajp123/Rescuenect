@@ -1,12 +1,10 @@
 import express from 'express';
-import authRoutes from './authRoutes';
+import adminRouter from './admin';
+import mobileRouter from './mobile';
 
-const router = express.Router();
+const mainRouter = express.Router();
 
-// router.post('/auth/signin', AuthMiddleware.verifyToken, async (req: Request, res: Response, next: NextFunction) => {
-//     await LoginController.handleLogin(req, res);
-// });
+mainRouter.use('/admin', adminRouter);
+mainRouter.use('/mobile', mobileRouter);
 
-router.use('/auth', authRoutes);
-
-export default router;
+export default mainRouter;
