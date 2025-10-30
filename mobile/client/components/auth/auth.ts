@@ -1,55 +1,19 @@
-import { create } from 'zustand';
-import { storage, storageHelpers } from '@/components/helper/storage';
-import axios from 'axios';
+import { storageHelpers } from '@/components/helper/storage';
+import { useUserData } from '@/components/store/useBackendResponse';
+import { useCoords } from '@/components/store/useCoords';
+import { useStatusFormStore } from '@/components/store/useStatusForm';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { API_ROUTES } from '@/config/endpoints';
 import { auth } from '@/lib/firebaseConfig';
+import { navigateToSignIn } from '@/routes/route';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import axios from 'axios';
 import { signInWithCustomToken } from 'firebase/auth';
 import { Alert } from 'react-native';
-import { navigateToSignIn } from '@/routes/route';
-import { API_ROUTES } from '@/config/endpoints';
-import { useStatusFormStore } from '@/components/store/useStatusForm';
-import { useCoords } from '@/components/store/useCoords';
-import { STORAGE_KEYS } from '@/config/asyncStorage';
-
-type AuthUser = {
-  isNewUser: boolean | null;
-  userResponse: {
-    // ✅ Changed from 'user' to 'userResponse'
-    firstName: string;
-    lastName: string;
-    barangay: string;
-    phoneNumber: string;
-  };
-};
-
-type BackendResponse = {
-  isNewUser: boolean | null;
-  userResponse: {
-    firstName: string;
-    lastName: string;
-    barangay: string;
-    phoneNumber: string;
-  };
-  setBackendResponse: (response: AuthUser) => void;
-  resetResponse: () => void;
-};
-
-export const useBackendResponse = create<BackendResponse>(set => ({
-  isNewUser: null,
-  userResponse: {
-    firstName: '',
-    lastName: '',
-    barangay: '',
-    phoneNumber: '',
-  },
-  setBackendResponse: response => set({ ...response }),
-  resetResponse: () =>
-    set({ isNewUser: null, userResponse: { firstName: '', lastName: '', barangay: '', phoneNumber: '' } }),
-}));
 
 export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void) => {
   try {
-    const { setBackendResponse } = useBackendResponse.getState();
+    const { setBackendResponse } = useUserData.getState();
     setLoading?.(true);
 
     // Check Google Play Services
@@ -124,10 +88,12 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
 export const handleLogout = async () => {
   const resetFormData = useStatusFormStore.getState().resetFormData;
   const resetCoords = useCoords.getState().resetState;
+  const { resetResponse } = useUserData.getState();
 
   try {
     resetFormData();
     resetCoords?.();
+    resetResponse();
     // Clear user data from storage
     await storageHelpers.removeData(STORAGE_KEYS.USER);
     // Set sign-out flag to indicate intentional sign-out

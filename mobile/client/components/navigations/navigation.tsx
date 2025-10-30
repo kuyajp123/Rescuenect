@@ -1,15 +1,16 @@
-import { useBackendResponse, handleLogout } from '@/components/auth/auth';
-import { storage, storageHelpers } from '@/components/helper/storage';
+import { handleLogout } from '@/components/auth/auth';
+import { storageHelpers } from '@/components/helper/storage';
+import { useUserData } from '@/components/store/useBackendResponse';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { navigateToBarangayForm, navigateToNameAndContactForm, navigateToSignIn, navigateToTabs } from '@/routes/route';
 
 export const handleAuthNavigation = async (user: any) => {
   try {
-    const { isNewUser, userResponse } = useBackendResponse.getState();
+    const { isNewUser, userResponse, resetResponse } = useUserData.getState();
 
     if (user) {
       if (isNewUser === true) {
-        useBackendResponse.getState().resetResponse();
+        resetResponse();
         navigateToBarangayForm();
         return;
       } else if (isNewUser === false) {
@@ -33,8 +34,6 @@ export const handleAuthNavigation = async (user: any) => {
           barangay: userResponse.barangay || '',
         });
 
-        // User has complete data from backend - go to main app
-        useBackendResponse.getState().resetResponse();
         // console.log('✅ User has complete data from backend - going to tabs');
         navigateToTabs();
         return;
@@ -59,6 +58,8 @@ export const handleAuthNavigation = async (user: any) => {
 
 // Handle navigation for guests (no authenticated user)
 export const handleGuestNavigation = async () => {
+  const { setBackendResponse } = useUserData.getState();
+
   try {
     const savedUser = await storageHelpers.getData(STORAGE_KEYS.USER);
     const hasSignedOut = await storageHelpers.getField(STORAGE_KEYS.APP_STATE, 'hasSignedOut');
@@ -80,6 +81,15 @@ export const handleGuestNavigation = async () => {
       navigateToNameAndContactForm();
       return;
     }
+
+    setBackendResponse({
+      userResponse: {
+        firstName: savedUser.firstName || '',
+        lastName: savedUser.lastName || '',
+        phoneNumber: savedUser.phoneNumber || '',
+        barangay: savedUser.barangay || '',
+      },
+    });
 
     navigateToTabs();
   } catch (error) {

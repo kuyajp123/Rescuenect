@@ -1,5 +1,6 @@
 import Logo from '@/assets/images/logo/logoVerti.svg';
 import { PrimaryButton } from '@/components/components/button/Button';
+import { storageHelpers } from '@/components/helper/storage';
 import { useAuth } from '@/components/store/useAuth';
 import Body from '@/components/ui/layout/Body';
 import {
@@ -12,18 +13,17 @@ import {
   ModalHeader,
 } from '@/components/ui/modal';
 import { Text } from '@/components/ui/text';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useIdToken } from '@/hooks/useIdToken';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { ChevronDown, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { create } from 'zustand';
-import { useIdToken } from '@/hooks/useIdToken';
-import { API_ROUTES } from '@/config/endpoints';
-import { storage, storageHelpers } from '@/components/helper/storage';
-import { STORAGE_KEYS } from '@/config/asyncStorage';
 
 type barangayStore = {
   selectedBarangay: string;
@@ -130,15 +130,6 @@ const barangayForm = () => {
   // ✅ Fix: Extract the backend save logic to a separate function
   const saveBarangayToBackend = async (token: string) => {
     try {
-      // console.log('📡 Sending barangay to backend...', {
-      //   url: `${process.env.EXPO_PUBLIC_BACKEND_URL}/data/saveBarangay`,
-      //   uid: authUser?.uid,
-      //   barangay: selectedBarangay,
-      //   hasToken: !!token,
-      // });
-
-      // console.log('idToken: ', token ? 'Token present' : 'Token missing');
-
       const response = await axios.post(
         API_ROUTES.DATA.SAVE_BARANGAY_DATA,
         {

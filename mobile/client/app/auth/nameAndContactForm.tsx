@@ -3,22 +3,22 @@ import { PrimaryButton } from '@/components/components/button/Button';
 import {
   convertToE164Format,
   formatContactNumber,
-  isValidContactNumber,
   formatName,
+  isValidContactNumber,
 } from '@/components/helper/commonHelpers';
-import { storage, storageHelpers } from '@/components/helper/storage';
-import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { storageHelpers } from '@/components/helper/storage';
 import { useAuth } from '@/components/store/useAuth';
 import { Input, InputField } from '@/components/ui/input';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { API_ROUTES } from '@/config/endpoints';
 import { useIdToken } from '@/hooks/useIdToken';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { create } from 'zustand';
-import { API_ROUTES } from '@/config/endpoints';
 
 type FormState = {
   firstName: string;
@@ -169,8 +169,6 @@ const nameAndContactForm = () => {
 
         // Debug: Check what we saved
         const savedUserData = await storageHelpers.getData(STORAGE_KEYS.USER);
-        console.log('✅ User data saved to local storage:', savedUserData);
-
         // Reset the Zustand store after successful save
         reset();
 

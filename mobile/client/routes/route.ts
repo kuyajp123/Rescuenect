@@ -19,8 +19,6 @@ const ROUTES = {
 // Type-safe navigation helper functions with error handling
 export const navigateToSignIn = () => {
   try {
-    console.log('🧭 Navigating to sign-in page');
-    console.log('🧭 Route:', ROUTES.AUTH.SIGN_IN);
     router.replace(ROUTES.AUTH.SIGN_IN);
   } catch (error) {
     console.error('❌ Error navigating to sign-in:', error);

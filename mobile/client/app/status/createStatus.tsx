@@ -46,7 +46,7 @@ export const createStatus = () => {
   const setImagePickerImage = useImagePickerStore(state => state.setImage);
   const isOnline = useNetwork(state => state.isOnline);
   const { isDark } = useTheme();
-  const { authUser } = useAuth();
+  const authUser = useAuth(state => state.authUser);
 
   // Coords states
   const coords = useCoords(state => state.coords);

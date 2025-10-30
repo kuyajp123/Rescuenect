@@ -15,7 +15,6 @@ const Index = () => {
       try {
         // Initialize storage with defaults FIRST
         await inititallizeAppStorage();
-        console.log('✅ Storage initialization completed');
 
         // Initialize auth LAST (this triggers navigation)
         await initializeAuth();

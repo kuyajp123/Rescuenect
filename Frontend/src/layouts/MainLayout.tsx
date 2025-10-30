@@ -80,6 +80,7 @@ const MainLayout = () => {
                     dragging={false}
                     hasMapControl={true}
                     zoom={selectedUser ? 15 : 13}
+                    attribution=''
                     markerType="status"
                   />
                 </div>

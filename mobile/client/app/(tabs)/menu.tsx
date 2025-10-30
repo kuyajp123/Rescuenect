@@ -1,8 +1,11 @@
+import { handleLogout } from '@/components/auth/auth';
 import { Button, HoveredButton } from '@/components/components/button/Button';
 import GoogleButton from '@/components/components/button/GoogleButton';
+import NavigationButton from '@/components/components/button/NavigationButton';
 import { Card } from '@/components/components/card/Card';
-import { handleLogout } from '@/components/auth/auth';
-import ThemeSwitcher from '@/hooks/ThemeSwitcher';
+import { useAuth } from '@/components/store/useAuth';
+import { useUserData } from '@/components/store/useBackendResponse';
+import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { ColorCombinations, Colors } from '@/constants/Colors';
@@ -18,54 +21,56 @@ import {
   Settings,
   Sun,
 } from 'lucide-react-native';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useState } from 'react';
-import NavigationButton from '@/components/components/button/NavigationButton';
 
 export const MenuScreen = () => {
-  const { isDark, setColorMode, colorMode } = useTheme();
-  const [selected, setSelected] = useState(colorMode);
+  const { isDark } = useTheme();
   const router = useRouter();
+  const authUser = useAuth(state => state.authUser);
+  const userResponse = useUserData(state => state.userResponse);
 
-  const toggleTheme = () => {
-    setColorMode(isDark ? 'light' : 'dark');
-  };
+  React.useEffect(() => {}, []);
 
-  if (colorMode === 'system') {
-  }
   return (
     <Body style={styles.bodyContainer}>
       <View>
-        {/* <HoveredButton 
-        onPress={() => alert('profile click')} 
-        style={styles.HoveredButton}>
-          <View style={styles.mainContainer}>
+        {authUser ? (
+          <HoveredButton onPress={() => alert('profile click')} style={styles.HoveredButton}>
+            <View style={styles.mainContainer}>
+              <View>
+                <Avatar size="lg">
+                  <AvatarFallbackText></AvatarFallbackText>
+                  {authUser?.photoURL && (
+                    <AvatarImage
+                      source={{
+                        uri: authUser.photoURL,
+                      }}
+                    />
+                  )}
+                </Avatar>
+              </View>
+
+              <View style={styles.nameContainer}>
+                <Text size="md" style={styles.nameSectionText}>
+                  {userResponse.firstName} {userResponse.lastName}
+                </Text>
+                <Text emphasis="light" style={styles.nameSectionText}>
+                  {authUser?.email}
+                </Text>
+              </View>
+            </View>
+
             <View>
-              <Avatar size="lg">
-                <AvatarFallbackText>John Doe</AvatarFallbackText>
-                <AvatarImage
-                  source={{
-                    uri: "https://randomuser.me/api/portraits/men/11.jpg",
-                  }}
-                />
-              </Avatar>
+              <ChevronRight size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
             </View>
-
-            <View style={styles.nameContainer}>
-              <Text size='md' style={styles.nameSectionText}>John Doe</Text>
-              <Text emphasis='light' style={styles.nameSectionText}>johndoe10@example.com</Text>
-            </View>
-          </View>
-
-          <View>
-            <ChevronRight size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-          </View>
-        </HoveredButton> */}
-
-        <Card style={styles.card}>
-          <Text className="text-center mb-4">Continue with Google to save your progress</Text>
-          <GoogleButton />
-        </Card>
+          </HoveredButton>
+        ) : (
+          <Card style={styles.card}>
+            <Text className="text-center mb-4">Continue with Google to save your progress</Text>
+            <GoogleButton />
+          </Card>
+        )}
 
         <View style={styles.sectionTitle}>
           <Text emphasis="light">System</Text>

@@ -1,6 +1,6 @@
-import { SignInModel } from '@/models/mobile/SignInModel';
 import { admin } from '@/db/firestoreConfig';
-import { Request, Response, NextFunction } from 'express';
+import { SignInModel } from '@/models/mobile/SignInModel';
+import { NextFunction, Request, Response } from 'express';
 import { OAuth2Client } from 'google-auth-library';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -67,7 +67,6 @@ export class SignInController {
         phoneNumber: user?.phoneNumber || null,
       });
 
-      console.log('Backend Firebase UID:', firebaseUser.uid);
       return;
     } catch (error: any) {
       console.error('Sign-in error:', error);
