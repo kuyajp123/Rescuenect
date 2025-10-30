@@ -62,3 +62,18 @@ export interface StatusData {
   // System-managed cleanup (30 days retention for history)
   retentionUntil: FirebaseFirestore.Timestamp; // when history is permanently deleted
 }
+
+export interface VersionHistoryItem {
+  versionId: string;
+  parentId: string;
+  uid: string;
+  createdAt?: string;
+  profileImage: string;
+  firstName: string;
+  lastName: string;
+  note?: string;
+  location: string;
+  lat: number;
+  lng: number;
+  condition: string;
+}

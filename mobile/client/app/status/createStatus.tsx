@@ -640,7 +640,7 @@ export const createStatus = () => {
         return;
       }
 
-      console.log('Form submitted successfully:', JSON.stringify(response.data, null, 2));
+      // console.log('Form submitted successfully:', JSON.stringify(response.data, null, 2));
       // Save to Zustand store with parentId from response
       setFormData({
         ...statusForm,
@@ -989,7 +989,7 @@ export const createStatus = () => {
       const result = await getAddress(lat, lng, idToken);
 
       if (result.success && result.address) {
-        console.log('Address fetched successfully:', result.address);
+        // console.log('Address fetched successfully:', result.address);
 
         // Create a cleaner address by filtering out unnecessary components
         const cleanAddress = (fullAddress: string) => {

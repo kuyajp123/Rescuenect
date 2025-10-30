@@ -23,8 +23,6 @@ app.use(
         callback(new Error('Not allowed by CORS'));
       }
     },
-    // origin: process.env.FRONTEND_URL!,
-    // origin: '*',
     credentials: true,
   })
 );

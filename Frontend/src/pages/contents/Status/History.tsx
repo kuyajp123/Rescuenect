@@ -151,6 +151,7 @@ type StatusUser = {
 export const StatusHistory = () => {
   const statusData = useStatusStore(state => state.statusData);
   const setParentId = useVersionHistoryStore(state => state.setParentId);
+  const setUid = useVersionHistoryStore(state => state.setUid);
   const navigate = useNavigate();
   const {
     statuses: firebaseStatuses,
@@ -244,13 +245,10 @@ export const StatusHistory = () => {
   const handleAction = async (key: any, user: StatusUser) => {
     switch (key) {
       case 'history':
-        // View all versions of this parentId status
-        console.log('View History for:', user.firstName, user.lastName, {
-          parentId: user.parentId,
-          uid: user.id,
-        });
+        // View all versions of this parentId status;
 
         setParentId(user.parentId);
+        setUid(user.id);
         navigate('/status/history/versions');
         break;
       case 'user':
