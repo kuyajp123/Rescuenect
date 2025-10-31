@@ -44,7 +44,7 @@ export class WeatherService {
             await WeatherModel.insertHourlyData(locationKey, forecastResponse.data);
             // console.log(`✅ Hourly Data saved for ${locationKey}`);
           } else {
-            // console.warn(`⚠️ Failed to fetch for ${locationKey}`);
+            console.warn(`⚠️ Failed to fetch for ${locationKey}`);
           }
 
           await delay(1500); // Add delay to avoid 429 error
@@ -72,7 +72,7 @@ export class WeatherService {
             await WeatherModel.insertRealtimeData(locationKey, realtimeResponse.data);
             // console.log(`✅ Realtime data saved for ${locationKey}`);
           } else {
-            // console.warn(`⚠️ Failed to fetch realtime data for ${locationKey}`);
+            console.warn(`⚠️ Failed to fetch realtime data for ${locationKey}`);
           }
 
           await delay(1500); // Add delay to avoid 429 error
@@ -99,7 +99,7 @@ export class WeatherService {
             await WeatherModel.insertDailyData(locationKey, dailyResponse.data);
             // console.log(`✅ Daily data saved for ${locationKey}`);
           } else {
-            // console.warn(`⚠️ Failed to fetch daily data for ${locationKey}`);
+            console.warn(`⚠️ Failed to fetch daily data for ${locationKey}`);
           }
 
           await delay(1500); // Add delay to avoid 429 error

@@ -83,32 +83,33 @@ export class WeatherModel {
     }
   };
 
-  static selectRealtimeData = async (): Promise<FirebaseFirestore.DocumentData> => {
-    const docRef = db.collection('weather').doc('central_naic').collection('realtime').doc('data');
-    const doc = await docRef.get();
-    if (!doc.exists) {
-      throw new Error('No realtime weather data found');
-    }
-    return { id: doc.id, ...doc.data() };
-  };
+  // did not used this methods yet
+  // static selectRealtimeData = async (): Promise<FirebaseFirestore.DocumentData> => {
+  //   const docRef = db.collection('weather').doc('central_naic').collection('realtime').doc('data');
+  //   const doc = await docRef.get();
+  //   if (!doc.exists) {
+  //     throw new Error('No realtime weather data found');
+  //   }
+  //   return { id: doc.id, ...doc.data() };
+  // };
 
-  static selectDailyData = async (): Promise<FirebaseFirestore.DocumentData> => {
-    const collectionRef = db.collection('weather').doc('central_naic').collection('daily');
-    const snapshot = await collectionRef.get();
-    if (snapshot.empty) {
-      throw new Error('No daily weather data found');
-    }
-    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    return data;
-  };
+  // static selectDailyData = async (): Promise<FirebaseFirestore.DocumentData> => {
+  //   const collectionRef = db.collection('weather').doc('central_naic').collection('daily');
+  //   const snapshot = await collectionRef.get();
+  //   if (snapshot.empty) {
+  //     throw new Error('No daily weather data found');
+  //   }
+  //   const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  //   return data;
+  // };
 
-  static selectHourlyData = async (): Promise<FirebaseFirestore.DocumentData> => {
-    const collectionRef = db.collection('weather').doc('central_naic').collection('hourly');
-    const snapshot = await collectionRef.limit(24).get();
-    if (snapshot.empty) {
-      throw new Error('No hourly weather data found');
-    }
-    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    return data;
-  };
+  // static selectHourlyData = async (): Promise<FirebaseFirestore.DocumentData> => {
+  //   const collectionRef = db.collection('weather').doc('central_naic').collection('hourly');
+  //   const snapshot = await collectionRef.limit(24).get();
+  //   if (snapshot.empty) {
+  //     throw new Error('No hourly weather data found');
+  //   }
+  //   const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  //   return data;
+  // };
 }
