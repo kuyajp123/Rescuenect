@@ -624,38 +624,354 @@ testFirestoreConnection();
 
 ### Phase 3: Deploy Edge Functions
 
-#### 3.1 Deploy Functions
+#### 3.1 Deployment Patterns & Best Practices
+
+##### **Individual Function Deployment**
 
 ```bash
-# Deploy all weather functions
+# Deploy functions individually (Recommended for development)
 supabase functions deploy weather-hourly
 supabase functions deploy weather-daily
 supabase functions deploy weather-realtime
 
-# Verify deployments
+# Check deployment status
 supabase functions list
 ```
 
-#### 3.2 Test Functions
+##### **Environment-Specific Deployment**
 
 ```bash
-# Test hourly function
-curl -X POST \
-  'https://your-project.supabase.co/functions/v1/weather-hourly' \
-  -H 'Authorization: Bearer YOUR_ANON_KEY' \
-  -H 'Content-Type: application/json'
+# Deploy to staging environment
+supabase functions deploy weather-hourly --project-ref YOUR_STAGING_REF
 
-# Test daily function
-curl -X POST \
-  'https://your-project.supabase.co/functions/v1/weather-daily' \
-  -H 'Authorization: Bearer YOUR_ANON_KEY' \
-  -H 'Content-Type: application/json'
+# Deploy to production environment
+supabase functions deploy weather-hourly --project-ref YOUR_PROD_REF
+```
 
-# Test realtime function
-curl -X POST \
-  'https://your-project.supabase.co/functions/v1/weather-realtime' \
+##### **Batch Deployment Script**
+
+```bash
+#!/bin/bash
+# deploy-weather-functions.sh
+
+echo "🚀 Deploying weather functions..."
+
+functions=("weather-hourly" "weather-daily" "weather-realtime")
+
+for func in "${functions[@]}"; do
+  echo "📦 Deploying $func..."
+  supabase functions deploy $func
+
+  if [ $? -eq 0 ]; then
+    echo "✅ $func deployed successfully"
+  else
+    echo "❌ Failed to deploy $func"
+    exit 1
+  fi
+
+  sleep 2  # Brief delay between deployments
+done
+
+echo "🎉 All weather functions deployed successfully!"
+```
+
+#### 3.2 Deployment Concerns & Solutions
+
+##### **🔐 Environment Variables Management**
+
+**Critical Environment Variables:**
+
+```bash
+# Required for all functions
+WEATHER_API_KEY=your-tomorrow-io-api-key
+FIREBASE_SERVICE_ACCOUNT_KEY='{"type": "service_account",...}'
+
+# Optional for monitoring
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+**Security Concerns:**
+
+- ❌ **Never commit** environment variables to version control
+- ✅ **Use Supabase Dashboard** → Settings → Environment Variables
+- ✅ **Validate keys** before deployment using test functions
+
+**Environment Variables Validation Script:**
+
+```typescript
+// supabase/functions/validate-env/index.ts
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+
+serve(async req => {
+  const requiredVars = ['WEATHER_API_KEY', 'FIREBASE_SERVICE_ACCOUNT_KEY'];
+
+  const missing = [];
+  const valid = [];
+
+  for (const varName of requiredVars) {
+    const value = Deno.env.get(varName);
+    if (!value) {
+      missing.push(varName);
+    } else {
+      valid.push({
+        name: varName,
+        hasValue: true,
+        length: value.length,
+      });
+    }
+  }
+
+  // Test Firebase service account parsing
+  let firebaseValid = false;
+  try {
+    const serviceAccount = JSON.parse(Deno.env.get('FIREBASE_SERVICE_ACCOUNT_KEY') || '{}');
+    firebaseValid = serviceAccount.type === 'service_account';
+  } catch (error) {
+    // Invalid JSON
+  }
+
+  return new Response(
+    JSON.stringify({
+      success: missing.length === 0 && firebaseValid,
+      environment_check: {
+        valid_variables: valid,
+        missing_variables: missing,
+        firebase_service_account_valid: firebaseValid,
+      },
+      timestamp: new Date().toISOString(),
+    }),
+    {
+      headers: { 'Content-Type': 'application/json' },
+    }
+  );
+});
+```
+
+##### **📊 Function Size & Bundle Optimization**
+
+**Bundle Size Concerns:**
+
+```bash
+# Check function bundle size after deployment
+supabase functions list --output json | jq '.[] | {name, size}'
+```
+
+**Optimization Strategies:**
+
+- ✅ **Shared Dependencies**: Use `_shared` folder effectively
+- ✅ **Tree Shaking**: Only import what you need
+- ⚠️ **Firebase Admin SDK**: Large bundle (~2MB), but necessary
+- ✅ **ESM Imports**: Use specific imports from Firebase
+
+**Optimized Import Pattern:**
+
+```typescript
+// ❌ Large bundle - imports everything
+import * as admin from 'https://esm.sh/firebase-admin@11.8.0';
+
+// ✅ Smaller bundle - specific imports
+import { initializeApp, cert } from 'https://esm.sh/firebase-admin@11.8.0/app';
+import { getFirestore } from 'https://esm.sh/firebase-admin@11.8.0/firestore';
+```
+
+##### **🚨 Deployment Error Handling**
+
+**Common Deployment Issues:**
+
+1. **Environment Variable Issues**
+
+```bash
+# Error: Missing environment variables
+# Solution: Check Supabase dashboard environment variables
+supabase functions deploy weather-hourly --debug
+```
+
+2. **Import Resolution Errors**
+
+```bash
+# Error: Cannot resolve import
+# Solution: Check file paths and ESM imports
+```
+
+3. **Firebase Connection Issues**
+
+```bash
+# Error: Firebase connection failed
+# Solution: Validate service account JSON format
+```
+
+**Deployment Verification Script:**
+
+```bash
+#!/bin/bash
+# verify-deployment.sh
+
+echo "🔍 Verifying weather function deployments..."
+
+functions=("weather-hourly" "weather-daily" "weather-realtime")
+base_url="https://your-project.supabase.co/functions/v1"
+auth_header="Authorization: Bearer YOUR_ANON_KEY"
+
+for func in "${functions[@]}"; do
+  echo "Testing $func..."
+
+  response=$(curl -s -o /dev/null -w "%{http_code}" \
+    -X POST \
+    -H "Content-Type: application/json" \
+    -H "$auth_header" \
+    "$base_url/$func")
+
+  if [ $response -eq 200 ]; then
+    echo "✅ $func is working"
+  else
+    echo "❌ $func failed (HTTP $response)"
+  fi
+done
+```
+
+##### **🔄 Hot Reload & Development Workflow**
+
+**Local Development:**
+
+```bash
+# Start local development server
+supabase functions serve weather-hourly --env-file supabase/.env
+
+# Test locally
+curl -X POST 'http://localhost:54321/functions/v1/weather-hourly' \
+  -H 'Authorization: Bearer YOUR_ANON_KEY'
+```
+
+**Development-to-Production Pipeline:**
+
+```bash
+# 1. Develop locally
+supabase functions serve weather-hourly
+
+# 2. Test locally
+npm run test:functions
+
+# 3. Deploy to staging
+supabase functions deploy weather-hourly --project-ref STAGING_REF
+
+# 4. Test staging
+npm run test:staging
+
+# 5. Deploy to production
+supabase functions deploy weather-hourly --project-ref PROD_REF
+```
+
+##### **📈 Performance & Monitoring Concerns**
+
+**Cold Start Optimization:**
+
+```typescript
+// Minimize cold start time
+let dbInstance: any = null;
+
+const getDatabase = () => {
+  if (!dbInstance) {
+    const serviceAccountKey = JSON.parse(Deno.env.get('FIREBASE_SERVICE_ACCOUNT_KEY')!);
+    const app = initializeApp({ credential: cert(serviceAccountKey) });
+    dbInstance = getFirestore(app);
+  }
+  return dbInstance;
+};
+```
+
+**Memory Usage Optimization:**
+
+```typescript
+// Process locations in batches to manage memory
+const BATCH_SIZE = 2; // Process 2 locations at a time
+const MEMORY_CLEANUP_INTERVAL = 3; // Cleanup every 3 locations
+
+for (let i = 0; i < WEATHER_LOCATIONS.length; i += BATCH_SIZE) {
+  const batch = WEATHER_LOCATIONS.slice(i, i + BATCH_SIZE);
+
+  await Promise.all(batch.map(location => processWeather(location)));
+
+  // Memory cleanup
+  if (i % MEMORY_CLEANUP_INTERVAL === 0) {
+    if (global.gc) global.gc(); // Force garbage collection if available
+  }
+
+  await delay(1500); // Rate limiting
+}
+```
+
+**Function Timeout Configuration:**
+
+```typescript
+// Add timeout handling for long-running operations
+const FUNCTION_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+
+const processWithTimeout = async (operation: Promise<any>) => {
+  return Promise.race([
+    operation,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Function timeout')), FUNCTION_TIMEOUT)),
+  ]);
+};
+```
+
+#### 3.3 Production Deployment Checklist
+
+**Pre-Deployment:**
+
+- [ ] Environment variables configured in Supabase dashboard
+- [ ] Firebase service account key tested and valid
+- [ ] Weather API key has sufficient quota
+- [ ] All `_shared` dependencies are properly structured
+- [ ] Local testing completed successfully
+
+**Deployment:**
+
+- [ ] Functions deployed without errors
+- [ ] Function list shows all three weather functions
+- [ ] Environment validation function passes
+- [ ] Bundle sizes are within reasonable limits
+
+**Post-Deployment:**
+
+- [ ] Manual function testing via curl/Postman
+- [ ] Firestore data validation (check if data is being written)
+- [ ] Function logs review for any errors
+- [ ] Performance monitoring setup
+
+**Rollback Plan:**
+
+- [ ] Previous function versions identified
+- [ ] Rollback commands prepared
+- [ ] Express server weather service ready to re-enable
+
+#### 3.4 Function Testing & Validation
+
+```bash
+# Comprehensive function testing
+echo "🧪 Testing all weather functions..."
+
+# Test environment validation first
+echo "Testing environment setup..."
+curl -X POST 'https://your-project.supabase.co/functions/v1/validate-env' \
+  -H 'Authorization: Bearer YOUR_ANON_KEY' | jq
+
+# Test weather functions
+echo "Testing weather-hourly..."
+curl -X POST 'https://your-project.supabase.co/functions/v1/weather-hourly' \
   -H 'Authorization: Bearer YOUR_ANON_KEY' \
-  -H 'Content-Type: application/json'
+  -H 'Content-Type: application/json' | jq
+
+echo "Testing weather-daily..."
+curl -X POST 'https://your-project.supabase.co/functions/v1/weather-daily' \
+  -H 'Authorization: Bearer YOUR_ANON_KEY' \
+  -H 'Content-Type: application/json' | jq
+
+echo "Testing weather-realtime..."
+curl -X POST 'https://your-project.supabase.co/functions/v1/weather-realtime' \
+  -H 'Authorization: Bearer YOUR_ANON_KEY' \
+  -H 'Content-Type: application/json' | jq
+
+echo "✅ Function testing complete!"
 ```
 
 ### Phase 4: Backend Integration - No Changes Required
