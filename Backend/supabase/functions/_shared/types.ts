@@ -1,14 +1,7 @@
 // supabase/functions/_shared/types.ts
 // Deno and Supabase Edge Function type declarations
 
-// Deno runtime types
-declare global {
-  const Deno: {
-    env: {
-      get(key: string): string | undefined;
-    };
-  };
-}
+// Deno runtime types (already available globally in Deno runtime)
 
 // Weather location interface
 export interface WeatherLocation {
@@ -17,21 +10,39 @@ export interface WeatherLocation {
   name: string;
 }
 
-// Weather API types
-export interface WeatherAPIResponse {
+export interface WeatherValues {
+  temperature?: number;
+  temperatureApparent?: number;
+  humidity?: number;
+  windSpeed?: number;
+  [key: string]: string | number | undefined;
+}
+
+// Weather API response structures
+export interface WeatherTimelineEntry {
+  time: string;
+  values: WeatherValues;
+}
+
+export interface ForecastWeatherData {
   timelines: {
-    hourly?: Array<{
-      time: string;
-      values: Record<string, any>;
-    }>;
-    daily?: Array<{
-      time: string;
-      values: Record<string, any>;
-    }>;
+    hourly: WeatherTimelineEntry[];
+    daily: WeatherTimelineEntry[];
   };
-  data?: {
+  location: {
+    lat: number;
+    lon: number;
+  };
+}
+
+export interface RealtimeWeatherData {
+  data: {
     time: string;
-    values: Record<string, any>;
+    values: WeatherValues;
+  };
+  location: {
+    lat: number;
+    lon: number;
   };
 }
 

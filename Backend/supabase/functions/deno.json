@@ -1,0 +1,14 @@
+{
+  "imports": {
+    "serve": "https://deno.land/std@0.168.0/http/server.ts",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2",
+    "@supabase/functions-js/edge-runtime.d.ts": "jsr:@supabase/functions-js@2/edge-runtime.d.ts",
+    "firebase-admin/app": "https://esm.sh/firebase-admin@11.8.0/app",
+    "firebase-admin/firestore": "https://esm.sh/firebase-admin@11.8.0/firestore"
+  },
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window"],
+    "strict": true
+  }
+}

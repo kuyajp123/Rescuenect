@@ -9,9 +9,6 @@ const app: Application = express();
 db;
 const PORT = parseInt(process.env.PORT!);
 
-// weather data service
-import './jobs/weatherSched';
-
 const allowedOrigins = [process.env.FRONTEND_URL, process.env.MOBILE_APP_URL];
 
 app.use(

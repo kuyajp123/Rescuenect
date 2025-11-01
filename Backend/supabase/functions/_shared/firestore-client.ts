@@ -1,36 +1,60 @@
-// @ts-ignore - Deno module resolution
-import { cert, initializeApp } from 'https://esm.sh/firebase-admin@11.8.0/app';
-// @ts-ignore - Deno module resolution
-import { getFirestore } from 'https://esm.sh/firebase-admin@11.8.0/firestore';
-import type { FirebaseServiceAccount } from './types.ts';
+import { cert, getApps, initializeApp, type ServiceAccount } from 'firebase-admin/app';
+import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 
-// Deno type declaration for Edge Functions
-declare const Deno: {
-  env: {
-    get(key: string): string | undefined;
-  };
-};
+// Singleton pattern for Firebase initialization
+let firestoreInstance: Firestore | null = null;
 
-// Initialize Firebase Admin SDK in Edge Function
 const initializeFirebase = () => {
-  const serviceAccountKeyString = Deno.env.get('FIREBASE_SERVICE_ACCOUNT_KEY');
-
-  if (!serviceAccountKeyString) {
-    throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set');
+  // Return existing instance if already initialized
+  if (firestoreInstance) {
+    return firestoreInstance;
   }
 
-  let serviceAccountKey: FirebaseServiceAccount;
   try {
-    serviceAccountKey = JSON.parse(serviceAccountKeyString) as FirebaseServiceAccount;
+    // Check if Firebase app already exists
+    const existingApps = getApps();
+    if (existingApps.length > 0) {
+      firestoreInstance = getFirestore(existingApps[0]);
+      return firestoreInstance;
+    }
+
+    const serviceAccountKeyString = Deno.env.get('FIREBASE_SERVICE_ACCOUNT_JSON');
+
+    if (!serviceAccountKeyString) {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON environment variable is not set');
+    }
+
+    let serviceAccount;
+
+    // Check if the JSON is Base64 encoded
+    if (serviceAccountKeyString.startsWith('ew') || !serviceAccountKeyString.startsWith('{')) {
+      try {
+        const decodedJson = atob(serviceAccountKeyString);
+        serviceAccount = JSON.parse(decodedJson);
+      } catch (decodeError) {
+        console.error('❌ Failed to decode Base64 service account JSON:', decodeError);
+        throw new Error('Failed to decode Base64 service account JSON');
+      }
+    } else {
+      // Clean up the JSON string - remove any potential escape characters
+      const cleanedJson = serviceAccountKeyString
+        .replace(/\\"/g, '"') // Replace escaped quotes
+        .replace(/\\\\/g, '\\') // Replace double backslashes
+        .trim(); // Remove whitespace
+
+      serviceAccount = JSON.parse(cleanedJson);
+    }
+
+    const app = initializeApp({
+      credential: cert(serviceAccount as ServiceAccount),
+    });
+
+    firestoreInstance = getFirestore(app);
+    return firestoreInstance;
   } catch (error) {
-    throw new Error('Invalid FIREBASE_SERVICE_ACCOUNT_KEY JSON format');
+    console.error('❌ Firebase initialization error:', error);
+    throw error;
   }
-
-  const app = initializeApp({
-    credential: cert(serviceAccountKey),
-  });
-
-  return getFirestore(app);
 };
 
 export const insertWeatherData = async (
@@ -38,7 +62,7 @@ export const insertWeatherData = async (
   document: string,
   subcollection: string,
   docId: string,
-  data: any
+  data: Record<string, unknown>
 ) => {
   try {
     const db = initializeFirebase();
@@ -57,7 +81,7 @@ export const insertWeatherData = async (
 
 // Environment validation helper
 export const validateEnvironment = () => {
-  const requiredEnvVars = ['WEATHER_API_KEY', 'FIREBASE_SERVICE_ACCOUNT_KEY'];
+  const requiredEnvVars = ['WEATHER_API_KEY', 'FIREBASE_SERVICE_ACCOUNT_JSON'];
   const missing: string[] = [];
 
   for (const envVar of requiredEnvVars) {
@@ -72,14 +96,23 @@ export const validateEnvironment = () => {
 
   // Validate Firebase service account JSON
   try {
-    const serviceAccountKeyString = Deno.env.get('FIREBASE_SERVICE_ACCOUNT_KEY')!;
-    const serviceAccountKey = JSON.parse(serviceAccountKeyString);
+    const serviceAccountKeyString = Deno.env.get('FIREBASE_SERVICE_ACCOUNT_JSON')!;
+    let serviceAccountKey;
+
+    // Handle Base64 encoded or plain JSON
+    if (serviceAccountKeyString.startsWith('ew') || !serviceAccountKeyString.startsWith('{')) {
+      const decodedJson = atob(serviceAccountKeyString);
+      serviceAccountKey = JSON.parse(decodedJson);
+    } else {
+      serviceAccountKey = JSON.parse(serviceAccountKeyString);
+    }
 
     if (serviceAccountKey.type !== 'service_account') {
       throw new Error('Invalid Firebase service account type');
     }
   } catch (error) {
-    throw new Error('Invalid FIREBASE_SERVICE_ACCOUNT_KEY format');
+    console.error('Error validating FIREBASE_SERVICE_ACCOUNT_JSON:', error);
+    throw new Error('Invalid FIREBASE_SERVICE_ACCOUNT_JSON format');
   }
 
   return true;

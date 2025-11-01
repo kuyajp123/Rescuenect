@@ -1,4 +1,3 @@
-import cron from 'node-cron';
 import { WeatherService } from '@/services/WeatherService';
 export const weatherService = new WeatherService();
 
@@ -14,11 +13,10 @@ async function safeFetch() {
   }
 }
 
-safeFetch(); // first call
+// safeFetch(); // first call
 
 // Run every minute
-cron.schedule('* * * * *', () => {
-  // console.log('⏰ Cron job running...');
-  safeFetch(); // safe call every minute
-});
-
+// cron.schedule('* * * * *', () => {
+//   // console.log('⏰ Cron job running...');
+//   safeFetch(); // safe call every minute
+// });

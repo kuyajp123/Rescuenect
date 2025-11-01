@@ -391,3 +391,36 @@ entrypoint = "./functions/cron-schedule/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/cron-schedule/*.html" ]
+
+[functions.weather-hourly]
+enabled = true
+verify_jwt = true
+import_map = "./functions/weather-hourly/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/weather-hourly/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/weather-hourly/*.html" ]
+
+[functions.weather-daily]
+enabled = true
+verify_jwt = true
+import_map = "./functions/weather-daily/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/weather-daily/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/weather-daily/*.html" ]
+
+[functions.weather-realtime]
+enabled = true
+verify_jwt = true
+import_map = "./functions/weather-realtime/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/weather-realtime/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/weather-realtime/*.html" ]
