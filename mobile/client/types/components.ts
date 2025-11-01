@@ -2,44 +2,44 @@
 import FirebaseFirestore from 'firebase/firestore';
 
 export type StatusTemplateProps = {
-  style?: object
-  id?: string | number
-  picture: string
-  firstName: string
-  lastName: string
-  loc?: string
-  lat?: number
-  lng?: number
-  status?: string
-  description?: string
-  image?: string
-  person?: number
-  contact?: string
-  date: string
-  time: string
-  category?: string
-  itemName?: string
-  quantity?: number
-}
+  style?: object;
+  id?: string | number;
+  picture: string;
+  firstName: string;
+  lastName: string;
+  loc?: string;
+  lat?: number;
+  lng?: number;
+  status?: string;
+  description?: string;
+  image?: string;
+  person?: number;
+  contact?: string;
+  date: string;
+  time: string;
+  category?: string;
+  itemName?: string;
+  quantity?: number;
+};
 
 export type CarouselItem = {
   id: number;
   category: string;
   current_item: number;
   target_item: number;
-}
+};
 
 export type UserData = {
   firstName: string;
   lastName: string;
   profileImage: string;
-}
+};
 
 export interface CommunityStatusProps {
-    safe: number | null
-    evacuated: number | null
-    affected: number | null
-    missing: number | null
+  safe: number | null;
+  evacuated: number | null;
+  affected: number | null;
+  missing: number | null;
 }
 
 export interface ImageModalProps {
@@ -59,33 +59,32 @@ export interface Event {
 }
 
 export interface User {
-    firstName: string;
-    lastName: string;
-    profileImage?: string;
-    date: string;
-    time: string;
-    status: string;
+  firstName: string;
+  lastName: string;
+  profileImage?: string;
+  location: string;
+  condition: string;
 }
 
-export interface LogedInUser {
-    firstName: string;
-    lastName: string;
-    profileImage?: string;
+export interface loggedInUser {
+  firstName: string;
+  lastName: string;
+  profileImage?: string;
 }
 
 export type FiveDaysForecastProps = {
-    day?: string;
-    date?: string;
-    weatherCode?: number;
-    temperature?: string;
-    isNight?: boolean;
-}
+  day?: string;
+  date?: string;
+  weatherCode?: number;
+  temperature?: string;
+  isNight?: boolean;
+};
 
 interface StatusData {
   // Core versioning fields
   parentId: string;
   versionId: string;
-  statusType: "current" | "history" | "deleted";
+  statusType: 'current' | 'history' | 'deleted';
 
   // User identification
   uid: string;
@@ -98,7 +97,7 @@ interface StatusData {
   phoneNumber: string;
 
   // Status information
-  condition: "safe" | "evacuated" | "affected" | "missing" | "";
+  condition: 'safe' | 'evacuated' | 'affected' | 'missing' | '';
 
   // Location data
   lat: number | null;
@@ -128,14 +127,7 @@ interface StatusData {
 
 export type CreateStatusData = Omit<
   StatusData,
-  | "parentId"
-  | "versionId"
-  | "statusType"
-  | "expiresAt"
-  | "createdAt"
-  | "retentionUntil"
-  | "updatedAt"
-  | "deletedAt"
+  'parentId' | 'versionId' | 'statusType' | 'expiresAt' | 'createdAt' | 'retentionUntil' | 'updatedAt' | 'deletedAt'
 >;
 
 export type StatusStateData = CreateStatusData & {
@@ -143,6 +135,7 @@ export type StatusStateData = CreateStatusData & {
   versionId?: string;
   createdAt?: FirebaseFirestore.Timestamp | undefined;
   expirationDuration?: 12 | 24;
+  statusType?: 'current' | 'history' | 'deleted';
 };
 
 export type StatusFormErrors = {
@@ -153,7 +146,6 @@ export type StatusFormErrors = {
   versionId?: string;
   createdAt?: string;
 };
-
 
 // Types for a single address component
 interface AddressComponents {

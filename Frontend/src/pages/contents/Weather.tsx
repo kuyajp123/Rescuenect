@@ -23,21 +23,21 @@ const Weather = () => {
             </div>
             {/* Realtime weather */}
             <div>
-              {data && data.realtime && data.realtime.length > 0 && data.realtime[0].data ? (
+              {data && data.realtime && data.realtime.length > 0 ? (
                 <WeatherCard
                   key={data.realtime[0].location.lat + data.realtime[0].location.lon}
                   name={'bancaan'}
-                  icon={data.realtime[0].data.values.weatherCode}
-                  precipitationProbability={data.realtime[0].data.values?.precipitationProbability}
-                  rainIntensity={data.realtime[0].data.values?.rainIntensity}
-                  humidity={data.realtime[0].data.values?.humidity}
-                  temperature={Math.round(data.realtime[0].data.values?.temperature)}
-                  temperatureApparent={Math.round(data.realtime[0].data.values?.temperatureApparent)}
-                  windSpeed={data.realtime[0].data.values?.windSpeed}
-                  weatherCode={data.realtime[0].data.values?.weatherCode}
-                  cloudCover={data.realtime[0].data.values?.cloudCover}
-                  rainAccumulation={data.realtime[0].data.values?.rainAccumulation}
-                  uvIndex={data.realtime[0].data.values?.uvIndex}
+                  icon={data.realtime[0].weatherCode}
+                  precipitationProbability={data.realtime[0]?.precipitationProbability}
+                  rainIntensity={data.realtime[0]?.rainIntensity}
+                  humidity={data.realtime[0]?.humidity}
+                  temperature={Math.round(data.realtime[0]?.temperature)}
+                  temperatureApparent={Math.round(data.realtime[0]?.temperatureApparent)}
+                  windSpeed={data.realtime[0]?.windSpeed}
+                  weatherCode={data.realtime[0]?.weatherCode}
+                  cloudCover={data.realtime[0]?.cloudCover}
+                  rainAccumulation={data.realtime[0]?.rainAccumulation}
+                  uvIndex={data.realtime[0]?.uvIndex}
                 />
               ) : loading ? (
                 <div className="flex items-center justify-center p-8">

@@ -5,7 +5,6 @@ import { WEATHER_LOCATIONS, convertToManilaTime, delay, getWeatherAPIUrl } from 
 
 const processRealtimeWeather = async (location: (typeof WEATHER_LOCATIONS)[0]) => {
   try {
-    console.log(`🔄 Fetching realtime data for ${location.name}`);
 
     const realtimeUrl = getWeatherAPIUrl(location.coordinates, 'realtime');
     const response = await fetch(realtimeUrl);
@@ -27,7 +26,6 @@ const processRealtimeWeather = async (location: (typeof WEATHER_LOCATIONS)[0]) =
       location: data.location,
     });
 
-    console.log(`✅ Realtime data processed for ${location.name}`);
   } catch (error) {
     console.error(`❌ Error processing realtime data for ${location.name}:`, error);
     throw error;

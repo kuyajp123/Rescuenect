@@ -1,3 +1,7 @@
+import { useCoords } from '@/components/store/useCoords';
+import { useGetAddress } from '@/components/store/useGetAddress';
+import { useMapButtonStore } from '@/components/store/useMapButton';
+import { useStatusFormStore } from '@/components/store/useStatusForm';
 import { HStack } from '@/components/ui/hstack';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
@@ -5,24 +9,20 @@ import { Colors } from '@/constants/Colors';
 import { useMap } from '@/contexts/MapContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Bookmark, Navigation, X, Ellipsis, Settings } from 'lucide-react-native';
+import { Bookmark, Ellipsis, Navigation, Settings, X } from 'lucide-react-native';
 import React, { useEffect, useRef } from 'react';
 import {
+  ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   Text as RNText,
+  ScrollView,
   StyleSheet,
   TextInput,
   View,
-  ScrollView,
-  ActivityIndicator,
 } from 'react-native';
-import { useMapButtonStore } from '@/components/store/useMapButton';
 import { Button, IconButton, ToggleButton } from '../button/Button';
-import { useStatusFormStore } from '@/components/store/useStatusForm';
-import { useGetAddress } from '@/components/store/useGetAddress';
-import { useCoords } from '@/components/store/useCoords';
 
 // Types for flexible form fields
 export interface TextInputField {
@@ -399,7 +399,7 @@ const Map = ({
           style={statusForm ? styles.quickActions : { marginTop: 10 }}
         >
           {quickActionButtons.length > 0 && (
-            <HStack style={styles.choices}>
+            <HStack style={[styles.choices, { marginHorizontal: quickActionButtons.length > 2 ? 20 : 0 }]}>
               {quickActionButtons.map(button => (
                 <Button key={button.key} style={[styles.buttons, button.style]} onPress={button.onPress}>
                   {button.icon}

@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { fetchAndSaveStatusData } from '@/API/fetchAndSaveStatusData';
-import { CreateStatusData } from '@/types/components';
 import { useStatusFormStore } from '@/components/store/useStatusForm';
+import { db } from '@/lib/firebaseConfig';
+import { CreateStatusData } from '@/types/components';
+import { collection, limit, onSnapshot, query, where } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 
 /**
  * Custom hook to fetch status data in the background
@@ -29,37 +30,68 @@ export const useStatusFetchBackgroundData = (
   }, [statusId, idToken, formData]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    let unsubscribe: (() => void) | null = null;
+
+    const listenToCurrentStatus = (userId: string) => {
       try {
         setLoading(true);
-        if (shouldFetch && statusId && idToken) {
-          const response = await fetchAndSaveStatusData(statusId, idToken);
-          if (response.success) {
-            setData(response.data);
-            // console.log('✅ Background data from useStatusFetchBackgroundData:', JSON.stringify(response.data, null, 2));
-          } else {
-            console.error('❌ Failed to fetch background data:', response.error);
+        setError(false);
+
+        // Create Firestore query for current status
+        const statusCollection = collection(db, 'status', userId.trim(), 'statuses');
+        const q = query(statusCollection, where('statusType', '==', 'current'), limit(1));
+
+        // Listen for real-time updates
+        unsubscribe = onSnapshot(
+          q,
+          snapshot => {
+            setLoading(false);
+
+            if (!snapshot.empty) {
+              const statusDoc = snapshot.docs[0];
+              const statusData = {
+                id: statusDoc.id,
+                ...statusDoc.data(),
+              } as unknown as CreateStatusData;
+
+              setData(statusData);
+              // console.log('✅ Current status updated:', statusData);
+            } else {
+              setData(null);
+            }
+          },
+          error => {
+            console.error('❌ Error listening to status updates:', error);
             setError(true);
+            setLoading(false);
+            setData(null);
           }
-        } else {
-          setData(null);
-        }
+        );
+
+        return unsubscribe;
       } catch (error) {
-        console.error('❌ Error fetching background data:', error);
-      } finally {
+        console.error('❌ Error setting up status listener:', error);
+        setError(true);
         setLoading(false);
+        return null;
       }
     };
 
-    // setLoading(true);
-    // const timeout = setTimeout(() => {
-    //   fetchData();
-    // }, 10000);
+    // Start listening if we have the required data
+    if (shouldFetch && statusId && idToken) {
+      listenToCurrentStatus(statusId);
+    } else {
+      setData(null);
+      setLoading(false);
+    }
 
-    // return () => clearTimeout(timeout);
-
-    fetchData();
-  }, [shouldFetch]);
+    // Cleanup function to unsubscribe when component unmounts or dependencies change
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [shouldFetch, statusId, idToken]);
 
   return data;
 };

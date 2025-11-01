@@ -92,7 +92,7 @@ export const inititallizeAppStorage = async () => {
     if (shareContact === null) {
       await storageHelpers.setField(STORAGE_KEYS.USER_SETTINGS, 'status_settings.shareContact', true);
     }
-    console.log('✅ Storage initialized with default values where necessary.');
+    // console.log('✅ Storage initialized with default values where necessary.');
   } catch (error) {
     console.error('Error initializing storage:', error);
   }

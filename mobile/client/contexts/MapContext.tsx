@@ -109,7 +109,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
         return;
       }
 
-      console.log('Setting marker coordinate to:', mapCoords);
+      // console.log('Setting marker coordinate to:', mapCoords);
 
       const markerCoordinate: [number, number] = [mapCoords[0], mapCoords[1]];
       setCoords(markerCoordinate);

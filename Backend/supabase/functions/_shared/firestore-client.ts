@@ -72,48 +72,8 @@ export const insertWeatherData = async (
 
     await docRef.collection(subcollection).doc(docId).set(data);
 
-    console.log(`✅ Data inserted to Firestore: ${collection}/${document}/${subcollection}/${docId}`);
   } catch (error) {
     console.error('Firestore insert error:', error);
     throw error;
   }
-};
-
-// Environment validation helper
-export const validateEnvironment = () => {
-  const requiredEnvVars = ['WEATHER_API_KEY', 'FIREBASE_SERVICE_ACCOUNT_JSON'];
-  const missing: string[] = [];
-
-  for (const envVar of requiredEnvVars) {
-    if (!Deno.env.get(envVar)) {
-      missing.push(envVar);
-    }
-  }
-
-  if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
-  }
-
-  // Validate Firebase service account JSON
-  try {
-    const serviceAccountKeyString = Deno.env.get('FIREBASE_SERVICE_ACCOUNT_JSON')!;
-    let serviceAccountKey;
-
-    // Handle Base64 encoded or plain JSON
-    if (serviceAccountKeyString.startsWith('ew') || !serviceAccountKeyString.startsWith('{')) {
-      const decodedJson = atob(serviceAccountKeyString);
-      serviceAccountKey = JSON.parse(decodedJson);
-    } else {
-      serviceAccountKey = JSON.parse(serviceAccountKeyString);
-    }
-
-    if (serviceAccountKey.type !== 'service_account') {
-      throw new Error('Invalid Firebase service account type');
-    }
-  } catch (error) {
-    console.error('Error validating FIREBASE_SERVICE_ACCOUNT_JSON:', error);
-    throw new Error('Invalid FIREBASE_SERVICE_ACCOUNT_JSON format');
-  }
-
-  return true;
 };

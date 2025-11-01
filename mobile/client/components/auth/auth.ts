@@ -13,7 +13,7 @@ import { Alert } from 'react-native';
 
 export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void) => {
   try {
-    const { setBackendResponse } = useUserData.getState();
+    const { setUserData } = useUserData.getState();
     setLoading?.(true);
 
     // Check Google Play Services
@@ -42,9 +42,9 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
     );
 
     // Store backend response BEFORE Firebase auth state changes
-    setBackendResponse({
+    setUserData({
       isNewUser: response.data.isNewUser,
-      userResponse: {
+      userData: {
         firstName: response.data.user.firstName,
         lastName: response.data.user.lastName,
         barangay: response.data.user.barangay,
@@ -93,7 +93,6 @@ export const handleLogout = async () => {
   try {
     resetFormData();
     resetCoords?.();
-    resetResponse();
     // Clear user data from storage
     await storageHelpers.removeData(STORAGE_KEYS.USER);
     // Set sign-out flag to indicate intentional sign-out
@@ -113,6 +112,7 @@ export const handleLogout = async () => {
       await GoogleSignin.signOut();
     }
 
+    resetResponse();
     // console.log("✅ Google sign out successful");
 
     // Alert.alert("Logged Out", "You have been logged out successfully.");

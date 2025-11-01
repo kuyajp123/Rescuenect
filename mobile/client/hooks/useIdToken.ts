@@ -26,7 +26,7 @@ export const useIdToken = () => {
 
     try {
       const token = await authUser.getIdToken(forceRefresh);
-      console.log("✅ ID token retrieved:", token ? "Token received" : "No token");
+      // console.log("✅ ID token retrieved:", token ? "Token received" : "No token");
       setIdToken(token);
       return token;
     } catch (err) {

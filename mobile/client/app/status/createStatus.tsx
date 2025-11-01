@@ -161,6 +161,10 @@ export const createStatus = () => {
   };
 
   useEffect(() => {
+    console.log('userStatusData: ', JSON.stringify(formData, null, 2));
+  }, [formData]);
+
+  useEffect(() => {
     if (!formData) {
       getStorage()
         .then(data => {
@@ -498,7 +502,7 @@ export const createStatus = () => {
     }));
 
     // Clear error when user starts typing
-    if (formErrors[field]) {
+    if (field in formErrors && formErrors[field as keyof StatusFormErrors]) {
       setFormErrors(prev => ({
         ...prev,
         [field]: undefined,
@@ -754,7 +758,7 @@ export const createStatus = () => {
   ];
 
   // ✅ Only add "current-status" if formData exists
-  if (formData) {
+  if (formData?.statusType === 'current') {
     buttons.push({
       key: 'active-status',
       label: 'Active status',
@@ -771,6 +775,14 @@ export const createStatus = () => {
         }
       },
     });
+  }
+
+  // Remove the button if condition is no longer met
+  if (formData?.statusType !== 'current') {
+    const activeStatusIndex = buttons.findIndex(button => button.key === 'active-status');
+    if (activeStatusIndex !== -1) {
+      buttons.splice(activeStatusIndex, 1);
+    }
   }
 
   const quickActionButtons: CustomButton[] = buttons;

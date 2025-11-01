@@ -2,8 +2,8 @@ import { create } from 'zustand';
 
 type AuthUser = {
   isNewUser?: boolean | null;
-  userResponse: {
-    // ✅ Changed from 'user' to 'userResponse'
+  userData: {
+    // ✅ Changed from 'user' to 'userData'
     firstName: string;
     lastName: string;
     barangay: string;
@@ -13,25 +13,25 @@ type AuthUser = {
 
 type BackendResponse = {
   isNewUser: boolean | null;
-  userResponse: {
+  userData: {
     firstName: string;
     lastName: string;
     barangay: string;
     phoneNumber: string;
   };
-  setBackendResponse: (response: AuthUser) => void;
+  setUserData: (response: AuthUser) => void;
   resetResponse: () => void;
 };
 
 export const useUserData = create<BackendResponse>()(set => ({
   isNewUser: null,
-  userResponse: {
+  userData: {
     firstName: '',
     lastName: '',
     barangay: '',
     phoneNumber: '',
   },
-  setBackendResponse: response => set({ ...response }),
+  setUserData: response => set({ ...response }),
   resetResponse: () =>
-    set({ isNewUser: null, userResponse: { firstName: '', lastName: '', barangay: '', phoneNumber: '' } }),
+    set({ isNewUser: null, userData: { firstName: '', lastName: '', barangay: '', phoneNumber: '' } }),
 }));

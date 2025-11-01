@@ -5,7 +5,6 @@ import { WEATHER_LOCATIONS, convertToManilaTime, delay, getWeatherAPIUrl } from 
 
 const processDailyWeather = async (location: (typeof WEATHER_LOCATIONS)[0]) => {
   try {
-    console.log(`🔄 Fetching daily data for ${location.name}`);
 
     const forecastUrl = getWeatherAPIUrl(location.coordinates, 'forecast');
     const response = await fetch(forecastUrl);
@@ -31,7 +30,6 @@ const processDailyWeather = async (location: (typeof WEATHER_LOCATIONS)[0]) => {
     });
 
     await Promise.all(promises);
-    console.log(`✅ Daily data processed for ${location.name}`);
   } catch (error) {
     console.error(`❌ Error processing daily data for ${location.name}:`, error);
     throw error;

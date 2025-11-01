@@ -28,9 +28,7 @@ export const MenuScreen = () => {
   const { isDark } = useTheme();
   const router = useRouter();
   const authUser = useAuth(state => state.authUser);
-  const userResponse = useUserData(state => state.userResponse);
-
-  React.useEffect(() => {}, []);
+  const userData = useUserData(state => state.userData);
 
   return (
     <Body style={styles.bodyContainer}>
@@ -53,7 +51,7 @@ export const MenuScreen = () => {
 
               <View style={styles.nameContainer}>
                 <Text size="md" style={styles.nameSectionText}>
-                  {userResponse.firstName} {userResponse.lastName}
+                  {userData.firstName} {userData.lastName}
                 </Text>
                 <Text emphasis="light" style={styles.nameSectionText}>
                   {authUser?.email}

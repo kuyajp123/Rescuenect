@@ -5,8 +5,6 @@ import { WEATHER_LOCATIONS, convertToManilaTime, delay, getWeatherAPIUrl } from 
 
 const processHourlyWeather = async (location: (typeof WEATHER_LOCATIONS)[0]) => {
   try {
-    console.log(`🔄 Fetching hourly data for ${location.name}`);
-
     const forecastUrl = getWeatherAPIUrl(location.coordinates, 'forecast');
     const response = await fetch(forecastUrl);
 
@@ -36,7 +34,6 @@ const processHourlyWeather = async (location: (typeof WEATHER_LOCATIONS)[0]) => 
     }
 
     await Promise.all(promises);
-    console.log(`✅ Hourly data processed for ${location.name}`);
   } catch (error) {
     console.error(`❌ Error processing hourly data for ${location.name}:`, error);
     throw error;

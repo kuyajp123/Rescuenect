@@ -6,7 +6,7 @@ import { navigateToBarangayForm, navigateToNameAndContactForm, navigateToSignIn,
 
 export const handleAuthNavigation = async (user: any) => {
   try {
-    const { isNewUser, userResponse, resetResponse } = useUserData.getState();
+    const { isNewUser, userData, resetResponse } = useUserData.getState();
 
     if (user) {
       if (isNewUser === true) {
@@ -15,23 +15,23 @@ export const handleAuthNavigation = async (user: any) => {
         return;
       } else if (isNewUser === false) {
         // Existing user - check if they have complete data from backend
-        if (!userResponse.barangay) {
+        if (!userData.barangay) {
           // console.log("❌ User is missing barangay information from backend");
           navigateToBarangayForm();
           return;
         }
 
-        if (!userResponse.phoneNumber) {
+        if (!userData.phoneNumber) {
           // console.log('❌ User is missing phone number information from backend');
           navigateToNameAndContactForm();
           return;
         }
 
         await storageHelpers.setData(STORAGE_KEYS.USER, {
-          firstName: userResponse.firstName || '',
-          lastName: userResponse.lastName || '',
-          phoneNumber: userResponse.phoneNumber || '',
-          barangay: userResponse.barangay || '',
+          firstName: userData.firstName || '',
+          lastName: userData.lastName || '',
+          phoneNumber: userData.phoneNumber || '',
+          barangay: userData.barangay || '',
         });
 
         // console.log('✅ User has complete data from backend - going to tabs');
@@ -58,7 +58,7 @@ export const handleAuthNavigation = async (user: any) => {
 
 // Handle navigation for guests (no authenticated user)
 export const handleGuestNavigation = async () => {
-  const { setBackendResponse } = useUserData.getState();
+  const { setUserData } = useUserData.getState();
 
   try {
     const savedUser = await storageHelpers.getData(STORAGE_KEYS.USER);
@@ -82,8 +82,8 @@ export const handleGuestNavigation = async () => {
       return;
     }
 
-    setBackendResponse({
-      userResponse: {
+    setUserData({
+      userData: {
         firstName: savedUser.firstName || '',
         lastName: savedUser.lastName || '',
         phoneNumber: savedUser.phoneNumber || '',
