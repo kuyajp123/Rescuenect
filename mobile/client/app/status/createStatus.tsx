@@ -101,8 +101,8 @@ export const createStatus = () => {
     note: '',
     shareLocation: true,
     shareContact: true,
-    createdAt: formData?.createdAt || undefined,
-    expirationDuration: formData?.expirationDuration || 24,
+    createdAt: undefined,
+    expirationDuration: 24,
   });
 
   const [modals, setModals] = useState({
@@ -170,9 +170,6 @@ export const createStatus = () => {
               firstName: data.userData.firstName || '',
               lastName: data.userData.lastName || '',
               phoneNumber: data.userData.phoneNumber || '',
-              shareLocation: data.shareLocation ?? true,
-              shareContact: data.shareContact ?? true,
-              expirationDuration: data.expirationDuration || 24,
             }));
           } else {
             console.log('❌ No user data found in storage');
@@ -183,47 +180,6 @@ export const createStatus = () => {
         });
     }
   }, [formData]);
-
-  // syncs the expirationDuration from storage to local statusForm state
-  useFocusEffect(
-    useCallback(() => {
-      // Sync settings from storage when screen comes into focus
-      getStorage()
-        .then(data => {
-          if (data) {
-            setStatusForm(prev => ({
-              ...prev,
-              expirationDuration: data.expirationDuration ?? formData?.expirationDuration ?? 24,
-              shareLocation: data.shareLocation ?? formData?.shareLocation ?? prev.shareLocation,
-              shareContact: data.shareContact ?? formData?.shareContact ?? prev.shareContact,
-            }));
-          }
-        })
-        .catch(error => {
-          console.error('Error syncing settings on focus:', error);
-        });
-    }, [formData])
-  );
-
-  // Update form coordinates and handle default selection priority
-  useEffect(() => {
-    if (coords) {
-      setStatusForm(prev => ({
-        ...prev,
-        lng: coords[0],
-        lat: coords[1],
-      }));
-
-      // Priority 1: If user has tapped map, coords becomes default
-      if (hasUserTappedMap) {
-        setSelectedCoords(coords);
-      }
-      // Priority 2: If no user tap yet, and this is first coords (saved location or GPS), set as default
-      else if (selectedCoords[0] === 0 && selectedCoords[1] === 0) {
-        setSelectedCoords(coords);
-      }
-    }
-  }, [coords, selectedCoords, hasUserTappedMap]);
 
   // Load form data from Zustand store on mount
   useEffect(() => {
@@ -257,6 +213,46 @@ export const createStatus = () => {
       setAddressGPS(null);
     }
   }, [formData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Only sync settings from storage when user has NO active status
+      getStorage()
+        .then(data => {
+          if (data) {
+            setStatusForm(prev => ({
+              ...prev,
+              expirationDuration: data.expirationDuration,
+              shareLocation: data.shareLocation,
+              shareContact: data.shareContact,
+            }));
+          }
+        })
+        .catch(error => {
+          console.error('Error syncing settings on focus:', error);
+        });
+    }, [])
+  );
+
+  // Update form coordinates and handle default selection priority
+  useEffect(() => {
+    if (coords) {
+      setStatusForm(prev => ({
+        ...prev,
+        lng: coords[0],
+        lat: coords[1],
+      }));
+
+      // Priority 1: If user has tapped map, coords becomes default
+      if (hasUserTappedMap) {
+        setSelectedCoords(coords);
+      }
+      // Priority 2: If no user tap yet, and this is first coords (saved location or GPS), set as default
+      else if (selectedCoords[0] === 0 && selectedCoords[1] === 0) {
+        setSelectedCoords(coords);
+      }
+    }
+  }, [coords, selectedCoords, hasUserTappedMap]);
 
   // Track when user taps map (coords change significantly from last selected)
   useEffect(() => {

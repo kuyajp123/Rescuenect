@@ -1,6 +1,7 @@
 import { storageHelpers } from '@/components/helper/storage';
 import { useUserData } from '@/components/store/useBackendResponse';
 import { useCoords } from '@/components/store/useCoords';
+import { useImagePickerStore } from '@/components/store/useImagePicker';
 import { useStatusFormStore } from '@/components/store/useStatusForm';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
@@ -90,6 +91,7 @@ export const handleLogout = async () => {
   const resetCoords = useCoords.getState().resetState;
   const resetResponse = useUserData.getState().resetResponse;
   const setFormData = useStatusFormStore.getState().setFormData;
+  const setImage = useImagePickerStore.getState().setImage;
 
   try {
     resetFormData();
@@ -115,6 +117,7 @@ export const handleLogout = async () => {
 
     resetResponse();
     setFormData(null);
+    setImage(null);
     // console.log("✅ Google sign out successful");
 
     // Alert.alert("Logged Out", "You have been logged out successfully.");

@@ -1,25 +1,18 @@
-import { Animated, StyleSheet, View } from 'react-native';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import Body from '@/components/ui/layout/Body';
-import { Text } from '@/components/ui/text';
 import { ToggleButton } from '@/components/components/button/Button';
-import { useStatusFormStore } from '@/components/store/useStatusForm';
-import { CustomRadio } from '@/components/ui/CustomRadio';
 import NavigationButton from '@/components/components/button/NavigationButton';
 import { storageHelpers } from '@/components/helper/storage';
-import { STORAGE_KEYS } from '@/config/asyncStorage';
-import { Button } from '@/components/components/button/Button';
-import { API_ROUTES } from '@/config/endpoints';
-import axios from 'axios';
-import { useAuth } from '@/components/store/useAuth';
-import { LoadingOverlay } from '@/components/ui/loading';
+import { useStatusFormStore } from '@/components/store/useStatusForm';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
+import { CustomRadio } from '@/components/ui/CustomRadio';
+import Body from '@/components/ui/layout/Body';
+import { Text } from '@/components/ui/text';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, StyleSheet, View } from 'react-native';
 
 const statusSettings = () => {
   const formData = useStatusFormStore(state => state.formData);
-  const setFormData = useStatusFormStore(state => state.setFormData);
-  const authUser = useAuth(state => state.authUser);
   const scaleValue = useRef(new Animated.Value(0)).current;
   const options = [
     { key: '24 hours', value: 24 },
@@ -30,7 +23,6 @@ const statusSettings = () => {
   const [enabledShareLocation, setEnabledShareLocation] = useState(formData?.shareLocation ?? true);
   const [enabledShareContactNumber, setEnabledShareContactNumber] = useState(formData?.shareContact ?? true);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   const LoadStorage = async () => {
     const expirationDuration = await storageHelpers.getField(
@@ -49,15 +41,15 @@ const statusSettings = () => {
     useCallback(() => {
       LoadStorage().then(data => {
         // Set duration - prefer storage over formData for settings
-        const duration = formData?.expirationDuration ?? data.expirationDuration ?? 24;
+        const duration = data.expirationDuration;
         setSelectedDuration(duration);
 
         // Set privacy settings - prefer storage over formData for settings
-        const shareLocation = formData?.shareLocation ?? data.privacySettings ?? true;
+        const shareLocation = data.privacySettings;
         setEnabledShareLocation(shareLocation);
 
         // Set contact settings - prefer storage over formData for settings
-        const shareContact = formData?.shareContact ?? data.contactSettings ?? true;
+        const shareContact = data.contactSettings;
         setEnabledShareContactNumber(shareContact);
       });
     }, [])
@@ -104,51 +96,6 @@ const statusSettings = () => {
     const newValue = !enabledShareContactNumber;
     setEnabledShareContactNumber(newValue);
     saveStorage('status_settings.shareContact', newValue);
-  };
-
-  const updateStatus = async () => {
-    if (formData) {
-      setIsLoading(true);
-      const updatedData = {
-        ...formData,
-        shareLocation: enabledShareLocation,
-        shareContact: enabledShareContactNumber,
-        expirationDuration: selectedDuration as 12 | 24,
-      };
-      try {
-        const response = await axios.post(API_ROUTES.STATUS.SAVE_STATUS, updatedData, {
-          headers: {
-            Authorization: `Bearer ${await authUser?.getIdToken()}`,
-          },
-          timeout: 30000,
-        });
-        if (response.status === 201) {
-          console.log('Status updated successfully');
-          setFormData(updatedData);
-          setShowSuccessDialog(true);
-        }
-      } catch (error) {
-        console.error('Error updating status:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
-
-  const conditionalUpdateButtonRender = () => {
-    if (formData) {
-      if (formData.shareContact !== enabledShareContactNumber || formData.shareLocation !== enabledShareLocation) {
-        return (
-          <View style={styles.updateButton}>
-            <Button onPress={updateStatus}>
-              <Text size="sm" bold>
-                Update Status
-              </Text>
-            </Button>
-          </View>
-        );
-      }
-    }
   };
 
   return (
@@ -203,7 +150,6 @@ const statusSettings = () => {
 
       {/* Temporary */}
       {/* {conditionalUpdateButtonRender()} */}
-      <LoadingOverlay visible={isLoading} message="Updating Status..." />
       <CustomAlertDialog
         showAlertDialog={showSuccessDialog}
         handleClose={handleClose}

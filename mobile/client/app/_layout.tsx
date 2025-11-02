@@ -8,6 +8,7 @@ import MapContext from '@/contexts/MapContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { useIdToken } from '@/hooks/useIdToken';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useSaveStatusSettings } from '@/hooks/useSaveStatusSettings';
 import { useStatusFetchBackgroundData } from '@/hooks/useStatusFetchBackgroundData';
 import MapboxGL from '@rnmapbox/maps';
 import React, { useEffect } from 'react';
@@ -33,6 +34,8 @@ export default function RootLayout() {
 
     setFormData(formDataToSet);
   }, [statusData, authUser, setFormData]);
+
+  useSaveStatusSettings(statusData);
 
   return (
     <GestureHandlerRootView style={styles.gestureHandlerContainer}>

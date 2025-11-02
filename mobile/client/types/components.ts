@@ -109,11 +109,11 @@ interface StatusData {
   image: string;
 
   // Privacy settings
-  shareLocation: boolean;
-  shareContact: boolean;
+  shareLocation: boolean | undefined;
+  shareContact: boolean | undefined;
 
   // Expiration settings (user-controlled)
-  expirationDuration: 12 | 24; // hours
+  expirationDuration: 12 | 24 | undefined; // hours
   expiresAt: FirebaseFirestore.Timestamp; // when status becomes inactive
 
   // Timestamps
@@ -134,7 +134,6 @@ export type StatusStateData = CreateStatusData & {
   parentId?: string;
   versionId?: string;
   createdAt?: FirebaseFirestore.Timestamp | undefined;
-  expirationDuration?: 12 | 24;
   statusType?: 'current' | 'history' | 'deleted';
 };
 
