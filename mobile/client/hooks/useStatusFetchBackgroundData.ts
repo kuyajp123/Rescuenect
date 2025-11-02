@@ -17,17 +17,18 @@ export const useStatusFetchBackgroundData = (
 ): CreateStatusData | null => {
   const [data, setData] = useState<CreateStatusData | null>(null);
   const [shouldFetch, setShouldFetch] = useState<boolean>(false);
-  const formData = useStatusFormStore(state => state.formData);
   const setLoading = useStatusFormStore(state => state.setLoading);
   const setError = useStatusFormStore(state => state.setError);
 
+  // Clear data immediately when user changes or logs out (before any async operations)
   useEffect(() => {
-    if (statusId && idToken) {
-      setShouldFetch(true);
-    } else {
+    if (!statusId || !idToken) {
+      setData(null);
       setShouldFetch(false);
+    } else {
+      setShouldFetch(true);
     }
-  }, [statusId, idToken, formData]);
+  }, [statusId, idToken]);
 
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
@@ -77,12 +78,16 @@ export const useStatusFetchBackgroundData = (
       }
     };
 
+    // Clear data immediately when user changes or logs out
+    if (!shouldFetch || !statusId || !idToken) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+
     // Start listening if we have the required data
     if (shouldFetch && statusId && idToken) {
       listenToCurrentStatus(statusId);
-    } else {
-      setData(null);
-      setLoading(false);
     }
 
     // Cleanup function to unsubscribe when component unmounts or dependencies change
@@ -93,5 +98,6 @@ export const useStatusFetchBackgroundData = (
     };
   }, [shouldFetch, statusId, idToken]);
 
-  return data;
+  // Return null if user is not available, otherwise return data
+  return !statusId || !idToken ? null : data;
 };

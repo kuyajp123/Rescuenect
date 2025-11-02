@@ -32,10 +32,6 @@ export default function RootLayout() {
     const formDataToSet = statusData ? { ...statusData, uid: authUser ? authUser.uid : '' } : null;
 
     setFormData(formDataToSet);
-    console.log('User data value: ', JSON.stringify(formDataToSet, null, 2));
-    console.log('Status data value: ', JSON.stringify(statusData, null, 2));
-
-    return () => setFormData(null);
   }, [statusData, authUser, setFormData]);
 
   return (

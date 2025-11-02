@@ -161,10 +161,6 @@ export const createStatus = () => {
   };
 
   useEffect(() => {
-    console.log('userStatusData: ', JSON.stringify(formData, null, 2));
-  }, [formData]);
-
-  useEffect(() => {
     if (!formData) {
       getStorage()
         .then(data => {
@@ -639,7 +635,6 @@ export const createStatus = () => {
       });
 
       if (response.status === 200 && response.data.message === 'No changes detected') {
-        console.log('No changes detected:', response.data.reason);
         toggleModal('noChanges', true);
         return;
       }

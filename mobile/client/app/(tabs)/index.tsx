@@ -14,7 +14,7 @@ export const HomeScreen = React.memo(() => {
   const [userData, setUserData] = useState<loggedInUser | null>(null);
   const [userStatus, setUserStatus] = useState({});
   const userAuth = useAuth(state => state.authUser);
-  const statusData = useStatusFormStore(state => state.formData);
+  const formData = useStatusFormStore(state => state.formData);
   const userPhotoURL = userAuth?.photoURL || '';
 
   useEffect(() => {
@@ -30,13 +30,19 @@ export const HomeScreen = React.memo(() => {
   }, [userPhotoURL]);
 
   useEffect(() => {
+    // Clear userStatus immediately if formData is null (user logged out or no status)
+    if (!formData) {
+      setUserStatus({});
+      return;
+    }
+
     // Combine user data with status data if status exists
     const userDataFiltered = {
       ...userData,
-      ...statusData, // This includes condition, expirationDuration, and other status fields
+      ...formData, // This includes condition, expirationDuration, and other status fields
     };
     setUserStatus(userDataFiltered);
-  }, [userData, statusData]);
+  }, [userData, formData]);
 
   return (
     <Body gap={20}>

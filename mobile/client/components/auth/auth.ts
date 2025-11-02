@@ -88,7 +88,8 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
 export const handleLogout = async () => {
   const resetFormData = useStatusFormStore.getState().resetFormData;
   const resetCoords = useCoords.getState().resetState;
-  const { resetResponse } = useUserData.getState();
+  const resetResponse = useUserData.getState().resetResponse;
+  const setFormData = useStatusFormStore.getState().setFormData;
 
   try {
     resetFormData();
@@ -113,6 +114,7 @@ export const handleLogout = async () => {
     }
 
     resetResponse();
+    setFormData(null);
     // console.log("✅ Google sign out successful");
 
     // Alert.alert("Logged Out", "You have been logged out successfully.");
