@@ -25,14 +25,15 @@ const statusSettings = () => {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   const LoadStorage = async () => {
-    const expirationDuration = await storageHelpers.getField(
-      STORAGE_KEYS.USER_SETTINGS,
-      'status_settings.expirationDuration'
-    );
-    const privacySettings = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'status_settings.shareLocation');
-    const contactSettings = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'status_settings.shareContact');
+    const expirationDuration = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'expirationDuration');
+    const privacySettings = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'shareLocation');
+    const contactSettings = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'shareContact');
 
-    const data = { expirationDuration, privacySettings, contactSettings };
+    const data = {
+      expirationDuration: expirationDuration ?? 24,
+      privacySettings: privacySettings ?? true,
+      contactSettings: contactSettings ?? true,
+    };
     return data;
   };
 
@@ -41,18 +42,18 @@ const statusSettings = () => {
     useCallback(() => {
       LoadStorage().then(data => {
         // Set duration - prefer storage over formData for settings
-        const duration = data.expirationDuration;
+        const duration = data.expirationDuration ?? formData?.expirationDuration ?? 24;
         setSelectedDuration(duration);
 
         // Set privacy settings - prefer storage over formData for settings
-        const shareLocation = data.privacySettings;
+        const shareLocation = data.privacySettings ?? formData?.shareLocation ?? true;
         setEnabledShareLocation(shareLocation);
 
         // Set contact settings - prefer storage over formData for settings
-        const shareContact = data.contactSettings;
+        const shareContact = data.contactSettings ?? formData?.shareContact ?? true;
         setEnabledShareContactNumber(shareContact);
       });
-    }, [])
+    }, [formData])
   );
 
   // Auto hide after 3 seconds
@@ -83,19 +84,19 @@ const statusSettings = () => {
   const handleDurationSelect = (value: string | number) => {
     const duration = value as 12 | 24;
     setSelectedDuration(duration);
-    saveStorage('status_settings.expirationDuration', duration);
+    saveStorage('expirationDuration', duration);
   };
 
   const toggleShareLocation = () => {
     const newValue = !enabledShareLocation;
     setEnabledShareLocation(newValue);
-    saveStorage('status_settings.shareLocation', newValue);
+    saveStorage('shareLocation', newValue);
   };
 
   const toggleShareContactNumber = () => {
     const newValue = !enabledShareContactNumber;
     setEnabledShareContactNumber(newValue);
-    saveStorage('status_settings.shareContact', newValue);
+    saveStorage('shareContact', newValue);
   };
 
   return (

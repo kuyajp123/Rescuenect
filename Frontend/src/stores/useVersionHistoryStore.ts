@@ -6,6 +6,7 @@ interface VersionHistoryItem {
   parentId: string;
   uid: string;
   // Add other version fields you might need
+  updatedAt: string;
   createdAt: string;
   profileImage: string;
   firstName: string;

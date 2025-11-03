@@ -133,7 +133,7 @@ const HistoryVersions = () => {
             //   <div key={card.id} className="border h-80 rounded p-4 text-center">
             //     {card.name}
             //   </div>
-            <Card className="py-4 h-80 rounded-lg" key={version.versionId}>
+            <Card className=" h-80 rounded-lg" key={version.versionId}>
               <CardHeader className="justify-between">
                 <div className="flex gap-5">
                   <Avatar radius="full" size="md" src={version.profileImage} />
@@ -142,7 +142,9 @@ const HistoryVersions = () => {
                       {version.firstName} {version.lastName}
                     </h4>
                     <p className="text-xs text-default-500">{version.location}</p>
-                    <p className="text-xs text-default-400">{formatTimeSince(version.createdAt)}</p>
+                    <p className="text-xs text-default-400">
+                      {version.updatedAt ? formatTimeSince(version.updatedAt) : formatTimeSince(version.createdAt)}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center justify-center">
@@ -168,8 +170,8 @@ const HistoryVersions = () => {
                   )}
                 </div>
               </CardHeader>
-              <CardBody className="min-h-[200px] max-h-[200px] gap-2 overflow-y-auto">
-                <div className="flex flex-col gap-2 h-full">
+              <CardBody className="min-h-[200px] max-h-[200px] gap-2 overflow-auto">
+                <div className="flex flex-col gap-2 overflow-auto max-h-[200px] h-full">
                   <p className="text-sm text-default-600">{version.note || ''}</p>
                   <div className="flex-1 min-h-[150px]">
                     <Map

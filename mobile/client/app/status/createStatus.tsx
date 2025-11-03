@@ -99,8 +99,8 @@ export const createStatus = () => {
     location: null,
     image: formData?.image || '',
     note: '',
-    shareLocation: true,
-    shareContact: true,
+    shareLocation: false,
+    shareContact: false,
     createdAt: undefined,
     expirationDuration: 24,
   });
@@ -141,12 +141,9 @@ export const createStatus = () => {
   const getStorage = async () => {
     try {
       const userData = await storageHelpers.getData(STORAGE_KEYS.USER);
-      const shareLocation = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'status_settings.shareLocation');
-      const shareContact = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'status_settings.shareContact');
-      const expirationDuration = await storageHelpers.getField(
-        STORAGE_KEYS.USER_SETTINGS,
-        'status_settings.expirationDuration'
-      );
+      const shareLocation = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'shareLocation');
+      const shareContact = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'shareContact');
+      const expirationDuration = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'expirationDuration');
 
       return {
         userData,
@@ -216,15 +213,14 @@ export const createStatus = () => {
 
   useFocusEffect(
     useCallback(() => {
-      // Only sync settings from storage when user has NO active status
       getStorage()
         .then(data => {
           if (data) {
             setStatusForm(prev => ({
               ...prev,
-              expirationDuration: data.expirationDuration,
-              shareLocation: data.shareLocation,
-              shareContact: data.shareContact,
+              expirationDuration: data.expirationDuration ?? 24,
+              shareLocation: data.shareLocation ?? true,
+              shareContact: data.shareContact ?? true,
             }));
           }
         })
