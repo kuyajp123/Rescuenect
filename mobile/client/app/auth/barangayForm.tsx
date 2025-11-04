@@ -2,6 +2,7 @@ import Logo from '@/assets/images/logo/logoVerti.svg';
 import { PrimaryButton } from '@/components/components/button/Button';
 import { storageHelpers } from '@/components/helper/storage';
 import { useAuth } from '@/components/store/useAuth';
+import { useUserData } from '@/components/store/useBackendResponse';
 import Body from '@/components/ui/layout/Body';
 import {
   Modal,
@@ -21,40 +22,21 @@ import { useIdToken } from '@/hooks/useIdToken';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { ChevronDown, X } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { create } from 'zustand';
-
-type barangayStore = {
-  selectedBarangay: string;
-  setSelectedBarangay: (barangay: string) => void;
-};
-
-export const useBarangayStore = create<barangayStore>(set => ({
-  selectedBarangay: '',
-  setSelectedBarangay: barangay => set({ selectedBarangay: barangay }),
-}));
 
 const barangayForm = () => {
   const router = useRouter();
   const { isDark } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
-  const selectedBarangay = useBarangayStore(state => state.selectedBarangay);
-  const setSelectedBarangay = useBarangayStore(state => state.setSelectedBarangay);
+  const [selectedBarangay, setSelectedBarangay] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState('');
   const authUser = useAuth(state => state.authUser);
   const isLoading = useAuth(state => state.isLoading);
+  const setUserData = useUserData(state => state.setUserData);
+  const userData = useUserData(state => state.userData);
 
   const { getToken } = useIdToken();
-
-  // Debug logging
-  useEffect(() => {
-    console.log('🏠 BarangayForm mounted', {
-      hasAuthUser: !!authUser,
-      authUserUid: authUser?.uid,
-      isLoading: isLoading,
-    });
-  }, [authUser, isLoading]);
 
   const barangays = [
     { label: 'Labac', value: 'labac' },
@@ -90,7 +72,7 @@ const barangayForm = () => {
   ];
 
   const handleBarangaySelect = (barangay: any) => {
-    setSelectedBarangay(barangay.label);
+    setSelectedBarangay(barangay.value);
     setModalVisible(false);
     setErrorMessage('');
   };
@@ -118,13 +100,20 @@ const barangayForm = () => {
     } else if (isLoading) {
       console.log('⏳ Authentication still loading, please wait...');
       setErrorMessage('Please wait for authentication to complete.');
-    } else {
-      await storageHelpers.setField(STORAGE_KEYS.USER, 'barangay', selectedBarangay);
-      await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', false);
-
-      console.log('🧭 Navigating to nameAndContactForm...');
-      router.push('/auth/nameAndContactForm' as any);
     }
+
+    // Update userData if it exists, otherwise create a new object with barangay
+    setUserData({
+      userData: {
+        ...userData,
+        barangay: selectedBarangay,
+      },
+    });
+
+    await storageHelpers.setField(STORAGE_KEYS.USER, 'barangay', selectedBarangay);
+    await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', false);
+
+    router.push('/auth/nameAndContactForm' as any);
   };
 
   // ✅ Fix: Extract the backend save logic to a separate function
@@ -148,9 +137,7 @@ const barangayForm = () => {
       console.log('✅ Backend response:', response.data);
 
       await storageHelpers.setField(STORAGE_KEYS.USER, 'barangay', selectedBarangay);
-      console.log('✅ Barangay saved to local storage');
 
-      console.log('🧭 Navigating to nameAndContactForm...');
       router.push('/auth/nameAndContactForm' as any);
     } catch (error) {
       console.error('❌ Error saving barangay:', error);

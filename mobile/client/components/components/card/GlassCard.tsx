@@ -5,7 +5,7 @@ import { StyleSheet, View, ViewStyle } from 'react-native';
 
 export interface GlassCardProps {
   title?: string;
-  value?: string;
+  value?: string | number;
   style?: object | ViewStyle;
   size?: 'small' | 'medium' | 'large';
   children?: React.ReactNode;

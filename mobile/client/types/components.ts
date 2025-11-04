@@ -165,3 +165,83 @@ export interface AddressState {
   formatted: string;
   components: AddressComponents;
 }
+
+// Weather data types
+export interface Location {
+  lat: number;
+  lon: number;
+}
+
+export interface RealtimeWeather {
+  id: string;
+  location?: {
+    lon: number;
+    lat: number;
+  };
+  weatherCode: number;
+  precipitationProbability: number;
+  rainIntensity: number;
+  humidity: number;
+  temperature: number;
+  temperatureApparent: number;
+  windSpeed: number;
+  windGust: number;
+  windDirection: number;
+  cloudCover: number;
+  cloudBase: number;
+  cloudCeiling: number;
+  visibility: number;
+  uvIndex: number;
+  uvHealthConcern: number;
+  dewPoint: number;
+  pressureSeaLevel: number;
+  pressureSurfaceLevel: number;
+  altimeterSetting: number;
+  time: string;
+  snowIntensity: number;
+  sleetIntensity: number;
+  freezingRainIntensity: number;
+}
+
+export interface DailyForecast {
+  id: string;
+  time: string;
+  temperatureAvg: number;
+  temperatureMax: number;
+  temperatureMin: number;
+  weatherCodeMax: number;
+  weatherCodeMin: number;
+  humidityAvg: number;
+  precipitationProbabilityMax: number;
+  windSpeedAvg: number;
+  uvIndexMax: number;
+}
+
+export interface HourlyForecast {
+  id: string;
+  time: string;
+  weatherCode: number;
+  temperature: number;
+  temperatureApparent: number;
+  humidity: number;
+  windSpeed: number;
+  precipitationProbability: number;
+  rainIntensity: number;
+  rainAccumulation: number;
+  cloudCover: number;
+  uvIndex: number;
+}
+
+export interface WeatherData {
+  realtime: RealtimeWeather[];
+  daily: DailyForecast[];
+  hourly: HourlyForecast[];
+}
+
+// Store type
+export interface WeatherStore {
+  weather: WeatherData | null;
+  // Add other store methods/state as needed
+  setWeather?: (weather: WeatherData) => void;
+  clearWeather?: () => void;
+}

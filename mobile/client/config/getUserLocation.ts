@@ -30,7 +30,7 @@ const farm_area = ['molino', 'halang', 'palangue 1'];
 
 const naic_boundary = ['malainem luma', 'palangue 2 & 3'];
 
-export { central_naic, coastal_east, coastal_west, farm_area, naic_boundary, sabang };
+export { coastal_west, coastal_east, central_naic, sabang, farm_area, naic_boundary };
 
 export const getUsersBarangay = (location: string) => {
   if (coastal_west.includes(location)) {

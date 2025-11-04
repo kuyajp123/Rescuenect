@@ -8,6 +8,7 @@ import {
 } from '@/components/helper/commonHelpers';
 import { storageHelpers } from '@/components/helper/storage';
 import { useAuth } from '@/components/store/useAuth';
+import { useUserData } from '@/components/store/useBackendResponse';
 import { Input, InputField } from '@/components/ui/input';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
@@ -49,6 +50,8 @@ const nameAndContactForm = () => {
   });
   const { firstName, lastName, contactNumber, setFirstName, setLastName, setContactNumber, reset } = useFormStore();
   const router = useRouter();
+  const userData = useUserData(state => state.userData);
+  const setUserData = useUserData(state => state.setUserData);
 
   // ✅ Use the custom hook instead of manual token management
   const { getToken } = useIdToken();
@@ -120,14 +123,6 @@ const nameAndContactForm = () => {
         // Convert contact number to E.164 format
         const e164ContactNumber = convertToE164Format(contactNumber);
 
-        // Prepare user data
-        const userData = {
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          phoneNumber: contactNumber, // Original formatted number
-          e164PhoneNumber: e164ContactNumber, // E.164 format for Firebase
-        };
-
         if (authUser) {
           // ✅ Use the hook's getToken method to ensure we have a valid token
           const token = await getToken();
@@ -157,8 +152,6 @@ const nameAndContactForm = () => {
               timeout: 30000, // 30 seconds timeout
             }
           );
-
-          console.log('✅ User data saved to backend:', response.data);
         }
 
         // Save to AsyncStorage using field operations to preserve existing data (like barangay)
@@ -166,6 +159,15 @@ const nameAndContactForm = () => {
         await storageHelpers.setField(STORAGE_KEYS.USER, 'lastName', lastName.trim());
         await storageHelpers.setField(STORAGE_KEYS.USER, 'phoneNumber', contactNumber);
         await storageHelpers.setField(STORAGE_KEYS.USER, 'e164PhoneNumber', e164ContactNumber);
+
+        setUserData({
+          userData: {
+            ...userData,
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            phoneNumber: contactNumber,
+          },
+        });
 
         // Debug: Check what we saved
         const savedUserData = await storageHelpers.getData(STORAGE_KEYS.USER);
