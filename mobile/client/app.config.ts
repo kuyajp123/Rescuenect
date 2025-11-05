@@ -60,6 +60,8 @@ export default ({ config }: { config: any }) => {
           RNMapboxMapsDownloadToken: process.env.EXPO_PUBLIC_MAPBOX_API_TOKEN,
         },
       ],
+      '@react-native-firebase/app',
+      '@react-native-firebase/messaging',
     ],
     experiments: {
       typedRoutes: true,
