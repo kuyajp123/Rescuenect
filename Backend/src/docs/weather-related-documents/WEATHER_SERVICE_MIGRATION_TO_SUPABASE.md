@@ -161,8 +161,8 @@ export const insertWeatherData = async (
 ```typescript
 // supabase/functions/weather-hourly/index.ts
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { WEATHER_LOCATIONS, getWeatherAPIUrl, convertToManilaTime, delay } from '../_shared/weather-utils.ts';
-import { insertWeatherData } from '../_shared/firestore-client.ts';
+import { WEATHER_LOCATIONS, getWeatherAPIUrl, convertToManilaTime, delay } from '../../_shared/weather-utils.ts';
+import { insertWeatherData } from '../../_shared/firestore-client.ts';
 
 interface HourlyWeatherData {
   timelines: {
@@ -261,8 +261,8 @@ serve(async req => {
 ```typescript
 // supabase/functions/weather-daily/index.ts
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { WEATHER_LOCATIONS, getWeatherAPIUrl, convertToManilaTime, delay } from '../_shared/weather-utils.ts';
-import { insertWeatherData } from '../_shared/firestore-client.ts';
+import { WEATHER_LOCATIONS, getWeatherAPIUrl, convertToManilaTime, delay } from '../../_shared/weather-utils.ts';
+import { insertWeatherData } from '../../_shared/firestore-client.ts';
 
 interface DailyWeatherData {
   timelines: {
@@ -356,8 +356,8 @@ serve(async req => {
 ```typescript
 // supabase/functions/weather-realtime/index.ts
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { WEATHER_LOCATIONS, getWeatherAPIUrl, convertToManilaTime, delay } from '../_shared/weather-utils.ts';
-import { insertWeatherData } from '../_shared/firestore-client.ts';
+import { WEATHER_LOCATIONS, getWeatherAPIUrl, convertToManilaTime, delay } from '../../_shared/weather-utils.ts';
+import { insertWeatherData } from '../../_shared/firestore-client.ts';
 
 const processRealtimeWeather = async (location: (typeof WEATHER_LOCATIONS)[0]) => {
   try {
