@@ -1,3 +1,4 @@
+
 // Weather Notification Core Logic - Shared Module
 // Supabase Edge Function Compatible Version
 
@@ -19,7 +20,7 @@ export interface WeatherData {
   cloudCover: number;
   temperatureApparent: number;
   visibility: number;
-  timestamp?: string; // ISO string
+  time?: string; // ISO string
 }
 
 export type NotificationLevel = 'CRITICAL' | 'WARNING' | 'ADVISORY' | 'INFO';
@@ -442,7 +443,7 @@ export class WeatherNotificationSystem {
   // 5. UV INDEX ALERTS
   // ============================================
   private checkUVConditions(data: WeatherData): void {
-    const { uvIndex, cloudCover, temperature } = data;
+    const { uvIndex, cloudCover } = data;
     const thresholds = WEATHER_THRESHOLDS.UV;
 
     // Only alert if there's significant sun exposure (low cloud cover)
@@ -482,7 +483,7 @@ export class WeatherNotificationSystem {
   // 6. STORM & SEVERE WEATHER ALERTS
   // ============================================
   private checkStormConditions(data: WeatherData): void {
-    const { weatherCode, windSpeed, rainIntensity, windGust, temperature } = data;
+    const { weatherCode, windSpeed, rainIntensity, windGust } = data;
     const stormThreshold = WEATHER_THRESHOLDS.STORM.CRITICAL;
 
     // THUNDERSTORM ALERT
@@ -530,7 +531,7 @@ export class WeatherNotificationSystem {
   // 7. FLOOD RISK ASSESSMENT
   // ============================================
   private checkFloodRiskConditions(data: WeatherData): void {
-    const { rainAccumulation, rainIntensity, precipitationProbability, windSpeed } = data;
+    const { rainAccumulation, rainIntensity, precipitationProbability } = data;
     const criticalThreshold = WEATHER_THRESHOLDS.RAIN.CRITICAL.combinedRisk;
 
     // FLASH FLOOD EMERGENCY (Multiple risk factors)
@@ -658,9 +659,9 @@ export class WeatherNotificationSystem {
    * Check if weather data is fresh (within reasonable time limits)
    */
   private isDataFresh(data: WeatherData): boolean {
-    if (!data.timestamp) return false;
+    if (!data.time) return false;
 
-    const dataTime = new Date(data.timestamp).getTime();
+    const dataTime = new Date(data.time).getTime();
     const now = new Date().getTime();
     const ageInMinutes = (now - dataTime) / (1000 * 60);
 

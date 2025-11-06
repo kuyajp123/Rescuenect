@@ -117,7 +117,7 @@
   },
   "include": [
     "src/**/*"
-  ],
+, "supabase/functions/_shared/weather-notification-core.ts"  ],
   "exclude": [
     "node_modules",
     "dist"

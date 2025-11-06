@@ -110,7 +110,7 @@ export const MainPage = () => {
               <Text size="6xl" style={styles.temperatureText}>
                 {Math.round(weatherData.realtime[0].temperature)}°C
               </Text>
-              <Text style={styles.locationText}>
+              <Text size='sm' style={styles.locationText}>
                 Brgy {userData.barangay} • {getWeatherCondition(weatherData.realtime[0].weatherCode)}
               </Text>
             </View>
@@ -360,6 +360,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 10,
     textAlign: 'center',
     marginTop: 10,
+    textTransform: 'capitalize',
   },
   weatherCards: {
     marginTop: 20,

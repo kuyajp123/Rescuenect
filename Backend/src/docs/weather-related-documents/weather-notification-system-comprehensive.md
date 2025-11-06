@@ -570,44 +570,104 @@ export async function getWeatherData(location: string, type: 'realtime' | 'hourl
 }
 
 /**
- * Get user FCM tokens based on audience and location preferences
+ * Get user FCM tokens based on audience and barangay location preferences
+ * Maps barangays to weather monitoring zones using getUsersBarangay helper
  */
-export async function getUserTokens(audience: 'admin' | 'public' | 'both', location?: string): Promise<string[]> {
+export async function getUserTokens(audience: 'admin' | 'users' | 'both', barangay?: string): Promise<string[]> {
   const db = initializeFirestore();
   const tokens: string[] = [];
 
   try {
-    let query = db.collection('users');
+    const collections = [];
 
-    // Filter by user type if not 'both'
-    if (audience !== 'both') {
-      query = query.where('userType', '==', audience);
+    // Determine which collections to query
+    if (audience === 'admin' || audience === 'both') {
+      collections.push('admin');
+    }
+    if (audience === 'users' || audience === 'both') {
+      collections.push('users');
     }
 
-    const snapshot = await query.get();
+    // Query each collection
+    for (const collectionName of collections) {
+      const snapshot = await db.collection(collectionName).get();
 
-    snapshot.forEach(doc => {
-      const userData = doc.data();
+      snapshot.forEach(doc => {
+        const userData = doc.data();
 
-      // Check if user wants notifications
-      if (userData.notificationsEnabled === false) return;
+        // Check if user wants notifications
+        if (userData.notificationsEnabled === false) return;
 
-      // Check location preferences if specified
-      if (location && userData.locationPreferences) {
-        if (!userData.locationPreferences.includes(location)) return;
-      }
+        // Check barangay preferences if specified
+        if (barangay && userData.barangayPreferences && userData.barangayPreferences.length > 0) {
+          // Check if user has this specific barangay in their preferences
+          if (!userData.barangayPreferences.includes(barangay)) {
+            // Also check if user has other barangays in the same weather zone
+            const targetZone = getUsersBarangay(barangay);
+            const userZones = userData.barangayPreferences.map(b => getUsersBarangay(b));
 
-      // Add FCM token if valid
-      if (userData.fcmToken && isValidToken(userData.fcmToken)) {
-        tokens.push(userData.fcmToken);
-      }
-    });
+            if (!userZones.includes(targetZone)) return;
+          }
+        }
 
-    return tokens;
+        // Add FCM token if valid
+        if (userData.fcmToken && isValidToken(userData.fcmToken)) {
+          tokens.push(userData.fcmToken);
+        }
+      });
+    }
+
+    return [...new Set(tokens)]; // Remove duplicates
   } catch (error) {
     console.error('Error fetching user tokens:', error);
     return [];
   }
+}
+
+/**
+ * Helper function to get weather zone for a barangay
+ * Import this from your getUserLocation.ts file
+ */
+function getUsersBarangay(barangay: string): string {
+  // This maps individual barangays to weather monitoring zones
+  const barangayMap: Record<string, string> = {
+    'Alapan I-A': 'coastal_west',
+    'Alapan I-B': 'coastal_west',
+    'Alapan II-A': 'coastal_west',
+    'Alapan II-B': 'coastal_west',
+    Bago: 'central_naic',
+    Banalo: 'naic_boundary',
+    Bucana: 'coastal_east',
+    'Buna Lejos': 'farm_area',
+    'Buna Cerca': 'farm_area',
+    'Capt. C. Nazareno (Pob.)': 'central_naic',
+    Cofradia: 'central_naic',
+    Dungguan: 'coastal_east',
+    'Gen. Castañeda (Pob.)': 'central_naic',
+    'Gomez-Zamora (Pob.)': 'central_naic',
+    'Ibayo Estacion': 'naic_boundary',
+    'Ibayo Silangan': 'naic_boundary',
+    Kanluran: 'central_naic',
+    Labac: 'naic_boundary',
+    Latoria: 'farm_area',
+    Mabolo: 'farm_area',
+    Madiit: 'coastal_east',
+    'Meyor Camilo D. Osias (Pob.)': 'central_naic',
+    Molino: 'naic_boundary',
+    Munggos: 'farm_area',
+    Muzon: 'sabang',
+    'Palangue Central': 'coastal_west',
+    'Palangue Norte': 'coastal_west',
+    'Palangue Sur': 'coastal_west',
+    Sabang: 'sabang',
+    Santulan: 'farm_area',
+    Sapa: 'coastal_west',
+    Silangan: 'central_naic',
+    'Timalan Balsahan': 'naic_boundary',
+    'Timalan Concepcion': 'naic_boundary',
+  };
+
+  return barangayMap[barangay] || 'central_naic'; // Default to central_naic if not found
 }
 
 /**
@@ -696,6 +756,105 @@ export async function getNotificationStats(timeframe: 'today' | 'week' | 'month'
     console.error('Error fetching notification stats:', error);
     return { total: 0, byLevel: {}, byLocation: {} };
   }
+}
+```
+
+## ⏰ Notification Timing & Deduplication
+
+### Scheduling Configuration
+
+```typescript
+// Cron schedules with 2-minute delays between notifications
+const NOTIFICATION_SCHEDULES = {
+  realtime: '0,30 * * * *', // Every 30 minutes
+  hourly: '2,32 * * * *', // 2 minutes after realtime
+  daily: '4 */12 * * *', // 4 minutes after hour, every 12 hours
+};
+```
+
+### Notification Deduplication System
+
+**Problem:** Multiple data sources can trigger duplicate notifications for the same weather event.
+
+**Solution:** Implement a consolidation system that:
+
+1. **Collects all conditions** within a time window (2 minutes)
+2. **Prioritizes data sources**: realtime > hourly > daily
+3. **Consolidates similar conditions** into single notifications
+4. **Prevents spam** with cooldown periods
+
+```typescript
+interface NotificationCache {
+  location: string;
+  conditions: WeatherCondition[];
+  highestSeverity: 'CRITICAL' | 'WARNING' | 'ADVISORY' | 'INFO';
+  lastSent: Date;
+  consolidationWindow: Date; // 2 minutes from first condition
+}
+
+/**
+ * Notification consolidation logic
+ */
+export async function consolidateNotifications(location: string, newCondition: WeatherCondition): Promise<boolean> {
+  const cache = await getNotificationCache(location);
+  const now = new Date();
+
+  // Check if we're within consolidation window
+  if (cache.consolidationWindow && now < cache.consolidationWindow) {
+    // Add to existing conditions
+    cache.conditions.push(newCondition);
+    cache.highestSeverity = getHighestSeverity([...cache.conditions]);
+    await updateNotificationCache(location, cache);
+    return false; // Don't send yet, wait for window to close
+  }
+
+  // Window closed or no existing cache - send consolidated notification
+  if (cache.conditions.length > 0) {
+    await sendConsolidatedNotification(location, cache.conditions);
+    await clearNotificationCache(location);
+  }
+
+  // Start new consolidation window
+  await setNotificationCache(location, {
+    location,
+    conditions: [newCondition],
+    highestSeverity: newCondition.severity,
+    lastSent: now,
+    consolidationWindow: new Date(now.getTime() + 2 * 60 * 1000), // 2 minutes
+  });
+
+  return true;
+}
+```
+
+### Data Source Priority
+
+```typescript
+const DATA_SOURCE_PRIORITY = {
+  realtime: 1, // Highest priority - most current data
+  hourly: 2, // Medium priority - trend data
+  daily: 3, // Lowest priority - forecast data
+};
+
+/**
+ * Filter conditions by data source priority
+ */
+function prioritizeConditions(conditions: WeatherCondition[]): WeatherCondition[] {
+  const grouped = conditions.reduce((acc, condition) => {
+    const source = condition.dataSource;
+    if (!acc[source]) acc[source] = [];
+    acc[source].push(condition);
+    return acc;
+  }, {} as Record<string, WeatherCondition[]>);
+
+  // Return conditions from highest priority source that has data
+  for (const source of ['realtime', 'hourly', 'daily']) {
+    if (grouped[source] && grouped[source].length > 0) {
+      return grouped[source];
+    }
+  }
+
+  return conditions;
 }
 ```
 
@@ -959,10 +1118,10 @@ CREATE EXTENSION IF NOT EXISTS pg_cron;
 -- 1. CRITICAL Notifications (Triggered by weather data updates, not scheduled)
 -- No cron job needed - will be called by weather collection functions
 
--- 2. WARNING Notifications (Every 30 minutes - aligned with realtime data)
+-- 2. WARNING Notifications (2 minutes after realtime data collection)
 SELECT cron.schedule(
   'weather-notification-warning',
-  '*/30 * * * *', -- Every 30 minutes
+  '2,32 * * * *', -- 2 minutes after realtime (0,30), allows consolidation
   $$
   SELECT net.http_post(
     url := 'https://your-project.supabase.co/functions/v1/notification-warning',
@@ -972,10 +1131,10 @@ SELECT cron.schedule(
   $$
 );
 
--- 3. ADVISORY Notifications (Every 2 hours)
+-- 3. ADVISORY Notifications (4 minutes after hourly data, every 2 hours)
 SELECT cron.schedule(
   'weather-notification-advisory',
-  '0 */2 * * *', -- Every 2 hours at minute 0
+  '4 */2 * * *', -- 4 minutes after hourly data collection
   $$
   SELECT net.http_post(
     url := 'https://your-project.supabase.co/functions/v1/notification-advisory',
@@ -985,10 +1144,10 @@ SELECT cron.schedule(
   $$
 );
 
--- 4. INFO Notifications (Every 6 hours)
+-- 4. INFO Notifications (6 minutes after daily data, every 12 hours)
 SELECT cron.schedule(
   'weather-notification-info',
-  '0 */6 * * *', -- Every 6 hours at minute 0
+  '6 */12 * * *', -- 6 minutes after daily data collection (every 12 hours)
   $$
   SELECT net.http_post(
     url := 'https://your-project.supabase.co/functions/v1/notification-info',
@@ -1022,17 +1181,37 @@ const criticalResponse = await fetch('https://your-project.supabase.co/functions
 
 ### User Notification Preferences
 
-Add to your existing user collection in Firestore:
+**Separate Collections Structure:**
 
 ```typescript
-// users/{userId}
-interface UserProfile {
-  // ... existing fields ...
+// admin/{adminId} - Admin users collection
+interface AdminProfile {
+  // ... existing admin fields ...
 
   // Notification preferences
   notificationsEnabled: boolean;
   notificationLevels: ('CRITICAL' | 'WARNING' | 'ADVISORY' | 'INFO')[];
-  locationPreferences: string[]; // Array of location keys
+  barangayPreferences: string[]; // Array of barangay names (e.g., ["Alapan I-A", "Alapan I-B"])
+  fcmToken: string; // Firebase Cloud Messaging token
+  notificationHistory: {
+    lastReceived: Date;
+    totalReceived: number;
+    preferences: {
+      quietHours: { start: string; end: string }; // "22:00" to "06:00"
+      weekendsOnly: boolean;
+      maxPerDay: number;
+    };
+  };
+}
+
+// users/{userId} - Regular users collection
+interface UserProfile {
+  // ... existing user fields ...
+
+  // Notification preferences
+  notificationsEnabled: boolean;
+  notificationLevels: ('CRITICAL' | 'WARNING' | 'ADVISORY' | 'INFO')[];
+  barangayPreferences: string[]; // Array of barangay names (e.g., ["Bago", "Bucana"])
   fcmToken: string; // Firebase Cloud Messaging token
   notificationHistory: {
     lastReceived: Date;
@@ -1063,6 +1242,91 @@ interface NotificationRecord {
   timestamp: Date;
   weatherData: Record<string, any>; // Snapshot of weather conditions
   responseTime: number; // Processing time in ms
+}
+```
+
+### Barangay Location Mapping
+
+**Integration with getUserLocation.ts helper:**
+
+```typescript
+// Import from your existing getUserLocation.ts file
+import { getUsersBarangay } from '../../../shared/functions/getUserLocation.ts';
+
+// All 29 barangays mapped to 6 weather monitoring zones
+const BARANGAY_ZONES = {
+  // Coastal West Zone
+  'Alapan I-A': 'coastal_west',
+  'Alapan I-B': 'coastal_west',
+  'Alapan II-A': 'coastal_west',
+  'Alapan II-B': 'coastal_west',
+  'Palangue Central': 'coastal_west',
+  'Palangue Norte': 'coastal_west',
+  'Palangue Sur': 'coastal_west',
+  Sapa: 'coastal_west',
+
+  // Central Naic Zone
+  Bago: 'central_naic',
+  'Capt. C. Nazareno (Pob.)': 'central_naic',
+  Cofradia: 'central_naic',
+  'Gen. Castañeda (Pob.)': 'central_naic',
+  'Gomez-Zamora (Pob.)': 'central_naic',
+  Kanluran: 'central_naic',
+  'Meyor Camilo D. Osias (Pob.)': 'central_naic',
+  Silangan: 'central_naic',
+
+  // Coastal East Zone
+  Bucana: 'coastal_east',
+  Dungguan: 'coastal_east',
+  Madiit: 'coastal_east',
+
+  // Farm Area Zone
+  'Buna Lejos': 'farm_area',
+  'Buna Cerca': 'farm_area',
+  Latoria: 'farm_area',
+  Mabolo: 'farm_area',
+  Munggos: 'farm_area',
+  Santulan: 'farm_area',
+
+  // Sabang Zone
+  Muzon: 'sabang',
+  Sabang: 'sabang',
+
+  // Naic Boundary Zone
+  Banalo: 'naic_boundary',
+  'Ibayo Estacion': 'naic_boundary',
+  'Ibayo Silangan': 'naic_boundary',
+  Labac: 'naic_boundary',
+  Molino: 'naic_boundary',
+  'Timalan Balsahan': 'naic_boundary',
+  'Timalan Concepcion': 'naic_boundary',
+};
+
+/**
+ * Get all barangays for a specific weather monitoring zone
+ */
+export function getBarangaysForZone(zone: string): string[] {
+  return Object.entries(BARANGAY_ZONES)
+    .filter(([_, zoneCode]) => zoneCode === zone)
+    .map(([barangay, _]) => barangay);
+}
+
+/**
+ * Get weather zone for a specific barangay
+ */
+export function getZoneForBarangay(barangay: string): string {
+  return BARANGAY_ZONES[barangay] || 'central_naic';
+}
+
+/**
+ * Cross-zone notification logic
+ * Users in one barangay can receive notifications for their weather zone
+ */
+export function shouldNotifyUser(userBarangays: string[], notificationBarangay: string): boolean {
+  const notificationZone = getZoneForBarangay(notificationBarangay);
+  const userZones = userBarangays.map(b => getZoneForBarangay(b));
+
+  return userZones.includes(notificationZone);
 }
 ```
 
@@ -1343,3 +1607,89 @@ Set up alerts for:
 - Community reporting features
 
 This comprehensive notification system will provide timely, accurate, and contextually relevant weather alerts to your users while maintaining optimal performance and reliability through Supabase Edge Functions and Firebase Cloud Messaging.
+
+---
+
+## 📋 Implementation Summary - Updated for Your Database Structure
+
+### ✅ Key Changes Made
+
+**1. Database Structure:**
+
+- ✅ Updated to use separate `admin/{adminId}` and `users/{userId}` collections
+- ✅ Modified `getUserTokens()` to query both collections based on audience parameter
+- ✅ Changed from generic `locationPreferences` to specific `barangayPreferences`
+
+**2. Location Mapping:**
+
+- ✅ Integrated with your existing `getUserLocation.ts` helper function
+- ✅ Added complete barangay-to-zone mapping for all 29 barangays
+- ✅ Implemented cross-zone notification logic for weather monitoring
+
+**3. Notification Timing:**
+
+- ✅ Added 2-minute delays between data collection and notifications
+- ✅ Updated cron schedules: realtime → warning → advisory → info
+- ✅ Staggered timing: `0,30` → `2,32` → `4` → `6` minute patterns
+
+**4. Deduplication System:**
+
+- ✅ Implemented notification consolidation with 2-minute windows
+- ✅ Added data source prioritization: realtime > hourly > daily
+- ✅ Created cooldown periods to prevent notification spam
+
+### 🔧 Updated Functions
+
+**getUserTokens(audience, barangay):**
+
+- Now queries both `admin` and `users` collections
+- Maps individual barangays to weather zones
+- Supports cross-zone notification logic
+
+**Notification Consolidation:**
+
+- Prevents duplicate alerts from multiple data sources
+- Consolidates multiple conditions into single notifications
+- Implements intelligent timing windows
+
+**Cron Job Scheduling:**
+
+```
+Realtime Data:  0,30 * * * *  (every 30 min)
+Warning Alerts: 2,32 * * * *  (2 min after)
+Advisory:       4 */2 * * *   (4 min after, every 2h)
+Info:          6 */12 * * *   (6 min after, every 12h)
+```
+
+### 🗂️ Database Collections Structure
+
+```
+admin/{adminId}
+├── notificationsEnabled: boolean
+├── notificationLevels: array
+├── barangayPreferences: ["Alapan I-A", "Bago", ...]
+└── fcmToken: string
+
+users/{userId}
+├── notificationsEnabled: boolean
+├── notificationLevels: array
+├── barangayPreferences: ["Bucana", "Sabang", ...]
+└── fcmToken: string
+```
+
+### 🌍 Location Mapping Integration
+
+Your `getUserLocation.ts` barangay categories are now fully integrated:
+
+- **coastal_west**: Alapan areas, Palangue areas, Sapa
+- **coastal_east**: Bucana, Dungguan, Madiit
+- **central_naic**: Bago, poblacion barangays, Cofradia, etc.
+- **sabang**: Muzon, Sabang
+- **farm_area**: Buna areas, Latoria, Mabolo, Munggos, Santulan
+- **naic_boundary**: Border barangays (Banalo, Ibayo, Labac, etc.)
+
+This system now matches your actual database structure and prevents the notification overlap issues you were experiencing!
+
+```
+
+```

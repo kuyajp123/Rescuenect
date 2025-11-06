@@ -4,7 +4,8 @@
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2",
     "@supabase/functions-js/edge-runtime.d.ts": "jsr:@supabase/functions-js@2/edge-runtime.d.ts",
     "firebase-admin/app": "https://esm.sh/firebase-admin@11.8.0/app",
-    "firebase-admin/firestore": "https://esm.sh/firebase-admin@11.8.0/firestore"
+    "firebase-admin/firestore": "https://esm.sh/firebase-admin@11.8.0/firestore",
+    "firebase-admin/messaging": "https://esm.sh/firebase-admin@11.8.0/messaging"
   },
   "compilerOptions": {
     "allowJs": true,

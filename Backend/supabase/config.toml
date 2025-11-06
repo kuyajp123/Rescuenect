@@ -424,3 +424,47 @@ entrypoint = "./functions/weather-realtime/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/weather-realtime/*.html" ]
+
+[functions.notification-critical]
+enabled = true
+verify_jwt = true
+import_map = "./functions/notification-critical/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/notification-critical/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/notification-critical/*.html" ]
+
+[functions.notification-warning]
+enabled = true
+verify_jwt = true
+import_map = "./functions/notification-warning/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/notification-warning/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/notification-warning/*.html" ]
+
+[functions.notification-advisory]
+enabled = true
+verify_jwt = true
+import_map = "./functions/notification-advisory/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/notification-advisory/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/notification-advisory/*.html" ]
+
+[functions.notification-info]
+enabled = true
+verify_jwt = true
+import_map = "./functions/notification-info/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/notification-info/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/notification-info/*.html" ]
