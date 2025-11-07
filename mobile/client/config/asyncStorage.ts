@@ -19,6 +19,7 @@ export interface User {
   lastName: string;
   phoneNumber: string;
   barangay: string;
+  fcmToken: string | null;
 }
 
 //
@@ -80,16 +81,16 @@ export const inititallizeAppStorage = async () => {
     const shareLocation = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'status_settings.shareLocation');
     const shareContact = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'status_settings.shareContact');
 
-    if (hasSignedOut === null) {
+    if (hasSignedOut === null || hasSignedOut === undefined) {
       await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', true);
     }
-    if (expirationDuration === null) {
+    if (expirationDuration === null || expirationDuration === undefined) {
       await storageHelpers.setField(STORAGE_KEYS.USER_SETTINGS, 'status_settings.expirationDuration', 24);
     }
-    if (shareLocation === null) {
+    if (shareLocation === null || shareLocation === undefined) {
       await storageHelpers.setField(STORAGE_KEYS.USER_SETTINGS, 'status_settings.shareLocation', true);
     }
-    if (shareContact === null) {
+    if (shareContact === null || shareContact === undefined) {
       await storageHelpers.setField(STORAGE_KEYS.USER_SETTINGS, 'status_settings.shareContact', true);
     }
     // console.log('✅ Storage initialized with default values where necessary.');

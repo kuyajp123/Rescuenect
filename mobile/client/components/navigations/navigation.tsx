@@ -8,6 +8,8 @@ export const handleAuthNavigation = async (user: any) => {
   try {
     const { isNewUser, userData, resetResponse } = useUserData.getState();
 
+    // this is the path after signing in of new users
+
     if (user) {
       if (isNewUser === true) {
         resetResponse();
@@ -40,6 +42,7 @@ export const handleAuthNavigation = async (user: any) => {
       } else {
         // console.log('❓ Undefined newUser state, checking storage for existing data');
         // console.log("user from else block", JSON.stringify(user, null, 2));
+        // this is also the navigation for currently logged in users
 
         await handleGuestNavigation();
         return;
@@ -58,7 +61,7 @@ export const handleAuthNavigation = async (user: any) => {
 
 // Handle navigation for guests (no authenticated user)
 export const handleGuestNavigation = async () => {
-  const { setUserData } = useUserData.getState();
+  const { setUserData, userData } = useUserData.getState();
 
   try {
     const savedUser = await storageHelpers.getData(STORAGE_KEYS.USER);
@@ -84,6 +87,7 @@ export const handleGuestNavigation = async () => {
 
     setUserData({
       userData: {
+        ...userData,
         firstName: savedUser.firstName || '',
         lastName: savedUser.lastName || '',
         phoneNumber: savedUser.phoneNumber || '',

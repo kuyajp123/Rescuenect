@@ -17,6 +17,7 @@ export const API_ROUTES = {
   DATA: {
     SAVE_USER_DATA: `${BASE_URL}/mobile/data/saveUserInfo`,
     SAVE_BARANGAY_DATA: `${BASE_URL}/mobile/data/saveBarangay`,
+    SAVE_FCMTOKENREFRESH: `${BASE_URL}/mobile/data/saveFcmTokenRefresh`,
   },
   GEOCODING: {
     GET_ADDRESS: `${BASE_URL}/mobile/api/geoCoding`,

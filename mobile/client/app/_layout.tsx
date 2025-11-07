@@ -1,9 +1,12 @@
 import RootLayoutContent from '@/components/components/_layout/RootLayout';
 import '@/components/components/ActionSheet/sheets';
+import { storageHelpers } from '@/components/helper/storage';
 import { useAuth } from '@/components/store/useAuth';
 import { useUserData } from '@/components/store/useBackendResponse';
 import { useStatusFormStore } from '@/components/store/useStatusForm';
 import { useWeatherStore } from '@/components/store/useWeatherStore';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { API_ROUTES } from '@/config/endpoints';
 import { FontSizeProvider } from '@/contexts/FontSizeContext';
 import { HighContrastProvider } from '@/contexts/HighContrastContext';
 import MapContext from '@/contexts/MapContext';
@@ -13,7 +16,10 @@ import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useSaveStatusSettings } from '@/hooks/useSaveStatusSettings';
 import { useStatusFetchBackgroundData } from '@/hooks/useStatusFetchBackgroundData';
 import { subscribeToWeatherData } from '@/hooks/useWeatherData';
+import { messaging } from '@/lib/firebaseConfig';
+import { onTokenRefresh } from '@react-native-firebase/messaging';
 import MapboxGL from '@rnmapbox/maps';
+import axios from 'axios';
 import React, { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { SheetProvider } from 'react-native-actions-sheet';
@@ -30,6 +36,7 @@ export default function RootLayout() {
   const setFormData = useStatusFormStore(state => state.setFormData);
   const statusData = useStatusFetchBackgroundData(authUser ? authUser.uid : null, idToken);
   const userData = useUserData((state: any) => state.userData);
+  const setUserData = useUserData((state: any) => state.setUserData);
   const setWeather = useWeatherStore(state => state.setWeather);
 
   useEffect(() => {
@@ -58,6 +65,54 @@ export default function RootLayout() {
 
     setFormData(formDataToSet);
   }, [statusData, authUser, setFormData]);
+
+  useEffect(() => {
+    if (!authUser) return;
+
+    let unsubscribeTokenRefresh: () => void = () => {};
+
+    const updateTokenInDatabase = async (fcmToken: string) => {
+      try {
+        const token = await authUser?.getIdToken();
+        const response = await axios.post(
+          API_ROUTES.DATA.SAVE_FCMTOKENREFRESH,
+          {
+            uid: authUser.uid,
+            fcmToken,
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        await storageHelpers.setField(STORAGE_KEYS.USER, 'fcmToken', fcmToken);
+
+        console.log('✅ FCM token updated in database', response.data);
+      } catch (error) {
+        console.error('❌ Error updating FCM token in database:', error);
+      }
+    };
+
+    unsubscribeTokenRefresh = onTokenRefresh(messaging, (token: string) => {
+      console.log('🔄 FCM Token refreshed:', token);
+
+      setUserData((prev: any) => ({
+        userData: {
+          ...prev.userData,
+          fcmToken: token,
+        },
+      }));
+
+      //  updateTokenInDatabase(token); // ✅ now safely called
+    });
+
+    return () => {
+      unsubscribeTokenRefresh();
+    };
+  }, [authUser]);
 
   useSaveStatusSettings(statusData);
 

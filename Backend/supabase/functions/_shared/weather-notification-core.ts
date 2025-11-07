@@ -1,4 +1,3 @@
-
 // Weather Notification Core Logic - Shared Module
 // Supabase Edge Function Compatible Version
 
@@ -33,7 +32,7 @@ export interface WeatherNotification {
   message: string;
   priority: number;
   timestamp: Date;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 // ============================================

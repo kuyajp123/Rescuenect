@@ -7,6 +7,7 @@ const useDataRoutes = Router();
 useDataRoutes.use(AuthMiddleware.verifyToken);
 
 useDataRoutes.post('/saveBarangay', SignInController.saveBarangayController);
+useDataRoutes.post('/saveFcmTokenRefresh', SignInController.saveFcmTokenRefreshController);
 useDataRoutes.post('/saveUserInfo', SignInController.saveUserInfoController);
 
 export default useDataRoutes;

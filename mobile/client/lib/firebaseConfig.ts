@@ -3,6 +3,12 @@ import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import { FirebaseApp, getApp, getApps, initializeApp } from "firebase/app";
 import { Auth, getAuth, getReactNativePersistence, initializeAuth } from 'firebase/auth';
 import { Firestore, getFirestore } from "firebase/firestore";
+import { getMessaging } from '@react-native-firebase/messaging';
+import { getApp as fcmGetApp } from '@react-native-firebase/app';
+
+
+const fcmApp = fcmGetApp();
+const messaging = getMessaging(fcmApp);
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_API_KEY,
@@ -43,5 +49,5 @@ try {
   }
 }
 
-export { auth };
+export { auth, messaging };
 

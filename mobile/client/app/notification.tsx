@@ -76,6 +76,7 @@ export const notification = () => {
     });
 
     // Handle background messages (when app is in background but not killed)
+    // This will be triggered when the user taps on a notification when the app is minimized
     const unsubscribeBackground = onNotificationOpenedApp(messaging, (remoteMessage: any) => {
       console.log('📨 Notification opened app from background:', remoteMessage);
       // Navigate to specific screen based on notification data
@@ -83,6 +84,7 @@ export const notification = () => {
     });
 
     // Handle messages when app is opened from a killed state
+    // This will be triggered when the user taps on a notification when the app is completely closed
     getInitialNotification(messaging).then((remoteMessage: any) => {
       if (remoteMessage) {
         console.log('📨 Notification opened app from killed state:', remoteMessage);
@@ -92,6 +94,7 @@ export const notification = () => {
     });
 
     // Token refresh listener
+    // This will be triggered when the FCM token is refreshed
     const unsubscribeTokenRefresh = onTokenRefresh(messaging, (token: string) => {
       console.log('🔄 FCM Token refreshed:', token);
       // Update token in your backend/database

@@ -19,6 +19,8 @@ import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useIdToken } from '@/hooks/useIdToken';
+import { messaging } from '@/lib/firebaseConfig';
+import { getToken as getFcmToken } from '@react-native-firebase/messaging';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { ChevronDown, X } from 'lucide-react-native';
@@ -83,11 +85,15 @@ const barangayForm = () => {
       return;
     }
 
+    let fcmToken = '';
+
     if (authUser) {
       try {
         const token = await getToken();
+        fcmToken = await getFcmToken(messaging);
+
         if (token) {
-          await saveBarangayToBackend(token);
+          await saveBarangayToBackend(token, fcmToken);
         } else {
           setErrorMessage('Failed to authenticate. Please try again.');
           return;
@@ -107,23 +113,30 @@ const barangayForm = () => {
       userData: {
         ...userData,
         barangay: selectedBarangay,
+        fcmToken,
       },
     });
 
     await storageHelpers.setField(STORAGE_KEYS.USER, 'barangay', selectedBarangay);
+    await storageHelpers.setField(STORAGE_KEYS.USER, 'fcmToken', fcmToken);
     await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', false);
 
     router.push('/auth/nameAndContactForm' as any);
   };
 
   // ✅ Fix: Extract the backend save logic to a separate function
-  const saveBarangayToBackend = async (token: string) => {
+  const saveBarangayToBackend = async (token: string, fcmToken: string) => {
+    if (!fcmToken || fcmToken.length === 0 || fcmToken === '') {
+      console.log('Failed to get FCM token. Please try again.');
+    }
+
     try {
       const response = await axios.post(
         API_ROUTES.DATA.SAVE_BARANGAY_DATA,
         {
           uid: authUser?.uid,
           barangay: selectedBarangay,
+          fcmToken,
         },
         {
           headers: {
@@ -134,11 +147,8 @@ const barangayForm = () => {
         }
       );
 
-      console.log('✅ Backend response:', response.data);
+      // console.log('✅ Backend response:', response.data);
 
-      await storageHelpers.setField(STORAGE_KEYS.USER, 'barangay', selectedBarangay);
-
-      router.push('/auth/nameAndContactForm' as any);
     } catch (error) {
       console.error('❌ Error saving barangay:', error);
       if (axios.isAxiosError(error)) {

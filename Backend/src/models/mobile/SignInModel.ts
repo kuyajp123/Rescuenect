@@ -34,12 +34,21 @@ export class SignInModel {
     }
   }
 
-  static async saveBarangay(uid: string, barangay: string): Promise<void> {
+  static async saveBarangay(uid: string, barangay: string, fcmToken: string): Promise<void> {
     try {
-      await this.userRef(uid).set({ barangay }, { merge: true });
+      await this.userRef(uid).set({ barangay, fcmToken }, { merge: true });
     } catch (error: Error | any) {
       console.error('Error saving barangay:', error);
       throw new Error('Failed to save barangay');
+    }
+  }
+
+  static async saveFcmTokenRefresh(uid: string, fcmToken: string): Promise<void> {
+    try {
+      await this.userRef(uid).set({ fcmToken }, { merge: true });
+    } catch (error: Error | any) {
+      console.error('Error saving FCM token:', error);
+      throw new Error('Failed to save FCM token');
     }
   }
 

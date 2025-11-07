@@ -775,11 +775,18 @@ export async function getNotificationStats(timeframe: 'today' | 'week' | 'month'
 
 ```typescript
 // Cron schedules with 2-minute delays between notifications
-const NOTIFICATION_SCHEDULES = {
-  realtime: '0,30 * * * *', // Every 30 minutes
-  hourly: '2,32 * * * *', // 2 minutes after realtime
-  daily: '4 */12 * * *', // 4 minutes after hour, every 12 hours
-};
+-- Update your cron jobs to add 2-minute delays:
+
+-- WARNING Notifications (2 min after realtime data)
+SELECT cron.schedule('weather-warning', '2,32 * * * *', $$...$$);
+
+-- ADVISORY Notifications (2 min after hourly data)  
+SELECT cron.schedule('weather-advisory', '2 * * * *', $$...$$);
+
+-- INFO Notifications (2 min after daily data)
+SELECT cron.schedule('weather-info', '2 */12 * * *', $$...$$);
+
+...and other cron jobs.
 ```
 
 ### Notification Deduplication System

@@ -175,7 +175,7 @@ export async function getUserTokens(
         const userData = doc.data();
 
         // Check if user wants notifications
-        if (userData.notificationsEnabled === false) return;
+        // if (userData.notificationsEnabled === false) return; // we send notifications to all users regardless of this setting
 
         // Check barangay preferences if weather zone is specified
         if (weatherZone && userData.barangay && userData.barangay.length > 0) {
