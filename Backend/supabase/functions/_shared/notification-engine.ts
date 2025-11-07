@@ -1,12 +1,17 @@
-import { WeatherNotificationSystem, NotificationLevel } from './weather-notification-core.ts';
 import { sendFCMNotification } from './fcm-client.ts';
-import { getWeatherData, getUserTokens } from './firestore-client.ts';
+import { getUserTokens, getWeatherData } from './firestore-client.ts';
+import {
+  NotificationLevel,
+  WeatherData,
+  WeatherNotification,
+  WeatherNotificationSystem,
+} from './weather-notification-core.ts';
 
 export interface NotificationConfig {
   level: NotificationLevel;
   maxNotificationsPerLocation: number;
   cooldownPeriod: number; // minutes
-  targetAudience: 'admin' | 'public' | 'both';
+  targetAudience: 'admin' | 'users' | 'both';
 }
 
 export class NotificationProcessor {
@@ -31,16 +36,17 @@ export class NotificationProcessor {
 
       for (const location of locations) {
         try {
-          // Get realtime weather data
-          const weatherData = await getWeatherData(location, 'realtime');
+          // Get weather data based on notification level priority
+          const dataType = this.getDataSourceForLevel(config.level);
+          const weatherData = await getWeatherData(location, dataType);
 
           if (!weatherData) {
-            console.log(`No weather data available for ${location}`);
+            console.log(`No ${dataType} weather data available for ${location}`);
             continue;
           }
 
-          // Check weather conditions
-          const notifications = this.weatherNotifier.checkWeatherConditions(weatherData);
+          // Check weather conditions (type assertion - assume data matches WeatherData interface)
+          const notifications = this.weatherNotifier.checkWeatherConditions(weatherData as unknown as WeatherData);
 
           // Filter by severity level
           const levelNotifications = notifications.filter(n => n.level === config.level);
@@ -48,14 +54,15 @@ export class NotificationProcessor {
           // Apply rate limiting and cooldown
           const notificationsToSend = this.applyRateLimiting(levelNotifications, location, config);
 
-          // Send notifications
-          for (const notification of notificationsToSend) {
+          // Send consolidated notifications to prevent multiple alerts for same weather event
+          if (notificationsToSend.length > 0) {
             try {
-              await this.sendNotificationToUsers(notification, location, config.targetAudience);
+              const consolidatedNotification = this.consolidateNotifications(notificationsToSend, location);
+              await this.sendNotificationToUsers(consolidatedNotification, location, config.targetAudience);
               results.sent++;
 
               // Track sent notifications for rate limiting
-              this.trackSentNotification(notification, location);
+              this.trackSentNotification(consolidatedNotification, location);
             } catch (error) {
               console.error(`Failed to send notification for ${location}:`, error);
               results.errors++;
@@ -84,7 +91,11 @@ export class NotificationProcessor {
   /**
    * Apply rate limiting and cooldown periods
    */
-  private applyRateLimiting(notifications: any[], location: string, config: NotificationConfig): any[] {
+  private applyRateLimiting(
+    notifications: WeatherNotification[],
+    location: string,
+    config: NotificationConfig
+  ): WeatherNotification[] {
     const now = new Date();
     const filtered = [];
 
@@ -118,26 +129,31 @@ export class NotificationProcessor {
    * Send notification to appropriate users
    */
   private async sendNotificationToUsers(
-    notification: any,
+    notification: WeatherNotification,
     location: string,
-    targetAudience: 'admin' | 'public' | 'both'
+    targetAudience: 'admin' | 'users' | 'both'
   ): Promise<void> {
-    // Get user tokens based on target audience
-    const userTokens = await getUserTokens(targetAudience, location);
+    // Get user tokens and barangays based on target audience and weather zone
+    const { tokens: userTokens, barangays } = await getUserTokens(targetAudience, location);
 
     if (userTokens.length === 0) {
       console.log(`No users to notify for ${targetAudience} audience in ${location}`);
       return;
     }
 
-    // Enhance notification with location context
+    // Use actual barangay names instead of generic zone name
+    const locationDisplayName =
+      barangays.length > 0 ? this.formatBarangayNames(barangays) : this.getLocationDisplayName(location);
+
+    // Enhance notification with specific barangay context
     const enhancedNotification = {
-      title: `${notification.title} - ${this.getLocationDisplayName(location)}`,
+      title: `${notification.title} - ${locationDisplayName}`,
       body: notification.message,
       data: {
         level: notification.level,
         category: notification.category,
         location: location,
+        barangays: barangays.join(','), // Include specific barangays in data
         timestamp: notification.timestamp.toISOString(),
         ...notification.data,
       },
@@ -150,13 +166,13 @@ export class NotificationProcessor {
   /**
    * Track sent notifications for rate limiting
    */
-  private trackSentNotification(notification: any, location: string): void {
+  private trackSentNotification(notification: WeatherNotification, location: string): void {
     const key = `${location}-${notification.category}-${notification.level}`;
     this.processedNotifications.set(key, new Date());
   }
 
   /**
-   * Get human-readable location name
+   * Get human-readable location name (fallback for zone names)
    */
   private getLocationDisplayName(locationKey: string): string {
     const locationNames = {
@@ -168,6 +184,83 @@ export class NotificationProcessor {
       naic_boundary: 'Naic Boundary',
     };
     return locationNames[locationKey as keyof typeof locationNames] || locationKey;
+  }
+
+  /**
+   * Format barangay names for display in notification titles
+   */
+  private formatBarangayNames(barangays: string[]): string {
+    if (barangays.length === 0) return '';
+
+    // Capitalize first letter of each barangay
+    const formatted = barangays.map(barangay =>
+      barangay
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ')
+    );
+
+    if (formatted.length === 1) {
+      return formatted[0];
+    } else if (formatted.length === 2) {
+      return `${formatted[0]} & ${formatted[1]}`;
+    } else if (formatted.length <= 4) {
+      return `${formatted.slice(0, -1).join(', ')} & ${formatted[formatted.length - 1]}`;
+    } else {
+      // Too many barangays, show first few + count
+      return `${formatted.slice(0, 2).join(', ')} & ${formatted.length - 2} other areas`;
+    }
+  }
+
+  /**
+   * Get appropriate data source based on notification level to prevent overlap
+   */
+  private getDataSourceForLevel(level: NotificationLevel): 'realtime' | 'hourly' | 'daily' {
+    switch (level) {
+      case 'CRITICAL':
+      case 'WARNING':
+        return 'realtime'; // Most urgent alerts use latest realtime data
+      case 'ADVISORY':
+        return 'hourly'; // Medium-term conditions use hourly trends
+      case 'INFO':
+        return 'daily'; // Long-term forecasts use daily data
+      default:
+        return 'realtime';
+    }
+  }
+
+  /**
+   * Consolidate multiple notifications for same weather event to prevent spam
+   */
+  private consolidateNotifications(notifications: WeatherNotification[], _location: string): WeatherNotification {
+    if (notifications.length === 1) {
+      return notifications[0];
+    }
+
+    // Sort by priority (1 = highest)
+    const sortedNotifications = notifications.sort((a, b) => a.priority - b.priority);
+    const primary = sortedNotifications[0];
+
+    // Combine multiple conditions into one comprehensive alert
+    const categories = [...new Set(notifications.map(n => n.category))];
+    const conditions = notifications.map(n => n.message.split('.')[0]).join(', ');
+
+    return {
+      level: primary.level,
+      category: categories.length > 1 ? 'Combined' : primary.category,
+      title: categories.length > 1 ? `🚨 MULTIPLE WEATHER HAZARDS` : primary.title,
+      message:
+        categories.length > 1
+          ? `Multiple weather hazards detected: ${conditions}. Take immediate precautions for all conditions.`
+          : primary.message,
+      priority: primary.priority,
+      timestamp: new Date(),
+      data: {
+        ...primary.data,
+        consolidatedConditions: categories,
+        totalAlerts: notifications.length,
+      },
+    };
   }
 
   /**

@@ -599,14 +599,24 @@ export async function getUserTokens(audience: 'admin' | 'users' | 'both', barang
         if (userData.notificationsEnabled === false) return;
 
         // Check barangay preferences if specified
-        if (barangay && userData.barangayPreferences && userData.barangayPreferences.length > 0) {
-          // Check if user has this specific barangay in their preferences
-          if (!userData.barangayPreferences.includes(barangay)) {
-            // Also check if user has other barangays in the same weather zone
-            const targetZone = getUsersBarangay(barangay);
-            const userZones = userData.barangayPreferences.map(b => getUsersBarangay(b));
+        if (barangay && userData.barangay && userData.barangay.length > 0) {
+          const alertZone = barangayMap[barangay.toLowerCase()];
 
-            if (!userZones.includes(targetZone)) return;
+          // Skip if we don't know this barangay's zone
+          if (!alertZone) {
+            console.warn(`Unknown barangay zone for: ${barangay}`);
+            return;
+          }
+
+          // Check if user has any barangay in the alert zone
+          const isUserInAlertZone = userData.barangay.some(userBarangay => {
+            const userZone = barangayMap[userBarangay.toLowerCase()];
+            return userZone === alertZone;
+          });
+
+          if (!isUserInAlertZone) {
+            // User not in affected weather zone - skip this user
+            return;
           }
         }
 
