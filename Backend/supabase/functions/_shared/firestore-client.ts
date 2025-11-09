@@ -178,20 +178,25 @@ export async function getUserTokens(
         // if (userData.notificationsEnabled === false) return; // we send notifications to all users regardless of this setting
 
         // Check barangay preferences if weather zone is specified
-        if (weatherZone && userData.barangay && userData.barangay.length > 0) {
-          // Get user's barangays that match the weather zone
-          const matchingBarangays = userData.barangay.filter((userBarangay: string) => {
-            const userBarangayZone = barangayMap[userBarangay.toLowerCase()];
-            return userBarangayZone === weatherZone;
-          });
+        if (weatherZone && userData.barangay) {
+          // Ensure barangay is an array
+          const userBarangays = Array.isArray(userData.barangay) ? userData.barangay : [userData.barangay];
 
-          if (matchingBarangays.length === 0) {
-            // User has no barangays in affected weather zone - skip this user
-            return;
+          if (userBarangays.length > 0) {
+            // Get user's barangays that match the weather zone
+            const matchingBarangays = userBarangays.filter((userBarangay: string) => {
+              const userBarangayZone = barangayMap[userBarangay.toLowerCase()];
+              return userBarangayZone === weatherZone;
+            });
+
+            if (matchingBarangays.length === 0) {
+              // User has no barangays in affected weather zone - skip this user
+              return;
+            }
+
+            // Add matching barangays to our collection
+            barangays.push(...matchingBarangays);
           }
-
-          // Add matching barangays to our collection
-          barangays.push(...matchingBarangays);
         }
 
         // Add FCM token if valid

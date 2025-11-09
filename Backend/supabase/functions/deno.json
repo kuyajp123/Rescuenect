@@ -3,9 +3,9 @@
     "serve": "https://deno.land/std@0.168.0/http/server.ts",
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2",
     "@supabase/functions-js/edge-runtime.d.ts": "jsr:@supabase/functions-js@2/edge-runtime.d.ts",
-    "firebase-admin/app": "https://esm.sh/firebase-admin@11.8.0/app",
-    "firebase-admin/firestore": "https://esm.sh/firebase-admin@11.8.0/firestore",
-    "firebase-admin/messaging": "https://esm.sh/firebase-admin@11.8.0/messaging"
+    "firebase-admin/app": "npm:firebase-admin@11.8.0/app",
+    "firebase-admin/firestore": "npm:firebase-admin@11.8.0/firestore",
+    "firebase-admin/messaging": "npm:firebase-admin@11.8.0/messaging"
   },
   "compilerOptions": {
     "allowJs": true,

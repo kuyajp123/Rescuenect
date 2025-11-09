@@ -146,6 +146,14 @@ export class NotificationProcessor {
       barangays.length > 0 ? this.formatBarangayNames(barangays) : this.getLocationDisplayName(location);
 
     // Enhance notification with specific barangay context
+    // Convert all data values to strings for FCM compatibility
+    const stringifiedData: Record<string, string> = {};
+    if (notification.data) {
+      for (const [key, value] of Object.entries(notification.data)) {
+        stringifiedData[key] = typeof value === 'object' ? JSON.stringify(value) : String(value);
+      }
+    }
+
     const enhancedNotification = {
       title: `${notification.title} - ${locationDisplayName}`,
       body: notification.message,
@@ -155,7 +163,7 @@ export class NotificationProcessor {
         location: location,
         barangays: barangays.join(','), // Include specific barangays in data
         timestamp: notification.timestamp.toISOString(),
-        ...notification.data,
+        ...stringifiedData,
       },
     };
 
