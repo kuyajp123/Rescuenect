@@ -3,6 +3,7 @@ import Header from '@/components/ui/header/Header';
 import { Map } from '@/components/ui/Map';
 import SideBar from '@/components/ui/sideBar/SideBar';
 import { StatusCard } from '@/components/ui/status';
+import { NotificationToast } from '@/components/ui/toast/NotificationToast';
 import { Button } from '@heroui/react';
 import { useState } from 'react';
 import { usePanelStore } from '../stores/panelStore.ts';
@@ -80,7 +81,7 @@ const MainLayout = () => {
                     dragging={false}
                     hasMapControl={true}
                     zoom={selectedUser ? 15 : 13}
-                    attribution=''
+                    attribution=""
                     markerType="status"
                   />
                 </div>
@@ -117,6 +118,10 @@ const MainLayout = () => {
           {isPanelOpen && <div className="fixed inset-0 bg-black/50 z-20 lg:hidden" onClick={closePanel} />}
         </div>
       </div>
+
+      {/* Notification prompt - shows after login if notifications not enabled */}
+      {/* <NotificationPrompt /> */}
+      {NotificationToast()}
     </div>
   );
 };

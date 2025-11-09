@@ -13,6 +13,7 @@ if (!BACKEND_URL) {
 export const API_ENDPOINTS = {
   AUTH: {
     SIGNIN: `${BACKEND_URL}/admin/auth/signin`,
+    UPDATE_FCM_TOKEN: `${BACKEND_URL}/admin/auth/update-fcm-token`,
   },
   STATUS: {
     GET_VERSIONS: `${BACKEND_URL}/admin/status/getVersions`,

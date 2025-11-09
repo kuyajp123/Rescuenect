@@ -4,14 +4,13 @@ import { useAuth } from '@/stores/useAuth';
 import { useErrorStore } from '@/stores/useErrorMessage';
 import axios from 'axios';
 import { GoogleAuthProvider, signInWithCredential, signInWithPopup } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
 import { SecondaryButton } from './';
 
 export const GoogleButton = () => {
   const isLoading = useAuth(state => state.isLoading);
   const isVerifying = useAuth(state => state.isVerifying);
-  const navigate = useNavigate();
   const setError = useErrorStore(state => state.setError);
+  const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
   const handleGoogleLogin = async () => {
     const { setVerifying, setLoading } = useAuth.getState();
@@ -23,6 +22,12 @@ export const GoogleButton = () => {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
 
+      if (!VAPID_KEY) {
+        throw new Error('VAPID key is not defined');
+      } else {
+        console.log('🔑 VAPID Key:', VAPID_KEY);
+      }
+
       const popupResult = await signInWithPopup(auth, provider);
       const credential = GoogleAuthProvider.credentialFromResult(popupResult);
       if (!credential) throw new Error('No Google credential found');
@@ -30,20 +35,30 @@ export const GoogleButton = () => {
       const tempUser = popupResult.user;
       const idToken = await tempUser.getIdToken();
 
-      // Backend verification
+      console.log('preparing to send data to backend');
+
+      // Backend verification - no fcmToken during login, will be set later
       await axios.post(
         API_ENDPOINTS.AUTH.SIGNIN,
-        { email: tempUser.email, uid: tempUser.uid },
+        { email: tempUser.email, uid: tempUser.uid, fcmToken: null },
         { headers: { Authorization: `Bearer ${idToken}` }, withCredentials: true }
       );
 
+      console.log('Backend verification complete');
+
       await signInWithCredential(auth, credential);
-      navigate('/');
+
+      console.log('User signed in successfully');
+
+      // Set loading states to false BEFORE navigation
+      setVerifying(false);
+      setLoading(false);
+
+      console.log('Navigating to home page');
     } catch (error: any) {
       await auth.signOut();
       console.error(error);
       setError(error.response?.data?.message || error.message);
-    } finally {
       setVerifying(false);
       setLoading(false);
     }

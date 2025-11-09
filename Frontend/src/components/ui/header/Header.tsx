@@ -1,3 +1,4 @@
+import { revokeToken } from '@/config/notificationPermission';
 import { ThemeSwitcher } from '@/hooks/ThemeSwitcher';
 import { Avatar } from '@heroui/avatar';
 import {
@@ -22,6 +23,7 @@ const Header = () => {
     const auth = getAuth();
 
     try {
+      revokeToken();
       await signOut(auth);
     } catch (error) {
       console.error('Error signing out:', error);

@@ -1,17 +1,27 @@
 import { GoogleButton } from '@/components/ui/button';
 import { useAuth } from '@/stores/useAuth';
-import { Navigate } from 'react-router-dom';
 import { useErrorStore } from '@/stores/useErrorMessage';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const userAuth = useAuth(state => state.auth);
   const isVerifying = useAuth(state => state.isVerifying);
   const error = useErrorStore(state => state.message);
+  const setError = useErrorStore(state => state.setError);
+  const navigate = useNavigate();
 
-  // Only redirect if user is authenticated AND not currently verifying
-  if (userAuth && !isVerifying) {
-    return <Navigate to="/" replace />;
-  }
+  useEffect(() => {
+    if (userAuth && !isVerifying) {
+      navigate('/');
+    }
+  }, [userAuth, isVerifying, navigate]);
+
+  useEffect(() => {
+    return () => {
+      setError('');
+    };
+  }, [setError]);
 
   return (
     <div className="flex flex-col flex-1">
