@@ -121,7 +121,7 @@ const MainLayout = () => {
 
       {/* Notification prompt - shows after login if notifications not enabled */}
       {/* <NotificationPrompt /> */}
-      {NotificationToast()}
+      <NotificationToast />
     </div>
   );
 };

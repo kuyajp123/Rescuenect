@@ -24,8 +24,6 @@ export const GoogleButton = () => {
 
       if (!VAPID_KEY) {
         throw new Error('VAPID key is not defined');
-      } else {
-        console.log('🔑 VAPID Key:', VAPID_KEY);
       }
 
       const popupResult = await signInWithPopup(auth, provider);
@@ -35,8 +33,6 @@ export const GoogleButton = () => {
       const tempUser = popupResult.user;
       const idToken = await tempUser.getIdToken();
 
-      console.log('preparing to send data to backend');
-
       // Backend verification - no fcmToken during login, will be set later
       await axios.post(
         API_ENDPOINTS.AUTH.SIGNIN,
@@ -44,11 +40,7 @@ export const GoogleButton = () => {
         { headers: { Authorization: `Bearer ${idToken}` }, withCredentials: true }
       );
 
-      console.log('Backend verification complete');
-
       await signInWithCredential(auth, credential);
-
-      console.log('User signed in successfully');
 
       // Set loading states to false BEFORE navigation
       setVerifying(false);

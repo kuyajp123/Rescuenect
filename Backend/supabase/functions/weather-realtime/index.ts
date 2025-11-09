@@ -7,7 +7,23 @@ const processRealtimeWeather = async (location: (typeof WEATHER_LOCATIONS)[0]) =
   try {
 
     const realtimeUrl = getWeatherAPIUrl(location.coordinates, 'realtime');
-    const response = await fetch(realtimeUrl);
+    // const response = await fetch(realtimeUrl);
+    const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          return res;
+        } catch (err) {
+          console.warn(`⚠️ Fetch attempt ${attempt} failed: ${err}`);
+          if (attempt === retries) throw err;
+          await delay(1000 * attempt); // wait longer each time
+        }
+      }
+      throw new Error('Unexpected fetch retry loop exit');
+    };
+
+    const response = await fetchWithRetry(realtimeUrl);
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
