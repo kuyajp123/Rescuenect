@@ -17,6 +17,11 @@ export const NotificationToast = () => {
   const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
   const handleEnableNotifications = async () => {
+    if (toastRef.current) {
+      closeToast(toastRef.current);
+      toastRef.current = null;
+    }
+
     if (!VAPID_KEY) {
       console.error('VAPID key is not defined');
       return;
@@ -39,12 +44,11 @@ export const NotificationToast = () => {
         const user = auth.currentUser;
         if (user) {
           const idToken = await user.getIdToken();
-          await axios.patch(
-            API_ENDPOINTS.AUTH.UPDATE_FCM_TOKEN, // You'll need to create this endpoint
-            { fcmToken },
+          await axios.put(
+            API_ENDPOINTS.AUTH.UPDATE_FCM_TOKEN,
+            { fcmToken, uid: user.uid },
             { headers: { Authorization: `Bearer ${idToken}` }, withCredentials: true }
           );
-          console.log('✅ Notifications enabled successfully!');
         }
       }
     } catch (error) {
@@ -88,6 +92,7 @@ export const NotificationToast = () => {
             <Button
               disabled={isLoading}
               onPress={handleEnableNotifications}
+              isDisabled={isLoading}
               size="sm"
               variant="solid"
               className="px-3 py-1.5 text-xs font-medium text-white bg-primary rounded hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { GeoCodingController } from '@/controllers/mobile/GeoCoding';
+import { GeoCodingController } from '@/controllers/mobile/GeoCodingController';
 import { AuthMiddleware } from '@/middlewares/AuthMiddleware';
 
 const geoCodingRoutes = Router();
