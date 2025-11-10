@@ -1,4 +1,4 @@
-import { IconButton } from '@/components/components/button/Button';
+import { HeaderBackButton, IconButton } from '@/components/components/button/Button';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { Colors } from '@/constants/Colors';
 import { useFontSize } from '@/contexts/FontSizeContext';
@@ -8,7 +8,6 @@ import { Stack, useRouter } from 'expo-router';
 import { Bell } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { HeaderBackButton } from '@/components/components/button/Button';
 
 function RootLayoutContent() {
   const { isDark, isLoading: themeLoading } = useTheme();
@@ -178,6 +177,19 @@ function RootLayoutContent() {
           name="auth"
           options={{
             headerShown: false,
+            title: '',
+            headerStyle: {
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerShadowVisible: false,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
+            animation: 'none',
+          }}
+        />
+        <Stack.Screen
+          name="profile"
+          options={{
+            headerShown: true,
             title: '',
             headerStyle: {
               backgroundColor: isDark ? Colors.background.dark : Colors.background.light,

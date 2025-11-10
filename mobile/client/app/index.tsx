@@ -10,29 +10,29 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        // Initialize storage with defaults FIRST
-        await inititallizeAppStorage();
-
-        // Initialize auth LAST (this triggers navigation)
-        await initializeAuth();
-      } catch (error) {
-        console.error('❌ Error during app initialization:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // storage.clear(); // Clear AsyncStorage for testing purposes
-    // handleLogout();
-    initializeApp();
-  }, []);
-
   // useEffect(() => {
-  //   router.replace('/status/(settings)/statusSettings');
-  // }, [router]);
+  //   const initializeApp = async () => {
+  //     try {
+  //       // Initialize storage with defaults FIRST
+  //       await inititallizeAppStorage();
+
+  //       // Initialize auth LAST (this triggers navigation)
+  //       await initializeAuth();
+  //     } catch (error) {
+  //       console.error('❌ Error during app initialization:', error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   // storage.clear(); // Clear AsyncStorage for testing purposes
+  //   // handleLogout();
+  //   initializeApp();
+  // }, []);
+
+  useEffect(() => {
+    router.replace('/profile');
+  }, [router]);
 
   if (loading) {
     return <SplashScreen />;

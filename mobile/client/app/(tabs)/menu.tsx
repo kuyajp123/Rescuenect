@@ -34,7 +34,7 @@ export const MenuScreen = () => {
     <Body style={styles.bodyContainer}>
       <View>
         {authUser ? (
-          <HoveredButton onPress={() => alert('profile click')} style={styles.HoveredButton}>
+          <HoveredButton onPress={() => router.push('profile' as any)} style={styles.HoveredButton}>
             <View style={styles.mainContainer}>
               <View>
                 <Avatar size="lg">

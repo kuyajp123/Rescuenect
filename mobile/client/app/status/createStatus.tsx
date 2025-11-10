@@ -114,6 +114,7 @@ export const createStatus = () => {
     deleteConfirm: false,
     submitFailure: false,
     isImageModalVisible: false,
+    savedStatus: false,
   });
   const toggleModal = (name: keyof typeof modals, value: boolean) => {
     setModals(prev => ({ ...prev, [name]: value }));
@@ -714,8 +715,9 @@ export const createStatus = () => {
       icon: <Bookmark size={16} color={'white'} />,
       onPress: () => {
         if (savedLocation) {
-          setCoords(savedLocation);
-          setHasUserTappedMap(false);
+          // setCoords(savedLocation);
+          // setHasUserTappedMap(false);
+          toggleModal('savedStatus', true);
         }
       },
     },
@@ -1229,6 +1231,20 @@ export const createStatus = () => {
           primaryButtonOnPress={() => sendSMS()}
           secondaryButtonText="Cancel"
           secondaryButtonOnPress={() => toggleModal('submitFailure', false)}
+          renderImage={() => renderImageState('submitFailure')}
+          primaryText="An error occurred."
+          secondaryText="Would you like to send the details you entered through your messaging app instead?"
+        />
+        <Modal
+          modalVisible={modals.savedStatus}
+          onClose={() => toggleModal('savedStatus', false)}
+          size="lg"
+          iconOnPress={() => toggleModal('savedStatus', false)}
+          sizeIcon={20}
+          primaryButtonText="Continue"
+          primaryButtonOnPress={() => sendSMS()}
+          secondaryButtonText="Cancel"
+          secondaryButtonOnPress={() => toggleModal('savedStatus', false)}
           renderImage={() => renderImageState('submitFailure')}
           primaryText="An error occurred."
           secondaryText="Would you like to send the details you entered through your messaging app instead?"
