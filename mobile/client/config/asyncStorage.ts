@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   USER: '@user',
   APP_STATE: '@app_state',
   USER_SETTINGS: '@user_settings',
+  SAVED_LOCATIONS: '@saved_locations',
 };
 
 //

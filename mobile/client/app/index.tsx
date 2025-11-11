@@ -31,7 +31,7 @@ const Index = () => {
   }, []);
 
   // useEffect(() => {
-  //   router.replace('/profile');
+  //   router.replace('/profile/(saveLocation)');
   // }, [router]);
 
   if (loading) {

@@ -184,3 +184,24 @@ export const formatTimeSince = (dateValue: any): string => {
     return 'Unknown';
   }
 };
+
+// address filter
+export const cleanAddress = (fullAddress: string) => {
+  // Split the address by commas and filter out unwanted parts
+  const addressParts = fullAddress.split(',').map(part => part.trim());
+
+  // Filter out postcode, region codes, and country
+  const filteredParts = addressParts.filter(part => {
+    // Remove parts that look like postcodes (numbers)
+    if (/^\d+$/.test(part)) return false;
+    // Remove common region identifiers
+    if (part.includes('Calabarzon') || part.includes('Philippines')) return false;
+    // Remove "unnamed road" (case insensitive)
+    if (part.toLowerCase().includes('unnamed road')) return false;
+    // Remove country codes and similar
+    if (part.length <= 4 && /^[A-Z]+$/.test(part)) return false;
+    return true;
+  });
+
+  return filteredParts.join(', ');
+};

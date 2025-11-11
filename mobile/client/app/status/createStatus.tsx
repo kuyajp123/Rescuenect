@@ -39,6 +39,7 @@ import { Bookmark, Ellipsis, Info, Navigation, Settings, SquarePen, Trash } from
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { cleanAddress } from '@/components/helper/commonHelpers';
 
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
@@ -1010,27 +1011,6 @@ export const createStatus = () => {
 
       if (result.success && result.address) {
         // console.log('Address fetched successfully:', result.address);
-
-        // Create a cleaner address by filtering out unnecessary components
-        const cleanAddress = (fullAddress: string) => {
-          // Split the address by commas and filter out unwanted parts
-          const addressParts = fullAddress.split(',').map(part => part.trim());
-
-          // Filter out postcode, region codes, and country
-          const filteredParts = addressParts.filter(part => {
-            // Remove parts that look like postcodes (numbers)
-            if (/^\d+$/.test(part)) return false;
-            // Remove common region identifiers
-            if (part.includes('Calabarzon') || part.includes('Philippines')) return false;
-            // Remove "unnamed road" (case insensitive)
-            if (part.toLowerCase().includes('unnamed road')) return false;
-            // Remove country codes and similar
-            if (part.length <= 4 && /^[A-Z]+$/.test(part)) return false;
-            return true;
-          });
-
-          return filteredParts.join(', ');
-        };
 
         // Properly construct AddressState object with cleaned address
         const addressState: AddressState = {

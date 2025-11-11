@@ -1,21 +1,29 @@
 import { HoveredButton } from '@/components/components/button/Button';
+import { storageHelpers } from '@/components/helper/storage';
 import { useCoords } from '@/components/store/useCoords';
 import { useMapSettingsStore } from '@/components/store/useMapSettings';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import MapboxGL from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, MapIcon } from 'lucide-react-native';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface MapViewProps {
-  mapStyle: MapboxGL.StyleURL;
+  coords?: [number, number];
+  handleMapPress?: (event: any) => void;
   onMapStyleChange?: (style: MapboxGL.StyleURL) => void;
-  onPress?: (coordinates: [number, number]) => void;
+  onPress?: (coords: [number, number]) => void;
   showButtons?: boolean;
   showStyleSelector?: boolean;
   interactive?: boolean;
+  pitchEnabled?: boolean;
+  compassEnabled?: boolean;
+  rotateEnabled?: boolean;
+  scrollEnabled?: boolean;
+  zoomEnabled?: boolean;
   centerCoordinate?: [number, number];
   zoomLevel?: number;
   minZoomLevel?: number;
@@ -25,9 +33,14 @@ interface MapViewProps {
 }
 
 export const MapView: React.FC<MapViewProps> = ({
-  mapStyle,
+  coords,
   onMapStyleChange,
-  onPress,
+  handleMapPress,
+  pitchEnabled = false,
+  rotateEnabled = true,
+  scrollEnabled = true,
+  compassEnabled = true,
+  zoomEnabled = true,
   showButtons = true,
   showStyleSelector = true,
   interactive = true,
@@ -41,54 +54,22 @@ export const MapView: React.FC<MapViewProps> = ({
   const router = useRouter();
   const { isDark } = useTheme();
   const [showMapStyles, setShowMapStyles] = useState(false);
+  const [mapStyleState, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
 
-  // Coords from store
-  const coords = useCoords(state => state.coords);
-  const oneTimeLocationCoords = useCoords(state => state.oneTimeLocationCoords);
-  const activeStatusCoords = useCoords(state => state.activeStatusCoords);
-  const setCoords = useCoords(state => state.setCoords);
-  const setActiveStatusCoords = useCoords(state => state.setActiveStatusCoords);
-
-  // Map settings from store
-  const compassEnabled = useMapSettingsStore(state => state.compassEnabled);
-  const pitchEnabled = useMapSettingsStore(state => state.pitchEnabled);
-  const rotateEnabled = useMapSettingsStore(state => state.rotateEnabled);
-  const scrollEnabled = useMapSettingsStore(state => state.scrollEnabled);
-  const zoomEnabled = useMapSettingsStore(state => state.zoomEnabled);
-
-  const handleMapPress = useCallback(
-    (event: any) => {
-      if (!interactive) return;
-
-      setActiveStatusCoords(false);
-      let mapCoords = null;
-
-      if (event && event.geometry && event.geometry.coordinates) {
-        mapCoords = event.geometry.coordinates;
-      } else if (event && event.coordinates) {
-        mapCoords = event.coordinates;
-      } else if (event && event.nativeEvent && event.nativeEvent.coordinate) {
-        mapCoords = [event.nativeEvent.coordinate.longitude, event.nativeEvent.coordinate.latitude];
+  useEffect(() => {
+    const loadMapStyle = async () => {
+      try {
+        const savedStyle = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'mapStyle');
+        if (savedStyle && Object.values(MapboxGL.StyleURL).includes(savedStyle as MapboxGL.StyleURL)) {
+          setMapStyleState(savedStyle as MapboxGL.StyleURL);
+        }
+      } catch (error) {
+        console.error('Error loading map style:', error);
       }
+    };
 
-      if (
-        !mapCoords ||
-        mapCoords.length !== 2 ||
-        typeof mapCoords[0] !== 'number' ||
-        typeof mapCoords[1] !== 'number'
-      ) {
-        return;
-      }
-
-      const markerCoordinate: [number, number] = [mapCoords[0], mapCoords[1]];
-      setCoords(markerCoordinate);
-      setActiveStatusCoords(false);
-
-      // Call external onPress if provided
-      onPress?.(markerCoordinate);
-    },
-    [interactive, setCoords, setActiveStatusCoords, onPress]
-  );
+    loadMapStyle();
+  }, []);
 
   const toggleMapStyles = useCallback(() => {
     setShowMapStyles(prev => !prev);
@@ -106,7 +87,7 @@ export const MapView: React.FC<MapViewProps> = ({
     <View style={styles.mapStyle}>
       <MapboxGL.MapView
         style={styles.mapStyle}
-        styleURL={mapStyle}
+        styleURL={mapStyleState}
         logoEnabled={false}
         compassEnabled={interactive ? compassEnabled : false}
         pitchEnabled={interactive ? pitchEnabled : false}
@@ -144,28 +125,13 @@ export const MapView: React.FC<MapViewProps> = ({
           </MapboxGL.VectorSource>
         )}
 
-        {oneTimeLocationCoords && (
-          <MapboxGL.PointAnnotation
-            key={`user-marker-${oneTimeLocationCoords[0]}-${oneTimeLocationCoords[1]}`}
-            id="user-marker"
-            coordinate={oneTimeLocationCoords}
-          >
-            <View style={styles.gpsMarker} />
-          </MapboxGL.PointAnnotation>
-        )}
-
         {coords && (
           <MapboxGL.PointAnnotation
-            key={`tap-marker-${activeStatusCoords ? 'green' : 'blue'}-${coords[0]}-${coords[1]}`}
-            id={`tap-marker-${activeStatusCoords ? 'green' : 'blue'}-${coords[0]}-${coords[1]}`}
+            key={`tap-marker-${coords ? 'green' : 'blue'}-${coords[0]}-${coords[1]}`}
+            id={`tap-marker-${coords ? 'green' : 'blue'}-${coords[0]}-${coords[1]}`}
             coordinate={coords}
           >
-            <View
-              style={[
-                styles.tapMarker,
-                { backgroundColor: activeStatusCoords ? Colors.semantic.success : Colors.brand.dark },
-              ]}
-            />
+            <View style={[styles.tapMarker, { backgroundColor: Colors.brand.dark }]} />
           </MapboxGL.PointAnnotation>
         )}
       </MapboxGL.MapView>
@@ -209,7 +175,11 @@ export const MapView: React.FC<MapViewProps> = ({
                     styles.mapStyleOption,
                     {
                       backgroundColor:
-                        mapStyle === option.value ? (isDark ? Colors.brand.dark : Colors.brand.light) : 'transparent',
+                        mapStyleState === option.value
+                          ? isDark
+                            ? Colors.brand.dark
+                            : Colors.brand.light
+                          : 'transparent',
                     },
                   ]}
                   onPress={() => handleStyleChange(option.value)}
@@ -218,7 +188,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     style={[
                       styles.mapStyleText,
                       {
-                        color: mapStyle === option.value ? 'white' : isDark ? Colors.text.dark : Colors.text.light,
+                        color: mapStyleState === option.value ? 'white' : isDark ? Colors.text.dark : Colors.text.light,
                       },
                     ]}
                   >
