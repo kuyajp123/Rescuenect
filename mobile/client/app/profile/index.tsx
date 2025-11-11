@@ -18,6 +18,7 @@ const index = () => {
   const authUser = useAuth(state => state.authUser)!;
   const { isDark } = useTheme();
   const router = useRouter();
+  
   return (
     <Body>
       {/* <ThemeSwitcher /> */}

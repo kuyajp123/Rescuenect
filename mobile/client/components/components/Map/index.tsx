@@ -1,6 +1,6 @@
 import { useCoords } from '@/components/store/useCoords';
 import { useGetAddress } from '@/components/store/useGetAddress';
-import { useMapButtonStore } from '@/components/store/useMapButton';
+import { useMapSettingsStore } from '@/components/store/useMapSettings';
 import { useStatusFormStore } from '@/components/store/useStatusForm';
 import { HStack } from '@/components/ui/hstack';
 import { Text } from '@/components/ui/text';
@@ -170,7 +170,7 @@ const Map = ({
   onLocationClear,
   errMessage = '',
 }: MapNewProps) => {
-  const { setIsVisible } = useMapButtonStore();
+  const { setHasButtons } = useMapSettingsStore();
   const { mapContainer } = useMap();
   const coords = useCoords(state => state.coords);
   const oneTimeLocationCoords = useCoords(state => state.oneTimeLocationCoords);
@@ -241,10 +241,10 @@ const Map = ({
     // console.log('handleSheetChanges', index);
 
     if (index === 2 || index === 1) {
-      setIsVisible(false);
+      setHasButtons(false);
     } else {
       Keyboard.dismiss();
-      setIsVisible(true);
+      setHasButtons(true);
     }
   };
 

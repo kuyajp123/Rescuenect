@@ -16,6 +16,7 @@ import { useAuth } from '@/components/store/useAuth';
 import { useCoords } from '@/components/store/useCoords';
 import { useGetAddress } from '@/components/store/useGetAddress';
 import { useImagePickerStore } from '@/components/store/useImagePicker';
+import { useMapSettingsStore } from '@/components/store/useMapSettings';
 import { useNetwork } from '@/components/store/useNetwork';
 import { useStatusFormStore } from '@/components/store/useStatusForm';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
@@ -86,6 +87,14 @@ export const createStatus = () => {
   const [formErrors, setFormErrors] = useState<StatusFormErrors>({});
   const errorFetching = useStatusFormStore(state => state.error);
   const setErrorFetching = useStatusFormStore(state => state.setError);
+
+  // Settings related states
+  const setHasButtons = useMapSettingsStore(state => state.setHasButtons);
+  const setCompassEnabled = useMapSettingsStore(state => state.setCompassEnabled);
+  const setPitchEnabled = useMapSettingsStore(state => state.setPitchEnabled);
+  const setRotateEnabled = useMapSettingsStore(state => state.setRotateEnabled);
+  const setScrollEnabled = useMapSettingsStore(state => state.setScrollEnabled);
+  const setZoomEnabled = useMapSettingsStore(state => state.setZoomEnabled);
 
   const [statusForm, setStatusForm] = useState<StatusStateData>({
     uid: authUser?.uid || '',
@@ -277,6 +286,16 @@ export const createStatus = () => {
       setIsManualSelection(false);
     }
   }, [coords, selectedCoords, isManualSelection]);
+
+  // enable default map settings
+  useEffect(() => {
+    setHasButtons(true);
+    setCompassEnabled(true);
+    setPitchEnabled(true);
+    setRotateEnabled(true);
+    setScrollEnabled(true);
+    setZoomEnabled(true);
+  }, [setHasButtons, setCompassEnabled, setPitchEnabled, setRotateEnabled, setScrollEnabled, setZoomEnabled]);
 
   // Handle GPS availability (secondary priority)
   useEffect(() => {

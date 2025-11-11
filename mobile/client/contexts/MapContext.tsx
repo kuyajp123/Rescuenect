@@ -1,6 +1,8 @@
 import { HoveredButton } from '@/components/components/button/Button';
-import { useMapButtonStore } from '@/components/store/useMapButton';
-import { storage } from '@/components/helper/storage';
+import { storageHelpers } from '@/components/helper/storage';
+import { useCoords } from '@/components/store/useCoords';
+import { useMapSettingsStore } from '@/components/store/useMapSettings';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import MapboxGL from '@rnmapbox/maps';
@@ -8,9 +10,6 @@ import { useRouter } from 'expo-router';
 import { ChevronLeft, MapIcon } from 'lucide-react-native';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useCoords } from '@/components/store/useCoords';
-import { storageHelpers } from '@/components/helper/storage';
-import { STORAGE_KEYS } from '@/config/asyncStorage';
 
 type coordTypes = [number, number] | null;
 
@@ -43,7 +42,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
 
   const [mapStyle, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
   const [showMapStyles, setShowMapStyles] = useState(false);
-  const isVisible = useMapButtonStore(state => state.isVisible);
+  const hasButtons = useMapSettingsStore(state => state.hasButtons);
   const router = useRouter();
   const { isDark } = useTheme();
 
@@ -188,7 +187,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
             })()}
         </MapboxGL.MapView>
 
-        {isVisible && (
+        {hasButtons && (
           <>
             <HoveredButton
               onPress={() => {
@@ -270,7 +269,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
     mapStyle,
     showMapStyles,
     isDark,
-    isVisible,
+    hasButtons,
     followUserLocation,
     activeStatusCoords,
   ]);
