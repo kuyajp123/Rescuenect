@@ -1,14 +1,14 @@
-import HighContrastOption from '@/hooks/HighContrastOption';
+import NavigationButton from '@/components/components/button/NavigationButton';
 import { Body } from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { ColorCombinations, Colors } from '@/constants/Colors';
 import { useHighContrast } from '@/contexts/HighContrastContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import HighContrastOption from '@/hooks/HighContrastOption';
 import { router } from 'expo-router';
-import { AArrowUp, TypeOutline } from 'lucide-react-native';
+import { AArrowUp, Bookmark, TypeOutline } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import NavigationButton from '@/components/components/button/NavigationButton';
 
 export const index = () => {
   const { isDark } = useTheme();
@@ -46,6 +46,25 @@ export const index = () => {
             description="Adjust the contrast of text to improve readability."
             iconLeft={<TypeOutline size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
             iconRight={<HighContrastOption />}
+          />
+        </View>
+        <View style={styles.sectionTitle}>
+          <Text emphasis="light">Preferences</Text>
+        </View>
+        <View
+          style={[
+            styles.sectionContainer,
+            {
+              borderColor: isDark ? Colors.border.dark : Colors.border.light,
+              backgroundColor: isDark ? ColorCombinations.statusTemplate.dark : ColorCombinations.statusTemplate.light,
+            },
+          ]}
+        >
+          <NavigationButton
+            label="Saved Locations"
+            onPress={() => router.push('profile/(saveLocation)' as any)}
+            description="Manage your saved locations."
+            iconLeft={<Bookmark size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
           />
         </View>
       </View>

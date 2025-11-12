@@ -15,6 +15,7 @@ import { Alert } from 'react-native';
 export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void) => {
   try {
     const { setUserData } = useUserData.getState();
+    const { userData } = useUserData.getState();
     setLoading?.(true);
 
     // Check Google Play Services
@@ -46,6 +47,7 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
     setUserData({
       isNewUser: response.data.isNewUser,
       userData: {
+        ...userData,
         firstName: response.data.user.firstName,
         lastName: response.data.user.lastName,
         barangay: response.data.user.barangay,
@@ -101,6 +103,8 @@ export const handleLogout = async () => {
     // Set sign-out flag to indicate intentional sign-out
     await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', true);
     // console.log("✅ Storage cleared and sign-out flag set");
+
+    await storageHelpers.removeData(STORAGE_KEYS.SAVED_LOCATIONS);
 
     // Sign out from Firebase (this will trigger the auth state listener)
     await auth.signOut();

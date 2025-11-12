@@ -12,7 +12,7 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface MapViewProps {
-  coords?: [number, number];
+  coords?: { lat: number; lng: number };
   handleMapPress?: (event: any) => void;
   onMapStyleChange?: (style: MapboxGL.StyleURL) => void;
   onPress?: (coords: [number, number]) => void;
@@ -29,6 +29,7 @@ interface MapViewProps {
   minZoomLevel?: number;
   maxZoomLevel?: number;
   followUserLocation?: boolean;
+  hasAnimation?: boolean;
   show3DBuildings?: boolean;
 }
 
@@ -49,6 +50,7 @@ export const MapView: React.FC<MapViewProps> = ({
   minZoomLevel = 11,
   maxZoomLevel = 20,
   followUserLocation = false,
+  hasAnimation = true,
   show3DBuildings = true,
 }) => {
   const router = useRouter();
@@ -102,6 +104,7 @@ export const MapView: React.FC<MapViewProps> = ({
           zoomLevel={zoomLevel}
           centerCoordinate={centerCoordinate}
           animationDuration={300}
+          animationMode={hasAnimation ? 'flyTo' : 'none'}
           minZoomLevel={minZoomLevel}
           maxZoomLevel={maxZoomLevel}
           followUserLocation={followUserLocation}
@@ -127,9 +130,9 @@ export const MapView: React.FC<MapViewProps> = ({
 
         {coords && (
           <MapboxGL.PointAnnotation
-            key={`tap-marker-${coords ? 'green' : 'blue'}-${coords[0]}-${coords[1]}`}
-            id={`tap-marker-${coords ? 'green' : 'blue'}-${coords[0]}-${coords[1]}`}
-            coordinate={coords}
+            key={`tap-marker-${coords ? 'green' : 'blue'}-${coords.lat}-${coords.lng}`}
+            id={`tap-marker-${coords ? 'green' : 'blue'}-${coords.lat}-${coords.lng}`}
+            coordinate={[coords.lng, coords.lat]}
           >
             <View style={[styles.tapMarker, { backgroundColor: Colors.brand.dark }]} />
           </MapboxGL.PointAnnotation>

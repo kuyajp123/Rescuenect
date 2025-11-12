@@ -1,6 +1,6 @@
 import RootLayoutContent from '@/components/components/_layout/RootLayout';
 import '@/components/components/ActionSheet/sheets';
-import { storageHelpers } from '@/components/helper/storage';
+import { storageHelpers, updateTokenInDatabase } from '@/components/helper';
 import { useAuth } from '@/components/store/useAuth';
 import { useUserData } from '@/components/store/useBackendResponse';
 import { useStatusFormStore } from '@/components/store/useStatusForm';
@@ -71,31 +71,6 @@ export default function RootLayout() {
 
     let unsubscribeTokenRefresh: () => void = () => {};
 
-    const updateTokenInDatabase = async (fcmToken: string) => {
-      try {
-        const token = await authUser?.getIdToken();
-        const response = await axios.post(
-          API_ROUTES.DATA.SAVE_FCMTOKENREFRESH,
-          {
-            uid: authUser.uid,
-            fcmToken,
-          },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        await storageHelpers.setField(STORAGE_KEYS.USER, 'fcmToken', fcmToken);
-
-        console.log('✅ FCM token updated in database', response.data);
-      } catch (error) {
-        console.error('❌ Error updating FCM token in database:', error);
-      }
-    };
-
     unsubscribeTokenRefresh = onTokenRefresh(messaging, (token: string) => {
       console.log('🔄 FCM Token refreshed:', token);
 
@@ -106,7 +81,7 @@ export default function RootLayout() {
         },
       }));
 
-      //  updateTokenInDatabase(token); // ✅ now safely called
+      updateTokenInDatabase(authUser, token);
     });
 
     return () => {
@@ -115,6 +90,30 @@ export default function RootLayout() {
   }, [authUser]);
 
   useSaveStatusSettings(statusData);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      if (!authUser) return;
+
+      try {
+        const params = { uid: authUser.uid };
+        const idToken = await authUser.getIdToken();
+        const response = await axios.get(API_ROUTES.DATA.GET_LOCATIONS, {
+          params,
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        });
+        if (response.status === 200 && response.data.savedLocations.length > 0) {
+          await storageHelpers.setData(STORAGE_KEYS.SAVED_LOCATIONS, response.data.savedLocations);
+        }
+      } catch (error) {
+        console.error('Error fetching locations:', error);
+      }
+    };
+
+    fetchLocations();
+  }, [authUser]);
 
   return (
     <GestureHandlerRootView style={styles.gestureHandlerContainer}>

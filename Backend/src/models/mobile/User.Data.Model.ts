@@ -9,23 +9,57 @@ export class UserDataModel {
     return db.collection('users').doc(userId.trim());
   }
 
-  static async saveLocationData(userLocationData: {
-    uid: string;
-    label: string;
-    location: string;
-    coordinates: { lat: number; lng: number };
-  }) {
+  static async saveLocationData(uid: string, id: string, label: string, location: string, lat: number, lng: number) {
     try {
-      const ref = this.pathRef(userLocationData.uid);
+      const ref = this.pathRef(uid);
+
+      // Get existing locations first
+      const doc = await ref.get();
+      const existingData = doc.exists ? doc.data() : {};
+      const existingLocations = existingData?.savedLocations || [];
+
+      // Check if location with this ID already exists
+      const existingLocationIndex = existingLocations.findIndex((loc: any) => loc.id === id);
+
+      let updatedLocations;
+      let operationType;
+
+      if (existingLocationIndex !== -1) {
+        // Update existing location
+        updatedLocations = [...existingLocations];
+        updatedLocations[existingLocationIndex] = { id, label, location, lat, lng };
+        operationType = 'updated';
+      } else {
+        // Add new location
+        updatedLocations = [...existingLocations, { id, label, location, lat, lng }];
+        operationType = 'created';
+      }
+
       await ref.set(
         {
-          savedLocations: userLocationData,
+          savedLocations: updatedLocations,
         },
         { merge: true }
       );
-      return userLocationData;
+
+      return { uid, id, label, location, lat, lng, operationType };
     } catch (error) {
       console.error('Error saving location data:', error);
+      throw error;
+    }
+  }
+
+  static async getLocationData(userId: string) {
+    try {
+      const ref = this.pathRef(userId);
+      const doc = await ref.get();
+      if (doc.exists) {
+        return doc.data()?.savedLocations || [];
+      } else {
+        return [];
+      }
+    } catch (error) {
+      console.error('Error getting location data:', error);
       throw error;
     }
   }
