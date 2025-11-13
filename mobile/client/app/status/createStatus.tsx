@@ -4,6 +4,7 @@ import { ImageModal } from '@/components/components/image-modal/ImageModal';
 import Map, { CustomButton, RadioField, TextInputField } from '@/components/components/Map';
 import Modal from '@/components/components/Modal';
 import {
+  cleanAddress,
   formatContactNumber,
   formatName,
   formatTimeSince,
@@ -18,6 +19,7 @@ import { useGetAddress } from '@/components/store/useGetAddress';
 import { useImagePickerStore } from '@/components/store/useImagePicker';
 import { useMapSettingsStore } from '@/components/store/useMapSettings';
 import { useNetwork } from '@/components/store/useNetwork';
+import { useSavedLocationsStore } from '@/components/store/useSavedLocationsStore';
 import { useStatusFormStore } from '@/components/store/useStatusForm';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { ButtonRadio } from '@/components/ui/CustomRadio';
@@ -34,12 +36,12 @@ import { navigateToStatusSettings } from '@/routes/route';
 import { AddressState, StatusFormErrors, StatusStateData } from '@/types/components';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
+import { useRouter } from 'expo-router';
 import { isEqual } from 'lodash';
 import { Bookmark, Ellipsis, Info, Navigation, Settings, SquarePen, Trash } from 'lucide-react-native';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { cleanAddress } from '@/components/helper/commonHelpers';
 
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
@@ -49,6 +51,7 @@ export const createStatus = () => {
   const isOnline = useNetwork(state => state.isOnline);
   const { isDark } = useTheme();
   const authUser = useAuth(state => state.authUser);
+  const router = useRouter();
 
   // Coords states
   const coords = useCoords(state => state.coords);
@@ -58,7 +61,7 @@ export const createStatus = () => {
   const setActiveStatusCoords = useCoords(state => state.setActiveStatusCoords);
   const resetCoordsState = useCoords(state => state.resetState);
   const savedLocation: [number, number] = [120.7752839, 14.2919325]; // simulate saved location
-  // const savedLocation: [number, number] | null = null; // simulate saved location
+  const savedLocations = useSavedLocationsStore(state => state.savedLocations);
 
   // Address store
   const addressCoords = useGetAddress(state => state.addressCoords);
@@ -124,7 +127,7 @@ export const createStatus = () => {
     deleteConfirm: false,
     submitFailure: false,
     isImageModalVisible: false,
-    savedStatus: false,
+    savedLocation: false,
   });
   const toggleModal = (name: keyof typeof modals, value: boolean) => {
     setModals(prev => ({ ...prev, [name]: value }));
@@ -733,13 +736,7 @@ export const createStatus = () => {
       key: 'saved-location',
       label: 'Saved location',
       icon: <Bookmark size={16} color={'white'} />,
-      onPress: () => {
-        if (savedLocation) {
-          // setCoords(savedLocation);
-          // setHasUserTappedMap(false);
-          toggleModal('savedStatus', true);
-        }
-      },
+      onPress: () => toggleModal('savedLocation', true),
     },
     {
       key: 'location-services',
@@ -1235,23 +1232,30 @@ export const createStatus = () => {
           secondaryText="Would you like to send the details you entered through your messaging app instead?"
         />
         <Modal
-          modalVisible={modals.savedStatus}
-          onClose={() => toggleModal('savedStatus', false)}
-          size="lg"
-          iconOnPress={() => toggleModal('savedStatus', false)}
+          modalVisible={modals.savedLocation}
+          onClose={() => toggleModal('savedLocation', false)}
+          size="full"
+          iconOnPress={() => toggleModal('savedLocation', false)}
           sizeIcon={20}
-          primaryButtonText="Continue"
-          primaryButtonOnPress={() => sendSMS()}
-          secondaryButtonText="Cancel"
-          secondaryButtonOnPress={() => toggleModal('savedStatus', false)}
-          renderImage={() => renderImageState('submitFailure')}
-          primaryText="An error occurred."
-          secondaryText="Would you like to send the details you entered through your messaging app instead?"
+          items={savedLocations.map(loc => ({
+            label: loc.label,
+            name: loc.location,
+            onPress: () => {
+              setCoords([loc.lng, loc.lat]);
+              setHasUserTappedMap(false);
+              toggleModal('savedLocation', false);
+            },
+          }))}
+          primaryButtonText="Add New Location"
+          primaryButtonOnPress={() => {
+            toggleModal('savedLocation', false);
+            router.push('profile/(saveLocation)' as any);
+          }}
         />
         <Modal
           modalVisible={modals.deleteConfirm}
           onClose={() => toggleModal('deleteConfirm', false)}
-          size="md"
+          size="lg"
           iconOnPress={() => toggleModal('deleteConfirm', false)}
           sizeIcon={20}
           primaryButtonText="Confirm"

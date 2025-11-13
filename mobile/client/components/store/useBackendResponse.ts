@@ -12,7 +12,7 @@ type AuthUser = {
   };
 };
 
-type BackendResponse = {
+type UserData = {
   isNewUser: boolean | null;
   userData: {
     firstName: string;
@@ -25,7 +25,7 @@ type BackendResponse = {
   resetResponse: () => void;
 };
 
-export const useUserData = create<BackendResponse>()(set => ({
+export const useUserData = create<UserData>()(set => ({
   isNewUser: null,
   userData: {
     firstName: '',

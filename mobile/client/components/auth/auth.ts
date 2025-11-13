@@ -11,6 +11,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import axios from 'axios';
 import { signInWithCustomToken } from 'firebase/auth';
 import { Alert } from 'react-native';
+import { useSavedLocationsStore } from '@/components/store/useSavedLocationsStore'
 
 export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void) => {
   try {
@@ -94,6 +95,7 @@ export const handleLogout = async () => {
   const resetResponse = useUserData.getState().resetResponse;
   const setFormData = useStatusFormStore.getState().setFormData;
   const setImage = useImagePickerStore.getState().setImage;
+  const clearLocations = useSavedLocationsStore.getState().clearLocations;
 
   try {
     resetFormData();
@@ -105,6 +107,7 @@ export const handleLogout = async () => {
     // console.log("✅ Storage cleared and sign-out flag set");
 
     await storageHelpers.removeData(STORAGE_KEYS.SAVED_LOCATIONS);
+    clearLocations();
 
     // Sign out from Firebase (this will trigger the auth state listener)
     await auth.signOut();

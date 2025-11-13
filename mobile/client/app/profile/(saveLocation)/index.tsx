@@ -4,6 +4,7 @@ import Modal from '@/components/components/Modal';
 import { cleanAddress } from '@/components/helper/commonHelpers';
 import { storageHelpers } from '@/components/helper/storage';
 import { useAuth } from '@/components/store/useAuth';
+import { useSavedLocationsStore } from '@/components/store/useSavedLocationsStore';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { Fab } from '@/components/ui/fab';
 import { HStack } from '@/components/ui/hstack';
@@ -59,7 +60,8 @@ const index = () => {
   const { isDark } = useTheme();
   const authUser = useAuth(state => state.authUser);
   const scaleValue = useRef(new Animated.Value(0)).current;
-  const [savedLocations, setSavedLocations] = useState<ItemData[]>([]);
+  const savedLocations = useSavedLocationsStore(state => state.savedLocations);
+  const setSavedLocations = useSavedLocationsStore(state => state.setSavedLocations);
   const [errMessage, setErrMessage] = useState<{ label: string; location: string; message: string }>({
     label: '',
     location: '',
@@ -73,23 +75,13 @@ const index = () => {
     const fetchLocations = async () => {
       try {
         const getSavedLocations = await storageHelpers.getData<ItemData[]>(STORAGE_KEYS.SAVED_LOCATIONS);
-        setSavedLocations(getSavedLocations || []);
+        setSavedLocations(getSavedLocations ?? []);
       } catch (error) {
         console.error('Error fetching locations:', error);
       }
     };
 
     fetchLocations();
-  }, [authUser]);
-
-  useEffect(() => {
-    const getData = async () => {
-      const getLocations = await storageHelpers.getData<ItemData[]>(STORAGE_KEYS.SAVED_LOCATIONS);
-      return getLocations || [];
-    };
-    getData().then(locations => {
-      setSavedLocations(locations);
-    });
   }, []);
 
   // Keyboard listeners

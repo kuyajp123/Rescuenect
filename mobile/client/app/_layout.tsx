@@ -3,6 +3,7 @@ import '@/components/components/ActionSheet/sheets';
 import { storageHelpers, updateTokenInDatabase } from '@/components/helper';
 import { useAuth } from '@/components/store/useAuth';
 import { useUserData } from '@/components/store/useBackendResponse';
+import { useSavedLocationsStore } from '@/components/store/useSavedLocationsStore';
 import { useStatusFormStore } from '@/components/store/useStatusForm';
 import { useWeatherStore } from '@/components/store/useWeatherStore';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
@@ -38,6 +39,7 @@ export default function RootLayout() {
   const userData = useUserData((state: any) => state.userData);
   const setUserData = useUserData((state: any) => state.setUserData);
   const setWeather = useWeatherStore(state => state.setWeather);
+  const setSavedLocations = useSavedLocationsStore(state => state.setSavedLocations);
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -104,8 +106,10 @@ export default function RootLayout() {
             Authorization: `Bearer ${idToken}`,
           },
         });
+
         if (response.status === 200 && response.data.savedLocations.length > 0) {
           await storageHelpers.setData(STORAGE_KEYS.SAVED_LOCATIONS, response.data.savedLocations);
+          setSavedLocations(response.data.savedLocations);
         }
       } catch (error) {
         console.error('Error fetching locations:', error);

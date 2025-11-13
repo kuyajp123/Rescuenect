@@ -1,4 +1,4 @@
-import { Button } from '@/components/components/button/Button';
+import { Button, HoveredButton } from '@/components/components/button/Button';
 import {
   Modal,
   ModalBackdrop,
@@ -13,7 +13,7 @@ import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { X } from 'lucide-react-native';
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 type ModalProps = {
   modalVisible: boolean;
@@ -28,7 +28,7 @@ type ModalProps = {
   primaryButtonText?: string;
   secondaryButtonText?: string;
   renderImage?: () => React.ReactNode;
-  items?: Array<{ label: string; value: string }>;
+  items?: Array<{ label: string; name?: string; onPress?: () => void }>;
   textAlign?: 'left' | 'center' | 'right';
 };
 
@@ -60,37 +60,27 @@ const index = ({
             <X onPress={iconOnPress} size={sizeIcon || 20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
           </ModalCloseButton>
         </ModalHeader>
-        <ModalBody>
+        <ModalBody style={{ maxHeight: 500, }}>
           {renderImage && renderImage()}
           {items && items.length > 0 && (
             <ScrollView>
               {items.map((item, index) => (
-                <Pressable
-                  key={index}
-                  style={[
-                    styles.items,
-                    {
-                      borderBottomColor: isDark ? Colors.border.dark : Colors.border.light,
-                    },
-                  ]}
-                  onPress={() => {}}
-                >
-                  <Text size="sm">{item.label}</Text>
-                </Pressable>
+                <HoveredButton key={index} onPress={item.onPress} style={styles.items}>
+                  <Text size="md">{item.label}</Text>
+                  {item.name && <Text size="sm">{item.name}</Text>}
+                </HoveredButton>
               ))}
             </ScrollView>
           )}
-          <Text bold size="sm" style={{ textAlign: textAlign || 'center' }}>
-            {primaryText}
-          </Text>
-          <Text style={{ textAlign: textAlign || 'center' }}>{secondaryText}</Text>
+          {primaryText && <Text size="sm" style={{ textAlign: textAlign || 'center', marginBottom: 10 }}>{primaryText}</Text>}
+          {secondaryText && <Text size="sm" style={{ textAlign: textAlign || 'center' }}>{secondaryText}</Text>}
         </ModalBody>
         <ModalFooter>
           <Button variant="link" width="fit" onPress={secondaryButtonOnPress}>
-            <Text>{secondaryButtonText}</Text>
+            <Text size='sm'>{secondaryButtonText}</Text>
           </Button>
           <Button variant="link" width="fit" onPress={primaryButtonOnPress}>
-            <Text>{primaryButtonText}</Text>
+            <Text size="sm">{primaryButtonText}</Text>
           </Button>
         </ModalFooter>
       </ModalContent>
@@ -100,8 +90,10 @@ const index = ({
 
 const styles = StyleSheet.create({
   items: {
-    padding: 16,
-    borderBottomWidth: 1,
+    padding: 20,
+    height: 'auto',
+    width: '100%',
+    borderRadius: 8,
   },
 });
 
