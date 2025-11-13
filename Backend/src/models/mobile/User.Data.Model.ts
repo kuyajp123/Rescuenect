@@ -63,4 +63,32 @@ export class UserDataModel {
       throw error;
     }
   }
+
+  static async deleteLocationData(uid: string, id: string) { 
+    try {
+      const ref = this.pathRef(uid);
+      const doc = await ref.get();
+      if (doc.exists) {
+        const existingData = doc.data();
+        const existingLocations = existingData?.savedLocations || [];
+
+        // Filter out the location to be deleted
+        const updatedLocations = existingLocations.filter((loc: any) => loc.id !== id);
+
+        await ref.set(
+          {
+            savedLocations: updatedLocations,
+          },
+          { merge: true }
+        );
+
+        return { uid, id, operationType: 'deleted' };
+      } else {
+        throw new Error('User data not found');
+      }
+    } catch (error) {
+      console.error('Error deleting location data:', error);
+      throw error;
+    }
+  }
 }

@@ -1,5 +1,6 @@
 import { getAddress } from '@/API/getAddress';
 import { Button, HoveredButton } from '@/components/components/button/Button';
+import Modal from '@/components/components/Modal';
 import { cleanAddress } from '@/components/helper/commonHelpers';
 import { storageHelpers } from '@/components/helper/storage';
 import { useAuth } from '@/components/store/useAuth';
@@ -7,6 +8,7 @@ import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { Fab } from '@/components/ui/fab';
 import { HStack } from '@/components/ui/hstack';
 import Body from '@/components/ui/layout/Body';
+import { LoadingOverlay } from '@/components/ui/loading';
 import { MapView } from '@/components/ui/map/MapView';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
@@ -17,7 +19,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
-import { Plus, X } from 'lucide-react-native';
+import { Plus, Trash, X } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, BackHandler, Keyboard, StyleSheet, TextInput, View } from 'react-native';
 
@@ -64,6 +66,8 @@ const index = () => {
     message: '',
   });
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -156,10 +160,6 @@ const index = () => {
     } else {
       setFABisVisible(false);
     }
-  };
-
-  const renderItem = ({ item }: { item: ItemData }) => {
-    return <Item item={item} onPress={() => handleItemPress(item.id)} />;
   };
 
   useEffect(() => {
@@ -296,11 +296,25 @@ const index = () => {
       return;
     }
 
+    // Handle unauthenticated users - save to local storage only
     if (!authUser) {
       try {
-        await storageHelpers.setData<ItemData[]>(STORAGE_KEYS.SAVED_LOCATIONS, [
-          ...savedLocations,
-          {
+        let updatedLocations: ItemData[];
+
+        if (selectedId) {
+          // Update existing location
+          const updatedLocation: ItemData = {
+            id: selectedId,
+            label,
+            location,
+            lat: coords!.lat,
+            lng: coords!.lng,
+          };
+
+          updatedLocations = savedLocations.map(loc => (loc.id === selectedId ? updatedLocation : loc));
+        } else {
+          // Create new location
+          const newLocation: ItemData = {
             id: `${label}-${coords!.lat.toFixed(6)}-${coords!.lng.toFixed(6)}-${Math.random()
               .toString(36)
               .substring(2, 8)}`,
@@ -308,22 +322,15 @@ const index = () => {
             location,
             lat: coords!.lat,
             lng: coords!.lng,
-          },
-        ]);
+          };
+          updatedLocations = [...savedLocations, newLocation];
+        }
 
-        setSavedLocations([
-          ...savedLocations,
-          {
-            id: `${label}-${coords!.lat.toFixed(6)}-${coords!.lng.toFixed(6)}-${Math.random()
-              .toString(36)
-              .substring(2, 8)}`,
-            label,
-            location,
-            lat: coords!.lat,
-            lng: coords!.lng,
-          },
-        ]);
+        // Save to AsyncStorage and update state
+        await storageHelpers.setData<ItemData[]>(STORAGE_KEYS.SAVED_LOCATIONS, updatedLocations);
+        setSavedLocations(updatedLocations);
 
+        // Clear form and show success
         setLabel('');
         setCoords(null);
         setLocation('');
@@ -332,6 +339,10 @@ const index = () => {
         bottomSheetRef.current?.close();
       } catch (error) {
         console.error('Error saving location locally:', error);
+        setErrMessage({
+          ...errMessage,
+          message: 'Error saving location locally: ' + (error instanceof Error ? error.message : 'Unknown error'),
+        });
       }
 
       return;
@@ -404,6 +415,48 @@ const index = () => {
     }
   };
 
+  const handleLocationDeletion = async (id: ItemData['id']) => {
+    if (!id) return;
+
+    try {
+      setDeleteLoading(true);
+      const updatedLocations = savedLocations.filter(location => location.id !== id);
+
+      if (authUser) {
+        const idToken = await authUser.getIdToken();
+        const response = await axios.delete(API_ROUTES.DATA.DELETE_LOCATION, {
+          data: { id, uid: authUser.uid },
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        });
+
+        if (response.status === 200) {
+          await storageHelpers.setData<ItemData[]>(STORAGE_KEYS.SAVED_LOCATIONS, updatedLocations);
+          setSavedLocations(updatedLocations);
+        }
+      } else {
+        // For unauthenticated users, delete from local storage only
+        await storageHelpers.setData<ItemData[]>(STORAGE_KEYS.SAVED_LOCATIONS, updatedLocations);
+        setSavedLocations(updatedLocations);
+      }
+    } catch (error) {
+      console.error('Error deleting location:', error);
+      setErrMessage({
+        ...errMessage,
+        message: 'Error deleting location: ' + (error instanceof Error ? error.message : 'Unknown error'),
+      });
+
+      setDeleteModalVisible(false);
+      setDeleteLoading(false);
+      return;
+    }
+
+    setDeleteLoading(false);
+    setDeleteModalVisible(false);
+    bottomSheetRef.current?.close();
+  };
+
   return (
     <>
       <Body style={{ padding: 0 }}>
@@ -449,9 +502,17 @@ const index = () => {
           }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
           keyboardDismissMode="interactive"
         >
-          <View style={{ alignItems: 'flex-end' }}>
+          <View style={{ display: 'flex', justifyContent: 'flex-end', gap: 15, flexDirection: 'row', width: '100%' }}>
+            {selectedId && (
+              <Trash
+                size={24}
+                color={isDark ? Colors.icons.dark : Colors.icons.light}
+                onPress={() => setDeleteModalVisible(true)}
+              />
+            )}
             <X
               size={24}
               color={isDark ? Colors.icons.dark : Colors.icons.light}
@@ -463,9 +524,9 @@ const index = () => {
               <VStack>
                 <HStack style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                   <Text size="lg">Update Location</Text>
-                  <Text size="sm" emphasis="light">
+                  {/* <Text size="sm" emphasis="light">
                     ID: {selectedId.slice(-8)}
-                  </Text>
+                  </Text> */}
                 </HStack>
                 <View style={{ marginTop: 15 }}>
                   <HStack style={{ gap: 10 }}>
@@ -628,7 +689,9 @@ const index = () => {
               <Text style={[styles.errorMessage, { marginTop: 10 }]}>{errMessage.message}</Text>
             </Text>
             <Button onPress={handleSaveLocation}>
-              <Text size="sm">{selectedId ? 'Update Location' : 'Save Location'}</Text>
+              <Text style={{ color: 'white' }} size="sm">
+                {selectedId ? 'Update Location' : 'Save Location'}
+              </Text>
             </Button>
           </View>
         </BottomSheetScrollView>
@@ -660,6 +723,22 @@ const index = () => {
         showAlertDialog={showSuccessDialog}
         handleClose={handleClose}
         text={selectedId ? 'Location updated successfully' : 'Location saved successfully'}
+      />
+      <LoadingOverlay
+        visible={deleteLoading}
+        width={300}
+        message="Deleting location..."
+        onRequestClose={() => setDeleteLoading(false)}
+      />
+      <Modal
+        modalVisible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+        primaryText="Delete Location"
+        secondaryText="Are you sure you want to delete this location?"
+        primaryButtonText="Confirm"
+        secondaryButtonText="No"
+        primaryButtonOnPress={() => handleLocationDeletion(selectedId!)}
+        secondaryButtonOnPress={() => setDeleteModalVisible(false)}
       />
     </>
   );

@@ -12,5 +12,6 @@ useDataRoutes.post('/saveFcmTokenRefresh', SignInController.saveFcmTokenRefreshC
 useDataRoutes.post('/saveUserInfo', SignInController.saveUserInfoController);
 useDataRoutes.post('/saveLocation', UserDataController.saveLocationController);
 useDataRoutes.get('/getLocations', UserDataController.getLocationsController);
+useDataRoutes.delete('/deleteLocation', UserDataController.deleteLocationController);
 
 export default useDataRoutes;
