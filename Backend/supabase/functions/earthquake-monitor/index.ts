@@ -87,22 +87,8 @@ serve(async (req: Request) => {
         // Get all user tokens (both admin and users for earthquake alerts)
         const { tokens } = await getUserTokens('both');
 
-        console.log(`🔍 Debug info for earthquake ${earthquake.id}:`);
-        console.log(`   - Magnitude: ${earthquake.magnitude}`);
-        console.log(`   - Severity: ${earthquake.severity}`);
-        console.log(`   - Priority: ${earthquake.priority}`);
-        console.log(`   - Should notify: ${shouldNotify(earthquake)}`);
-        console.log(`   - FCM tokens found: ${tokens.length}`);
-
         if (tokens.length === 0) {
           console.log(`⚠️ No FCM tokens found for earthquake ${earthquake.id} - checking database collections...`);
-
-          // Debug: Check if we have any users at all
-          const adminResult = await getUserTokens('admin');
-          const userResult = await getUserTokens('users');
-          console.log(`   - Admin tokens: ${adminResult.tokens.length}`);
-          console.log(`   - User tokens: ${userResult.tokens.length}`);
-
           continue;
         }
 

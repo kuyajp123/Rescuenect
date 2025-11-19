@@ -23,7 +23,18 @@ export interface WeatherData {
 }
 
 export type NotificationLevel = 'CRITICAL' | 'WARNING' | 'ADVISORY' | 'INFO';
-export type NotificationCategory = 'Heat' | 'Rain' | 'Wind' | 'Visibility' | 'UV' | 'Storm' | 'Flood' | 'Combined';
+export type NotificationCategory =
+  | 'Heat'
+  | 'Rain'
+  | 'Wind'
+  | 'Visibility'
+  | 'UV'
+  | 'Storm'
+  | 'Flood'
+  | 'Clear'
+  | 'Cloudy'
+  | 'Tropical'
+  | 'Combined';
 
 export interface WeatherNotification {
   level: NotificationLevel;
@@ -580,6 +591,213 @@ export class WeatherNotificationSystem {
         data: { rainIntensity, rainAccumulation, urbanFlooding: true },
       });
     }
+  }
+
+  // ============================================
+  // NORMAL WEATHER CONDITIONS (FOR FORECASTS)
+  // ============================================
+
+  /**
+   * Check for normal/pleasant weather conditions (for forecast notifications)
+   */
+  public checkNormalWeatherConditions(weatherData: WeatherData): WeatherNotification[] {
+    const normalNotifications: WeatherNotification[] = [];
+
+    // Clear/Pleasant Weather
+    if (this.isPleasantWeather(weatherData)) {
+      normalNotifications.push({
+        level: 'INFO',
+        category: 'Clear',
+        title: '☀️ Pleasant Weather Expected',
+        message: this.getPleasantWeatherMessage(weatherData),
+        priority: 10, // Low priority
+        timestamp: new Date(),
+        data: {
+          weather_type: 'pleasant',
+          temperature: weatherData.temperature,
+          humidity: weatherData.humidity,
+          weather_code: weatherData.weatherCode,
+        },
+      });
+    }
+
+    // Tropical Weather (High humidity but otherwise pleasant)
+    else if (this.isTropicalWeather(weatherData)) {
+      normalNotifications.push({
+        level: 'INFO',
+        category: 'Tropical',
+        title: '🌴 Typical Tropical Weather',
+        message: this.getTropicalWeatherMessage(weatherData),
+        priority: 10,
+        timestamp: new Date(),
+        data: {
+          weather_type: 'tropical',
+          temperature: weatherData.temperature,
+          humidity: weatherData.humidity,
+          weather_code: weatherData.weatherCode,
+        },
+      });
+    }
+
+    // Partly Cloudy (Normal)
+    else if (this.isPartlyCloudyWeather(weatherData)) {
+      normalNotifications.push({
+        level: 'INFO',
+        category: 'Cloudy',
+        title: '⛅ Partly Cloudy Weather',
+        message: this.getPartlyCloudyMessage(weatherData),
+        priority: 10,
+        timestamp: new Date(),
+        data: {
+          weather_type: 'partly_cloudy',
+          temperature: weatherData.temperature,
+          cloud_cover: weatherData.cloudCover,
+        },
+      });
+    }
+
+    // Light Rain (Normal)
+    else if (this.isLightRainWeather(weatherData)) {
+      normalNotifications.push({
+        level: 'INFO',
+        category: 'Rain',
+        title: '🌦️ Light Rain Expected',
+        message: this.getLightRainMessage(weatherData),
+        priority: 9,
+        timestamp: new Date(),
+        data: {
+          weather_type: 'light_rain',
+          rain_intensity: weatherData.rainIntensity,
+          precipitation_probability: weatherData.precipitationProbability,
+        },
+      });
+    }
+
+    return normalNotifications;
+  }
+
+  /**
+   * Check if weather conditions are pleasant (based on meteorological comfort standards)
+   * Temperature Comfort Index: 20-26°C optimal for tropical climates
+   * Humidity: <80% comfortable, 80-90% acceptable for tropics
+   * Cloud Cover: <50% clear to partly cloudy
+   * Wind: <12 km/h gentle conditions
+   */
+  private isPleasantWeather(data: WeatherData): boolean {
+    return (
+      data.temperature >= 20 &&
+      data.temperature <= 26 && // Optimal human comfort range
+      data.humidity <= 80 && // Professional comfort standard for tropics
+      data.rainIntensity <= 0.5 && // Light precipitation acceptable
+      data.windSpeed <= 12 && // Gentle breeze (professional wind scale)
+      data.cloudCover <= 50 // Clear to partly cloudy (professional cloud classification)
+    );
+  }
+
+  /**
+   * Check if weather is acceptable (partly cloudy but still comfortable)
+   * Extended comfort range for tropical climates
+   */
+  private isPartlyCloudyWeather(data: WeatherData): boolean {
+    return (
+      data.temperature >= 18 &&
+      data.temperature <= 28 && // Extended comfort range
+      data.cloudCover > 50 && // Start where pleasant weather ends
+      data.cloudCover <= 75 && // Mostly cloudy but not overcast
+      data.rainIntensity <= 1.0 && // Light rain acceptable
+      data.windSpeed <= 15 && // Fresh breeze acceptable
+      data.humidity <= 85 // Acceptable tropical humidity
+    );
+  }
+
+  /**
+   * Check if weather is typical tropical conditions (high humidity but otherwise pleasant)
+   * Professional meteorological classification for tropical maritime climates
+   * Humidity 85-95% is normal for Philippines but affects comfort
+   */
+  private isTropicalWeather(data: WeatherData): boolean {
+    return (
+      data.temperature >= 22 &&
+      data.temperature <= 30 && // Tropical temperature range
+      data.humidity > 85 &&
+      data.humidity <= 95 && // High but normal tropical humidity
+      data.rainIntensity <= 0.5 && // No significant precipitation
+      data.windSpeed <= 12 && // Gentle conditions
+      data.cloudCover <= 60 // Clear to partly cloudy
+    );
+  }
+
+  /**
+   * Check if it's light rain (not heavy enough for warnings)
+   */
+  private isLightRainWeather(data: WeatherData): boolean {
+    return (
+      data.rainIntensity > 0.1 &&
+      data.rainIntensity < 2.5 && // Light rain only
+      data.precipitationProbability >= 60 &&
+      data.windSpeed <= 10 // Not stormy
+    );
+  }
+
+  /**
+   * Generate tropical weather messages (professional meteorological classification)
+   */
+  private getTropicalWeatherMessage(data: WeatherData): string {
+    const temp = Math.round(data.temperature);
+    const humidity = Math.round(data.humidity);
+    const messages = [
+      `Typical tropical weather conditions. Temperature: ${temp}°C with ${humidity}% humidity. Consider indoor activities during peak hours. 🌴`,
+      `Standard tropical climate expected: ${temp}°C with high humidity (${humidity}%). Stay hydrated and seek shade when possible. 🌺`,
+      `Normal tropical conditions ahead: ${temp}°C, humidity ${humidity}%. Perfect weather for early morning or evening activities. 🌅`,
+    ];
+    return messages[Math.floor(Math.random() * messages.length)];
+  }
+
+  /**
+   * Generate pleasant weather messages
+   */
+  private getPleasantWeatherMessage(data: WeatherData): string {
+    const temp = Math.round(data.temperature);
+    const messages = [
+      `Perfect weather ahead! Temperature: ${temp}°C with clear skies. Great for outdoor activities! 🌞`,
+      `Beautiful day expected with ${temp}°C and sunny conditions. Perfect for going out! ☀️`,
+      `Lovely weather coming up! ${temp}°C with comfortable conditions. Enjoy the outdoors! 🌤️`,
+      `Clear skies and ${temp}°C temperature ahead. Perfect day for any outdoor plans! 🌟`,
+    ];
+    return messages[Math.floor(Math.random() * messages.length)];
+  }
+
+  /**
+   * Generate partly cloudy messages
+   */
+  private getPartlyCloudyMessage(data: WeatherData): string {
+    const temp = Math.round(data.temperature);
+    return `Partly cloudy conditions expected with ${temp}°C. Pleasant weather for most activities. ⛅`;
+  }
+
+  /**
+   * Generate light rain messages
+   */
+  private getLightRainMessage(data: WeatherData): string {
+    const temp = Math.round(data.temperature);
+    const rainChance = Math.round(data.precipitationProbability);
+    return `Light rain expected (${rainChance}% chance) with ${temp}°C. Don't forget your umbrella! 🌦️`;
+  }
+
+  /**
+   * Get all conditions including normal weather (for forecasts)
+   */
+  public checkAllWeatherConditions(weatherData: WeatherData, includeNormal: boolean = false): WeatherNotification[] {
+    // Get existing critical/warning conditions
+    const criticalConditions = this.checkWeatherConditions(weatherData);
+
+    if (includeNormal && criticalConditions.length === 0) {
+      // Only show normal conditions if no critical/warning conditions exist
+      const normalConditions = this.checkNormalWeatherConditions(weatherData);
+      return normalConditions;
+    }
+
+    return criticalConditions;
   }
 
   // ============================================

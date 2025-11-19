@@ -146,6 +146,55 @@ export async function getWeatherData(
 }
 
 /**
+ * Get multiple weather documents for forecast processing
+ * Returns an array of weather documents for hourly/daily data
+ */
+export async function getWeatherForecastData(
+  location: string,
+  type: 'hourly' | 'daily',
+  limit: number = 50
+): Promise<Array<Record<string, unknown>> | null> {
+  const db = initializeFirebase();
+
+  try {
+    // First, try to get documents without ordering to see if they exist
+    let snapshot = await db.collection('weather').doc(location).collection(type).limit(limit).get();
+
+    if (snapshot.empty) {
+      return null;
+    }
+
+    // Optional: Try to order by document ID to get them in sequence
+    try {
+      const orderedSnapshot = await db
+        .collection('weather')
+        .doc(location)
+        .collection(type)
+        .orderBy('__name__')
+        .limit(limit)
+        .get();
+
+      if (orderedSnapshot.docs.length > 0) {
+        console.log(`✅ Successfully ordered by document ID, got ${orderedSnapshot.docs.length} documents`);
+        snapshot = orderedSnapshot;
+      }
+    } catch (orderError) {
+      console.log(`⚠️ Could not order by document ID, using default order:`, orderError);
+    }
+
+    const documents = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return documents;
+  } catch (error) {
+    console.error(`❌ Error fetching ${type} forecast data for ${location}:`, error);
+    return null;
+  }
+}
+
+/**
  * Get user FCM tokens and barangays based on audience and weather zone
  */
 export async function getUserTokens(
@@ -206,9 +255,12 @@ export async function getUserTokens(
       });
     }
 
+    const uniqueTokens = [...new Set(tokens)];
+    const uniqueBarangays = [...new Set(barangays)];
+
     return {
-      tokens: [...new Set(tokens)], // Remove duplicate tokens
-      barangays: [...new Set(barangays)], // Remove duplicate barangays
+      tokens: uniqueTokens,
+      barangays: uniqueBarangays,
     };
   } catch (error) {
     console.error('Error fetching user tokens:', error);
@@ -280,8 +332,10 @@ export async function saveNotificationHistory(
       timestamp: new Date(),
       createdAt: new Date().toISOString(),
 
-      // Additional data payload
-      data: notification.data || {},
+      // Additional data payload (filter out undefined values)
+      data: notification.data
+        ? Object.fromEntries(Object.entries(notification.data).filter(([_, value]) => value !== undefined))
+        : {},
     });
   } catch (error) {
     console.error('Error saving notification history:', error);
