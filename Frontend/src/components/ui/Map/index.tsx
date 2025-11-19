@@ -8,8 +8,9 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import 'leaflet/dist/leaflet.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { MapContainer, Marker, Popup, useMap } from 'react-leaflet';
+import { Circle, MapContainer, Marker, Popup, useMap } from 'react-leaflet';
 import { MapStyleSelector } from './MapStyleSelector';
+Circle;
 
 const shadowUrl = markerShadow;
 const iconSize: [number, number] = [25, 41];
@@ -292,6 +293,14 @@ export const Map = ({
           {overlayComponent}
         </CustomControl>
       )}
+
+      {/* {data.length > 0 && (
+        <Circle
+          center={[data[0].lat, data[0].lng]} // where to put the circle
+          radius={1000} // radius in meters
+          pathOptions={{ color: 'red' }} // style
+        />
+      )} */}
 
       {data.map(item => (
         <Marker
