@@ -168,3 +168,95 @@ export function isValidFCMToken(token: string): boolean {
 export function cleanTokenList(tokens: string[]): string[] {
   return tokens.filter(token => isValidFCMToken(token));
 }
+
+export async function sendEarthquakeNotification(
+  earthquake: {
+    id: string;
+    magnitude: number;
+    place: string;
+    time: number;
+    severity: string;
+    priority: string;
+    tsunami_warning: boolean;
+    usgs_url: string;
+    coordinates: {
+      longitude: number;
+      latitude: number;
+      depth: number;
+    };
+  },
+  tokens: string[]
+): Promise<{ success: number; failure: number; errors: string[] }> {
+  // Skip notifications for micro earthquakes (below 2.0)
+  if (earthquake.magnitude < 2.0) {
+    return { success: 0, failure: 0, errors: ['Below notification threshold'] };
+  }
+
+  // Determine notification style based on magnitude and tsunami warning
+  let title = '';
+  let _emoji = '';
+  let _priority: 'normal' | 'high' = 'normal';
+
+  if (earthquake.tsunami_warning) {
+    title = `🌊 TSUNAMI WARNING - Magnitude ${earthquake.magnitude} Earthquake`;
+    _emoji = '🌊';
+    _priority = 'high';
+  } else if (earthquake.magnitude >= 6.0) {
+    title = `🚨 CRITICAL EARTHQUAKE - Magnitude ${earthquake.magnitude}`;
+    _emoji = '🚨';
+    _priority = 'high';
+  } else if (earthquake.magnitude >= 5.0) {
+    title = `🔴 Strong Earthquake - Magnitude ${earthquake.magnitude}`;
+    _emoji = '🔴';
+    _priority = 'high';
+  } else if (earthquake.magnitude >= 4.0) {
+    title = `🟠 Earthquake Alert - Magnitude ${earthquake.magnitude}`;
+    _emoji = '🟠';
+  } else {
+    title = `🟡 Minor Earthquake - Magnitude ${earthquake.magnitude}`;
+    _emoji = '🟡';
+  }
+
+  // Create enhanced body message
+  let body = '';
+  const timeString = new Date(earthquake.time).toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  if (earthquake.tsunami_warning) {
+    body = `🌊 TSUNAMI THREAT: Magnitude ${earthquake.magnitude} earthquake ${earthquake.place} at ${timeString}. MOVE TO HIGHER GROUND IMMEDIATELY!`;
+  } else if (earthquake.magnitude >= 6.0) {
+    body = `🆘 CRITICAL: Magnitude ${earthquake.magnitude} earthquake ${earthquake.place} at ${timeString}. TAKE IMMEDIATE SHELTER!`;
+  } else if (earthquake.magnitude >= 5.0) {
+    body = `⚠️ Strong earthquake detected: Magnitude ${earthquake.magnitude} ${earthquake.place} at ${timeString}. Take safety precautions!`;
+  } else if (earthquake.magnitude >= 4.0) {
+    body = `Magnitude ${earthquake.magnitude} earthquake occurred ${earthquake.place} at ${timeString}. Stay alert and follow safety protocols.`;
+  } else {
+    body = `Minor earthquake detected: Magnitude ${earthquake.magnitude} ${earthquake.place} at ${timeString}.`;
+  }
+
+  const notification = {
+    title,
+    body,
+    data: {
+      type: 'earthquake_alert',
+      earthquake_id: earthquake.id,
+      magnitude: earthquake.magnitude.toString(),
+      location: earthquake.place,
+      time: earthquake.time.toString(),
+      severity: earthquake.severity,
+      priority: earthquake.priority,
+      tsunami_warning: earthquake.tsunami_warning.toString(),
+      usgs_url: earthquake.usgs_url,
+      coordinates: JSON.stringify(earthquake.coordinates),
+      depth: earthquake.coordinates.depth.toString(),
+    },
+  };
+
+  // Use your existing sendFCMNotification function!
+  return await sendFCMNotification(notification, tokens);
+}

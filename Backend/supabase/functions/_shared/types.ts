@@ -75,4 +75,125 @@ export interface EnvironmentConfig {
   FIREBASE_SERVICE_ACCOUNT_KEY: string;
 }
 
+// ========================
+// EARTHQUAKE SYSTEM TYPES
+// ========================
+
+export interface EarthquakeData {
+  id: string;
+  magnitude: number;
+  place: string;
+  time: number;
+  coordinates: {
+    longitude: number;
+    latitude: number;
+    depth: number;
+  };
+  severity: 'minor' | 'light' | 'moderate' | 'strong' | 'major' | 'great';
+  tsunami_warning: boolean;
+}
+
+export interface EarthquakeNotification {
+  type: 'earthquake_alert';
+  earthquake_id: string;
+  magnitude: number;
+  location: string;
+  severity: string;
+  timestamp: number;
+}
+
+export interface USGSEarthquake {
+  id: string;
+  type: 'Feature';
+  properties: {
+    mag: number;
+    place: string;
+    time: number;
+    updated: number;
+    url: string;
+    tsunami: number;
+    status: string;
+    title: string;
+    detail: string;
+  };
+  geometry: {
+    type: 'Point';
+    coordinates: [number, number, number]; // [lng, lat, depth]
+  };
+}
+
+export interface USGSResponse {
+  type: 'FeatureCollection';
+  features: USGSEarthquake[];
+  metadata: {
+    count: number;
+    status: number;
+    generated: number;
+    title: string;
+  };
+}
+
+export interface ProcessedEarthquake {
+  id: string;
+  magnitude: number;
+  place: string;
+  time: number;
+  updated: number;
+  coordinates: {
+    longitude: number;
+    latitude: number;
+    depth: number;
+  };
+  severity: 'micro' | 'minor' | 'light' | 'moderate' | 'strong' | 'major' | 'great';
+  priority: 'low' | 'normal' | 'high' | 'critical';
+  tsunami_warning: boolean;
+  usgs_url: string;
+  distance_km?: number;
+  impact_radii: {
+    felt_radius_km: number;
+    moderate_shaking_radius_km: number;
+    strong_shaking_radius_km: number;
+    estimation_params: {
+      feltA: number;
+      moderateA: number;
+      strongA: number;
+      B: number;
+      D: number;
+    };
+  };
+  notification_sent: boolean;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface EarthquakeNotificationData {
+  type: 'earthquake_alert';
+  earthquake_id: string;
+  magnitude: string;
+  location: string;
+  time: string;
+  severity: string;
+  priority: string;
+  usgs_url: string;
+  coordinates: string; // JSON string of coordinates
+  tsunami_warning: string;
+}
+
+export interface EarthquakeMonitorResult {
+  success: boolean;
+  message: string;
+  new_earthquakes: number;
+  notifications_sent: number;
+  total_processed: number;
+  timestamp: string;
+  earthquakes?: Array<{
+    id: string;
+    magnitude: number;
+    place: string;
+    time: string;
+    severity: string;
+  }>;
+  error?: string;
+}
+
 export {};

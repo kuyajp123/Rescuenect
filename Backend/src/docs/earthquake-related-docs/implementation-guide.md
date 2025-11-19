@@ -149,6 +149,13 @@ supabase functions new earthquake-monitor
 
 # Directory structure will be created:
 # supabase/functions/earthquake-monitor/index.ts
+#
+# You already have supabase/functions/_shared/ with:
+# - fcm-client.ts (FCM functionality) ✅
+# - firestore-client.ts (Firestore operations) ✅
+# - types.ts (shared types) ✅
+#
+# We'll reuse these existing files!
 ```
 
 ### 2.3 Implement Edge Function
@@ -159,7 +166,9 @@ Create the main function file:
 
 ```typescript
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// Use your existing shared clients
+import { sendFCMNotification } from '../_shared/fcm-client.ts';
+import { saveNotificationHistory } from '../_shared/firestore-client.ts';
 
 // Types
 interface USGSEarthquake {
@@ -589,10 +598,14 @@ function convertToFirestoreFields(obj: any): any {
 ### 2.4 Configure Environment Variables
 
 ```bash
-# Set environment variables for the function
-supabase secrets set FIREBASE_PROJECT_ID=your-project-id
-supabase secrets set FCM_SERVER_KEY=your-fcm-server-key
-supabase secrets set FIREBASE_SERVICE_ACCOUNT='{"type":"service_account",...}'
+# Your existing environment variable should work perfectly:
+# FIREBASE_SERVICE_ACCOUNT_JSON (already set in your Supabase project)
+
+# If you need to verify it's set:
+supabase secrets list
+
+# The earthquake function will automatically use your existing
+# Firebase initialization from _shared/fcm-client.ts and _shared/firestore-client.ts
 ```
 
 ### 2.5 Deploy Edge Function
@@ -634,9 +647,20 @@ supabase functions logs earthquake-monitor
 
 ### 4.1 Configure FCM in Mobile App
 
-**Android (android/app/src/main/AndroidManifest.xml)**
+**Android Background Service Configuration**
+
+For Android, you need to register a **background service** that handles Firebase Cloud Messaging. This service runs even when your app is closed and receives earthquake notifications.
+
+**Purpose:**
+
+- Receives push notifications when app is in background/closed
+- Handles notification display and user interactions
+- Processes earthquake alert data and shows appropriate UI
+
+**File: android/app/src/main/AndroidManifest.xml**
 
 ```xml
+<!-- Add this inside the <application> tag -->
 <service
     android:name=".MyFirebaseMessagingService"
     android:exported="false">
@@ -644,6 +668,26 @@ supabase functions logs earthquake-monitor
         <action android:name="com.google.firebase.MESSAGING_EVENT" />
     </intent-filter>
 </service>
+```
+
+**Then create the service class: android/app/src/main/java/.../MyFirebaseMessagingService.java**
+
+```java
+public class MyFirebaseMessagingService extends FirebaseMessagingService {
+    @Override
+    public void onMessageReceived(RemoteMessage remoteMessage) {
+        // Handle earthquake notifications here
+        if (remoteMessage.getData().get("type").equals("earthquake_alert")) {
+            // Show earthquake notification with custom sound/vibration
+            showEarthquakeNotification(remoteMessage);
+        }
+    }
+
+    private void showEarthquakeNotification(RemoteMessage message) {
+        // Custom notification handling for earthquakes
+        // You can add special sounds, vibrations, or UI for different magnitudes
+    }
+}
 ```
 
 **iOS (ios/Runner/AppDelegate.swift)**

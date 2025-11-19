@@ -217,36 +217,75 @@ export async function getUserTokens(
 }
 
 /**
- * Save notification history for tracking
+ * Save notification history for tracking - supports all notification types
  */
 export async function saveNotificationHistory(
   notification: {
     title: string;
     body: string;
-    level?: string;
+    type: 'weather' | 'earthquake' | 'general' | 'emergency' | 'system';
+    level?: 'info' | 'warning' | 'critical' | 'emergency';
     category?: string;
     data?: Record<string, unknown>;
   },
-  location: string,
+  metadata: {
+    location?: string;
+    audience?: 'admin' | 'users' | 'both';
+    weatherZone?: string;
+    magnitude?: number;
+    depth?: number;
+    coordinates?: { lat: number; lng: number };
+    source?: string;
+    [key: string]: unknown;
+  },
   sentTo: number,
-  errors: string[]
+  errors: string[] = []
 ): Promise<void> {
   const db = initializeFirebase();
 
   try {
-    await db.collection('notification_history').add({
+    await db.collection('notifications').add({
+      // Core notification content
       title: notification.title,
       body: notification.body,
-      level: notification.level,
+      type: notification.type,
+      level: notification.level || 'info',
       category: notification.category,
-      location: location,
+
+      // Metadata - flexible structure for different notification types (filter out undefined values)
+      metadata: Object.fromEntries(
+        Object.entries({
+          location: metadata.location,
+          audience: metadata.audience,
+          weatherZone: metadata.weatherZone,
+          magnitude: metadata.magnitude,
+          depth: metadata.depth,
+          coordinates: metadata.coordinates,
+          source: metadata.source,
+          ...Object.fromEntries(
+            Object.entries(metadata).filter(
+              ([key]) =>
+                !['location', 'audience', 'weatherZone', 'magnitude', 'depth', 'coordinates', 'source'].includes(key)
+            )
+          ),
+        }).filter(([_, value]) => value !== undefined)
+      ),
+
+      // Delivery information
       sentTo: sentTo,
       errors: errors,
+      errorCount: errors.length,
+
+      // Timestamps
       timestamp: new Date(),
+      createdAt: new Date().toISOString(),
+
+      // Additional data payload
       data: notification.data || {},
     });
   } catch (error) {
     console.error('Error saving notification history:', error);
+    throw error;
   }
 }
 
@@ -307,5 +346,112 @@ export async function getNotificationStats(timeframe: 'today' | 'week' | 'month'
   } catch (error) {
     console.error('Error fetching notification stats:', error);
     return { total: 0, byLevel: {}, byLocation: {} };
+  }
+}
+
+// ========================
+// EARTHQUAKE FUNCTIONS
+// ========================
+
+/**
+ * Get existing earthquakes from Firestore to prevent duplicates
+ */
+export async function getExistingEarthquakes(limit: number = 100): Promise<string[]> {
+  const db = initializeFirebase();
+
+  try {
+    const snapshot = await db.collection('earthquakes').orderBy('time', 'desc').limit(limit).get();
+
+    return snapshot.docs.map(doc => doc.id);
+  } catch (error) {
+    console.error('Error fetching existing earthquakes:', error);
+    return [];
+  }
+}
+
+/**
+ * Save multiple earthquakes to Firestore efficiently
+ */
+export async function saveEarthquakesToFirestore(
+  earthquakes: Array<{ id: string; [key: string]: unknown }>
+): Promise<void> {
+  const db = initializeFirebase();
+  const batch = db.batch();
+
+  try {
+    earthquakes.forEach(earthquake => {
+      const docRef = db.collection('earthquakes').doc(earthquake.id);
+      batch.set(docRef, {
+        ...earthquake,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+      });
+    });
+
+    await batch.commit();
+  } catch (error) {
+    console.error('Error saving earthquakes batch:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get earthquake statistics for monitoring
+ */
+export async function getEarthquakeStats(timeframe: 'today' | 'week' | 'month'): Promise<{
+  total: number;
+  byMagnitude: Record<string, number>;
+  bySeverity: Record<string, number>;
+  withTsunami: number;
+}> {
+  const db = initializeFirebase();
+
+  // Calculate date range
+  const now = new Date();
+  const startTime = new Date();
+
+  switch (timeframe) {
+    case 'today':
+      startTime.setHours(0, 0, 0, 0);
+      break;
+    case 'week':
+      startTime.setDate(now.getDate() - 7);
+      break;
+    case 'month':
+      startTime.setMonth(now.getMonth() - 1);
+      break;
+  }
+
+  try {
+    const snapshot = await db.collection('earthquakes').where('time', '>=', startTime.getTime()).get();
+
+    const stats = {
+      total: 0,
+      byMagnitude: {} as Record<string, number>,
+      bySeverity: {} as Record<string, number>,
+      withTsunami: 0,
+    };
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      stats.total++;
+
+      // Count by magnitude range
+      const magRange = Math.floor(data.magnitude);
+      stats.byMagnitude[`${magRange}-${magRange + 1}`] = (stats.byMagnitude[`${magRange}-${magRange + 1}`] || 0) + 1;
+
+      // Count by severity
+      stats.bySeverity[data.severity] = (stats.bySeverity[data.severity] || 0) + 1;
+
+      // Count tsunami warnings
+      if (data.tsunami_warning) {
+        stats.withTsunami++;
+      }
+    });
+
+    return stats;
+  } catch (error) {
+    console.error('Error fetching earthquake stats:', error);
+    return { total: 0, byMagnitude: {}, bySeverity: {}, withTsunami: 0 };
   }
 }

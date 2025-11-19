@@ -31,18 +31,20 @@ Supabase Edge Functions provide the serverless execution environment for our ear
 ```
 supabase/
 ├── functions/
+│   ├── _shared/              # Existing shared utilities (REUSE)
+│   │   ├── fcm-client.ts     # FCM client (already exists)
+│   │   ├── firestore-client.ts # Firestore client (already exists)
+│   │   └── types.ts          # Shared types (already exists)
 │   └── earthquake-monitor/
-│       ├── index.ts           # Main function entry point
+│       ├── index.ts          # Main function entry point
 │       ├── services/
-│       │   ├── usgs.ts        # USGS API integration
-│       │   ├── firestore.ts   # Firestore operations
-│       │   └── fcm.ts         # Firebase Cloud Messaging
+│       │   └── usgs.ts       # USGS API integration
 │       ├── types/
-│       │   └── earthquake.ts  # TypeScript interfaces
+│       │   └── earthquake.ts # Earthquake-specific types
 │       └── utils/
-│           ├── comparison.ts  # Data comparison logic
+│           ├── comparison.ts # Data comparison logic
 │           └── notification.ts # Notification formatting
-└── config.toml                # Cron configuration
+└── config.toml               # Cron configuration
 ```
 
 ## Main Function Implementation
@@ -53,7 +55,9 @@ supabase/
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { USGSService } from './services/usgs.ts';
 import { FirestoreService } from './services/firestore.ts';
-import { FCMService } from './services/fcm.ts';
+// Use existing shared clients
+import { sendFCMNotification } from '../_shared/fcm-client.ts';
+import { saveNotificationHistory } from '../_shared/firestore-client.ts';
 import { compareEarthquakeData } from './utils/comparison.ts';
 import { formatNotification } from './utils/notification.ts';
 import { EarthquakeData } from './types/earthquake.ts';
@@ -373,18 +377,15 @@ timezone = "Asia/Manila"
 ## Environment Variables
 
 ```bash
-# Firebase Configuration
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_SERVICE_ACCOUNT='{"type":"service_account",...}'
-FIRESTORE_URL=https://firestore.googleapis.com/v1/projects/your-project-id/databases/(default)/documents
-
-# FCM Configuration
-FCM_SERVER_KEY=your-fcm-server-key
+# Firebase Configuration (matches your existing setup)
+FIREBASE_SERVICE_ACCOUNT_JSON=your-base64-encoded-service-account-json
 
 # Optional Configuration
 USGS_USER_AGENT=Rescuenect-EarthquakeMonitor/1.0
 LOG_LEVEL=info
 ```
+
+**Note:** Your existing setup uses `FIREBASE_SERVICE_ACCOUNT_JSON` which is perfect! The earthquake system will reuse your existing Firebase initialization from `_shared/firestore-client.ts` and `_shared/fcm-client.ts`.
 
 ## Deployment Commands
 
@@ -398,10 +399,10 @@ supabase link --project-ref your-project-ref
 # Deploy the function
 supabase functions deploy earthquake-monitor
 
-# Set environment variables
-supabase secrets set FIREBASE_PROJECT_ID=your-project-id
-supabase secrets set FIREBASE_SERVICE_ACCOUNT='your-service-account-json'
-supabase secrets set FCM_SERVER_KEY=your-fcm-key
+# Set environment variables (reuse your existing setup)
+# Your FIREBASE_SERVICE_ACCOUNT_JSON should already be set
+# If not, set it with:
+# supabase secrets set FIREBASE_SERVICE_ACCOUNT_JSON=your-base64-encoded-service-account
 
 # Enable cron trigger
 supabase functions create earthquake-monitor --cron="*/5 * * * *"

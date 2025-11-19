@@ -468,3 +468,14 @@ entrypoint = "./functions/notification-info/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/notification-info/*.html" ]
+
+[functions.earthquake-monitor]
+enabled = true
+verify_jwt = true
+import_map = "./functions/earthquake-monitor/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/earthquake-monitor/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/earthquake-monitor/*.html" ]

@@ -73,9 +73,10 @@ This comprehensive earthquake monitoring system integrates multiple services to 
 
 - **API Source**: USGS Earthquake Hazards Program
 - **Scheduler**: Supabase Edge Functions with Cron
-- **Database**: Google Firestore
-- **Notifications**: Firebase Cloud Messaging (FCM)
+- **Database**: Google Firestore (reuses existing setup)
+- **Notifications**: Firebase Cloud Messaging (reuses existing `_shared/fcm-client.ts`)
 - **Runtime**: Deno (Supabase Edge Functions)
+- **Infrastructure**: Leverages existing `_shared/` folder for Firebase clients
 
 ## Getting Started
 
