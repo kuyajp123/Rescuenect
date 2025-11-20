@@ -45,7 +45,9 @@ function App() {
 
 | Prop                  | Type                                                       | Default                   | Description                                            |
 | --------------------- | ---------------------------------------------------------- | ------------------------- | ------------------------------------------------------ |
-| `data`                | `MapMarkerData[]`                                          | **Required**              | Array of marker data to display on the map             |
+| `data`                | `MapMarkerData[]`                                          | `undefined`               | Legacy single array of marker data (optional)          |
+| `earthquakeData`      | `MapMarkerData[]`                                          | `undefined`               | Array of earthquake-specific marker data (optional)    |
+| `statusData`          | `MapMarkerData[]`                                          | `undefined`               | Array of status-specific marker data (optional)        |
 | `center`              | `[number, number]`                                         | `[14.2965, 120.7925]`     | Map center coordinates [latitude, longitude]           |
 | `zoom`                | `number`                                                   | `13`                      | Initial zoom level                                     |
 | `minZoom`             | `number`                                                   | `13`                      | Minimum zoom level allowed                             |
@@ -70,6 +72,41 @@ function App() {
 | `circleOpacity`       | `number`                                                   | `0.8`                     | Opacity of circle markers (0-1)                        |
 | `circleStrokeWidth`   | `number`                                                   | `2`                       | Border width of circle markers                         |
 | `circleStrokeColor`   | `string`                                                   | `'#ffffff'`               | Border color of circle markers                         |
+
+## Data Approaches
+
+The Map component supports two data approaches:
+
+### 1. Separated Data Arrays (Recommended)
+
+Use separate arrays for different data types for cleaner code organization:
+
+```tsx
+<Map
+  earthquakeData={earthquakeArray} // Earthquake-specific data
+  statusData={statusArray} // Status-specific data
+  // Automatically renders appropriate marker types
+/>
+```
+
+**Benefits:**
+
+- Cleaner data management
+- Better type safety
+- Explicit rendering (no marker type guessing)
+- Easier maintenance
+- Better performance (no filtering needed)
+
+### 2. Single Data Array (Legacy)
+
+Use a single array with `markerType` prop:
+
+```tsx
+<Map
+  data={mixedDataArray}
+  markerType="mixed" // Auto-detects marker type based on data properties
+/>
+```
 
 ## Features
 
@@ -135,6 +172,34 @@ function BasicMap() {
 }
 ```
 
+### Example 1b: Separated Data Arrays (Recommended)
+
+```tsx
+import { Map } from '@/components/Map';
+
+function SeparatedDataMap() {
+  const earthquakeData = [
+    { uid: 'eq1', lat: 14.2965, lng: 120.7925, severity: 'moderate', magnitude: 5.2 },
+    { uid: 'eq2', lat: 14.3, lng: 120.8, severity: 'light', magnitude: 4.1 },
+  ];
+
+  const statusData = [
+    { uid: 'st1', lat: 14.31, lng: 120.75, condition: 'safe' },
+    { uid: 'st2', lat: 14.29, lng: 120.81, condition: 'evacuated' },
+  ];
+
+  return (
+    <Map
+      earthquakeData={earthquakeData}
+      statusData={statusData}
+      center={[14.2965, 120.7925]}
+      zoom={13}
+      height="600px"
+    />
+  );
+}
+```
+
 ### Example 2: Status-Based Markers
 
 ```tsx
@@ -155,16 +220,15 @@ function StatusMap() {
 ```tsx
 function EarthquakeMap() {
   const earthquakeData = [
-    { uid: '1', lat: 14.2965, lng: 120.7925, severity: 'minor', magnitude: 3.2 },
-    { uid: '2', lat: 14.3, lng: 120.8, severity: 'light', magnitude: 4.5 },
-    { uid: '3', lat: 14.28, lng: 120.78, severity: 'moderate', magnitude: 5.8 },
-    { uid: '4', lat: 14.31, lng: 120.81, severity: 'strong', magnitude: 6.2 },
+    { uid: 'eq1', lat: 14.2965, lng: 120.7925, severity: 'minor', magnitude: 3.2 },
+    { uid: 'eq2', lat: 14.3, lng: 120.8, severity: 'light', magnitude: 4.5 },
+    { uid: 'eq3', lat: 14.28, lng: 120.78, severity: 'moderate', magnitude: 5.8 },
+    { uid: 'eq4', lat: 14.31, lng: 120.81, severity: 'strong', magnitude: 6.2 },
   ];
 
   return (
     <Map
-      data={earthquakeData}
-      markerType="earthquake"
+      earthquakeData={earthquakeData}
       center={[14.2965, 120.7925]}
       zoom={12}
       height="600px"
@@ -174,6 +238,19 @@ function EarthquakeMap() {
       circleStrokeColor="#ffffff"
     />
   );
+}
+```
+
+### Example 3b: Legacy Single Array Approach
+
+```tsx
+function LegacyEarthquakeMap() {
+  const earthquakeData = [
+    { uid: '1', lat: 14.2965, lng: 120.7925, severity: 'minor', magnitude: 3.2 },
+    { uid: '2', lat: 14.3, lng: 120.8, severity: 'light', magnitude: 4.5 },
+  ];
+
+  return <Map data={earthquakeData} markerType="earthquake" center={[14.2965, 120.7925]} zoom={12} height="600px" />;
 }
 ```
 
@@ -359,14 +436,18 @@ interface MapMarkerData {
 
 ```typescript
 interface MapProps {
-  data: MapMarkerData[];
+  // Data props - can use either single data array or separate arrays
+  data?: MapMarkerData[];
+  earthquakeData?: MapMarkerData[];
+  statusData?: MapMarkerData[];
+
   center?: [number, number];
   zoom?: number;
   minZoom?: number;
   maxZoom?: number;
   height?: string;
   width?: string;
-  markerType?: 'default' | 'status' | 'earthquake' | 'circle';
+  markerType?: 'default' | 'status' | 'earthquake' | 'circle' | 'mixed';
   renderPopup?: (item: MapMarkerData) => React.ReactNode;
   popupType?: 'default' | 'coordinates' | 'custom';
   showCoordinates?: boolean;
@@ -442,8 +523,13 @@ function CustomCircleMap() {
 - The component requires marker icon assets at specific paths. Ensure these are available in your build.
 - The default center coordinates are set for a location in the Philippines (14.2965, 120.7925).
 - Map interactions (dragging, zooming, etc.) can be disabled by setting `dragging={false}`.
-- The `hasMapControl` prop enables automatic centering on the first marker in the data array.
-- Earthquake circle markers automatically use severity-based colors when `markerType="earthquake"` or `markerType="circle"`.
+- The `hasMapControl` prop enables automatic centering on the first marker in the combined data arrays.
+- **Recommended Approach**: Use `earthquakeData` and `statusData` props for cleaner separation of concerns.
+- **Legacy Support**: The `data` prop with `markerType` is still supported for backward compatibility.
+- When using separated data arrays, the component automatically:
+  - Renders earthquake data as circle markers with circles
+  - Renders status data as icon markers without circles
+  - Combines all data for map centering when `hasMapControl={true}`
 
 ## Browser Compatibility
 
@@ -455,6 +541,32 @@ This component works in all modern browsers that support:
 
 ## Performance Tips
 
+- **Use Separated Data Arrays**: The `earthquakeData` and `statusData` approach is more performant than the legacy `data` array with filtering.
 - For large datasets (1000+ markers), consider implementing marker clustering.
 - Use `React.memo()` for custom popup components to prevent unnecessary re-renders.
 - Memoize the `onMarkerClick` callback using `useCallback()` to optimize performance.
+
+## Migration Guide
+
+### From Legacy Single Array to Separated Arrays
+
+**Before (Legacy):**
+
+```tsx
+const allData = [
+  { uid: 'eq1', lat: 14.2965, lng: 120.7925, severity: 'moderate', magnitude: 5.2 },
+  { uid: 'st1', lat: 14.31, lng: 120.75, condition: 'safe' },
+];
+
+<Map data={allData} markerType="mixed" />;
+```
+
+**After (Recommended):**
+
+```tsx
+const earthquakeData = [{ uid: 'eq1', lat: 14.2965, lng: 120.7925, severity: 'moderate', magnitude: 5.2 }];
+
+const statusData = [{ uid: 'st1', lat: 14.31, lng: 120.75, condition: 'safe' }];
+
+<Map earthquakeData={earthquakeData} statusData={statusData} />;
+```

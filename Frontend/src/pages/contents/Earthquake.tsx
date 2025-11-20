@@ -1,23 +1,29 @@
 import { Map } from '@/components/ui/Map';
 import { CustomLegend } from '@/config/constant';
+import { useEarthquakeStore } from '@/stores/useEarthquakeStore';
 import { useMapStyleStore } from '@/stores/useMapStyleStore';
+import { useStatusStore } from '@/stores/useStatusStore';
 
 const Earthquake = () => {
+  const earthquakes = useEarthquakeStore(state => state.earthquakes);
   const styleUrl = useMapStyleStore(state => state.styleUrl);
+  const statusData = useStatusStore(state => state.statusData);
 
-  // Separated earthquake data
-  const earthquakeData = [
-    { uid: 'eq1', lat: 14.2965, lng: 120.7925, severity: 'light' as const, magnitude: 4.2 },
-    { uid: 'eq2', lat: 14.3, lng: 120.8, severity: 'moderate' as const, magnitude: 5.4 },
-    { uid: 'eq3', lat: 14.28, lng: 120.78, severity: 'strong' as const, magnitude: 6.1 },
-  ];
-
-  // Separated status data
-  const statusData = [
-    { uid: 'st1', lat: 14.31, lng: 120.75, condition: 'safe' as const },
-    { uid: 'st2', lat: 14.29, lng: 120.81, condition: 'evacuated' as const },
-    { uid: 'st3', lat: 14.32, lng: 120.77, condition: 'affected' as const },
-  ];
+  // Transform earthquake data from store to Map component format
+  const earthquakeData =
+    earthquakes?.map(earthquake => ({
+      uid: earthquake.id,
+      lat: earthquake.coordinates.latitude,
+      lng: earthquake.coordinates.longitude,
+      severity: earthquake.severity,
+      magnitude: earthquake.magnitude,
+      place: earthquake.place,
+      time: earthquake.time,
+      tsunami_warning: earthquake.tsunami_warning,
+      usgs_url: earthquake.usgs_url,
+      priority: earthquake.priority,
+      impact_radii: earthquake.impact_radii, // Include the radius estimations
+    })) || [];
 
   return (
     <div className="w-full h-screen">
@@ -36,7 +42,7 @@ const Earthquake = () => {
             circleOpacity={0.9}
             circleStrokeWidth={3}
             circleStrokeColor="#ffffff"
-            overlayComponent={CustomLegend(styleUrl)}
+            overlayComponent={CustomLegend(styleUrl, statusData)}
             overlayPosition="bottomleft"
           />
         </div>

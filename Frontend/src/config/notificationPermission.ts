@@ -39,7 +39,6 @@ const getFCMtoken = async (vapidKey: string) => {
       serviceWorkerRegistration: registration,
     });
 
-    console.log('🛡️ FCM Token obtained:', token);
     return token;
   } catch (error) {
     console.error('Error getting FCM token:', error);
@@ -51,7 +50,6 @@ const getFCMtoken = async (vapidKey: string) => {
 const askPermission = async (): Promise<boolean> => {
   try {
     const permission = await Notification.requestPermission();
-    console.log('Notification permission:', permission);
 
     return permission === 'granted';
   } catch (error) {

@@ -1,3 +1,5 @@
+import { StatusData } from '@/types/types';
+
 // Get color based on earthquake severity
 export const getEarthquakeSeverityColor = (severity: string) => {
   switch (severity) {
@@ -21,7 +23,7 @@ export const getEarthquakeSeverityColor = (severity: string) => {
 };
 
 // custom legend colors for earthquake severity and status conditions
-export const CustomLegend = (styleUrl: string) => {
+export const CustomLegend = (styleUrl: string, status?: StatusData[]) => {
   const severityLevels = [
     { level: 'micro', label: 'Micro', magnitude: '< 2.0' },
     { level: 'minor', label: 'Minor', magnitude: '2.0 - 3.9' },
@@ -68,33 +70,37 @@ export const CustomLegend = (styleUrl: string) => {
         ))}
       </div>
 
-      {/* Status Legend */}
-      <h4
-        className={`${styleUrl === 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png' ? 'text-gray-900' : 'text-gray-100'} font-semibold mb-2`}
-      >
-        Status Markers
-      </h4>
-      <div className="flex flex-col gap-1">
-        {statusLevels.map(({ condition, label, color }) => (
-          <div key={condition} className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 border border-gray-300"
-              style={{
-                backgroundColor: color,
-                clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-                transform: 'translateY(-2px)',
-              }}
-            />
-            <span className="text-xs">
-              <span
-                className={`${styleUrl === 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png' ? 'text-gray-900' : 'text-gray-100'} font-medium`}
-              >
-                {label}
-              </span>
-            </span>
+      {/* Status Legend - Only show if status data exists */}
+      {status && status.length > 0 && (
+        <>
+          <h4
+            className={`${styleUrl === 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png' ? 'text-gray-900' : 'text-gray-100'} font-semibold mb-2`}
+          >
+            Status Markers
+          </h4>
+          <div className="flex flex-col gap-1">
+            {statusLevels.map(({ condition, label, color }) => (
+              <div key={condition} className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 border border-gray-300"
+                  style={{
+                    backgroundColor: color,
+                    clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+                    transform: 'translateY(-2px)',
+                  }}
+                />
+                <span className="text-xs">
+                  <span
+                    className={`${styleUrl === 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png' ? 'text-gray-900' : 'text-gray-100'} font-medium`}
+                  >
+                    {label}
+                  </span>
+                </span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
     </div>
   );
 };

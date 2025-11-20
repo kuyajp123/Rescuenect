@@ -155,7 +155,7 @@ export interface MapProps {
   // Data props - can use either single data array or separate arrays
   data?: MapMarkerData[];
   earthquakeData?: MapMarkerData[];
-  statusData?: MapMarkerData[];
+  statusData?: StatusData[];
 
   // Optional props with defaults
   center?: [number, number];
@@ -194,4 +194,35 @@ export interface MapProps {
   overlayComponent?: React.ReactNode;
   overlayPosition?: 'topright' | 'topleft' | 'bottomright' | 'bottomleft';
   overlayClassName?: string;
+}
+
+export interface ProcessedEarthquake {
+  id: string;
+  magnitude: number;
+  place: string;
+  time: number;
+  updated: number;
+  coordinates: {
+    longitude: number;
+    latitude: number;
+    depth: number;
+  };
+  severity: 'micro' | 'minor' | 'light' | 'moderate' | 'strong' | 'major' | 'great';
+  priority: 'low' | 'normal' | 'high' | 'critical';
+  tsunami_warning: boolean;
+  usgs_url: string;
+  distance_km?: number;
+  impact_radii: {
+    felt_radius_km: number;
+    moderate_shaking_radius_km: number;
+    strong_shaking_radius_km: number;
+    estimation_params: {
+      feltA: number;
+      moderateA: number;
+      strongA: number;
+      B: number;
+      D: number;
+    };
+  };
+  notification_sent: boolean;
 }

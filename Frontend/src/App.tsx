@@ -1,4 +1,5 @@
 import { permissionAllowed } from '@/config/notificationPermission.ts';
+import { useEarthquakeSnapshot } from '@/hooks/useEarthquakeSnapshot';
 import { useStatusHistory } from '@/hooks/useStatusHistory';
 import { useAuth } from '@/stores/useAuth';
 import 'leaflet/dist/leaflet.css';
@@ -25,7 +26,7 @@ function App() {
   }, [statuses, setStatus]);
 
   useEffect(() => {
-    fetchStatuses(); // fetch once when app loads
+    fetchStatuses(); 
   }, [fetchStatuses]);
 
   useEffect(() => {
@@ -56,6 +57,8 @@ function App() {
     enableNotification();
     console.log('enableNotification effect ran');
   }, [auth]);
+
+  useEarthquakeSnapshot();
 
   return (
     <BrowserRouter>
