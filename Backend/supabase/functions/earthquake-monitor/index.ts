@@ -4,7 +4,7 @@ import { sendEarthquakeNotification } from '../_shared/fcm-client.ts';
 import {
   getExistingEarthquakes,
   getUserTokens,
-  saveEarthquakesToFirestore,
+  replaceEarthquakesInFirestore,
   saveNotificationHistory,
 } from '../_shared/firestore-client.ts';
 import type { EarthquakeMonitorResult } from '../_shared/types.ts';
@@ -30,12 +30,23 @@ serve(async (req: Request) => {
   try {
     // Step 1: Fetch earthquake data from USGS
     const rawEarthquakes = await fetchUSGSEarthquakes();
-    console.log(`📊 Fetched ${rawEarthquakes.length} earthquakes from USGS`);
+    // const rawEarthquakes: unknown[] = []; // TEMPORARY DISABLE FETCHING FOR TESTING
+    // Step 2: Process earthquake data (even if empty array)
+    const processedEarthquakes = rawEarthquakes.map(processEarthquakeData);
+
+    // Step 3: Get existing earthquakes BEFORE replacing database (for notification logic)
+    const existingEarthquakes = await getExistingEarthquakes();
+
+    // Step 4: Always replace earthquake database with current USGS data (even if empty)
+    await replaceEarthquakesInFirestore(
+      processedEarthquakes as unknown as Array<{ [key: string]: unknown; id: string }>,
+      existingEarthquakes
+    );
 
     if (rawEarthquakes.length === 0) {
       return createResponse({
         success: true,
-        message: 'No earthquakes found in the region',
+        message: 'No earthquakes found in the region - database cleared',
         new_earthquakes: 0,
         notifications_sent: 0,
         total_processed: 0,
@@ -43,22 +54,15 @@ serve(async (req: Request) => {
       });
     }
 
-    // Step 2: Process earthquake data
-    const processedEarthquakes = rawEarthquakes.map(processEarthquakeData);
-    console.log(`⚙️ Processed ${processedEarthquakes.length} earthquakes`);
-
-    // Step 3: Get existing earthquakes to prevent duplicates
-    const existingIds = await getExistingEarthquakes(200);
-    console.log(`🗄️ Found ${existingIds.length} existing earthquakes in database`);
-
-    // Step 4: Identify new earthquakes
-    const newEarthquakes = processedEarthquakes.filter(earthquake => !existingIds.includes(earthquake.id));
-    console.log(`🆕 Identified ${newEarthquakes.length} new earthquakes`);
+    // Step 5: Identify new earthquakes (for notifications only)
+    const newEarthquakes = processedEarthquakes.filter(
+      earthquake => !existingEarthquakes.some(existing => existing.id === earthquake.id)
+    );
 
     if (newEarthquakes.length === 0) {
       return createResponse({
         success: true,
-        message: 'No new earthquakes detected',
+        message: 'No new earthquakes detected - database updated',
         new_earthquakes: 0,
         notifications_sent: 0,
         total_processed: processedEarthquakes.length,
@@ -66,33 +70,26 @@ serve(async (req: Request) => {
       });
     }
 
-    // Step 5: Filter earthquakes that need notifications
+    // Step 6: Filter earthquakes that need notifications
     const notifiableEarthquakes = newEarthquakes.filter(shouldNotify);
-    console.log(`🔔 ${notifiableEarthquakes.length} earthquakes need notifications`);
 
-    // Debug: Log details about each earthquake and why it was/wasn't selected for notification
-    newEarthquakes.forEach(eq => {
-      const shouldSendNotification = shouldNotify(eq);
-      console.log(
-        `📋 Earthquake ${eq.id}: Mag ${eq.magnitude}, Distance ${eq.distance_km}km, Notify: ${shouldSendNotification}`
-      );
-    });
+    console.log(
+      `📢 Found ${newEarthquakes.length} new earthquakes, ${notifiableEarthquakes.length} need notifications`
+    );
 
     let notificationsSent = 0;
     const notificationResults = [];
 
-    // Step 6: Send notifications for qualifying earthquakes
+    // Step 7: Send notifications for qualifying earthquakes
     for (const earthquake of notifiableEarthquakes) {
       try {
         // Get all user tokens (both admin and users for earthquake alerts)
         const { tokens } = await getUserTokens('both');
 
         if (tokens.length === 0) {
-          console.log(`⚠️ No FCM tokens found for earthquake ${earthquake.id} - checking database collections...`);
+          console.log(`⚠️ No FCM tokens found for earthquake ${earthquake.id}`);
           continue;
         }
-
-        console.log(`📱 Sending earthquake notification to ${tokens.length} users`);
 
         // Send FCM notification using your existing function
         const fcmResult = await sendEarthquakeNotification(earthquake, tokens);
@@ -130,8 +127,6 @@ serve(async (req: Request) => {
               fcmResult.success,
               fcmResult.errors
             );
-
-            console.log(`💾 Notification history saved for earthquake ${earthquake.id}`);
           } catch (historyError) {
             console.error(`⚠️ Failed to save notification history for ${earthquake.id}:`, historyError);
             // Don't fail the whole process if history saving fails
@@ -141,8 +136,6 @@ serve(async (req: Request) => {
           notificationsSent++; // Only increment if notifications were actually sent
 
           console.log(`✅ Notification sent for earthquake ${earthquake.id} to ${fcmResult.success} users`);
-        } else {
-          console.log(`⚠️ No notifications sent for earthquake ${earthquake.id} (0 successful deliveries)`);
         }
 
         notificationResults.push({
@@ -164,12 +157,9 @@ serve(async (req: Request) => {
       }
     }
 
-    // Step 7: Save all new earthquakes to database
-    await saveEarthquakesToFirestore(newEarthquakes as unknown as Array<{ [key: string]: unknown; id: string }>);
-    console.log(`💾 Saved ${newEarthquakes.length} new earthquakes to database`);
-
-    const processingTime = Math.round(performance.now() - startTime);
-    console.log(`⏱️ Monitoring cycle completed in ${processingTime}ms`);
+    console.log(
+      `✅ Earthquake monitoring completed: ${newEarthquakes.length} new, ${notificationsSent} notifications sent`
+    );
 
     return createResponse({
       success: true,

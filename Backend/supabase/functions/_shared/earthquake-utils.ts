@@ -79,8 +79,6 @@ export function processEarthquakeData(earthquake: USGSEarthquake): ProcessedEart
       estimation_params: radiiEstimation.params,
     },
     notification_sent: false,
-    created_at: Date.now(),
-    updated_at: Date.now(),
   };
 }
 

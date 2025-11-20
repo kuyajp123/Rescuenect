@@ -162,8 +162,6 @@ export interface ProcessedEarthquake {
     };
   };
   notification_sent: boolean;
-  created_at: number;
-  updated_at: number;
 }
 
 export interface EarthquakeNotificationData {

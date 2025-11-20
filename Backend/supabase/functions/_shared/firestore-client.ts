@@ -1,5 +1,7 @@
 import { cert, getApps, initializeApp, type ServiceAccount } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import _ from 'lodash';
+import { EarthquakeData } from './types.ts';
 
 // barangayMap['barangay name']
 export const barangayMap: Record<string, string> = {
@@ -410,16 +412,22 @@ export async function getNotificationStats(timeframe: 'today' | 'week' | 'month'
 /**
  * Get existing earthquakes from Firestore to prevent duplicates
  */
-export async function getExistingEarthquakes(limit: number = 100): Promise<string[]> {
-  const db = initializeFirebase();
-
+export async function getExistingEarthquakes(): Promise<EarthquakeData[]> {
   try {
-    const snapshot = await db.collection('earthquakes').orderBy('time', 'desc').limit(limit).get();
+    const db = initializeFirebase();
+    const earthquakesRef = db.collection('earthquakes');
+    const snapshot = await earthquakesRef.get(); // Get ALL documents
 
-    return snapshot.docs.map(doc => doc.id);
+    return snapshot.docs.map(
+      doc =>
+        ({
+          id: doc.id,
+          ...doc.data(),
+        } as EarthquakeData)
+    );
   } catch (error) {
-    console.error('Error fetching existing earthquakes:', error);
-    return [];
+    console.error('❌ Error getting existing earthquakes:', error);
+    throw error;
   }
 }
 
@@ -433,18 +441,102 @@ export async function saveEarthquakesToFirestore(
   const batch = db.batch();
 
   try {
-    earthquakes.forEach(earthquake => {
+    for (const earthquake of earthquakes) {
       const docRef = db.collection('earthquakes').doc(earthquake.id);
+
+      // Get the document first
+      const docSnap = await docRef.get();
+
+      const createdAt = docSnap.exists ? docSnap.data()?.created_at : Date.now();
+
       batch.set(docRef, {
         ...earthquake,
-        created_at: Date.now(),
+        created_at: createdAt,
         updated_at: Date.now(),
       });
-    });
+    }
 
     await batch.commit();
   } catch (error) {
     console.error('Error saving earthquakes batch:', error);
+    throw error;
+  }
+}
+
+/**
+ * Replace all earthquakes in Firestore with current USGS data
+ * This clears old data and saves only the current earthquake data
+ */
+export async function replaceEarthquakesInFirestore(
+  earthquakes: Array<{ id: string; [key: string]: unknown }>,
+  existingEarthquakes: EarthquakeData[]
+): Promise<void> {
+  const db = initializeFirebase();
+
+  try {
+    // Normalize existing earthquakes by removing Firestore metadata for comparison
+    const normalizedExisting = existingEarthquakes.map(eq => {
+      const {
+        created_at: _created_at,
+        updated_at: _updated_at,
+        ...normalized
+      } = eq as EarthquakeData & { created_at?: number; updated_at?: number };
+      return normalized;
+    });
+
+    if (_.isEqual(earthquakes, normalizedExisting)) {
+      console.log(`ℹ️ No changes detected in earthquake data - skipping replacement`);
+      return;
+    }
+
+    console.log(`🔄 Starting earthquake database replacement...`);
+
+    // Step 2: Delete all existing earthquakes in batches
+    const deletePromises = [];
+    for (let i = 0; i < existingEarthquakes.length; i += 500) {
+      const batch = db.batch();
+      const batchDocs = existingEarthquakes.slice(i, i + 500);
+
+      batchDocs.forEach(doc => {
+        batch.delete(db.collection('earthquakes').doc(doc.id));
+      });
+
+      deletePromises.push(batch.commit());
+    }
+
+    await Promise.all(deletePromises);
+    console.log(`✅ Deleted all existing earthquakes`);
+
+    // Step 3: Add new earthquakes if any
+    if (earthquakes.length > 0) {
+      console.log(`💾 Adding ${earthquakes.length} new earthquakes from USGS...`);
+
+      const addPromises = [];
+      for (let i = 0; i < earthquakes.length; i += 500) {
+        const batch = db.batch();
+        const batchEarthquakes = earthquakes.slice(i, i + 500);
+
+        batchEarthquakes.forEach(earthquake => {
+          const docRef = db.collection('earthquakes').doc(earthquake.id);
+          batch.set(docRef, {
+            ...earthquake,
+            created_at: Date.now(),
+            updated_at: Date.now(),
+          });
+        });
+
+        addPromises.push(batch.commit());
+      }
+
+      await Promise.all(addPromises);
+      console.log(`✅ Successfully added ${earthquakes.length} new earthquakes`);
+    } else {
+      console.log(`ℹ️ No earthquakes to add (USGS returned empty results)`);
+    }
+
+    console.log(`✅ Earthquake database replacement completed successfully`);
+  } catch (error) {
+    console.error('❌ Error replacing earthquakes in Firestore:', error);
     throw error;
   }
 }

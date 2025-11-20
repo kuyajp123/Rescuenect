@@ -3,7 +3,8 @@
     "serve": "https://deno.land/std@0.168.0/http/server.ts",
     "firebase-admin/app": "npm:firebase-admin@11.8.0/app",
     "firebase-admin/firestore": "npm:firebase-admin@11.8.0/firestore",
-    "firebase-admin/messaging": "npm:firebase-admin@11.8.0/messaging"
+    "firebase-admin/messaging": "npm:firebase-admin@11.8.0/messaging",
+    "lodash": "npm:lodash@4.17.21"
   },
   "compilerOptions": {
     "allowJs": true,
