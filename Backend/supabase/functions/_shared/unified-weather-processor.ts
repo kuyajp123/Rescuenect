@@ -23,20 +23,6 @@ export interface WeatherNotificationResult {
   }>;
 }
 
-interface HourlyWeatherData {
-  hourly?: Array<{
-    time: string;
-    values?: Record<string, unknown>;
-  }>;
-}
-
-interface DailyWeatherData {
-  daily?: Array<{
-    time: string;
-    values?: Record<string, unknown>;
-  }>;
-}
-
 export class UnifiedWeatherProcessor {
   private weatherNotifier: WeatherNotificationSystem;
   private locations = ['coastal_west', 'coastal_east', 'central_naic', 'sabang', 'farm_area', 'naic_boundary'];

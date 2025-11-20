@@ -4,41 +4,61 @@ import { deleteToken, getToken } from 'firebase/messaging';
 // request permission + get token
 // This should be called from a user interaction (button click) to ensure the prompt appears
 export async function askForPermissionAndGetToken(vapidKey: string): Promise<string | null> {
-  console.log('🔑 Requesting notification permission...');
-
   try {
-    // Request permission - this will show the browser popup
-    const permission = await Notification.requestPermission();
-    console.log('Notification permission result:', permission);
+    // If already granted → get token immediately
+    const token = await permissionAllowed(vapidKey);
+    if (token) return token;
 
-    if (permission !== 'granted') {
-      console.warn('Notifications permission not granted. Status:', permission);
-      return null;
-    }
+    // If not granted → ask permission
+    const permissionGranted = await askPermission();
+    if (!permissionGranted) return null;
+
+    // After user grants permission → get token
+    return await getFCMtoken(vapidKey);
   } catch (error) {
-    console.error('Failed to request notification permission:', error);
+    console.error('Error while getting notification permission or token:', error);
     return null;
   }
+}
 
+export const permissionAllowed = async (vapidKey: string) => {
+  if (Notification.permission === 'granted') {
+    return await getFCMtoken(vapidKey);
+  }
+
+  return null;
+};
+
+const getFCMtoken = async (vapidKey: string) => {
   try {
-    // Register service worker (if not already)
     const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    // Wait for the service worker to be active/ready
     await navigator.serviceWorker.ready;
 
-    // Get the FCM token
-    const currentToken = await getToken(messaging, {
-      vapidKey, // Your VAPID key from Firebase console
+    const token = await getToken(messaging, {
+      vapidKey,
       serviceWorkerRegistration: registration,
     });
 
-    console.log('🛡️ FCM Token obtained:', currentToken);
-    return currentToken; // Save this token to your DB for sending messages
+    console.log('🛡️ FCM Token obtained:', token);
+    return token;
   } catch (error) {
     console.error('Error getting FCM token:', error);
     return null;
   }
-}
+};
+
+// Returns true if granted, false if denied/default
+const askPermission = async (): Promise<boolean> => {
+  try {
+    const permission = await Notification.requestPermission();
+    console.log('Notification permission:', permission);
+
+    return permission === 'granted';
+  } catch (error) {
+    console.error('Failed to request notification permission:', error);
+    return false;
+  }
+};
 
 // to remove token on logout
 export async function revokeToken() {

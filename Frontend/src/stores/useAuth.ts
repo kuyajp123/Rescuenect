@@ -25,3 +25,20 @@ onAuthStateChanged(firebaseAuth, (user) => {
   useAuth.getState().setAuth(user || null);
   useAuth.getState().setLoading(false);
 });
+
+// auth data stored:
+// - auth: Firebase User object or null
+// - isLoading: boolean indicating if Firebase auth state is loading
+// - isVerifying: boolean indicating if backend verification is in progress
+// - setAuth: function to set the auth user
+// - setLoading: function to set loading state
+// - setVerifying: function to set verifying state
+
+// sample data in auth:
+// {
+//   "uid": "abc123",
+//   "email": "user@example.com",
+//   "displayName": "John Doe",
+//   "photoURL": "http://example.com/photo.jpg",
+//   
+// }

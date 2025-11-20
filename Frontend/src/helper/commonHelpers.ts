@@ -1,3 +1,5 @@
+import { API_ENDPOINTS } from '@/config/endPoints';
+import axios from 'axios';
 import { differenceInHours, differenceInMinutes, formatDistanceToNow } from 'date-fns';
 import { useLocation } from 'react-router-dom';
 
@@ -134,5 +136,38 @@ export const formatTimeRemaining = (dateValue: any): string => {
     return 'Expired';
   } catch (error) {
     return 'Invalid date';
+  }
+};
+
+// save FCM token to database
+export const saveFCMtoken = async (fcmToken: string, user: any) => {
+  try {
+    // Update token in backend
+    if (user && user.uid) {
+      console.log('🔄 Saving FCM token for user:', user.uid);
+
+      const idToken = await user.getIdToken();
+      console.log('✅ Got Firebase ID token, making API request...');
+
+      const response = await axios.put(
+        API_ENDPOINTS.AUTH.UPDATE_FCM_TOKEN,
+        { fcmToken, uid: user.uid },
+        { headers: { Authorization: `Bearer ${idToken}` }, withCredentials: true }
+      );
+
+      console.log('✅ FCM token saved successfully:', response.data);
+      return response.data;
+    } else {
+      console.warn('⚠️ Cannot save FCM token: user or uid missing');
+    }
+  } catch (error) {
+    console.error('❌ Failed to save FCM token:', {
+      error: error instanceof Error ? error.message : error,
+      status: (error as any)?.response?.status,
+      statusText: (error as any)?.response?.statusText,
+      responseData: (error as any)?.response?.data,
+      requestData: { uid: user?.uid, hasFcmToken: !!fcmToken },
+    });
+    throw error; // Re-throw so calling code can handle it
   }
 };

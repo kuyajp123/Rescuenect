@@ -8,8 +8,13 @@ export class ConfigModels {
 
       return token ? true : null;
     } catch (error) {
-      console.error('Error updating FCM Token: ', error);
-      throw new Error('Failed to update FCM Token');
+      console.error('❌ Error updating FCM Token in Firestore:', {
+        uid,
+        token: token ? 'present' : 'null/empty',
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw new Error(`Failed to update FCM Token: ${error instanceof Error ? error.message : error}`);
     }
   }
 }

@@ -1,12 +1,12 @@
-import { API_ENDPOINTS } from '@/config/endPoints';
 import { askForPermissionAndGetToken } from '@/config/notificationPermission';
-import { auth } from '@/lib/firebaseConfig';
+import { saveFCMtoken } from '@/helper/commonHelpers';
+import { useAuth } from '@/stores/useAuth';
 import { addToast, Button, closeToast, cn, Spinner } from '@heroui/react';
-import axios from 'axios';
 import { Bell } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 export const NotificationToast = () => {
+  const auth = useAuth(state => state.auth);
   const [isVisible, setIsVisible] = useState(
     // Show prompt only if notifications are not granted
     typeof Notification !== 'undefined' &&
@@ -39,17 +39,9 @@ export const NotificationToast = () => {
 
       setIsVisible(false);
 
-      if (fcmToken) {
+      if (fcmToken && auth) {
         // Update token in backend
-        const user = auth.currentUser;
-        if (user) {
-          const idToken = await user.getIdToken();
-          await axios.put(
-            API_ENDPOINTS.AUTH.UPDATE_FCM_TOKEN,
-            { fcmToken, uid: user.uid },
-            { headers: { Authorization: `Bearer ${idToken}` }, withCredentials: true }
-          );
-        }
+        await saveFCMtoken(fcmToken, auth);
       }
     } catch (error) {
       console.error('Failed to enable notifications:', error);
