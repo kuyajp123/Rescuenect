@@ -144,13 +144,18 @@ export interface MapMarkerData {
   uid: string;
   lat: number;
   lng: number;
-  condition: 'safe' | 'evacuated' | 'affected' | 'missing';
+  condition?: 'safe' | 'evacuated' | 'affected' | 'missing';
+  // Earthquake-specific fields
+  severity?: 'micro' | 'minor' | 'light' | 'moderate' | 'strong' | 'major' | 'great';
+  magnitude?: number;
 }
 
 // Define props for the Map component
 export interface MapProps {
-  // Required props
-  data: MapMarkerData[];
+  // Data props - can use either single data array or separate arrays
+  data?: MapMarkerData[];
+  earthquakeData?: MapMarkerData[];
+  statusData?: MapMarkerData[];
 
   // Optional props with defaults
   center?: [number, number];
@@ -164,9 +169,15 @@ export interface MapProps {
   hasMapControl?: boolean;
 
   // Customization props
-  markerType?: 'status' | 'default';
+  markerType?: 'status' | 'default' | 'earthquake' | 'circle' | 'mixed';
   tileLayerUrl?: string;
   attribution?: string;
+
+  // Circle marker customization (for earthquake and circle types)
+  circleRadius?: number;
+  circleOpacity?: number;
+  circleStrokeWidth?: number;
+  circleStrokeColor?: string;
 
   // Popup customization
   renderPopup?: (item: MapMarkerData) => React.ReactNode;

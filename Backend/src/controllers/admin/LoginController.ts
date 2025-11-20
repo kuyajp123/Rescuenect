@@ -11,7 +11,7 @@ export class LoginController {
     const adminEmails = JSON.parse(adminEmailsRaw);
     const allowedEmails = Object.values(adminEmails);
 
-    const { email, uid, fcmToken } = req.body;
+    const { email, uid, fcmToken, barangay } = req.body;
 
     if (!email || !allowedEmails.includes(email)) {
       res.status(403).json({ message: 'Access denied' });
@@ -19,7 +19,7 @@ export class LoginController {
     }
 
     try {
-      const user = await SignInModel.SignUser(email, uid, fcmToken);
+      const user = await SignInModel.SignUser(email, uid, barangay, fcmToken);
       if (!user) {
         res.status(404).json({ message: 'User not found' });
         return;

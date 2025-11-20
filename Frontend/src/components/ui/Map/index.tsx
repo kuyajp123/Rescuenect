@@ -9,8 +9,8 @@ import 'leaflet/dist/leaflet.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Circle, MapContainer, Marker, Popup, useMap } from 'react-leaflet';
+import { getEarthquakeSeverityColor } from '../../../config/constant.tsx';
 import { MapStyleSelector } from './MapStyleSelector';
-Circle;
 
 const shadowUrl = markerShadow;
 const iconSize: [number, number] = [25, 41];
@@ -134,6 +134,8 @@ const MapController = ({ data, center, zoom }: MapControllerProps) => {
 
 export const Map = ({
   data,
+  earthquakeData,
+  statusData,
   center = [14.2965, 120.7925],
   zoom = 13,
   minZoom = 13,
@@ -154,6 +156,11 @@ export const Map = ({
   attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', // this is default we dont need to change this
   overlayPosition = 'topright',
   overlayClassName = '',
+  // Circle marker props
+  circleRadius = 12,
+  circleOpacity = 0.8,
+  circleStrokeWidth = 2,
+  circleStrokeColor = '#ffffff',
 }: MapProps) => {
   const [mapTileUrl, setMapTileUrl] = useState('https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'); // Default to light
   // lat lng popup render
@@ -225,10 +232,46 @@ export const Map = ({
     }
   };
 
+  // Create circle marker for earthquakes
+  const createCircleMarker = (item: MapMarkerData) => {
+    const color = item.severity ? getEarthquakeSeverityColor(item.severity) : '#808080';
+    const radius = circleRadius || 12;
+
+    return L.divIcon({
+      className: 'custom-circle-marker',
+      html: `<div style="
+        width: ${radius * 2}px;
+        height: ${radius * 2}px;
+        background-color: ${color};
+        border: ${circleStrokeWidth || 2}px solid ${circleStrokeColor || '#ffffff'};
+        border-radius: 50%;
+        opacity: ${circleOpacity || 0.8};
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      "></div>`,
+      iconSize: [radius * 2, radius * 2],
+      iconAnchor: [radius, radius],
+      popupAnchor: [0, -radius],
+    });
+  };
+
   const getMarkerIcon = (item: MapMarkerData) => {
-    if (markerType === 'status') {
+    if (markerType === 'mixed') {
+      // Auto-detect marker type based on data properties
+      if (item.severity || item.magnitude) {
+        // Has earthquake data - use circle marker
+        return createCircleMarker(item);
+      } else if (item.condition) {
+        // Has status data - use status marker
+        return renderMarkerIcon(item);
+      } else {
+        // Fallback to default
+        return defaultIcon;
+      }
+    } else if (markerType === 'status') {
       return renderMarkerIcon(item);
-    } else if (markerType === 'default') {
+    } else if (markerType === 'earthquake' || markerType === 'circle') {
+      return createCircleMarker(item);
+    } else {
       return defaultIcon;
     }
   };
@@ -281,7 +324,13 @@ export const Map = ({
       <DynamicTileLayer url={mapTileUrl} attribution={attribution} />
 
       {/* Map Controller for dynamic centering */}
-      {hasMapControl && <MapController data={data} center={center} zoom={zoom} />}
+      {hasMapControl && (
+        <MapController
+          data={[...(earthquakeData || []), ...(statusData || []), ...(data || [])]}
+          center={center}
+          zoom={zoom}
+        />
+      )}
 
       <CustomControl position="topright" className={`map-style-selector-control ${displayMapStyleSelector}`}>
         <MapStyleSelector onStyleChange={handleMapStyleChange} />
@@ -294,15 +343,64 @@ export const Map = ({
         </CustomControl>
       )}
 
-      {/* {data.length > 0 && (
+      {/* Render earthquake circles */}
+      {earthquakeData?.map(item => (
         <Circle
-          center={[data[0].lat, data[0].lng]} // where to put the circle
-          radius={1000} // radius in meters
-          pathOptions={{ color: 'red' }} // style
+          key={`circle-${item.uid}`}
+          center={[item.lat, item.lng]}
+          radius={10000}
+          pathOptions={{ color: getEarthquakeSeverityColor(item.severity || ''), opacity: 0.2 }}
         />
-      )} */}
+      ))}
 
-      {data.map(item => (
+      {/* Legacy support for mixed data with circles */}
+      {!earthquakeData &&
+        data
+          ?.filter(item => {
+            if (markerType === 'mixed') {
+              return item.severity || item.magnitude;
+            }
+            return markerType === 'earthquake' || markerType === 'circle';
+          })
+          .map(item => (
+            <Circle
+              key={`circle-${item.uid}`}
+              center={[item.lat, item.lng]}
+              radius={10000}
+              pathOptions={{ color: getEarthquakeSeverityColor(item.severity || ''), opacity: 0.2 }}
+            />
+          ))}
+
+      {/* Render earthquake markers */}
+      {earthquakeData?.map(item => (
+        <Marker
+          position={[item.lat, item.lng]}
+          icon={createCircleMarker(item)}
+          key={`eq-${item.uid}`}
+          eventHandlers={{
+            click: () => onMarkerClick?.(item),
+          }}
+        >
+          <Popup className="custom-popup">{getPopupRenderer(item)}</Popup>
+        </Marker>
+      ))}
+
+      {/* Render status markers */}
+      {statusData?.map(item => (
+        <Marker
+          position={[item.lat, item.lng]}
+          icon={renderMarkerIcon(item)}
+          key={`status-${item.uid}`}
+          eventHandlers={{
+            click: () => onMarkerClick?.(item),
+          }}
+        >
+          <Popup className="custom-popup">{getPopupRenderer(item)}</Popup>
+        </Marker>
+      ))}
+
+      {/* Legacy support for single data array */}
+      {data?.map(item => (
         <Marker
           position={[item.lat, item.lng]}
           icon={getMarkerIcon(item)}

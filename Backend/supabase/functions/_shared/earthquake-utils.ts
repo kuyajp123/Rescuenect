@@ -11,7 +11,7 @@ export async function fetchUSGSEarthquakes(): Promise<USGSEarthquake[]> {
     format: 'geojson',
     latitude: NAIC_CENTER.lat.toString(),
     longitude: NAIC_CENTER.lng.toString(),
-    maxradiuskm: '150', // 150km radius around Philippines center
+    maxradiuskm: '70', // 70km radius around Philippines center
     minmagnitude: '1.5', // Only get earthquakes above 1.5 magnitude
     orderby: 'time',
     limit: '50', // Limit to 50 most recent

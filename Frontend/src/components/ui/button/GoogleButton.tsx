@@ -36,7 +36,7 @@ export const GoogleButton = () => {
       // Backend verification - no fcmToken during login, will be set later
       await axios.post(
         API_ENDPOINTS.AUTH.SIGNIN,
-        { email: tempUser.email, uid: tempUser.uid, fcmToken: null },
+        { email: tempUser.email, uid: tempUser.uid, fcmToken: null, barangay: 'bancaan' },
         { headers: { Authorization: `Bearer ${idToken}` }, withCredentials: true }
       );
 

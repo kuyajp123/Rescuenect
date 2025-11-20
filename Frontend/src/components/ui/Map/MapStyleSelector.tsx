@@ -1,6 +1,7 @@
 import { Map } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { SecondaryButton } from '../button';
+import { useMapStyleStore } from '@/stores/useMapStyleStore'
 
 interface MapStyle {
   key: string;
@@ -37,6 +38,7 @@ const STORAGE_KEY = 'rescuenect_map_style';
 
 export const MapStyleSelector = ({ onStyleChange, className = '' }: MapStyleSelectorProps) => {
   const [selectedStyle, setSelectedStyle] = useState<string>('light');
+  const setMapStyle = useMapStyleStore(state => state.setMapStyle);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -64,6 +66,7 @@ export const MapStyleSelector = ({ onStyleChange, className = '' }: MapStyleSele
       const style = MAP_STYLES.find(s => s.key === savedStyle);
       if (style) {
         setSelectedStyle(savedStyle);
+        setMapStyle(style.url, style.attribution);
         onStyleChange(style.url, style.attribution);
       }
     } else {
@@ -80,6 +83,7 @@ export const MapStyleSelector = ({ onStyleChange, className = '' }: MapStyleSele
 
     if (style) {
       setSelectedStyle(styleKey);
+      setMapStyle(style.url, style.attribution);
       onStyleChange(style.url, style.attribution);
 
       // Save to localStorage
