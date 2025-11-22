@@ -20,17 +20,13 @@ const Status = () => {
   const statusData = useStatusStore(state => state.statusData);
   const navigate = useNavigate();
 
-  // useEffect(() => {
-  //   console.log(JSON.stringify(statusData, null, 2));
-  // }, [statusData]);
-
   const statusCount = statusData.length;
   const safeCount = statusData.filter(item => item.condition === 'safe').length;
   const evacuatedCount = statusData.filter(item => item.condition === 'evacuated').length;
   const affectedCount = statusData.filter(item => item.condition === 'affected').length;
   const missingCount = statusData.filter(item => item.condition === 'missing').length;
 
-  const statusOptions = ['safe', 'evacuated', 'affected', 'missing'];
+  const statusOptions = statuses.map(s => s.key);
 
   // Check if all individual statuses are selected
   const allStatusesSelected = statusOptions.every(status => selectedStatuses.has(status));

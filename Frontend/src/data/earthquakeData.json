@@ -1,0 +1,159 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "generated": 1763777336000,
+    "url": "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&latitude=14.2919325&longitude=120.7752839&maxradiuskm=70",
+    "title": "USGS Earthquakes",
+    "status": 200,
+    "api": "1.14.1",
+    "count": 6
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 4.6,
+        "place": "6 km NW of Bagalangit, Philippines",
+        "time": 1763373268186,
+        "updated": 1763387967040,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000rnq9",
+        "detail": "https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=us6000rnq9&format=geojson",
+        "felt": null,
+        "cdi": null,
+        "mmi": null,
+        "alert": null,
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 326,
+        "net": "us",
+        "code": "6000rnq9",
+        "ids": ",us6000rnq9,",
+        "sources": ",us,",
+        "types": ",origin,phase-data,",
+        "nst": 37,
+        "dmin": 14.088,
+        "rms": 0.91,
+        "gap": 89,
+        "magType": "mb",
+        "type": "earthquake",
+        "title": "M 4.6 - 6 km NW of Bagalangit, Philippines"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [120.8377, 13.7424, 146.927]
+      },
+      "id": "us6000rnq9"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 3.8,
+        "place": "12 km SE of Maragondon, Philippines",
+        "time": 1763375561120,
+        "updated": 1763378867300,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000test1",
+        "detail": "https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=us7000test1&format=geojson",
+        "felt": 2,
+        "cdi": 3.2,
+        "mmi": null,
+        "alert": null,
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 222,
+        "net": "us",
+        "code": "7000test1",
+        "ids": ",us7000test1,",
+        "sources": ",us,",
+        "types": ",origin,phase-data,",
+        "nst": 24,
+        "dmin": 10.345,
+        "rms": 0.65,
+        "gap": 76,
+        "magType": "ml",
+        "type": "earthquake",
+        "title": "M 3.8 - 12 km SE of Maragondon, Philippines"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [120.8422, 14.1971, 34.5]
+      },
+      "id": "us7000test1"
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 2.9,
+        "place": "4 km NE of Naic, Philippines",
+        "time": 1763377800044,
+        "updated": 1763379801010,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000test2",
+        "detail": "https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=us7000test2&format=geojson",
+        "felt": 1,
+        "cdi": 2.0,
+        "mmi": null,
+        "alert": null,
+        "status": "automatic",
+        "tsunami": 0,
+        "sig": 129,
+        "net": "us",
+        "code": "7000test2",
+        "ids": ",us7000test2,",
+        "sources": ",us,",
+        "types": ",origin,phase-data,",
+        "nst": 14,
+        "dmin": 5.123,
+        "rms": 0.44,
+        "gap": 112,
+        "magType": "ml",
+        "type": "earthquake",
+        "title": "M 2.9 - 4 km NE of Naic, Philippines"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [120.7864, 14.3451, 18.2]
+      },
+      "id": "us7000test2"
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 8.2,
+        "place": "9 km W of Indang, Philippines",
+        "time": 1763379005611,
+        "updated": 1763382001120,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000test3",
+        "detail": "https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=us7000test3&format=geojson",
+        "felt": 4,
+        "cdi": 3.8,
+        "mmi": null,
+        "alert": null,
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 280,
+        "net": "us",
+        "code": "7000test3",
+        "ids": ",us7000test3,",
+        "sources": ",us,",
+        "types": ",origin,phase-data,",
+        "nst": 31,
+        "dmin": 12.788,
+        "rms": 0.71,
+        "gap": 82,
+        "magType": "mb",
+        "type": "earthquake",
+        "title": "M 4.2 - 9 km W of Indang, Philippines"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [120.8301, 14.1833, 92.7]
+      },
+      "id": "us7000test3"
+    }
+  ]
+}

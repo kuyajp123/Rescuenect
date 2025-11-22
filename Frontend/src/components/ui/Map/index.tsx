@@ -173,6 +173,7 @@ export const Map = ({
   circleOpacity = 0.8,
   circleStrokeWidth = 2,
   circleStrokeColor = '#ffffff',
+  CustomSettingControl,
 }: MapProps) => {
   const [mapTileUrl, setMapTileUrl] = useState('https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'); // Default to light
   const styleUrl = useMapStyleStore(state => state.styleUrl);
@@ -384,6 +385,12 @@ export const Map = ({
       <CustomControl position="topright" className={`map-style-selector-control ${displayMapStyleSelector}`}>
         <MapStyleSelector onStyleChange={handleMapStyleChange} />
       </CustomControl>
+
+      {CustomSettingControl && (
+        <CustomControl position="topright" className="map-custom-setting-control">
+          <div style={{ position: 'relative', zIndex: 9999 }}>{CustomSettingControl}</div>
+        </CustomControl>
+      )}
 
       {/* Render custom overlay component if provided */}
       {overlayComponent && (

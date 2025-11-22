@@ -194,6 +194,7 @@ export interface MapProps {
   overlayComponent?: React.ReactNode;
   overlayPosition?: 'topright' | 'topleft' | 'bottomright' | 'bottomleft';
   overlayClassName?: string;
+  CustomSettingControl?: React.ReactNode;
 }
 
 export interface ProcessedEarthquake {

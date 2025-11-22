@@ -19,12 +19,14 @@
     "createdAt": { "seconds": 1760702000, "nanoseconds": 0 },
     "updatedAt": { "seconds": 1760703800, "nanoseconds": 0 },
     "deletedAt": null,
-    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 }
+    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 },
+    "shareLocation": true,
+    "shareContact": true
   },
   {
     "parentId": "p002",
     "versionId": "v002",
-    "statusType": "current",
+    "statusType": "deleted",
     "uid": "user002",
     "profileImage": "https://randomuser.me/api/portraits/women/24.jpg",
     "firstName": "Maria",
@@ -41,7 +43,9 @@
     "createdAt": { "seconds": 1760701200, "nanoseconds": 0 },
     "updatedAt": { "seconds": 1760703900, "nanoseconds": 0 },
     "deletedAt": null,
-    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 }
+    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 },
+    "shareLocation": false,
+    "shareContact": false
   },
   {
     "parentId": "p003",
@@ -63,12 +67,14 @@
     "createdAt": { "seconds": 1760705400, "nanoseconds": 0 },
     "updatedAt": { "seconds": 1760706000, "nanoseconds": 0 },
     "deletedAt": null,
-    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 }
+    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 },
+    "shareLocation": true,
+    "shareContact": false
   },
   {
     "parentId": "p004",
     "versionId": "v004",
-    "statusType": "current",
+    "statusType": "history",
     "uid": "user004",
     "profileImage": "https://randomuser.me/api/portraits/women/45.jpg",
     "firstName": "Ella",
@@ -85,7 +91,9 @@
     "createdAt": { "seconds": 1760708800, "nanoseconds": 0 },
     "updatedAt": { "seconds": 1760709400, "nanoseconds": 0 },
     "deletedAt": null,
-    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 }
+    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 },
+    "shareLocation": false,
+    "shareContact": true
   },
   {
     "parentId": "p005",
@@ -107,7 +115,9 @@
     "createdAt": { "seconds": 1760698200, "nanoseconds": 0 },
     "updatedAt": { "seconds": 1760699100, "nanoseconds": 0 },
     "deletedAt": null,
-    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 }
+    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 },
+    "shareLocation": true,
+    "shareContact": false
   },
   {
     "parentId": "p006",
@@ -129,12 +139,14 @@
     "createdAt": { "seconds": 1760694600, "nanoseconds": 0 },
     "updatedAt": { "seconds": 1760696400, "nanoseconds": 0 },
     "deletedAt": null,
-    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 }
+    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 },
+    "shareLocation": false,
+    "shareContact": true
   },
   {
     "parentId": "p007",
     "versionId": "v007",
-    "statusType": "current",
+    "statusType": "history",
     "uid": "user007",
     "profileImage": "https://randomuser.me/api/portraits/women/84.jpg",
     "firstName": "Francis",
@@ -151,12 +163,14 @@
     "createdAt": { "seconds": 1760740740, "nanoseconds": 0 },
     "updatedAt": { "seconds": 1760740800, "nanoseconds": 0 },
     "deletedAt": null,
-    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 }
+    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 },
+    "shareLocation": false,
+    "shareContact": false
   },
   {
     "parentId": "p008",
     "versionId": "v008",
-    "statusType": "current",
+    "statusType": "history",
     "uid": "user008",
     "profileImage": "https://randomuser.me/api/portraits/men/19.jpg",
     "firstName": "Liza",
@@ -173,7 +187,9 @@
     "createdAt": { "seconds": 1760687400, "nanoseconds": 0 },
     "updatedAt": { "seconds": 1760687700, "nanoseconds": 0 },
     "deletedAt": null,
-    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 }
+    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 },
+    "shareLocation": true,
+    "shareContact": true
   },
   {
     "parentId": "p009",
@@ -195,12 +211,14 @@
     "createdAt": { "seconds": 1760705400, "nanoseconds": 0 },
     "updatedAt": { "seconds": 1760708100, "nanoseconds": 0 },
     "deletedAt": null,
-    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 }
+    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 },
+    "shareLocation": true,
+    "shareContact": true
   },
   {
     "parentId": "p010",
     "versionId": "v010",
-    "statusType": "current",
+    "statusType": "deleted",
     "uid": "user010",
     "profileImage": "https://randomuser.me/api/portraits/women/93.jpg",
     "firstName": "Sofia",
@@ -217,6 +235,8 @@
     "createdAt": { "seconds": 1760659200, "nanoseconds": 0 },
     "updatedAt": { "seconds": 1760662800, "nanoseconds": 0 },
     "deletedAt": null,
-    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 }
+    "retentionUntil": { "seconds": 1763503200, "nanoseconds": 0 },
+    "shareLocation": true,
+    "shareContact": true
   }
 ]

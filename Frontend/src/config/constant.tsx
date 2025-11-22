@@ -22,17 +22,19 @@ export const getEarthquakeSeverityColor = (severity: string) => {
   }
 };
 
+export const severityLevels = [
+  { level: 'micro', label: 'Micro', magnitude: '< 2.0' },
+  { level: 'minor', label: 'Minor', magnitude: '2.0 - 3.9' },
+  { level: 'light', label: 'Light', magnitude: '4.0 - 4.9' },
+  { level: 'moderate', label: 'Moderate', magnitude: '5.0 - 5.9' },
+  { level: 'strong', label: 'Strong', magnitude: '6.0 - 6.9' },
+  { level: 'major', label: 'Major', magnitude: '7.0 - 7.9' },
+  { level: 'great', label: 'Great', magnitude: '8.0+' },
+];
+
 // custom legend colors for earthquake severity and status conditions
 export const CustomLegend = (styleUrl: string, status?: StatusData[]) => {
-  const severityLevels = [
-    { level: 'micro', label: 'Micro', magnitude: '< 2.0' },
-    { level: 'minor', label: 'Minor', magnitude: '2.0 - 3.9' },
-    { level: 'light', label: 'Light', magnitude: '4.0 - 4.9' },
-    { level: 'moderate', label: 'Moderate', magnitude: '5.0 - 5.9' },
-    { level: 'strong', label: 'Strong', magnitude: '6.0 - 6.9' },
-    { level: 'major', label: 'Major', magnitude: '7.0 - 7.9' },
-    { level: 'great', label: 'Great', magnitude: '8.0+' },
-  ];
+  
 
   const statusLevels = [
     { condition: 'safe', label: 'Safe', color: '#22c55e' },

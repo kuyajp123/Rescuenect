@@ -1,7 +1,7 @@
-import { Map } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { SecondaryButton } from '../button';
-import { useMapStyleStore } from '@/stores/useMapStyleStore'
+import { useMapStyleStore } from '@/stores/useMapStyleStore';
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from '@heroui/react';
+import { Map, Moon, Sun } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface MapStyle {
   key: string;
@@ -9,6 +9,7 @@ interface MapStyle {
   url: string;
   attribution: string;
   description: string;
+  icon: React.ReactNode;
 }
 
 interface MapStyleSelectorProps {
@@ -23,6 +24,7 @@ const MAP_STYLES: MapStyle[] = [
     url: 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     description: 'Standard OpenStreetMap style with light colors',
+    icon: <Sun size={20} />,
   },
   {
     key: 'dark',
@@ -31,33 +33,15 @@ const MAP_STYLES: MapStyle[] = [
     attribution:
       '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
     description: 'Dark theme with smooth styling',
+    icon: <Moon size={20} />,
   },
 ];
 
 const STORAGE_KEY = 'rescuenect_map_style';
 
-export const MapStyleSelector = ({ onStyleChange, className = '' }: MapStyleSelectorProps) => {
+export const MapStyleSelector = ({ onStyleChange }: MapStyleSelectorProps) => {
   const [selectedStyle, setSelectedStyle] = useState<string>('light');
   const setMapStyle = useMapStyleStore(state => state.setMapStyle);
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
 
   // Load saved style from localStorage on component mount
   useEffect(() => {
@@ -88,54 +72,39 @@ export const MapStyleSelector = ({ onStyleChange, className = '' }: MapStyleSele
 
       // Save to localStorage
       localStorage.setItem(STORAGE_KEY, styleKey);
-
-      console.log(`Map style changed to: ${style.label} (${style.url})`);
-
-      // Close dropdown after selection
-      setIsOpen(false);
     }
   };
 
   return (
-    <div className={`relative ${className}`} ref={dropdownRef}>
-      {/* Map Icon Button */}
-      <SecondaryButton
-        className="bg-bg dark:bg-bg-dark backdrop-blur-sm shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-bg-hover dark:hover:bg-bg-hover-dark"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <Map size={20} className="text-gray-600 dark:text-gray-300" />
-      </SecondaryButton>
-
-      {/* Dropdown Menu */}
-      {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-48 bg-bg dark:bg-bg-dark backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 animate-in slide-in-from-top-2 duration-200">
-          <div className="p-2">
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 px-2">Map Style</div>
-            {MAP_STYLES.map(style => (
-              <button
-                key={style.key}
-                onClick={() => handleStyleChange(style.key)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer ${
-                  selectedStyle === style.key
-                    ? 'bg-blue-50 dark:bg-blue-400/10 text-primary dark:text-primary'
-                    : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                <div
-                  className={`w-4 h-4 rounded border-2 ${
-                    style.key === 'light' ? 'bg-white border-gray-400' : 'bg-gray-800 border-gray-600'
-                  }`}
-                />
-                <div className="flex-1 text-left">
-                  <div className="font-medium text-sm">{style.label}</div>
-                  <div className="text-xs opacity-70">{style.description}</div>
-                </div>
-                {selectedStyle === style.key && <div className="w-2 h-2 text-primary dark:text-primary rounded-full" />}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+    <Dropdown>
+      <DropdownTrigger>
+        <Button
+          isIconOnly
+          variant="solid"
+          className="bg-bg dark:bg-bg-dark backdrop-blur-sm shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-bg-hover dark:hover:bg-bg-hover-dark"
+        >
+          <Map size={24} className="text-gray-600 dark:text-gray-300" />
+        </Button>
+      </DropdownTrigger>
+      <DropdownMenu aria-label="Dropdown menu with icons" variant="faded" items={MAP_STYLES}>
+        {style => (
+          <DropdownItem
+            key={style.key}
+            onPress={() => handleStyleChange(style.key)}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer ${
+              selectedStyle === style.key
+                ? 'bg-blue-50 dark:bg-blue-400/10 text-primary dark:text-primary'
+                : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300'
+            }`}
+            startContent={style.icon}
+          >
+            <div>
+              <div className="font-medium text-sm">{style.label}</div>
+            </div>
+            {selectedStyle === style.key && <div className="w-2 h-2 text-primary dark:text-primary rounded-full" />}
+          </DropdownItem>
+        )}
+      </DropdownMenu>
+    </Dropdown>
   );
 };
