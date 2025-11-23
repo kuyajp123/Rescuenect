@@ -1,3 +1,4 @@
+import { UnifiedEarthquake } from '@/types/types';
 import {
   Card,
   CardBody,
@@ -12,22 +13,7 @@ import {
 import { Earth } from 'lucide-react';
 
 interface EarthquakeCardProps {
-  earthquake?: {
-    uid: string;
-    magnitude: number;
-    severity: string;
-    place: string;
-    time: number;
-    usgs_url: string;
-    lat: number;
-    lng: number;
-    tsunami_warning: boolean;
-    impact_radii?: {
-      felt_radius_km: number;
-      moderate_shaking_radius_km: number;
-      strong_shaking_radius_km: number;
-    };
-  };
+  earthquake?: UnifiedEarthquake;
 }
 
 export const EarthquakeCard = ({ earthquake }: EarthquakeCardProps) => {
@@ -59,7 +45,12 @@ export const EarthquakeCard = ({ earthquake }: EarthquakeCardProps) => {
 
   // Naic, Cavite coordinates
   const naicCoords = { lat: 14.2965, lng: 120.7925 };
-  const distance = calculateDistance(naicCoords.lat, naicCoords.lng, earthquake.lat, earthquake.lng);
+  const distance = calculateDistance(
+    naicCoords.lat,
+    naicCoords.lng,
+    earthquake.coordinates.latitude,
+    earthquake.coordinates.longitude
+  );
 
   const dynamicRows = [
     {
@@ -83,7 +74,7 @@ export const EarthquakeCard = ({ earthquake }: EarthquakeCardProps) => {
             <p className="text-lg font-bold">Earthquake Details</p>
           </div>
         </div>
-        <p className="text-gray-500">Event id: {earthquake.uid}</p>
+        <p className="text-gray-500">Event id: {earthquake.id}</p>
       </CardHeader>
       <CardBody className="flex-1 overflow-y-auto">
         <p className="text-3xl font-bold ml-3 mb-2">M {earthquake.magnitude}</p>

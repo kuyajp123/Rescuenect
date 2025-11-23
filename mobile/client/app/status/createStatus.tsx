@@ -1,4 +1,5 @@
 import { getAddress } from '@/API/getAddress';
+import { IconButton } from '@/components/components/button/Button';
 import CustomImagePicker from '@/components/components/CustomImagePicker';
 import { ImageModal } from '@/components/components/image-modal/ImageModal';
 import Map, { CustomButton, RadioField, TextInputField } from '@/components/components/Map';
@@ -38,9 +39,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { isEqual } from 'lodash';
-import { Bookmark, Ellipsis, Info, Navigation, Settings, SquarePen, Trash } from 'lucide-react-native';
+import { Bookmark, Ellipsis, Info, Minus, Navigation, Plus, Settings, SquarePen, Trash } from 'lucide-react-native';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Image, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export const createStatus = () => {
@@ -129,6 +130,7 @@ export const createStatus = () => {
     isImageModalVisible: false,
     savedLocation: false,
   });
+
   const toggleModal = (name: keyof typeof modals, value: boolean) => {
     setModals(prev => ({ ...prev, [name]: value }));
   };
@@ -835,8 +837,36 @@ export const createStatus = () => {
     }
   };
 
+  const textValueColor = isDark ? Colors.text.dark : Colors.text.light;
+
   // Custom components
   const customComponents = [
+    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <View style={{ flex: 1, flexDirection: 'column' }}>
+        <Text>How many people are with you?</Text>
+        <TextInput
+          placeholder="Enter Value"
+          value="1"
+          onChangeText={() => {}}
+          keyboardType="numeric"
+          style={[
+            {
+              ...styles.textInput,
+              borderColor: isDark ? Colors.border.dark : Colors.border.light,
+              flex: 1,
+            },
+            { color: textValueColor },
+          ]}
+        />
+      </View>
+      <IconButton onPress={() => {}}>
+        <Minus color={isDark ? Colors.icons.dark : Colors.icons.light} />
+      </IconButton>
+      <IconButton onPress={() => {}}>
+        <Plus color={isDark ? Colors.icons.dark : Colors.icons.light} />
+      </IconButton>
+    </View>,
+
     formData?.image ? (
       <Pressable key="current-status-image-pressable" onPress={handleImageModalOpen}>
         <Image key="current-status-image" style={styles.statusImage} source={{ uri: formData.image }} />
@@ -1330,5 +1360,13 @@ const styles = StyleSheet.create({
     gap: 8,
     display: 'flex',
     alignItems: 'center',
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    width: '100%',
   },
 });

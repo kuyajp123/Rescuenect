@@ -2,21 +2,24 @@ import { Map } from '@/components/ui/Map';
 import { EarthquakeCard } from '@/components/ui/card/EarthquakeCard';
 import { StatusCard } from '@/components/ui/card/StatusCard';
 import { CustomLegend, getEarthquakeSeverityColor, severityLevels } from '@/config/constant';
-import earthquakes from '@/data/earthquakeData.json';
+import earthquakesJson from '@/data/earthquakeData.json'; // temporary
 import statusDataJson from '@/data/statusData.json'; // temporary
 import { getSelectedStatusText } from '@/helper/commonHelpers';
 import { useEarthquakeStore } from '@/stores/useEarthquakeStore';
 import { useMapStyleStore } from '@/stores/useMapStyleStore';
 import { useStatusStore } from '@/stores/useStatusStore';
-import { type StatusData } from '@/types/types';
+import type { EarthquakeGeoJSONCollection } from '@/types/types';
+import { StatusData } from '@/types/types';
+import { convertGeoJSONCollectionToProcessed } from '@/utils/earthquakeAdapter';
 import { Select, SelectItem, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from '@heroui/react';
-import { Timestamp } from 'firebase/firestore';
 import { Earth, MapPin } from 'lucide-react';
 import { useState } from 'react';
 useStatusStore;
 useEarthquakeStore;
-Timestamp;
-StatusCard;
+statusDataJson;
+earthquakesJson;
+
+// status data from JSON static data
 const statusData = statusDataJson as unknown as StatusData[]; // temporary
 
 const categories = [
@@ -36,48 +39,32 @@ const Earthquake = () => {
   const [severity, setSeverity] = useState(new Set(['all']));
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [selectedItemType, setSelectedItemType] = useState<'earthquake' | 'status' | null>(null);
-  // const earthquakes = useEarthquakeStore(state => state.earthquakes);
+  const earthquakes = useEarthquakeStore(state => state.earthquakes);
   const styleUrl = useMapStyleStore(state => state.styleUrl);
-  // const statusData = useStatusStore(state => state.statusData);
+  const statusData = useStatusStore(state => state.statusData);
 
-  // Transform earthquake data from JSON to Map component format
-  const earthquakeData =
-    earthquakes?.features?.map((earthquake: any) => {
-      // Extract coordinates from GeoJSON format [longitude, latitude, depth]
-      const [lng, lat] = earthquake.geometry.coordinates;
+  // Flag to switch between data sources for testing
+  const useJsonData = false; // Set to true to use JSON data, false for database data
 
-      // Determine severity based on magnitude
-      const getSeverityFromMagnitude = (
-        mag: number
-      ): 'micro' | 'minor' | 'light' | 'moderate' | 'strong' | 'major' | 'great' => {
-        if (mag < 2.0) return 'micro';
-        if (mag < 4.0) return 'minor';
-        if (mag < 5.0) return 'light';
-        if (mag < 6.0) return 'moderate';
-        if (mag < 7.0) return 'strong';
-        if (mag < 8.0) return 'major';
-        return 'great';
-      };
+  // Get earthquake data from appropriate source
+  const processedEarthquakes = useJsonData
+    ? convertGeoJSONCollectionToProcessed(earthquakesJson as unknown as EarthquakeGeoJSONCollection)
+    : earthquakes || [];
 
-      return {
-        uid: earthquake.id,
-        lat: lat,
-        lng: lng,
-        severity: getSeverityFromMagnitude(earthquake.properties.mag),
-        magnitude: earthquake.properties.mag,
-        place: earthquake.properties.place,
-        time: earthquake.properties.time,
-        tsunami_warning: earthquake.properties.tsunami === 1,
-        usgs_url: earthquake.properties.url,
-        priority: 'normal', // Default priority since not in JSON
-        // Generate mock impact radii based on magnitude for testing
-        impact_radii: {
-          felt_radius_km: earthquake.properties.mag * 15,
-          moderate_shaking_radius_km: earthquake.properties.mag * 8,
-          strong_shaking_radius_km: earthquake.properties.mag * 4,
-        },
-      };
-    }) || [];
+  // Convert to map marker format
+  const earthquakeData = processedEarthquakes.map(earthquake => ({
+    uid: earthquake.id,
+    lat: earthquake.coordinates.latitude,
+    lng: earthquake.coordinates.longitude,
+    severity: earthquake.severity,
+    magnitude: earthquake.magnitude,
+    place: earthquake.place,
+    time: earthquake.time,
+    tsunami_warning: earthquake.tsunami_warning,
+    usgs_url: earthquake.usgs_url,
+    priority: earthquake.priority,
+    impact_radii: earthquake.impact_radii,
+  }));
 
   const severityOptions = severityLevels.map(s => s.level);
 
@@ -196,10 +183,11 @@ const Earthquake = () => {
               // Determine if clicked item is earthquake or status
               const isEarthquake = 'magnitude' in item || 'severity' in item;
               if (isEarthquake) {
-                // Find the full earthquake data
-                const fullEarthquakeData = filteredEarthquakeData.find(eq => eq.uid === item.uid);
+                // Find the full earthquake data from processed earthquakes
+                const fullEarthquakeData = processedEarthquakes.find(eq => eq.id === item.uid);
                 setSelectedItem(fullEarthquakeData);
                 setSelectedItemType('earthquake');
+                console.log('eq data: ', JSON.stringify(fullEarthquakeData, null, 2));
               } else {
                 // Find the full status data
                 const fullStatusData = filteredStatusData.find(status => status.uid === item.uid);

@@ -197,6 +197,28 @@ export interface MapProps {
   CustomSettingControl?: React.ReactNode;
 }
 
+// GeoJSON Earthquake format (from JSON file)
+export interface GeoJSONEarthquake {
+  type: 'Feature';
+  properties: {
+    mag: number;
+    place: string;
+    time: number;
+    updated: number;
+    url: string;
+    tsunami: number;
+    status: string;
+    title: string;
+    [key: string]: any; // for additional properties
+  };
+  geometry: {
+    type: 'Point';
+    coordinates: [number, number, number]; // [longitude, latitude, depth]
+  };
+  id: string;
+}
+
+// Database Earthquake format (from Firestore)
 export interface ProcessedEarthquake {
   id: string;
   magnitude: number;
@@ -226,4 +248,21 @@ export interface ProcessedEarthquake {
     };
   };
   notification_sent: boolean;
+}
+
+// Unified earthquake type for components
+export type UnifiedEarthquake = ProcessedEarthquake;
+
+// GeoJSON collection type
+export interface EarthquakeGeoJSONCollection {
+  type: 'FeatureCollection';
+  metadata: {
+    generated: number;
+    url: string;
+    title: string;
+    status: number;
+    api: string;
+    count: number;
+  };
+  features: GeoJSONEarthquake[];
 }
