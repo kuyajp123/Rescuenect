@@ -171,3 +171,22 @@ export const saveFCMtoken = async (fcmToken: string, user: any) => {
     throw error; // Re-throw so calling code can handle it
   }
 };
+
+
+// get selected value text based on selected value
+export function getSelectedStatusText({ allStatusesSelected, selectedStatuses, statusOptions, statuses }: any) {
+  // If everything is selected
+  if (allStatusesSelected || selectedStatuses.has('all')) {
+    return 'All Selected';
+  }
+
+  // Identify which specific statuses are selected
+  const individualSelected = statusOptions.filter((status: any) => selectedStatuses.has(status));
+
+  if (individualSelected.length === 0) {
+    return 'None Selected';
+  }
+
+  // Convert selected keys → labels
+  return individualSelected.map((status: any) => statuses.find((s: any) => s.key === status)?.label).join(', ');
+}

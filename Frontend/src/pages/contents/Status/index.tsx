@@ -1,6 +1,7 @@
 import { SecondaryButton } from '@/components/ui/button';
+import { StatusCard } from '@/components/ui/card/StatusCard';
 import { Map } from '@/components/ui/Map';
-import { StatusCard, StatusList } from '@/components/ui/status';
+import { StatusList } from '@/components/ui/status';
 import { useStatusStore } from '@/stores/useStatusStore';
 import { MapMarkerData } from '@/types/types';
 import { Select, SelectItem } from '@heroui/react';

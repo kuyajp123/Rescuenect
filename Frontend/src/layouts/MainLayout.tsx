@@ -2,7 +2,7 @@ import Content from '@/components/ui/content/Content';
 import Header from '@/components/ui/header/Header';
 import { Map } from '@/components/ui/Map';
 import SideBar from '@/components/ui/sideBar/SideBar';
-import { StatusCard } from '@/components/ui/status';
+import { StatusCard } from '@/components/ui/card/StatusCard';
 import { NotificationToast } from '@/components/ui/toast/NotificationToast';
 import { Button } from '@heroui/react';
 import { useState } from 'react';
