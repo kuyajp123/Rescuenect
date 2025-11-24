@@ -130,11 +130,27 @@ export type CreateStatusData = Omit<
   'parentId' | 'versionId' | 'statusType' | 'expiresAt' | 'createdAt' | 'retentionUntil' | 'updatedAt' | 'deletedAt'
 >;
 
+type Category =
+  | 'flood'
+  | 'earthquake'
+  | 'fire'
+  | 'typhoon'
+  | 'landslide'
+  | 'storm'
+  | 'accident'
+  | 'informational'
+  | 'extreme-heat'
+  | 'tsunami'
+  | 'medical-emergency'
+  | 'other';
+
 export type StatusStateData = CreateStatusData & {
   parentId?: string;
   versionId?: string;
   createdAt?: FirebaseFirestore.Timestamp | undefined;
   statusType?: 'current' | 'history' | 'deleted';
+  category: Category[];
+  people: number;
 };
 
 export type StatusFormErrors = {

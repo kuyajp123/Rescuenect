@@ -12,7 +12,6 @@ type StatusFormStore = {
 };
 
 export const useStatusFormStore = create<StatusFormStore>(set => ({
-  formData: null, // now it can be null
   // formData: {
   //   uid: 'dfhn;asdf',
   //   firstName: 'John',
@@ -28,6 +27,7 @@ export const useStatusFormStore = create<StatusFormStore>(set => ({
   //   shareContact: true,
   //   expirationDuration: 24,
   // }, // temporary only for testing
+  formData: null, // now it can be null
   isLoading: false,
   error: false,
   setFormData: data =>

@@ -191,18 +191,21 @@ export const CustomOutlineButton = ({
   color = Colors.semantic?.success || '#4CAF50',
   style,
   className = '',
+  width = 'auto',
 }: {
   onPress?: () => void;
   children?: React.ReactNode;
   color?: string;
   style?: object;
   className?: string;
+  width?: 'full' | 'auto' | 'fit';
 }) => (
   <Button
     variant="outline"
     style={{ borderColor: color, borderWidth: 2, ...style }}
     onPress={onPress}
     className={className}
+    width={width}
   >
     <Text style={{ color }}>{children || 'Custom Button'}</Text>
   </Button>

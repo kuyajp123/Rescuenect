@@ -43,6 +43,7 @@ import { Bookmark, Ellipsis, Info, Minus, Navigation, Plus, Settings, SquarePen,
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Image, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CustomOutlineButton } from '@/components/components/button/Button';
 
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
@@ -113,6 +114,8 @@ export const createStatus = () => {
     location: null,
     image: formData?.image || '',
     note: '',
+    category: [],
+    people: 1,
     shareLocation: false,
     shareContact: false,
     createdAt: undefined,
@@ -841,13 +844,19 @@ export const createStatus = () => {
 
   // Custom components
   const customComponents = [
-    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <View style={{ flex: 1, flexDirection: 'column' }}>
-        <Text>How many people are with you?</Text>
+    <View style={{ flex: 1, flexDirection: 'column' }} key="people-with-you-input-container">
+      <View>
+        <Text>Total people with you right now (count yourself too)</Text>
         <TextInput
           placeholder="Enter Value"
-          value="1"
-          onChangeText={() => {}}
+          value={statusForm.people.toString()}
+          onChangeText={text => {
+            const num = parseInt(text) || 1;
+            setStatusForm(prev => ({
+              ...prev,
+              people: num,
+            }));
+          }}
           keyboardType="numeric"
           style={[
             {
@@ -859,12 +868,34 @@ export const createStatus = () => {
           ]}
         />
       </View>
-      <IconButton onPress={() => {}}>
+      <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
+      <IconButton
+        onPress={() => {
+          setStatusForm(prev => ({
+            ...prev,
+            people: prev.people > 1 ? prev.people - 1 : 1,
+          }));
+        }}
+      >
         <Minus color={isDark ? Colors.icons.dark : Colors.icons.light} />
       </IconButton>
-      <IconButton onPress={() => {}}>
+      <IconButton
+        onPress={() => {
+          setStatusForm(prev => ({
+            ...prev,
+            people: prev.people + 1,
+          }));
+        }}
+      >
         <Plus color={isDark ? Colors.icons.dark : Colors.icons.light} />
       </IconButton>
+      </View>
+    </View>,
+
+    <View>
+      <CustomOutlineButton width='fit'>
+        Earthquake
+      </CustomOutlineButton>
     </View>,
 
     formData?.image ? (
