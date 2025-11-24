@@ -18,6 +18,20 @@ export interface forecastData {
   values: Record<string, any>;
 }
 
+export type Category =
+  | 'flood'
+  | 'earthquake'
+  | 'fire'
+  | 'typhoon'
+  | 'landslide'
+  | 'storm'
+  | 'accident'
+  | 'informational'
+  | 'extreme-heat'
+  | 'tsunami'
+  | 'medical-emergency'
+  | 'other';
+
 export interface StatusData {
   // Core versioning fields
   parentId: string;
@@ -45,6 +59,8 @@ export interface StatusData {
   // Additional information
   note: string;
   image: string;
+  category: Category[];
+  people: number;
 
   // Privacy settings
   shareLocation: boolean;

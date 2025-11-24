@@ -80,6 +80,20 @@ export type FiveDaysForecastProps = {
   isNight?: boolean;
 };
 
+export type Category =
+  | 'flood'
+  | 'earthquake'
+  | 'fire'
+  | 'typhoon'
+  | 'landslide'
+  | 'storm'
+  | 'accident'
+  | 'informational'
+  | 'extreme-heat'
+  | 'tsunami'
+  | 'medical-emergency'
+  | 'other';
+
 interface StatusData {
   // Core versioning fields
   parentId: string;
@@ -107,6 +121,8 @@ interface StatusData {
   // Additional information
   note: string;
   image: string;
+  category: Category[];
+  people: number;
 
   // Privacy settings
   shareLocation: boolean | undefined;
@@ -129,20 +145,6 @@ export type CreateStatusData = Omit<
   StatusData,
   'parentId' | 'versionId' | 'statusType' | 'expiresAt' | 'createdAt' | 'retentionUntil' | 'updatedAt' | 'deletedAt'
 >;
-
-type Category =
-  | 'flood'
-  | 'earthquake'
-  | 'fire'
-  | 'typhoon'
-  | 'landslide'
-  | 'storm'
-  | 'accident'
-  | 'informational'
-  | 'extreme-heat'
-  | 'tsunami'
-  | 'medical-emergency'
-  | 'other';
 
 export type StatusStateData = CreateStatusData & {
   parentId?: string;

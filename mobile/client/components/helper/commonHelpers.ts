@@ -1,3 +1,4 @@
+import { Category } from '@/types/components';
 import { differenceInHours, formatDistanceToNow } from 'date-fns';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
@@ -204,4 +205,22 @@ export const cleanAddress = (fullAddress: string) => {
   });
 
   return filteredParts.join(', ');
+};
+
+export const normalizeCategory = (category: any): Category[] => {
+  if (Array.isArray(category)) {
+    return category as Category[];
+  } else if (typeof category === 'string') {
+    // Check if it's a JSON string
+    try {
+      const parsed = JSON.parse(category);
+      if (Array.isArray(parsed)) {
+        return parsed as Category[];
+      }
+    } catch {
+      // Not a JSON string, return as single-element array
+      return [category as Category];
+    }
+  }
+  return [];
 };

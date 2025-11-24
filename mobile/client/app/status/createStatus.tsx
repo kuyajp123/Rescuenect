@@ -1,5 +1,5 @@
 import { getAddress } from '@/API/getAddress';
-import { IconButton } from '@/components/components/button/Button';
+import { CustomOutlineButton, IconButton } from '@/components/components/button/Button';
 import CustomImagePicker from '@/components/components/CustomImagePicker';
 import { ImageModal } from '@/components/components/image-modal/ImageModal';
 import Map, { CustomButton, RadioField, TextInputField } from '@/components/components/Map';
@@ -11,6 +11,7 @@ import {
   formatTimeSince,
   getCurrentPositionOnce,
   isValidContactNumber,
+  normalizeCategory,
 } from '@/components/helper/commonHelpers';
 import { GetDate, GetTime } from '@/components/helper/DateAndTime';
 import { storageHelpers } from '@/components/helper/storage';
@@ -34,7 +35,7 @@ import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { navigateToStatusSettings } from '@/routes/route';
-import { AddressState, StatusFormErrors, StatusStateData } from '@/types/components';
+import { AddressState, Category, StatusFormErrors, StatusStateData } from '@/types/components';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
@@ -43,7 +44,6 @@ import { Bookmark, Ellipsis, Info, Minus, Navigation, Plus, Settings, SquarePen,
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Image, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CustomOutlineButton } from '@/components/components/button/Button';
 
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
@@ -62,7 +62,6 @@ export const createStatus = () => {
   const setOneTimeLocationCoords = useCoords(state => state.setOneTimeLocationCoords);
   const setActiveStatusCoords = useCoords(state => state.setActiveStatusCoords);
   const resetCoordsState = useCoords(state => state.resetState);
-  const savedLocation: [number, number] = [120.7752839, 14.2919325]; // simulate saved location
   const savedLocations = useSavedLocationsStore(state => state.savedLocations);
 
   // Address store
@@ -206,9 +205,16 @@ export const createStatus = () => {
       setCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : null);
       setSelectedCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : [0, 0]);
       setActiveStatusCoords(true);
+
+      // ✅ Fix: Ensure category is always an array when loading formData
+      const normalizedFormData = {
+        ...formData,
+        category: normalizeCategory(formData.category),
+      };
+
       setStatusForm(prev => ({
         ...prev,
-        ...formData,
+        ...normalizedFormData,
       }));
 
       // Reset the flag after a short delay
@@ -229,6 +235,11 @@ export const createStatus = () => {
       setAddressGPS(null);
     }
   }, [formData]);
+
+  useEffect(() => {
+    console.log('formData:', JSON.stringify(formData, null, 2));
+    console.log('✅ statusForm loaded into form successfully: ', JSON.stringify(statusForm, null, 2));
+  }, [formData, statusForm]);
 
   useFocusEffect(
     useCallback(() => {
@@ -555,6 +566,12 @@ export const createStatus = () => {
     if (!isValidContactNumber(statusForm.phoneNumber)) {
       errors.phoneNumber = 'Please enter a valid mobile number';
     }
+    if (!statusForm.people || statusForm.people < 1) {
+      errors.people = 'How many person are Included on this Status?';
+    }
+    if (statusForm.category.length === 0) {
+      errors.category = 'Please select at least one category';
+    }
     if (Object.keys(errors).length > 0) {
       errors.errMessage = 'Please fill out all required fields.';
       setFormErrors(errors);
@@ -563,7 +580,15 @@ export const createStatus = () => {
 
     setSubmitStatusLoading(true);
 
-    if (isEqual(statusForm, formData)) {
+    // ✅ Fix: Normalize formData for comparison to match statusForm structure
+    const normalizedFormData = formData
+      ? {
+          ...formData,
+          category: normalizeCategory(formData.category),
+        }
+      : null;
+
+    if (isEqual(statusForm, normalizedFormData)) {
       toggleModal('noChanges', true);
       setSubmitStatusLoading(false);
       return;
@@ -595,6 +620,9 @@ export const createStatus = () => {
           statusData.append(key, value ? 'true' : 'false');
         } else if (typeof value === 'number') {
           statusData.append(key, value.toString());
+        } else if (Array.isArray(value)) {
+          // ✅ Fix: Handle arrays properly - send as JSON string
+          statusData.append(key, JSON.stringify(value));
         } else {
           statusData.append(key, value.toString());
         }
@@ -779,9 +807,16 @@ export const createStatus = () => {
           setCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : null);
           setSelectedCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : [0, 0]);
           setActiveStatusCoords(true);
+
+          // ✅ Fix: Ensure category is always an array when loading formData
+          const normalizedFormData = {
+            ...formData,
+            category: normalizeCategory(formData.category),
+          };
+
           setStatusForm(prev => ({
             ...prev,
-            ...formData,
+            ...normalizedFormData,
           }));
         }
       },
@@ -840,13 +875,27 @@ export const createStatus = () => {
     }
   };
 
-  const textValueColor = isDark ? Colors.text.dark : Colors.text.light;
+  const categories: Category[] = [
+    'flood',
+    'earthquake',
+    'fire',
+    'typhoon',
+    'landslide',
+    'storm',
+    'accident',
+    'informational',
+    'extreme-heat',
+    'tsunami',
+    'medical-emergency',
+    'other',
+  ];
 
   // Custom components
   const customComponents = [
     <View style={{ flex: 1, flexDirection: 'column' }} key="people-with-you-input-container">
       <View>
         <Text>Total people with you right now (count yourself too)</Text>
+        <Text style={{ color: Colors.semantic.error }}>{formErrors.people}</Text>
         <TextInput
           placeholder="Enter Value"
           value={statusForm.people.toString()}
@@ -864,38 +913,82 @@ export const createStatus = () => {
               borderColor: isDark ? Colors.border.dark : Colors.border.light,
               flex: 1,
             },
-            { color: textValueColor },
+            { color: isDark ? Colors.text.dark : Colors.text.light },
           ]}
         />
       </View>
       <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
-      <IconButton
-        onPress={() => {
-          setStatusForm(prev => ({
-            ...prev,
-            people: prev.people > 1 ? prev.people - 1 : 1,
-          }));
-        }}
-      >
-        <Minus color={isDark ? Colors.icons.dark : Colors.icons.light} />
-      </IconButton>
-      <IconButton
-        onPress={() => {
-          setStatusForm(prev => ({
-            ...prev,
-            people: prev.people + 1,
-          }));
-        }}
-      >
-        <Plus color={isDark ? Colors.icons.dark : Colors.icons.light} />
-      </IconButton>
+        <IconButton
+          onPress={() => {
+            setStatusForm(prev => ({
+              ...prev,
+              people: prev.people > 1 ? prev.people - 1 : 1,
+            }));
+          }}
+        >
+          <Minus color={isDark ? Colors.icons.dark : Colors.icons.light} />
+        </IconButton>
+        <IconButton
+          onPress={() => {
+            setStatusForm(prev => ({
+              ...prev,
+              people: prev.people + 1,
+            }));
+          }}
+        >
+          <Plus color={isDark ? Colors.icons.dark : Colors.icons.light} />
+        </IconButton>
       </View>
     </View>,
 
-    <View>
-      <CustomOutlineButton width='fit'>
-        Earthquake
-      </CustomOutlineButton>
+    <View style={{ flex: 1, flexDirection: 'column' }} key="category-label-container">
+      <Text>Select which type of Category of your Status</Text>
+      <Text style={{ color: Colors.semantic.error }}>{formErrors.category}</Text>
+    </View>,
+
+    <View
+      style={{
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 4,
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start',
+      }}
+      key="category-input-container"
+    >
+      {categories.map((c: Category) => (
+        <CustomOutlineButton
+          key={`category-button-${c}`}
+          color={isDark ? Colors.brand.dark : Colors.brand.light}
+          width="auto"
+          variant={statusForm.category.includes(c) ? 'solid' : 'outline'}
+          style={{ marginBottom: 4 }}
+          onPress={() => {
+            let newCategories = [...statusForm.category];
+            if (newCategories.includes(c)) {
+              newCategories = newCategories.filter((cat: Category) => cat !== c);
+            } else {
+              newCategories.push(c);
+            }
+            handleInputChange('category', newCategories as any);
+          }}
+        >
+          <Text
+            size="sm"
+            style={{
+              color: statusForm.category.includes(c)
+                ? isDark
+                  ? Colors.text.dark
+                  : 'white'
+                : isDark
+                ? Colors.brand.dark
+                : Colors.text.light,
+            }}
+          >
+            {c.charAt(0).toUpperCase() + c.slice(1).replace(/-/g, ' ')}
+          </Text>
+        </CustomOutlineButton>
+      ))}
     </View>,
 
     formData?.image ? (
