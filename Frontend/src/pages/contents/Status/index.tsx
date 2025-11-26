@@ -176,13 +176,17 @@ const Status = () => {
               location={selectedItem.location}
               createdAt={selectedItem.createdAt}
               note={selectedItem.note}
-              image={selectedItem.image}
+              image={selectedItem.image} // || 'https://heroui.com/images/hero-card-complete.jpeg'
               phoneNumber={selectedItem.phoneNumber}
               expiresAt={selectedItem.expiresAt}
               vid={selectedItem.versionId}
+              category={selectedItem.category}
+              people={selectedItem.people}
             />
           ) : (
-            <div className="text-center flex h-full items-center justify-center">Selected marker displays here</div>
+            <div className="text-center flex h-full items-center justify-center">
+              <p className="text-gray-500 text-center">Selected marker displays here</p>
+            </div>
           )}
         </div>
       </div>

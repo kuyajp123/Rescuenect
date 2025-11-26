@@ -9,18 +9,17 @@ import { useEarthquakeStore } from '@/stores/useEarthquakeStore';
 import { useMapStyleStore } from '@/stores/useMapStyleStore';
 import { useStatusStore } from '@/stores/useStatusStore';
 import type { EarthquakeGeoJSONCollection } from '@/types/types';
-import { StatusData } from '@/types/types';
 import { convertGeoJSONCollectionToProcessed } from '@/utils/earthquakeAdapter';
 import { Select, SelectItem, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from '@heroui/react';
 import { Earth, MapPin } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 useStatusStore;
 useEarthquakeStore;
 statusDataJson;
 earthquakesJson;
 
 // status data from JSON static data
-const statusData = statusDataJson as unknown as StatusData[]; // temporary
+const statusData = statusDataJson.filter(item => item.category.includes('earthquake')); // temporary
 
 const categories = [
   { key: 'earthquake', label: 'Show Earthquake', icon: <MapPin size={20} /> },
@@ -41,7 +40,13 @@ const Earthquake = () => {
   const [selectedItemType, setSelectedItemType] = useState<'earthquake' | 'status' | null>(null);
   const earthquakes = useEarthquakeStore(state => state.earthquakes);
   const styleUrl = useMapStyleStore(state => state.styleUrl);
-  const statusData = useStatusStore(state => state.statusData);
+  const allstatusData = useStatusStore(state => state.statusData);
+
+  const statusData = allstatusData.filter(item => item.category.includes('earthquake'));
+
+  useEffect(() => {
+    console.log('status: ', JSON.stringify(allstatusData, null, 2));
+  }, [allstatusData]);
 
   // Flag to switch between data sources for testing
   const useJsonData = false; // Set to true to use JSON data, false for database data
@@ -86,6 +91,10 @@ const Earthquake = () => {
     if (newKeys.has('status') && !newKeys.has('earthquake')) {
       setSelectedCategory(new Set(['status']));
       return;
+    }
+
+    if (newKeys.size === 0) {
+      return setSelectedCategory(new Set());
     }
 
     return setSelectedCategory(new Set(['earthquake']));
@@ -277,7 +286,7 @@ const Earthquake = () => {
               </div>
             </div>
           </div>
-          <div className="flex flex-col  h-full">
+          <div className="flex flex-col h-full">
             <div className="w-full flex flex-row justify-between items-center mb-3 flex-shrink-0">
               <h3 className="text-lg font-semibold">
                 {selectedItem ? (selectedItemType === 'earthquake' ? 'Earthquake Details' : 'Status Details') : ''}
@@ -288,33 +297,33 @@ const Earthquake = () => {
                     setSelectedItem(null);
                     setSelectedItemType(null);
                   }}
-                  className="text-sm opacity-70 hover:opacity-100 cursor-pointer px-3 py-1 rounded border"
+                  className="text-sm opacity-70 hover:opacity-100 cursor-pointer px-3 py-1"
                 >
                   Close
                 </button>
               )}
             </div>
-            <div className="flex-1 min-h-0">
+            <div className="flex-1">
               {selectedItem ? (
                 selectedItemType === 'earthquake' ? (
                   <EarthquakeCard earthquake={selectedItem} />
                 ) : (
-                  <div className="h-full overflow-y-auto">
+                  <div className="h-120 max-h-[80%] overflow-y-auto">
                     <StatusCard
                       uid={selectedItem.uid}
-                      profileImage={
-                        selectedItem.profileImage || 'https://avatars.githubusercontent.com/u/86160567?s=200&v=4'
-                      }
+                      profileImage={selectedItem.profileImage}
                       firstName={selectedItem.firstName}
                       lastName={selectedItem.lastName}
                       note={selectedItem.note}
                       condition={selectedItem.condition}
                       location={selectedItem.location || 'Unknown'}
                       createdAt={selectedItem.createdAt}
-                      image={selectedItem.image || 'https://heroui.com/images/hero-card-complete.jpeg'}
+                      image={selectedItem.image} // || 'https://heroui.com/images/hero-card-complete.jpeg'
                       phoneNumber={selectedItem.phoneNumber}
                       expiresAt={selectedItem.expiresAt}
                       vid={selectedItem.versionId || selectedItem.vid || 'N/A'}
+                      category={selectedItem.category}
+                      people={selectedItem.people}
                     />
                   </div>
                 )
