@@ -1,5 +1,5 @@
 import { StatusModel } from '@/models/mobile/StatusModel';
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 
 export class StatusController {
   static async createStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -23,6 +23,7 @@ export class StatusController {
         shareLocation: data.shareLocation === 'true' || data.shareLocation === true,
         shareContact: data.shareContact === 'true' || data.shareContact === true,
         // Parse number fields
+        people: data.people ? parseInt(data.people.toString()) || 1 : 1,
         expirationDuration: data.expirationDuration ? parseInt(data.expirationDuration.toString()) || 24 : 24,
         lat: data.lat ? parseFloat(data.lat.toString()) : null,
         lng: data.lng ? parseFloat(data.lng.toString()) : null,

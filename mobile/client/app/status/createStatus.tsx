@@ -33,6 +33,7 @@ import { Text } from '@/components/ui/text';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
+import { categories, formFields } from '@/constants/variables';
 import { useTheme } from '@/contexts/ThemeContext';
 import { navigateToStatusSettings } from '@/routes/route';
 import { AddressState, Category, StatusFormErrors, StatusStateData } from '@/types/components';
@@ -235,11 +236,6 @@ export const createStatus = () => {
       setAddressGPS(null);
     }
   }, [formData]);
-
-  useEffect(() => {
-    console.log('formData:', JSON.stringify(formData, null, 2));
-    console.log('✅ statusForm loaded into form successfully: ', JSON.stringify(statusForm, null, 2));
-  }, [formData, statusForm]);
 
   useFocusEffect(
     useCallback(() => {
@@ -513,7 +509,7 @@ export const createStatus = () => {
     }, 100);
   };
 
-  const handleInputChange = (field: keyof StatusStateData, value: string | boolean) => {
+  const handleInputChange = (field: keyof StatusStateData, value: any) => {
     if (field === 'phoneNumber' && typeof value === 'string') {
       value = formatContactNumber(value);
     }
@@ -522,6 +518,9 @@ export const createStatus = () => {
     }
     if (field === 'lastName' && typeof value === 'string') {
       value = formatName(value);
+    }
+    if (field === 'category' && Array.isArray(value)) {
+      value = normalizeCategory(value);
     }
 
     setStatusForm(prev => ({
@@ -545,6 +544,23 @@ export const createStatus = () => {
 
   const handleImageModalOpen = () => {
     toggleModal('isImageModalVisible', true);
+  };
+
+  // ✅ Fix: Check if form has changes compared to formData
+  const hasChanges = () => {
+    if (!formData) return true; // New submission always has changes
+
+    for (const field of formFields) {
+      if (field === 'category') {
+        const normalizedFormCategory = normalizeCategory(formData.category);
+        if (!isEqual(statusForm.category, normalizedFormCategory)) {
+          return true;
+        }
+      } else if (!isEqual(statusForm[field as keyof StatusStateData], formData[field as keyof StatusStateData])) {
+        return true;
+      }
+    }
+    return false;
   };
 
   const handleSubmit = async () => {
@@ -580,15 +596,7 @@ export const createStatus = () => {
 
     setSubmitStatusLoading(true);
 
-    // ✅ Fix: Normalize formData for comparison to match statusForm structure
-    const normalizedFormData = formData
-      ? {
-          ...formData,
-          category: normalizeCategory(formData.category),
-        }
-      : null;
-
-    if (isEqual(statusForm, normalizedFormData)) {
+    if (!hasChanges()) {
       toggleModal('noChanges', true);
       setSubmitStatusLoading(false);
       return;
@@ -875,21 +883,6 @@ export const createStatus = () => {
     }
   };
 
-  const categories: Category[] = [
-    'flood',
-    'earthquake',
-    'fire',
-    'typhoon',
-    'landslide',
-    'storm',
-    'accident',
-    'informational',
-    'extreme-heat',
-    'tsunami',
-    'medical-emergency',
-    'other',
-  ];
-
   // Custom components
   const customComponents = [
     <View style={{ flex: 1, flexDirection: 'column' }} key="people-with-you-input-container">
@@ -922,7 +915,7 @@ export const createStatus = () => {
           onPress={() => {
             setStatusForm(prev => ({
               ...prev,
-              people: prev.people > 1 ? prev.people - 1 : 1,
+              people: Number(prev.people) > 1 ? Number(prev.people) - 1 : 1,
             }));
           }}
         >
@@ -932,7 +925,7 @@ export const createStatus = () => {
           onPress={() => {
             setStatusForm(prev => ({
               ...prev,
-              people: prev.people + 1,
+              people: Number(prev.people) + 1,
             }));
           }}
         >
@@ -964,12 +957,15 @@ export const createStatus = () => {
           variant={statusForm.category.includes(c) ? 'solid' : 'outline'}
           style={{ marginBottom: 4 }}
           onPress={() => {
-            let newCategories = [...statusForm.category];
-            if (newCategories.includes(c)) {
-              newCategories = newCategories.filter((cat: Category) => cat !== c);
+            let newCategories: Category[] = [];
+            const currentCategories = statusForm.category || [];
+
+            if (currentCategories.includes(c)) {
+              newCategories = currentCategories.filter((cat: Category) => cat !== c);
             } else {
-              newCategories.push(c);
+              newCategories = [...currentCategories, c];
             }
+
             handleInputChange('category', newCategories as any);
           }}
         >
@@ -1229,9 +1225,6 @@ export const createStatus = () => {
         // Clear image picker
         setImagePickerImage(null);
 
-        // dont reset status form to default state
-        // Keep the current form values
-
         toggleModal('deleteSuccess', true);
         toggleModal('deleteConfirm', false);
       }
@@ -1318,7 +1311,7 @@ export const createStatus = () => {
           quickActionButtons={quickActionButtons}
           headerActions={headerActions}
           stopTracking={handleStopTracking}
-          {...(!isEqual(formData, statusForm) && {
+          {...(hasChanges() && {
             primaryButton: {
               label: 'Update',
               onPress: handleSubmit,
