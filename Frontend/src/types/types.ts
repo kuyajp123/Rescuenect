@@ -203,6 +203,8 @@ export interface MapProps {
   // Event handlers
   onMarkerClick?: (item: MapMarkerData) => void;
   onTileLayerChange?: (url: string) => void;
+  enableMapClick?: boolean;
+  onMapClick?: (latlng: { lat: number; lng: number }) => void;
   className?: string;
 
   // Overlay components

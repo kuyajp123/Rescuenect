@@ -16,6 +16,8 @@ interface SelectedUserData {
   expirationDuration: string;
   parentId?: string;
   originalStatus?: any;
+  category: [];
+  people: number;
 }
 
 interface PanelState {

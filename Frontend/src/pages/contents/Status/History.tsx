@@ -70,6 +70,8 @@ interface FirebaseStatusData {
   uid: string;
   statusType: 'current' | 'history' | 'deleted';
   updatedAt?: any;
+  category: [];
+  people: number;
 }
 
 export const columns = [
@@ -100,6 +102,8 @@ export const users = [
     status: 'current',
     createdAt: '2 hours ago',
     expirationDuration: '24 hours',
+    category: [],
+    people: 4,
   },
 ];
 
@@ -146,6 +150,8 @@ type StatusUser = {
   expirationDuration: string;
   parentId: string;
   originalStatus?: FirebaseStatusData;
+  category: [];
+  people: number;
 };
 
 export const StatusHistory = () => {
@@ -231,6 +237,8 @@ export const StatusHistory = () => {
             expirationDuration: selectedUser.expirationDuration,
             parentId: selectedUser.parentId,
             originalStatus: selectedUser.originalStatus,
+            category: selectedUser.originalStatus?.category || [],
+            people: selectedUser.originalStatus?.people || 1,
           };
 
           // Update the store and open panel

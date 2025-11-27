@@ -1,15 +1,18 @@
-import { Routes, Route } from 'react-router-dom';
-import MainLayout from './layouts/MainLayout';
+import { Route, Routes } from 'react-router-dom';
 import AuthLayout from './layouts/AuthLayout';
+import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './security/ProtectedRoutes';
 
 import {
+  AddNewCenter,
   Dashboard,
+  Earthquake,
+  Evacuation,
+  HistoryVersions,
+  Residents,
   Status,
   StatusHistory,
-  HistoryVersions,
   Weather,
-  Earthquake,
 } from '@/pages/contents';
 import Login from './pages/auth/Login';
 
@@ -31,8 +34,9 @@ const Router = () => {
         <Route path="/status/history/versions" element={<HistoryVersions />} />
         <Route path="/weather" element={<Weather />} />
         <Route path="/earthquake" element={<Earthquake />} />
-        {/* <Route path="/add_notification" element={<AddNotification />} /> */}
-        {/* <Route path="/add_event" element={<AddEvent />} /> */}
+        <Route path="/evacuation" element={<Evacuation />} />
+        <Route path="/evacuation/add_new_center" element={<AddNewCenter />} />
+        <Route path="/residents" element={<Residents />} />
         <Route path="/profile" element={<AdminProfile />} />
       </Route>
 

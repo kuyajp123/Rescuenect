@@ -65,6 +65,9 @@ const Header = () => {
         case '/earthquake':
           label = 'Earthquake';
           break;
+        case '/evacuation/add_new_center':
+          label = 'Add New Center';
+          break;
         case '/profile':
           label = 'Profile';
           break;

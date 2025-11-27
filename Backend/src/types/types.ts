@@ -93,3 +93,19 @@ export interface VersionHistoryItem {
   lng: number;
   condition: string;
 }
+
+interface coordinates {
+  lat: number;
+  lng: number;
+}
+
+export interface EvacuationCenterFormData {
+  name: string;
+  location: string;
+  coordinates: coordinates | null;
+  capacity: string;
+  type: string;
+  status: string;
+  contact?: string;
+  description?: string;
+}

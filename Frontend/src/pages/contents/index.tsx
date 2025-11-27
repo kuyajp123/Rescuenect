@@ -2,7 +2,10 @@ import Status from '@/pages/contents/Status';
 import { StatusHistory } from '@/pages/contents/Status/History';
 import HistoryVersions from '@/pages/contents/Status/HistoryVersions';
 import { Dashboard } from './Dashboard';
-import Weather from './Weather';
 import Earthquake from './Earthquake';
+import Evacuation from './Evacuation';
+import AddNewCenter from './Evacuation/AddNewCenter';
+import Residents from './Residents';
+import Weather from './Weather';
 
-export { Dashboard, Status, StatusHistory, HistoryVersions, Weather, Earthquake };
+export { AddNewCenter, Dashboard, Earthquake, Evacuation, HistoryVersions, Residents, Status, StatusHistory, Weather };

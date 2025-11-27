@@ -1,14 +1,16 @@
-import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  MapPin,
-  LayoutDashboard,
   Activity,
   Cloud,
+  HousePlus,
+  LayoutDashboard,
+  MapPin,
   PanelRightClose,
   PanelRightOpen,
-  Box,
+  UsersRound,
 } from 'lucide-react';
+import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import Logo from '../../../../Public/images/logo/logo.svg';
 
 interface SideBarProps {
   isOpen: boolean;
@@ -36,7 +38,8 @@ const SideBar = ({ isOpen, onToggle }: SideBarProps) => {
     // { path: '/city', icon: Map, label: 'City' },
     { path: '/weather', icon: Cloud, label: 'Weather' },
     { path: '/earthquake', icon: Activity, label: 'Earthquake' },
-    // { path: '/add_notification', icon: Megaphone, label: 'Add Notification' },
+    { path: '/residents', icon: UsersRound, label: 'Residents' },
+    { path: '/evacuation', icon: HousePlus, label: 'Evacuation' },
     // { path: '/add_event', icon: CalendarPlus, label: 'Add Event' },
   ];
 
@@ -71,15 +74,17 @@ const SideBar = ({ isOpen, onToggle }: SideBarProps) => {
         <div className="h-full flex flex-col">
           {/* Logo */}
           <div
-            className={`flex items-center mt-4 mb-8 text-xl font-bold text-primary dark:text-white flex-shrink-0 transition-all duration-300 ${
+            className={`flex items-center mt-4 mb-8 text-xl font-semibold text-primary dark:text-white flex-shrink-0 transition-all duration-300 ${
               isExpanded ? 'p-4 pl-10' : 'justify-center p-4'
             }`}
+            style={{ minHeight: '40px' }}
           >
-            <Box size={24} className="flex-shrink-0" />
+            <img src={Logo} alt="Rescuenect Logo" className="w-6 h-6" />
             <span
               className={`ml-2 transition-opacity duration-300 ${
                 isExpanded ? 'opacity-100' : 'opacity-0 lg:opacity-0'
               } ${!isExpanded ? 'lg:hidden' : ''}`}
+              style={{ fontSize: '1.1rem' }}
             >
               Rescuenect
             </span>

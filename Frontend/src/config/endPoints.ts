@@ -18,4 +18,8 @@ export const API_ENDPOINTS = {
   STATUS: {
     GET_VERSIONS: `${BACKEND_URL}/admin/status/getVersions`,
   },
+  EVACUATION: {
+    ADD_CENTER: `${BACKEND_URL}/admin/evacuation/addCenter`,
+    GET_CENTERS: `${BACKEND_URL}/admin/evacuation/getCenters`,
+  },
 };

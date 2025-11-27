@@ -104,6 +104,8 @@ const MainLayout = () => {
                     expiresAt={selectedUser.originalStatus?.expiresAt}
                     createdAt={selectedUser.originalStatus?.createdAt}
                     vid={selectedUser.vid}
+                    category={selectedUser.category}
+                    people={selectedUser.people}
                   />
                 ) : (
                   <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">

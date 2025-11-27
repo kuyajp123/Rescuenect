@@ -9,7 +9,7 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import 'leaflet/dist/leaflet.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Circle, MapContainer, Marker, Popup, useMap } from 'react-leaflet';
+import { Circle, MapContainer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import { getEarthquakeSeverityColor } from '../../../config/constant.tsx';
 import { MapStyleSelector } from './MapStyleSelector';
 
@@ -174,7 +174,20 @@ export const Map = ({
   circleStrokeWidth = 2,
   circleStrokeColor = '#ffffff',
   CustomSettingControl,
+  enableMapClick = false,
+  onMapClick,
 }: MapProps) => {
+  // Optional map click handler
+  function MapClickHandler() {
+    useMapEvents({
+      click: e => {
+        if (enableMapClick && onMapClick) {
+          onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
+        }
+      },
+    });
+    return null;
+  }
   const [mapTileUrl, setMapTileUrl] = useState('https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'); // Default to light
   const styleUrl = useMapStyleStore(state => state.styleUrl);
   // lat lng popup render
@@ -370,6 +383,7 @@ export const Map = ({
       // ]}
       // maxBoundsViscosity={1.0} // prevents moving outside bounds
     >
+      {enableMapClick && <MapClickHandler />}
       {/* Use DynamicTileLayer for style switching */}
       <DynamicTileLayer url={mapTileUrl} attribution={attribution} />
 

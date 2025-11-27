@@ -12,7 +12,7 @@ import type { EarthquakeGeoJSONCollection } from '@/types/types';
 import { convertGeoJSONCollectionToProcessed } from '@/utils/earthquakeAdapter';
 import { Select, SelectItem, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from '@heroui/react';
 import { Earth, MapPin } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 useStatusStore;
 useEarthquakeStore;
 statusDataJson;
@@ -44,9 +44,9 @@ const Earthquake = () => {
 
   const statusData = allstatusData.filter(item => item.category.includes('earthquake'));
 
-  useEffect(() => {
-    console.log('status: ', JSON.stringify(allstatusData, null, 2));
-  }, [allstatusData]);
+  // useEffect(() => {
+  //   console.log('status: ', JSON.stringify(allstatusData, null, 2));
+  // }, [allstatusData]);
 
   // Flag to switch between data sources for testing
   const useJsonData = false; // Set to true to use JSON data, false for database data
@@ -171,40 +171,42 @@ const Earthquake = () => {
 
   return (
     <div className="grid grid-cols-[2fr_1fr] gap-4" style={{ height: '100%', width: '100%' }}>
-      <Map
-        earthquakeData={filteredEarthquakeData}
-        statusData={filteredStatusData}
-        center={[14.2965, 120.7925]}
-        zoom={9}
-        minZoom={8}
-        maxZoom={15}
-        height="100%"
-        // Custom circle styling
-        circleRadius={10}
-        circleOpacity={0.9}
-        circleStrokeWidth={3}
-        circleStrokeColor="#ffffff"
-        overlayComponent={CustomLegend(styleUrl, statusData)}
-        overlayPosition="bottomleft"
-        onMarkerClick={item => {
-          // Determine if clicked item is earthquake or status
-          const isEarthquake = 'magnitude' in item || 'severity' in item;
-          if (isEarthquake) {
-            // Find the full earthquake data from processed earthquakes
-            const fullEarthquakeData = processedEarthquakes.find(eq => eq.id === item.uid);
-            setSelectedItem(fullEarthquakeData);
-            setSelectedItemType('earthquake');
-            console.log('eq data: ', JSON.stringify(fullEarthquakeData, null, 2));
-          } else {
-            // Find the full status data
-            const fullStatusData = filteredStatusData.find(status => status.uid === item.uid);
-            setSelectedItem(fullStatusData);
-            setSelectedItemType('status');
-          }
-        }}
-      />
-      <div className="flex flex-col gap-4 overflow-hidden">
-        <div className="flex-shrink-0">
+      <div className="rounded-lg overflow-hidden" style={{ height: '100%', width: '100%' }}>
+        <Map
+          earthquakeData={filteredEarthquakeData}
+          statusData={filteredStatusData}
+          center={[14.2965, 120.7925]}
+          zoom={9}
+          minZoom={8}
+          maxZoom={15}
+          height="100%"
+          // Custom circle styling
+          circleRadius={10}
+          circleOpacity={0.9}
+          circleStrokeWidth={3}
+          circleStrokeColor="#ffffff"
+          overlayComponent={CustomLegend(styleUrl, statusData)}
+          overlayPosition="bottomleft"
+          onMarkerClick={item => {
+            // Determine if clicked item is earthquake or status
+            const isEarthquake = 'magnitude' in item || 'severity' in item;
+            if (isEarthquake) {
+              // Find the full earthquake data from processed earthquakes
+              const fullEarthquakeData = processedEarthquakes.find(eq => eq.id === item.uid);
+              setSelectedItem(fullEarthquakeData);
+              setSelectedItemType('earthquake');
+              console.log('eq data: ', JSON.stringify(fullEarthquakeData, null, 2));
+            } else {
+              // Find the full status data
+              const fullStatusData = filteredStatusData.find(status => status.uid === item.uid);
+              setSelectedItem(fullStatusData);
+              setSelectedItemType('status');
+            }
+          }}
+        />
+      </div>
+      <div className="h-fit">
+        <div className="flex flex-col">
           <Table aria-label="Example static collection table">
             <TableHeader>
               <TableColumn>Types</TableColumn>
@@ -226,66 +228,66 @@ const Earthquake = () => {
               </TableRow>
             </TableBody>
           </Table>
-        </div>
-        <div className="flex flex-row gap-4 w-full flex-shrink-0">
-          <div className="flex flex-col w-full">
-            <Select
-              className="max-w-60"
-              label="Category Show"
-              placeholder="Select Category"
-              defaultSelectedKeys={selectedCategory}
-              selectionMode="multiple"
-              onSelectionChange={handleSelectCategory}
-            >
-              {categories.map(category => (
-                <SelectItem key={category.key} startContent={category.icon}>
-                  {category.label}
-                </SelectItem>
-              ))}
-            </Select>
-            <p className="mt-2 text-sm opacity-70">
-              Selected:{' '}
-              {getSelectedStatusText({
-                allStatusesSelected: selectedCategory.size === categories.length,
-                selectedStatuses: selectedCategory,
-                statusOptions: categories.map(c => c.key),
-                statuses: categories,
-              })}
-            </p>
-          </div>
-          <div className="flex flex-col w-full">
-            <Select
-              className="max-w-60"
-              label="Earthquake Severity"
-              placeholder="Select Severity"
-              selectedKeys={severity}
-              selectionMode="multiple"
-              onSelectionChange={handleSelectSeverity}
-              maxListboxHeight={280}
-            >
-              {allSeverityOptions.map(option => (
-                <SelectItem key={option.key} startContent={option.icon}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </Select>
-            <div className="mt-2 flex flex-col gap-2">
-              <p className="text-sm opacity-70">
+          <div className="flex flex-row w-full">
+            <div className=" w-full flex flex-col">
+              <Select
+                className="max-w-60"
+                label="Category Show"
+                placeholder="Select Category"
+                defaultSelectedKeys={selectedCategory}
+                selectionMode="multiple"
+                onSelectionChange={handleSelectCategory}
+              >
+                {categories.map(category => (
+                  <SelectItem key={category.key} startContent={category.icon}>
+                    {category.label}
+                  </SelectItem>
+                ))}
+              </Select>
+              <p className="mt-2 text-sm opacity-70">
                 Selected:{' '}
                 {getSelectedStatusText({
-                  allStatusesSelected: allSeveritySelected,
-                  selectedStatuses: severity,
-                  statusOptions: severityOptions,
-                  statuses: severityLevels.map(s => ({ key: s.level, label: s.label })),
+                  allStatusesSelected: selectedCategory.size === categories.length,
+                  selectedStatuses: selectedCategory,
+                  statusOptions: categories.map(c => c.key),
+                  statuses: categories,
                 })}
               </p>
-              <div>{`Showing: ${filteredEarthquakeData.length} of ${earthquakeData.length} earthquakes`}</div>
+            </div>
+            <div className=" w-full flex flex-col">
+              <Select
+                className="max-w-60"
+                label="Earthquake Severity"
+                placeholder="Select Severity"
+                selectedKeys={severity}
+                selectionMode="multiple"
+                onSelectionChange={handleSelectSeverity}
+                maxListboxHeight={280}
+              >
+                {allSeverityOptions.map(option => (
+                  <SelectItem key={option.key} startContent={option.icon}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </Select>
+              <div className="mt-2 flex flex-col gap-2">
+                <p className="text-sm opacity-70">
+                  Selected:{' '}
+                  {getSelectedStatusText({
+                    allStatusesSelected: allSeveritySelected,
+                    selectedStatuses: severity,
+                    statusOptions: severityOptions,
+                    statuses: severityLevels.map(s => ({ key: s.level, label: s.label })),
+                  })}
+                </p>
+                <div>{`Showing: ${filteredEarthquakeData.length} of ${earthquakeData.length} earthquakes`}</div>
+              </div>
             </div>
           </div>
         </div>
-        <div className="flex flex-col h-fit">
-          <div className="w-full flex flex-row justify-between items-center mb-3 flex-shrink-0">
-            <h3 className="text-lg font-semibold">
+        <div className=" h-120">
+          <div className="w-full flex flex-row justify-end">
+            <h3 className="text-lg font-semibold text-left flex-grow px-3 py-1">
               {selectedItem ? (selectedItemType === 'earthquake' ? 'Earthquake Details' : 'Status Details') : ''}
             </h3>
             {selectedItem && (
@@ -300,38 +302,36 @@ const Earthquake = () => {
               </button>
             )}
           </div>
-          <div className="h-120 overflow-auto">
-            {selectedItem ? (
-              selectedItemType === 'earthquake' ? (
-                <EarthquakeCard earthquake={selectedItem} />
-              ) : (
-                <StatusCard
-                  uid={selectedItem.uid}
-                  profileImage={selectedItem.profileImage}
-                  firstName={selectedItem.firstName}
-                  lastName={selectedItem.lastName}
-                  note={selectedItem.note}
-                  condition={selectedItem.condition}
-                  location={selectedItem.location || 'Unknown'}
-                  createdAt={selectedItem.createdAt}
-                  image={selectedItem.image} // || 'https://heroui.com/images/hero-card-complete.jpeg'
-                  phoneNumber={selectedItem.phoneNumber}
-                  expiresAt={selectedItem.expiresAt}
-                  vid={selectedItem.versionId || selectedItem.vid || 'N/A'}
-                  category={selectedItem.category}
-                  people={selectedItem.people}
-                />
-              )
+          {selectedItem ? (
+            selectedItemType === 'earthquake' ? (
+              <EarthquakeCard earthquake={selectedItem} />
             ) : (
-              <div className="h-full flex items-center justify-center rounded-lg">
-                <p className="text-gray-500 text-center">
-                  Select an earthquake or status marker
-                  <br />
-                  on the map to view details
-                </p>
-              </div>
-            )}
-          </div>
+              <StatusCard
+                uid={selectedItem.uid}
+                profileImage={selectedItem.profileImage}
+                firstName={selectedItem.firstName}
+                lastName={selectedItem.lastName}
+                note={selectedItem.note}
+                condition={selectedItem.condition}
+                location={selectedItem.location || 'Unknown'}
+                createdAt={selectedItem.createdAt}
+                image={selectedItem.image} // || 'https://heroui.com/images/hero-card-complete.jpeg'
+                phoneNumber={selectedItem.phoneNumber}
+                expiresAt={selectedItem.expiresAt}
+                vid={selectedItem.versionId || selectedItem.vid || 'N/A'}
+                category={selectedItem.category}
+                people={selectedItem.people}
+              />
+            )
+          ) : (
+            <div className="h-full flex items-center justify-center rounded-lg">
+              <p className="text-gray-500 text-center">
+                Select an earthquake or status marker
+                <br />
+                on the map to view details
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
