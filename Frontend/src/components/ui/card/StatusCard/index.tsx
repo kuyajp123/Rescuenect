@@ -27,7 +27,7 @@ export const StatusCard = ({
       key={uid}
       style={style}
     >
-      <CardHeader className="justify-between w-full">
+      <CardHeader className="flex-row flex-1 items-start justify-between w-full">
         <div className="flex max-w-[80%] gap-5">
           <Avatar radius="full" size="md" src={profileImage} />
           <div className="flex w-full flex-col gap-1 items-start justify-center min-w-0 flex-1">
