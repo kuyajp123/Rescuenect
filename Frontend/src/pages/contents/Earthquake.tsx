@@ -44,10 +44,6 @@ const Earthquake = () => {
 
   const statusData = allstatusData.filter(item => item.category.includes('earthquake'));
 
-  // useEffect(() => {
-  //   console.log('status: ', JSON.stringify(allstatusData, null, 2));
-  // }, [allstatusData]);
-
   // Flag to switch between data sources for testing
   const useJsonData = false; // Set to true to use JSON data, false for database data
 
