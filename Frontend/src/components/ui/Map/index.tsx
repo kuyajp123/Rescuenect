@@ -174,14 +174,13 @@ export const Map = ({
   circleStrokeWidth = 2,
   circleStrokeColor = '#ffffff',
   CustomSettingControl,
-  enableMapClick = false,
   onMapClick,
 }: MapProps) => {
   // Optional map click handler
   function MapClickHandler() {
     useMapEvents({
       click: e => {
-        if (enableMapClick && onMapClick) {
+        if (onMapClick) {
           onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
         }
       },
@@ -383,7 +382,7 @@ export const Map = ({
       // ]}
       // maxBoundsViscosity={1.0} // prevents moving outside bounds
     >
-      {enableMapClick && <MapClickHandler />}
+      {onMapClick && <MapClickHandler />}
       {/* Use DynamicTileLayer for style switching */}
       <DynamicTileLayer url={mapTileUrl} attribution={attribution} />
 

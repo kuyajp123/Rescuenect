@@ -1,8 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = 'https://zepxowlolivaarxfcyxy.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+if (!supabaseAnonKey) {
+  throw new Error('Supabase anon key is not defined in environment variables');
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default supabase;

@@ -1,28 +1,14 @@
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { revokeToken } from '@/config/notificationPermission';
 import { auth } from '@/lib/firebaseConfig';
+import { Coordinates, EvacuationCenterFormData } from '@/types/types';
 import { Button, Card, CardBody, Form, Input, Select, SelectItem, Textarea } from '@heroui/react';
 import axios from 'axios';
 import { signOut } from 'firebase/auth';
 import { Plus } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-interface coordinates {
-  lat: number;
-  lng: number;
-}
-
-interface EvacuationCenterFormData {
-  name: string;
-  location: string;
-  coordinates: coordinates | null;
-  capacity: string;
-  type: string;
-  status: string;
-  contact?: string;
-  description?: string;
-}
+import supabase from '@/lib/supabaseConfig';
 
 const types = [
   { key: 'school', label: 'School' },
@@ -31,6 +17,7 @@ const types = [
   { key: 'church', label: 'Church' },
   { key: 'government building', label: 'Government Building' },
   { key: 'private facility', label: 'Private Facility' },
+  { key: 'vacant building', label: 'Vacant Building' },
   { key: 'covered court', label: 'Covered Court' },
   { key: 'other', label: 'Other' },
 ];
@@ -41,7 +28,7 @@ const status = [
   { key: 'closed', label: 'Closed' },
 ];
 
-const EvacuationCenterForm = ({ coordinates }: { coordinates: coordinates | null }) => {
+const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null }) => {
   const [images, setImages] = useState<(File | null)[]>([null, null, null]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [responseMessage, setResponseMessage] = useState<string>('');
@@ -56,6 +43,32 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: coordinates | null
       return updated;
     });
   };
+
+  // upload images to Supabase Storage
+  const uploadImages = async (files: (File | null)[], docId: string) => {
+    const uploadedUrls: string[] = [];
+    let count = 0;
+    for (const file of files) {
+      count++;
+      if (file) {
+        const fileName = `${file.name}_${docId}_${count}`;
+        const { data, error } = await supabase.storage
+          .from('evacuation-centers')
+          .upload(fileName, file, { cacheControl: '3600', upsert: false });
+        if (error) {
+          console.error('Error uploading image:', error);
+          continue;
+        }
+        const { data: publicUrlData } = supabase.storage.from('evacuation-centers').getPublicUrl(fileName);
+        if (!publicUrlData || !publicUrlData.publicUrl) {
+          console.error('Error getting public URL for:', fileName);
+          continue;
+        }
+        uploadedUrls.push(publicUrlData.publicUrl);
+      }
+    }
+    return uploadedUrls;
+  }
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -95,7 +108,7 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: coordinates | null
     if (!user) {
       revokeToken();
       await signOut(auth);
-      navigate('/auth/login');
+      // navigate('/auth/login');
       return;
     }
 
@@ -110,8 +123,8 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: coordinates | null
       location: data.location as string,
       coordinates: coordinates,
       capacity: data.capacity as string,
-      type: data.type as string,
-      status: data.status as string,
+      type: data.type as EvacuationCenterFormData['type'],
+      status: data.status as EvacuationCenterFormData['status'],
       contact: data.contact ? (data.contact as string) : undefined,
       description: data.description ? (data.description as string) : undefined,
       // images: images.filter((img): img is File => img !== null),
@@ -186,6 +199,7 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: coordinates | null
               variant="bordered"
               placeholder="Select type"
               name="type"
+              maxListboxHeight={400}
               items={types}
             >
               {types => <SelectItem key={types.key}>{types.label}</SelectItem>}
@@ -198,6 +212,7 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: coordinates | null
               variant="bordered"
               placeholder="Select status"
               name="status"
+              maxListboxHeight={280}
               items={status}
             >
               {status => <SelectItem key={status.key}>{status.label}</SelectItem>}

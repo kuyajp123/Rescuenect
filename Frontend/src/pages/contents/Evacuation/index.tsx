@@ -1,6 +1,6 @@
-import EvacuationTable, { PlusIcon } from '@/components/ui/table/EvacuationTable';
+import EvacuationTable from '@/components/ui/table/EvacuationTable';
 import { Button } from '@heroui/react';
-import { List, Map } from 'lucide-react';
+import { List, Map, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const index = () => {
@@ -24,7 +24,7 @@ const index = () => {
             onPress={() => {
               navigate('add_new_center', { replace: true });
             }}
-            endContent={<PlusIcon />}
+            endContent={<Plus />}
           >
             Add New
           </Button>

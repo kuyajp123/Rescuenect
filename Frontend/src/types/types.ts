@@ -203,7 +203,6 @@ export interface MapProps {
   // Event handlers
   onMarkerClick?: (item: MapMarkerData) => void;
   onTileLayerChange?: (url: string) => void;
-  enableMapClick?: boolean;
   onMapClick?: (latlng: { lat: number; lng: number }) => void;
   className?: string;
 
@@ -283,4 +282,34 @@ export interface EarthquakeGeoJSONCollection {
     count: number;
   };
   features: GeoJSONEarthquake[];
+}
+
+export interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+type CenterTypes = {
+  type:
+    | 'school'
+    | 'barangay hall'
+    | 'gymnasium'
+    | 'church'
+    | 'government building'
+    | 'private facility'
+    | 'vacant building'
+    | 'covered court'
+    | 'other';
+};
+
+// type for evacuation center
+export interface EvacuationCenterFormData {
+  name: string;
+  location: string;
+  coordinates: Coordinates | null;
+  capacity: string;
+  type: CenterTypes['type'];
+  status: 'available' | 'full' | 'closed';
+  contact?: string;
+  description?: string;
 }

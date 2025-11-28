@@ -16,7 +16,6 @@ const Add = () => {
           data={
             mapClickPosition ? [{ uid: 'clicked-point', lat: mapClickPosition.lat, lng: mapClickPosition.lng }] : []
           }
-          enableMapClick={true}
           onMapClick={handleMapClick}
           popupType="coordinates"
           markerType="default"
