@@ -1,6 +1,5 @@
 import type { ChipProps, Selection, SortDescriptor } from '@heroui/react';
 import { ChevronDown, EllipsisVertical, Search } from 'lucide-react';
-import { EvacuationCenterFormData } from '@/types/types';
 
 import {
   Button,

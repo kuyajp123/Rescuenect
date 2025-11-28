@@ -7,8 +7,6 @@ import axios from 'axios';
 import { signOut } from 'firebase/auth';
 import { Plus } from 'lucide-react';
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import supabase from '@/lib/supabaseConfig';
 
 const types = [
   { key: 'school', label: 'School' },
@@ -33,7 +31,6 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [responseMessage, setResponseMessage] = useState<string>('');
   const user = auth.currentUser;
-  const navigate = useNavigate();
 
   // Handle image selection
   const handleImageChange = (index: number, file: File | null) => {
@@ -43,32 +40,6 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
       return updated;
     });
   };
-
-  // upload images to Supabase Storage
-  const uploadImages = async (files: (File | null)[], docId: string) => {
-    const uploadedUrls: string[] = [];
-    let count = 0;
-    for (const file of files) {
-      count++;
-      if (file) {
-        const fileName = `${file.name}_${docId}_${count}`;
-        const { data, error } = await supabase.storage
-          .from('evacuation-centers')
-          .upload(fileName, file, { cacheControl: '3600', upsert: false });
-        if (error) {
-          console.error('Error uploading image:', error);
-          continue;
-        }
-        const { data: publicUrlData } = supabase.storage.from('evacuation-centers').getPublicUrl(fileName);
-        if (!publicUrlData || !publicUrlData.publicUrl) {
-          console.error('Error getting public URL for:', fileName);
-          continue;
-        }
-        uploadedUrls.push(publicUrlData.publicUrl);
-      }
-    }
-    return uploadedUrls;
-  }
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
