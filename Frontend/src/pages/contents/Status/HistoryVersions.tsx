@@ -85,9 +85,9 @@ const HistoryVersions = () => {
   return (
     <div className="grid grid-cols-4 grid-rows-[0.2fr_1fr_1fr] gap-4 max-h-screen overflow-y-auto w-full">
       {/* Header */}
-      <div className="col-span-4 flex items-center justify-center font-bold p-4">
-        <div className="text-center">
-          <h1 className="text-lg font-semibold">Version History</h1>
+      <div className="col-span-4 flex font-bold p-4">
+        <div>
+          <p className="text-3xl font-bold mb-2">Version History</p>
           {currentParentId && <p className="text-sm text-default-500 mt-1">Showing versions for: {currentParentId}</p>}
           {!currentParentId && <p className="text-sm text-default-500 mt-1">No status selected</p>}
         </div>

@@ -304,6 +304,7 @@ type CenterTypes = {
 
 // type for evacuation center
 export interface EvacuationCenterFormData {
+  id: string,
   name: string;
   location: string;
   coordinates: Coordinates | null;

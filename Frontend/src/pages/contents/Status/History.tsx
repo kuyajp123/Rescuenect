@@ -575,58 +575,61 @@ export const StatusHistory = () => {
   }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
 
   return (
-    <Table
-      isHeaderSticky
-      aria-label="Example table with infinite pagination"
-      classNames={{
-        wrapper: 'max-h-[650px]',
-      }}
-      topContent={topContent}
-      topContentPlacement="outside"
-      bottomContent={bottomContent}
-      bottomContentPlacement="outside"
-      sortDescriptor={sortDescriptor}
-      onSortChange={setSortDescriptor}
-      onSelectionChange={keys => {
-        setSelectedKeys(keys);
+    <div className='w-full'>
+      <p className="text-3xl font-bold mb-5">Status History</p>
+      <Table
+        isHeaderSticky
+        aria-label="Example table with infinite pagination"
+        classNames={{
+          wrapper: 'max-h-[582px]',
+        }}
+        topContent={topContent}
+        topContentPlacement="outside"
+        bottomContent={bottomContent}
+        bottomContentPlacement="outside"
+        sortDescriptor={sortDescriptor}
+        onSortChange={setSortDescriptor}
+        onSelectionChange={keys => {
+          setSelectedKeys(keys);
 
-        // Determine how many items are selected. `Selection` may be a Set or an Array
-        const selectedCount = (keys as Set<any>)?.size ?? (Array.isArray(keys) ? (keys as any[]).length : 0);
+          // Determine how many items are selected. `Selection` may be a Set or an Array
+          const selectedCount = (keys as Set<any>)?.size ?? (Array.isArray(keys) ? (keys as any[]).length : 0);
 
-        if (!selectedCount) {
-          // If nothing is selected, clear the panel state and close the panel
-          setSelectedUser(null);
-          closePanel();
-        } else {
-          // Otherwise open/view the selected row
-          handleRowSelect(keys);
-        }
-      }}
-      selectedKeys={selectedKeys}
-      selectionMode="single"
-    >
-      <TableHeader columns={columns}>
-        {column => (
-          <TableColumn
-            key={column.uid}
-            align={column.uid === 'actions' ? 'center' : 'start'}
-            maxWidth={column.uid === 'location' ? 200 : undefined}
-            allowsSorting={column.uid !== 'actions'}
-          >
-            {column.name}
-          </TableColumn>
-        )}
-      </TableHeader>
-      <TableBody isLoading={isLoading} items={sortedItems}>
-        {(item: StatusUser) => (
-          <TableRow
-            key={item.vid}
-            className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-          >
-            {columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
+          if (!selectedCount) {
+            // If nothing is selected, clear the panel state and close the panel
+            setSelectedUser(null);
+            closePanel();
+          } else {
+            // Otherwise open/view the selected row
+            handleRowSelect(keys);
+          }
+        }}
+        selectedKeys={selectedKeys}
+        selectionMode="single"
+      >
+        <TableHeader columns={columns}>
+          {column => (
+            <TableColumn
+              key={column.uid}
+              align={column.uid === 'actions' ? 'center' : 'start'}
+              maxWidth={column.uid === 'location' ? 200 : undefined}
+              allowsSorting={column.uid !== 'actions'}
+            >
+              {column.name}
+            </TableColumn>
+          )}
+        </TableHeader>
+        <TableBody isLoading={isLoading} items={sortedItems} emptyContent={'No status found'}>
+          {(item: StatusUser) => (
+            <TableRow
+              key={item.vid}
+              className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+            >
+              {columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
   );
 };

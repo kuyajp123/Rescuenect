@@ -1,10 +1,41 @@
 import EvacuationTable from '@/components/ui/table/EvacuationTable';
+import { API_ENDPOINTS } from '@/config/endPoints';
+import { auth } from '@/lib/firebaseConfig';
+import { EvacuationCenterFormData } from '@/types/types';
 import { Button } from '@heroui/react';
+import axios from 'axios';
 import { List, Map, Plus } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const index = () => {
+  const [evacuationCenters, setEvacuationCenters] = useState<EvacuationCenterFormData[]>([]);
+  const user = auth.currentUser;
   const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetchEvacuationCenters() {
+      const token = await user?.getIdToken();
+
+      if (!token) {
+        console.error('User is not authenticated');
+        return;
+      }
+
+      try {
+        const response = await axios.get<EvacuationCenterFormData[]>(API_ENDPOINTS.EVACUATION.GET_CENTERS, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        console.log('Evacuation Centers:', JSON.stringify(response.data, null, 2));
+        setEvacuationCenters(response.data);
+      } catch (error) {
+        console.error('Error fetching evacuation centers:', error);
+      }
+    }
+    fetchEvacuationCenters();
+  }, []);
 
   return (
     <div className="w-full h-full">
@@ -30,7 +61,7 @@ const index = () => {
           </Button>
         </div>
       </div>
-      <EvacuationTable />
+      <EvacuationTable data={evacuationCenters} />
     </div>
   );
 };

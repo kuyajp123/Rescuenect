@@ -98,7 +98,6 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
       status: data.status as EvacuationCenterFormData['status'],
       contact: data.contact ? (data.contact as string) : undefined,
       description: data.description ? (data.description as string) : undefined,
-      // images: images.filter((img): img is File => img !== null),
     };
 
     form.append('data', JSON.stringify(finalData));
@@ -128,9 +127,6 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
       console.error('Error submitting evacuation center form:', error);
       setErrors({ submit: `Failed to submit form. ${error instanceof Error ? error.message : 'Unknown error'}` });
     }
-
-    // console.log('Form submitted with data:', finalData);
-    // You can test errors and data in the console now
   };
 
   return (

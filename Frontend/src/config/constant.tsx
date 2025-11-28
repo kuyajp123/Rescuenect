@@ -34,8 +34,6 @@ export const severityLevels = [
 
 // custom legend colors for earthquake severity and status conditions
 export const CustomLegend = (styleUrl: string, status?: StatusData[]) => {
-  
-
   const statusLevels = [
     { condition: 'safe', label: 'Safe', color: '#22c55e' },
     { condition: 'evacuated', label: 'Evacuated', color: '#3b82f6' },
