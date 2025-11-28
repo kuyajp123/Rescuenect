@@ -1,8 +1,8 @@
 import express from 'express';
 import authRoutes from './authRoutes';
 import configRoutes from './configRoutes';
-import evacuationRoutes from './evacuation';
-import statusRoutes from './status';
+import evacuationRoutes from './evacuationRoutes';
+import statusRoutes from './statusRoutes';
 
 const adminRouter = express.Router();
 

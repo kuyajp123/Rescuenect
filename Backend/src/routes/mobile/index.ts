@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import authRoutes from './auth';
+import authRoutes from './authRoutes';
 import geoCodingRoutes from './geoCoding';
-import statusRoutes from './status';
+import statusRoutes from './statusRoutes';
 import userDataRoutes from './userData';
 
 const mobileRouter = Router();

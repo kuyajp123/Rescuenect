@@ -1,4 +1,4 @@
-import { SignInController } from '@/controllers/mobile/SignIn';
+import { SignInController } from '@/controllers/mobile/SignIn.Controller';
 import { UserDataController } from '@/controllers/mobile/User.Data.Controller';
 import { AuthMiddleware } from '@/middlewares/AuthMiddleware';
 import { Router } from 'express';

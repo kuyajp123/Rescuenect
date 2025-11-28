@@ -13,10 +13,6 @@ interface coordinates {
   lng: number;
 }
 
-interface Images {
-  images: (File | null)[];
-}
-
 interface EvacuationCenterFormData {
   name: string;
   location: string;
@@ -48,6 +44,7 @@ const status = [
 const EvacuationCenterForm = ({ coordinates }: { coordinates: coordinates | null }) => {
   const [images, setImages] = useState<(File | null)[]>([null, null, null]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [responseMessage, setResponseMessage] = useState<string>('');
   const user = auth.currentUser;
   const navigate = useNavigate();
 
@@ -106,6 +103,8 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: coordinates | null
 
     setErrors({});
 
+    const form = new FormData();
+
     const finalData: EvacuationCenterFormData = {
       name: data.name as string,
       location: data.location as string,
@@ -118,19 +117,29 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: coordinates | null
       // images: images.filter((img): img is File => img !== null),
     };
 
+    form.append('data', JSON.stringify(finalData));
+
+    images.forEach(img => {
+      if (img) {
+        form.append('images', img);
+      }
+    });
+
     try {
-      const response = await axios.post(API_ENDPOINTS.EVACUATION.ADD_CENTER, finalData, {
-        headers: { Authorization: `Bearer ${token}` },
-        withCredentials: true,
+      const response = await axios.post(API_ENDPOINTS.EVACUATION.ADD_CENTER, form, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
       });
 
-      console.log('Evacuation center added successfully:', response.data);
+      setResponseMessage((response.data as any).message);
       // Optionally reset form or show success message
       if (e.currentTarget && typeof e.currentTarget.reset === 'function') {
         e.currentTarget.reset();
       }
       setImages([null, null, null]);
-      navigate('/evacuation');
+      // navigate('/evacuation');
     } catch (error) {
       console.error('Error submitting evacuation center form:', error);
       setErrors({ submit: `Failed to submit form. ${error instanceof Error ? error.message : 'Unknown error'}` });
@@ -270,6 +279,7 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: coordinates | null
           {coordinates === null && errors.coordinates && (
             <p className="text-red-600 text-sm mt-1">{errors.coordinates}</p>
           )}
+          {responseMessage && <p className="text-green-600 text-sm mt-1">{responseMessage}</p>}
         </div>
       </div>
     </Card>

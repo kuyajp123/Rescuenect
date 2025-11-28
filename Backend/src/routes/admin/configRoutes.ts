@@ -1,4 +1,4 @@
-import { ConfigController } from '@/controllers/admin/ConfigController';
+import { ConfigController } from '@/controllers/admin/Config.Controller';
 import { AuthMiddleware } from '@/middlewares/AuthMiddleware';
 import { Router } from 'express';
 

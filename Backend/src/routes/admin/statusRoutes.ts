@@ -1,4 +1,4 @@
-import { StatusController } from '@/controllers/admin/StatusController';
+import { StatusController } from '@/controllers/admin/Status.Controller';
 import { AuthMiddleware } from '@/middlewares/AuthMiddleware';
 import { Router } from 'express';
 

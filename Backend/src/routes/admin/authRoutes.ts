@@ -1,4 +1,4 @@
-import { LoginController } from '@/controllers/admin/LoginController';
+import { LoginController } from '@/controllers/admin/Login.Controller';
 import { AuthMiddleware } from '@/middlewares/AuthMiddleware';
 import { Router } from 'express';
 

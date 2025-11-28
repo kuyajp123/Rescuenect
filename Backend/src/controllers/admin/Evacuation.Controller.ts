@@ -3,10 +3,13 @@ import { Request, Response } from 'express';
 
 export class EvacuationController {
   static async addCenter(req: Request, res: Response): Promise<void> {
-    const centerData = req.body;
+    const raw = req.body.data;
+    const parsedData = JSON.parse(raw);
+    const files = req.files as Express.Multer.File[] | undefined;
+
     try {
-      const centerId = await EvacuationModel.addCenter(centerData);
-      res.status(200).json({ message: 'Evacuation center added successfully', centerId });
+      await EvacuationModel.addCenter(parsedData, files ?? []);
+      res.status(200).json({ message: 'Evacuation center added successfully' });
     } catch (error) {
       console.error('❌ Failed to add evacuation center:', {
         error: error instanceof Error ? error.message : error,

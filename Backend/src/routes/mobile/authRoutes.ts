@@ -1,5 +1,5 @@
+import { SignInController } from '@/controllers/mobile/SignIn.Controller';
 import { Router } from 'express';
-import { SignInController } from '@/controllers/mobile/SignIn';
 
 const authRoutes = Router();
 

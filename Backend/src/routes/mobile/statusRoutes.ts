@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { StatusController } from '@/controllers/mobile/Status';
+import { StatusController } from '@/controllers/mobile/Status.Controller';
 import { AuthMiddleware } from '@/middlewares/AuthMiddleware';
 import { upload } from '@/config/multer';
 

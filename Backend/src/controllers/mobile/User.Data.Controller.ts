@@ -1,4 +1,4 @@
-import { UserDataModel } from '@/models/mobile/User.Data.Model';
+import { UserDataModel } from '@/models/mobile/UserDataModel';
 import { Request, Response } from 'express';
 
 export class UserDataController {
