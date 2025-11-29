@@ -1,20 +1,18 @@
 import { HoveredButton } from '@/components/components/button/Button';
 import { storageHelpers } from '@/components/helper/storage';
-import { useCoords } from '@/components/store/useCoords';
-import { useMapSettingsStore } from '@/components/store/useMapSettings';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import MapboxGL from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, MapIcon } from 'lucide-react-native';
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useMapSettingsStore } from '../../store/useMapSettings';
 
 interface MapViewProps {
   coords?: { lat: number; lng: number };
   handleMapPress?: (event: any) => void;
-  onMapStyleChange?: (style: MapboxGL.StyleURL) => void;
   onPress?: (coords: [number, number]) => void;
   showButtons?: boolean;
   showStyleSelector?: boolean;
@@ -35,7 +33,6 @@ interface MapViewProps {
 
 export const MapView: React.FC<MapViewProps> = ({
   coords,
-  onMapStyleChange,
   handleMapPress,
   pitchEnabled = false,
   rotateEnabled = true,
@@ -56,14 +53,25 @@ export const MapView: React.FC<MapViewProps> = ({
   const router = useRouter();
   const { isDark } = useTheme();
   const [showMapStyles, setShowMapStyles] = useState(false);
-  const [mapStyleState, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
+  const setMapStyleState = useMapSettingsStore(state => state.setMapStyle);
+  const mapStyleState = useMapSettingsStore(state => state.mapStyle);
 
   useEffect(() => {
     const loadMapStyle = async () => {
       try {
         const savedStyle = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'mapStyle');
-        if (savedStyle && Object.values(MapboxGL.StyleURL).includes(savedStyle as MapboxGL.StyleURL)) {
-          setMapStyleState(savedStyle as MapboxGL.StyleURL);
+        const allowedStyles: Array<MapboxGL.StyleURL.Street | MapboxGL.StyleURL.Dark | MapboxGL.StyleURL.SatelliteStreet> = [
+          MapboxGL.StyleURL.Street,
+          MapboxGL.StyleURL.Dark,
+          MapboxGL.StyleURL.SatelliteStreet,
+        ];
+        if (
+          savedStyle &&
+          allowedStyles.includes(savedStyle as MapboxGL.StyleURL.Street | MapboxGL.StyleURL.Dark | MapboxGL.StyleURL.SatelliteStreet)
+        ) {
+          if (setMapStyleState) {
+            setMapStyleState(savedStyle as MapboxGL.StyleURL.Street | MapboxGL.StyleURL.Dark | MapboxGL.StyleURL.SatelliteStreet);
+          }
         }
       } catch (error) {
         console.error('Error loading map style:', error);
@@ -78,11 +86,21 @@ export const MapView: React.FC<MapViewProps> = ({
   }, []);
 
   const handleStyleChange = useCallback(
-    (style: MapboxGL.StyleURL) => {
-      onMapStyleChange?.(style);
-      setShowMapStyles(false);
+    async (
+      style: MapboxGL.StyleURL.Street | MapboxGL.StyleURL.Dark | MapboxGL.StyleURL.SatelliteStreet
+    ) => {
+      try {
+        if (setMapStyleState) {
+          setMapStyleState(style);
+        }
+        setShowMapStyles(false);
+        // Save the selected style to storage
+        await storageHelpers.setField(STORAGE_KEYS.USER_SETTINGS, 'mapStyle', style);
+      } catch (error) {
+        console.error('Error saving map style:', error);
+      }
     },
-    [onMapStyleChange]
+    []
   );
 
   return (
@@ -148,7 +166,7 @@ export const MapView: React.FC<MapViewProps> = ({
             <ChevronLeft size={24} color={isDark ? Colors.border.light : Colors.border.dark} />
           </HoveredButton>
 
-          {showStyleSelector && onMapStyleChange && (
+          {showStyleSelector && (
             <HoveredButton
               onPress={toggleMapStyles}
               style={[styles.mapStyleButton, { backgroundColor: isDark ? Colors.border.dark : Colors.border.light }]}
@@ -185,7 +203,7 @@ export const MapView: React.FC<MapViewProps> = ({
                           : 'transparent',
                     },
                   ]}
-                  onPress={() => handleStyleChange(option.value)}
+                  onPress={() => handleStyleChange(option.value as MapboxGL.StyleURL.Street | MapboxGL.StyleURL.Dark | MapboxGL.StyleURL.SatelliteStreet)}
                 >
                   <Text
                     style={[

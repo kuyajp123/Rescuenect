@@ -227,10 +227,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
               >
                 {[
                   { label: 'Street', value: MapboxGL.StyleURL.Street },
-                  {
-                    label: 'Satellite',
-                    value: MapboxGL.StyleURL.SatelliteStreet,
-                  },
+                  { label: 'Satellite', value: MapboxGL.StyleURL.SatelliteStreet },
                   { label: 'Dark', value: MapboxGL.StyleURL.Dark },
                 ].map(option => (
                   <TouchableOpacity

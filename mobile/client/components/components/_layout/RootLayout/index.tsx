@@ -122,6 +122,27 @@ function RootLayoutContent() {
           }}
         />
         <Stack.Screen
+          name="evacuation"
+          options={{
+            headerShown: false,
+            title: '',
+            headerTintColor: isDark ? Colors.text.dark : Colors.text.light,
+            headerStyle: {
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerTitleStyle: {
+              fontSize: 24,
+              fontWeight: 'bold',
+              color: isDark ? Colors.text.dark : Colors.brand.light,
+            },
+            headerShadowVisible: false,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
+            animation: 'slide_from_right',
+            animationDuration: 150,
+            animationTypeForReplace: 'push',
+          }}
+        />
+        <Stack.Screen
           name="post"
           options={{
             headerShown: true,
