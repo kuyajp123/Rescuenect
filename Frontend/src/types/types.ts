@@ -235,6 +235,27 @@ export interface GeoJSONEarthquake {
   id: string;
 }
 
+// panel types from status
+export interface StatusCardProps {
+  id: string;
+  vid: string;
+  firstName: string;
+  lastName: string;
+  profileImage: string;
+  condition: 'safe' | 'evacuated' | 'affected' | 'missing';
+  phoneNumber?: string;
+  location: string;
+  lat: number;
+  lng: number;
+  status: 'current' | 'history' | 'deleted';
+  createdAt: string;
+  expirationDuration: string;
+  parentId?: string;
+  originalStatus?: any;
+  category: [];
+  people: number;
+}
+
 // Database Earthquake format (from Firestore)
 export interface ProcessedEarthquake {
   id: string;

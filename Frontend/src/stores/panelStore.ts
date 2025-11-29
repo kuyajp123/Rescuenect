@@ -1,42 +1,35 @@
+import { EvacuationCenter, StatusCardProps } from '@/types/types';
 import { create } from 'zustand';
 
-interface SelectedUserData {
-  id: string;
-  vid: string;
-  firstName: string;
-  lastName: string;
-  profileImage: string;
-  condition: 'safe' | 'evacuated' | 'affected' | 'missing';
-  phoneNumber?: string;
-  location: string;
-  lat: number;
-  lng: number;
-  status: 'current' | 'history' | 'deleted';
-  createdAt: string;
-  expirationDuration: string;
-  parentId?: string;
-  originalStatus?: any;
-  category: [];
-  people: number;
-}
+export type PanelSelection =
+  | { type: 'status'; data: StatusCardProps }
+  | { type: 'evacuation'; data: EvacuationCenter }
+  | null;
 
 interface PanelState {
   isOpen: boolean;
-  selectedUser: SelectedUserData | null;
-  openPanel: (userData?: SelectedUserData) => void;
+  selectedUser: PanelSelection;
+  openStatusPanel: (data: StatusCardProps) => void;
+  openEvacuationPanel: (data: EvacuationCenter) => void;
   closePanel: () => void;
   togglePanel: () => void;
-  setSelectedUser: (userData: SelectedUserData | null) => void;
+  setSelectedUser: (userData: PanelSelection) => void;
 }
 
 export const usePanelStore = create<PanelState>(set => ({
   isOpen: false,
   selectedUser: null,
 
-  openPanel: userData =>
+  openStatusPanel: data =>
     set({
       isOpen: true,
-      selectedUser: userData || null,
+      selectedUser: { type: 'status', data },
+    }),
+
+  openEvacuationPanel: data =>
+    set({
+      isOpen: true,
+      selectedUser: { type: 'evacuation', data },
     }),
 
   closePanel: () =>

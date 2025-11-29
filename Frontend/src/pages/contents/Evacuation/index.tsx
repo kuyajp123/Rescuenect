@@ -8,6 +8,8 @@ import axios from 'axios';
 import { List, Map as MapIcon, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePanelStore } from '@/stores/panelStore'
+import { PanelSelection } from '@/stores/panelStore';
 
 const index = () => {
   const [viewMode, setViewMode] = useState<'map' | 'list'>(() => {
@@ -15,7 +17,8 @@ const index = () => {
     return saved === 'map' || saved === 'list' ? saved : 'list';
   });
   const [evacuationCenters, setEvacuationCenters] = useState<EvacuationCenter[]>([]);
-  const [selectedItem, setSelectedItem] = useState<EvacuationCenter | null>(null);
+  const openEvacuationPanel = usePanelStore(state => state.openEvacuationPanel);
+  const setSelectedUser = usePanelStore(state => state.setSelectedUser);
   const user = auth.currentUser;
   const navigate = useNavigate();
 
@@ -50,7 +53,8 @@ const index = () => {
     // Find the full evacuation center data that corresponds to this marker
     const fullCenterData = evacuationCenters.find(item => item.id === marker.uid);
     if (fullCenterData) {
-      setSelectedItem(fullCenterData);
+      setSelectedUser(fullCenterData as unknown as PanelSelection);
+      openEvacuationPanel(fullCenterData);
     }
   };
 

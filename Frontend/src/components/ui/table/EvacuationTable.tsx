@@ -1,3 +1,4 @@
+import { PanelSelection, usePanelStore } from '@/stores/panelStore';
 import { EvacuationCenter } from '@/types/types';
 import type { ChipProps, Selection, SortDescriptor } from '@heroui/react';
 import { ChevronDown, EllipsisVertical, Search } from 'lucide-react';
@@ -69,6 +70,15 @@ export default function EvacuationTable({ data }: EvacuationTableProps) {
     column: 'status',
     direction: 'ascending',
   });
+
+  const { openEvacuationPanel, closePanel, setSelectedUser } = usePanelStore();
+
+  React.useEffect(() => {
+    return () => {
+      closePanel();
+      setSelectedUser(null);
+    };
+  }, []);
 
   const [page, setPage] = React.useState(1);
 
@@ -369,7 +379,21 @@ export default function EvacuationTable({ data }: EvacuationTableProps) {
       sortDescriptor={sortDescriptor}
       topContent={topContent}
       topContentPlacement="outside"
-      onSelectionChange={setSelectedKeys}
+      onSelectionChange={keys => {
+        setSelectedKeys(keys);
+
+        if (keys !== 'all' && keys instanceof Set && keys.size > 0) {
+          const selectedId = Array.from(keys)[0];
+          const selectedUser = data.find(user => user.id === selectedId);
+          console.log('Selected User:', selectedUser);
+          if (selectedUser) {
+            setSelectedUser(selectedUser as unknown as PanelSelection);
+            openEvacuationPanel(selectedUser);
+          }
+        } else {
+          closePanel();
+        }
+      }}
       onSortChange={setSortDescriptor}
     >
       <TableHeader columns={headerColumns}>

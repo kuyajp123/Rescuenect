@@ -17,7 +17,7 @@
  */
 
 import { useStatusHistory } from '@/hooks/useStatusHistory';
-import { usePanelStore } from '@/stores/panelStore';
+import { usePanelStore, type PanelSelection } from '@/stores/panelStore';
 import { useStatusStore } from '@/stores/useStatusStore';
 import { useVersionHistoryStore } from '@/stores/useVersionHistoryStore';
 import type { ChipProps, Selection, SortDescriptor } from '@heroui/react';
@@ -41,6 +41,7 @@ import {
 import { ChevronDown, EllipsisVertical, History, RefreshCcw, Search, UserRound } from 'lucide-react';
 import React, { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { StatusCardProps } from '@/types/types'
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
@@ -170,7 +171,7 @@ export const StatusHistory = () => {
   error;
 
   // Get panel control functions from Zustand store
-  const { openPanel, closePanel, setSelectedUser } = usePanelStore();
+  const { openStatusPanel, closePanel, setSelectedUser } = usePanelStore();
 
   // Use Firebase data as the source
   const users = React.useMemo(() => firebaseStatuses as StatusUser[], [firebaseStatuses]);
@@ -242,12 +243,12 @@ export const StatusHistory = () => {
           };
 
           // Update the store and open panel
-          setSelectedUser(userData);
-          openPanel(userData);
+          setSelectedUser(userData as unknown as PanelSelection);
+          openStatusPanel(userData as unknown as StatusCardProps);
         }
       }
     },
-    [users, setSelectedUser, openPanel]
+    [users, setSelectedUser, openStatusPanel]
   );
 
   const handleAction = async (key: any, user: StatusUser) => {

@@ -1,8 +1,7 @@
 import Content from '@/components/ui/content/Content';
 import Header from '@/components/ui/header/Header';
-import { Map } from '@/components/ui/Map';
+import { EvacuationPanel, StatusPanel } from '@/components/ui/panel';
 import SideBar from '@/components/ui/sideBar/SideBar';
-import { StatusCard } from '@/components/ui/card/StatusCard';
 import { NotificationToast } from '@/components/ui/toast/NotificationToast';
 import { Button } from '@heroui/react';
 import { useState } from 'react';
@@ -16,7 +15,7 @@ const MainLayout = () => {
   });
 
   // Get panel state from Zustand store
-  const { isOpen: isPanelOpen, selectedUser, closePanel } = usePanelStore();
+  const { isOpen: isPanelOpen, selectedUser: data, closePanel } = usePanelStore();
 
   return (
     <div className="relativ flex h-screen overflow-hidden">
@@ -47,11 +46,13 @@ const MainLayout = () => {
             ${isPanelOpen ? 'translate-x-0' : 'translate-x-full'}
           `}
           >
-            <div className="grid h-full grid-rows-[auto_1fr_2fr] gap-4 p-4">
+            <div className="grid h-full grid-rows-[auto_1fr] gap-4 p-4">
               {/* Panel Header */}
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                  {selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName} Details` : 'Status Details'}
+                  {data?.type === 'status' && data.data ? `${data.data.firstName} ${data.data.lastName} Details` : null}
+                  {data?.type === 'evacuation' && data.data ? `${data.data.name} Evacuation Center` : null}
+                  {!data ? 'Status Details' : null}
                 </h3>
                 <Button variant="light" onPress={closePanel}>
                   Close Panel
@@ -59,60 +60,11 @@ const MainLayout = () => {
               </div>
 
               {/* Map Section */}
-              <div className="">
-                <div className="h-full rounded-lg overflow-hidden">
-                  <Map
-                    key={selectedUser ? `map-${selectedUser.id}` : 'map-default'}
-                    data={
-                      selectedUser
-                        ? [
-                            {
-                              uid: selectedUser.id,
-                              lat: selectedUser.lat,
-                              lng: selectedUser.lng,
-                              condition: selectedUser.condition,
-                            },
-                          ]
-                        : []
-                    }
-                    center={selectedUser ? [selectedUser.lat, selectedUser.lng] : [14.2965, 120.7925]}
-                    hasMapStyleSelector={false}
-                    zoomControl={false}
-                    dragging={false}
-                    hasMapControl={true}
-                    zoom={selectedUser ? 15 : 13}
-                    attribution=""
-                    markerType="status"
-                  />
-                </div>
-              </div>
-
-              {/* Status Card Section */}
-              <div className="min-h-0 overflow-auto">
-                {selectedUser ? (
-                  <StatusCard
-                    className="h-fit max-h-[500px]"
-                    uid={selectedUser.id}
-                    profileImage={selectedUser.profileImage}
-                    firstName={selectedUser.firstName}
-                    lastName={selectedUser.lastName}
-                    phoneNumber={selectedUser.phoneNumber || ''}
-                    condition={selectedUser.condition}
-                    location={selectedUser.location}
-                    note={selectedUser.originalStatus?.note || ''}
-                    image={selectedUser.originalStatus?.image}
-                    expiresAt={selectedUser.originalStatus?.expiresAt}
-                    createdAt={selectedUser.originalStatus?.createdAt}
-                    vid={selectedUser.vid}
-                    category={selectedUser.category}
-                    people={selectedUser.people}
-                  />
-                ) : (
-                  <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
-                    <p>Select a row from the history table to view details</p>
-                  </div>
-                )}
-              </div>
+              {data?.type === 'status' && data.data ? (
+                <StatusPanel data={data} />
+              ) : data?.type === 'evacuation' && data.data ? (
+                <EvacuationPanel />
+              ) : null}
             </div>
           </div>
 
@@ -120,9 +72,6 @@ const MainLayout = () => {
           {isPanelOpen && <div className="fixed inset-0 bg-black/50 z-20 lg:hidden" onClick={closePanel} />}
         </div>
       </div>
-
-      {/* Notification prompt - shows after login if notifications not enabled */}
-      {/* <NotificationPrompt /> */}
       <NotificationToast />
     </div>
   );
