@@ -2,13 +2,13 @@ import { HoveredButton } from '@/components/components/button/Button';
 import { storageHelpers } from '@/components/helper/storage';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { Colors } from '@/constants/Colors';
+import { useMap } from '@/contexts/MapContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import MapboxGL from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, MapIcon } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useMapSettingsStore } from '../../store/useMapSettings';
 
 interface MapViewProps {
   coords?: { lat: number; lng: number };
@@ -52,26 +52,16 @@ export const MapView: React.FC<MapViewProps> = ({
 }) => {
   const router = useRouter();
   const { isDark } = useTheme();
+  const { setMapStyle } = useMap();
   const [showMapStyles, setShowMapStyles] = useState(false);
-  const setMapStyleState = useMapSettingsStore(state => state.setMapStyle);
-  const mapStyleState = useMapSettingsStore(state => state.mapStyle);
+  const [mapStyleState, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
 
   useEffect(() => {
     const loadMapStyle = async () => {
       try {
         const savedStyle = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'mapStyle');
-        const allowedStyles: Array<MapboxGL.StyleURL.Street | MapboxGL.StyleURL.Dark | MapboxGL.StyleURL.SatelliteStreet> = [
-          MapboxGL.StyleURL.Street,
-          MapboxGL.StyleURL.Dark,
-          MapboxGL.StyleURL.SatelliteStreet,
-        ];
-        if (
-          savedStyle &&
-          allowedStyles.includes(savedStyle as MapboxGL.StyleURL.Street | MapboxGL.StyleURL.Dark | MapboxGL.StyleURL.SatelliteStreet)
-        ) {
-          if (setMapStyleState) {
-            setMapStyleState(savedStyle as MapboxGL.StyleURL.Street | MapboxGL.StyleURL.Dark | MapboxGL.StyleURL.SatelliteStreet);
-          }
+        if (savedStyle && Object.values(MapboxGL.StyleURL).includes(savedStyle as MapboxGL.StyleURL)) {
+          setMapStyleState(savedStyle as MapboxGL.StyleURL);
         }
       } catch (error) {
         console.error('Error loading map style:', error);
@@ -86,13 +76,12 @@ export const MapView: React.FC<MapViewProps> = ({
   }, []);
 
   const handleStyleChange = useCallback(
-    async (
-      style: MapboxGL.StyleURL.Street | MapboxGL.StyleURL.Dark | MapboxGL.StyleURL.SatelliteStreet
-    ) => {
+    async (style: MapboxGL.StyleURL.Street | MapboxGL.StyleURL.Dark | MapboxGL.StyleURL.SatelliteStreet) => {
       try {
-        if (setMapStyleState) {
-          setMapStyleState(style);
+        if (setMapStyle) {
+          setMapStyle(style);
         }
+        setMapStyleState(style);
         setShowMapStyles(false);
         // Save the selected style to storage
         await storageHelpers.setField(STORAGE_KEYS.USER_SETTINGS, 'mapStyle', style);
@@ -203,7 +192,14 @@ export const MapView: React.FC<MapViewProps> = ({
                           : 'transparent',
                     },
                   ]}
-                  onPress={() => handleStyleChange(option.value as MapboxGL.StyleURL.Street | MapboxGL.StyleURL.Dark | MapboxGL.StyleURL.SatelliteStreet)}
+                  onPress={() =>
+                    handleStyleChange(
+                      option.value as
+                        | MapboxGL.StyleURL.Street
+                        | MapboxGL.StyleURL.Dark
+                        | MapboxGL.StyleURL.SatelliteStreet
+                    )
+                  }
                 >
                   <Text
                     style={[
