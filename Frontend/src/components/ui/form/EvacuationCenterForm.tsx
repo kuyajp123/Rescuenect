@@ -194,6 +194,7 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
           />
           <Textarea
             key="description"
+            name="description"
             className="col-span-12 md:col-span-6 mb-6 md:mb-0"
             label="Description"
             labelPlacement="outside"
