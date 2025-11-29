@@ -224,7 +224,7 @@ const Earthquake = () => {
               </TableRow>
             </TableBody>
           </Table>
-          <div className="flex flex-row w-full">
+          <div className="flex flex-row w-full pt-4">
             <div className=" w-full flex flex-col">
               <Select
                 className="max-w-60"

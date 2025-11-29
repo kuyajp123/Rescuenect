@@ -304,7 +304,6 @@ type CenterTypes = {
 
 // type for evacuation center
 export interface EvacuationCenterFormData {
-  id: string,
   name: string;
   location: string;
   coordinates: Coordinates | null;
@@ -313,4 +312,9 @@ export interface EvacuationCenterFormData {
   status: 'available' | 'full' | 'closed';
   contact?: string;
   description?: string;
+}
+
+export interface EvacuationCenter extends EvacuationCenterFormData {
+  id: string,
+  createdAt: FirebaseFirestore.Timestamp | string;
 }

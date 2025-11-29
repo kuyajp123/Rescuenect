@@ -1,4 +1,4 @@
-import { EvacuationCenterFormData } from '@/types/types';
+import { EvacuationCenter } from '@/types/types';
 import type { ChipProps, Selection, SortDescriptor } from '@heroui/react';
 import { ChevronDown, EllipsisVertical, Search } from 'lucide-react';
 
@@ -33,6 +33,7 @@ const columns = [
   { name: 'CONTACT', uid: 'contact', sortable: true },
   { name: 'TYPE', uid: 'type', sortable: true },
   { name: 'STATUS', uid: 'status', sortable: true },
+  { name: 'CREATED AT', uid: 'createdAt', sortable: true },
   { name: 'ACTIONS', uid: 'actions' },
 ];
 
@@ -52,10 +53,10 @@ const statusColorMap: Record<string, ChipProps['color']> = {
 
 const INITIAL_VISIBLE_COLUMNS = ['name', 'location', 'type', 'status', 'actions'];
 
-type User = EvacuationCenterFormData;
+type User = EvacuationCenter;
 
 interface EvacuationTableProps {
-  data: EvacuationCenterFormData[];
+  data: EvacuationCenter[];
 }
 
 export default function EvacuationTable({ data }: EvacuationTableProps) {
@@ -107,11 +108,27 @@ export default function EvacuationTable({ data }: EvacuationTableProps) {
     return [...items].sort((a: User, b: User) => {
       const first = a[sortDescriptor.column as keyof User];
       const second = b[sortDescriptor.column as keyof User];
-      // Use string comparison for all fields except capacity
       if (sortDescriptor.column === 'capacity') {
         const numA = Number(first) || 0;
         const numB = Number(second) || 0;
         const cmp = numA < numB ? -1 : numA > numB ? 1 : 0;
+        return sortDescriptor.direction === 'descending' ? -cmp : cmp;
+      } else if (sortDescriptor.column === 'createdAt') {
+        // Sort by Firestore timestamp
+        const getSeconds = (value: unknown) => {
+          if (
+            value &&
+            typeof value === 'object' &&
+            'seconds' in value &&
+            typeof (value as { seconds: unknown }).seconds === 'number'
+          ) {
+            return (value as { seconds: number }).seconds;
+          }
+          return 0;
+        };
+        const secA = getSeconds(first);
+        const secB = getSeconds(second);
+        const cmp = secA < secB ? -1 : secA > secB ? 1 : 0;
         return sortDescriptor.direction === 'descending' ? -cmp : cmp;
       } else {
         const strA = (first ?? '').toString().toLowerCase();
@@ -155,6 +172,28 @@ export default function EvacuationTable({ data }: EvacuationTableProps) {
             {String(cellValue)}
           </Chip>
         );
+      case 'createdAt': {
+        // Firestore timestamp: { _seconds: number, _nanoseconds: number } or { seconds: number }
+        let dateStr = '';
+        let dateObj: Date | null = null;
+        if (cellValue && typeof cellValue === 'object') {
+          if ('toDate' in cellValue && typeof cellValue.toDate === 'function') {
+            dateObj = cellValue.toDate();
+          } else if ('_seconds' in cellValue && typeof cellValue._seconds === 'number') {
+            dateObj = new Date(cellValue._seconds * 1000);
+          } else if ('seconds' in cellValue && typeof cellValue.seconds === 'number') {
+            dateObj = new Date(cellValue.seconds * 1000);
+          }
+        }
+        if (dateObj) {
+          dateStr = dateObj.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          });
+        }
+        return <span className="text-xs text-default-400">{dateStr}</span>;
+      }
       case 'actions':
         return (
           <div className="relative flex justify-end items-center gap-2">

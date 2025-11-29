@@ -1,6 +1,7 @@
 import { ensureBucketExists } from '@/components/UploadImageBucket';
 import { db } from '@/db/firestoreConfig';
 import { supabase } from '@/lib/supabase';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export class EvacuationModel {
   private static pathRef() {
@@ -10,8 +11,12 @@ export class EvacuationModel {
   public static async addCenter(data: any, files: Express.Multer.File[]): Promise<string> {
     try {
       await ensureBucketExists('evacuation-centers');
-      // Save data first, without images
-      const docRef = await this.pathRef().add({ ...data, images: [] });
+      // Save data first, without images, add created_at field
+      const docRef = await this.pathRef().add({
+        ...data,
+        images: [],
+        createdAt: FieldValue.serverTimestamp(),
+      });
 
       const fileUrls: string[] = [];
 
@@ -44,7 +49,7 @@ export class EvacuationModel {
     }
   }
 
-  public static async getCenters() { 
+  public static async getCenters() {
     try {
       const snapshot = await this.pathRef().get();
       const centers: any[] = [];
