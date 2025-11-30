@@ -37,4 +37,21 @@ export class EvacuationController {
       });
     }
   }
+
+  static async deleteCenter(req: Request, res: Response): Promise<void> {
+    const { id } = req.body;
+    try {
+      await EvacuationModel.deleteCenter(id);
+      res.status(200).json({ message: 'Evacuation center deleted successfully' });
+    } catch (error) {
+      console.error('❌ Failed to delete evacuation center:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      res.status(500).json({
+        message: 'Failed to delete evacuation center',
+        error: typeof error === 'string' ? error : (error as Error).message,
+      });
+    }
+  }
 }

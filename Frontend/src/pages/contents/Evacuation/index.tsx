@@ -3,9 +3,22 @@ import EvacuationTable from '@/components/ui/table/EvacuationTable';
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
 import { EvacuationCenter } from '@/types/types';
-import { Button, Card, CardBody, CardHeader, Chip } from '@heroui/react';
+import { Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from '@heroui/dropdown';
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Chip,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  useDisclosure,
+} from '@heroui/react';
 import axios from 'axios';
-import { House, List, Map as MapIcon, MapPin, Phone, Plus, UsersRound } from 'lucide-react';
+import { Ellipsis, House, List, Map as MapIcon, MapPin, Phone, Plus, UsersRound } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -39,6 +52,7 @@ const index = () => {
   const [selectedCenter, setSelectedCenter] = useState<any | null>(null);
   const user = auth.currentUser;
   const navigate = useNavigate();
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
     async function fetchEvacuationCenters() {
@@ -72,6 +86,35 @@ const index = () => {
     const fullCenterData = evacuationCenters.find(item => item.id === marker.uid);
     if (fullCenterData) {
       setSelectedCenter(fullCenterData);
+    }
+  };
+
+  const handleDeleteCenter = async (centerId: string) => {
+    const token = await user?.getIdToken();
+
+    if (!token) {
+      console.error('User is not authenticated');
+      return;
+    }
+
+    try {
+      const response = await axios.delete(API_ENDPOINTS.EVACUATION.DELETE_CENTER, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        data: { id: centerId, uid: user?.uid },
+      } as any);
+
+      console.log('Delete response:', response.data);
+
+      // Refresh the evacuation centers list after deletion
+      setEvacuationCenters(prevCenters => prevCenters.filter(center => center.id !== centerId));
+
+      // Close the modal
+      onOpenChange();
+      setSelectedCenter(null);
+    } catch (error) {
+      console.error('Error deleting evacuation center:', error);
     }
   };
 
@@ -110,7 +153,13 @@ const index = () => {
         </div>
       </div>
       {viewMode === 'list' ? (
-        <EvacuationTable data={evacuationCenters} />
+        <EvacuationTable
+          data={evacuationCenters}
+          onDeleteRequest={center => {
+            setSelectedCenter(center);
+            onOpen();
+          }}
+        />
       ) : (
         <div className="h-[90%] grid grid-cols-2 gap-4">
           <Map
@@ -135,12 +184,30 @@ const index = () => {
                 <h3 className="text-lg">Evacuation Center Details</h3>
               </CardHeader>
               <CardBody>
-                {selectedCenter ? (
+                {evacuationCenters.length > 0 ? (
+                  <div className="h-full w-full flex justify-center items-center">
+                    <p className="text-gray-500">No evacuation centers available.</p>
+                  </div>
+                ) : selectedCenter ? (
                   <>
-                    <p className="text-2xl font-bold">{selectedCenter?.name}</p>
-                    <Chip variant="flat" color={chipColors[selectedCenter?.status.toLowerCase()]}>
-                      {selectedCenter?.status}
-                    </Chip>
+                    <div className="flex flex-row gap-4 mb-2">
+                      <p className="text-2xl font-bold">{selectedCenter?.name}</p>
+                      <Chip variant="flat" color={chipColors[selectedCenter?.status.toLowerCase()]}>
+                        {selectedCenter?.status}
+                      </Chip>
+                      <Dropdown>
+                        <DropdownTrigger>
+                          <Button isIconOnly variant="flat">
+                            <Ellipsis />
+                          </Button>
+                        </DropdownTrigger>
+                        <DropdownMenu aria-label="Static Actions">
+                          <DropdownItem key="delete" className="text-danger" color="danger" onPress={onOpen}>
+                            Delete
+                          </DropdownItem>
+                        </DropdownMenu>
+                      </Dropdown>
+                    </div>
                     {fields.map(field => {
                       let value: string | number | undefined = '';
                       if (selectedCenter) {
@@ -179,12 +246,39 @@ const index = () => {
                       </div>
                     )}
                   </>
-                ) : null}
+                ) : (
+                  <div className="h-full w-full flex justify-center items-center">
+                    <p className="text-gray-500">Select an evacuation center to see details.</p>
+                  </div>
+                )}
               </CardBody>
             </Card>
           </div>
         </div>
       )}
+      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+        <ModalContent>
+          {onClose => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">Delete Evacuation Center</ModalHeader>
+              <ModalBody>Are you sure you want to delete this evacuation center?</ModalBody>
+              <ModalFooter>
+                <Button color="danger" variant="light" onPress={onClose}>
+                  Cancel
+                </Button>
+                <Button
+                  color="primary"
+                  onPress={() => {
+                    handleDeleteCenter(selectedCenter?.id);
+                  }}
+                >
+                  Delete
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 };

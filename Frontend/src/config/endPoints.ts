@@ -21,5 +21,6 @@ export const API_ENDPOINTS = {
   EVACUATION: {
     ADD_CENTER: `${BACKEND_URL}/admin/evacuation/addCenter`,
     GET_CENTERS: `${BACKEND_URL}/admin/evacuation/getCenters`,
+    DELETE_CENTER: `${BACKEND_URL}/admin/evacuation/deleteCenter`,
   },
 };

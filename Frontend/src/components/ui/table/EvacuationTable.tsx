@@ -58,9 +58,10 @@ type User = EvacuationCenter;
 
 interface EvacuationTableProps {
   data: EvacuationCenter[];
+  onDeleteRequest: (center: EvacuationCenter) => void;
 }
 
-export default function EvacuationTable({ data }: EvacuationTableProps) {
+export default function EvacuationTable({ data, onDeleteRequest }: EvacuationTableProps) {
   const [filterValue, setFilterValue] = React.useState('');
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set([]));
   const [visibleColumns, setVisibleColumns] = React.useState<Selection>(new Set(INITIAL_VISIBLE_COLUMNS));
@@ -215,8 +216,9 @@ export default function EvacuationTable({ data }: EvacuationTableProps) {
               </DropdownTrigger>
               <DropdownMenu>
                 <DropdownItem key="view">View</DropdownItem>
-                <DropdownItem key="edit">Edit</DropdownItem>
-                <DropdownItem key="delete">Delete</DropdownItem>
+                <DropdownItem key="delete" className="text-danger" color="danger" onPress={() => onDeleteRequest(user)}>
+                  Delete
+                </DropdownItem>
               </DropdownMenu>
             </Dropdown>
           </div>

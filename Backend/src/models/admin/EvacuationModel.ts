@@ -62,4 +62,36 @@ export class EvacuationModel {
       throw error;
     }
   }
+
+  public static async deleteCenter(id: string): Promise<void> {
+    try {
+      // Get the document to find image URLs
+      const docRef = this.pathRef().doc(id);
+      const docSnap = await docRef.get();
+      if (docSnap.exists) {
+        const data = docSnap.data();
+        if (data && Array.isArray(data.images)) {
+          // Extract file paths from public URLs
+          const filePaths = data.images
+            .map((url: string) => {
+              const match = url.match(/\/public\/evacuation-centers\/(.+)$/);
+              return match ? decodeURIComponent(match[1]) : null;
+            })
+            .filter((p: string | null) => !!p);
+          if (filePaths.length > 0) {
+            const { error: deleteError } = await supabase.storage
+              .from('evacuation-centers')
+              .remove(filePaths as string[]);
+            if (deleteError) {
+              console.error('❌ Supabase image delete error:', deleteError);
+            }
+          }
+        }
+      }
+      await docRef.delete();
+    } catch (error) {
+      console.error('❌ Error in EvacuationModel.deleteCenter:', error);
+      throw error;
+    }
+  }
 }
