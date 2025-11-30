@@ -25,4 +25,7 @@ export const API_ROUTES = {
   GEOCODING: {
     GET_ADDRESS: `${BASE_URL}/mobile/api/geoCoding`,
   },
+  EVACUATION: {
+    GET_CENTERS: `${BASE_URL}/unified/getCenters`,
+  },
 };

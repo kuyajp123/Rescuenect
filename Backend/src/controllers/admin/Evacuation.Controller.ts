@@ -22,22 +22,6 @@ export class EvacuationController {
     }
   }
 
-  static async getCenters(req: Request, res: Response): Promise<void> {
-    try {
-      const centers = await EvacuationModel.getCenters();
-      res.status(200).json(centers);
-    } catch (error) {
-      console.error('❌ Failed to add evacuation center:', {
-        error: error instanceof Error ? error.message : error,
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      res.status(500).json({
-        message: 'Failed to add evacuation center',
-        error: typeof error === 'string' ? error : (error as Error).message,
-      });
-    }
-  }
-
   static async deleteCenter(req: Request, res: Response): Promise<void> {
     const { id } = req.body;
     try {

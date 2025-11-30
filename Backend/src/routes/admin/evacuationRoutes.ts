@@ -9,8 +9,6 @@ evacuationRoutes.use(AuthMiddleware.verifyToken);
 
 evacuationRoutes.post('/addCenter', upload.array('images', 3), EvacuationController.addCenter);
 
-evacuationRoutes.get('/getCenters', EvacuationController.getCenters);
-
 evacuationRoutes.delete('/deleteCenter', EvacuationController.deleteCenter);
 
 export default evacuationRoutes;

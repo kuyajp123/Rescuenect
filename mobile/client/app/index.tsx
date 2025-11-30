@@ -8,6 +8,7 @@ import { inititallizeAppStorage } from '@/config/asyncStorage';
 
 const Index = () => {
   const [loading, setLoading] = useState(true);
+  const [evacuationCenters, setEvacuationCenters] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -31,7 +32,7 @@ const Index = () => {
   }, []);
 
   // useEffect(() => {
-  //   router.replace('/profile/(saveLocation)');
+  //   router.replace('/evacuation');
   // }, [router]);
 
   if (loading) {

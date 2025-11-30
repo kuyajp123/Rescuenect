@@ -1,10 +1,10 @@
 import { Image } from '@/components/ui/image';
+import { Text } from '@/components/ui/text';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
-import { Text } from '@/components/ui/text';
 
 const { width } = Dimensions.get('window');
 
@@ -14,25 +14,28 @@ const carouselData = [
     id: 1,
     title: 'Emergency Alert System',
     subtitle: 'Stay informed with real-time alerts',
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80',
+    image:
+      'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80',
     description: 'Get instant notifications about emergencies in your area and stay prepared.',
-    action: '/notification'
+    action: '/notification',
   },
   {
     id: 2,
     title: 'Community Support',
     subtitle: 'Connect with your neighbors',
-    image: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2069&q=80',
+    image:
+      'https://images.unsplash.com/photo-1521791136064-7986c2920216?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2069&q=80',
     description: 'Join the community network and help each other during emergencies.',
-    action: '/community'
+    action: '/community',
   },
   {
     id: 3,
     title: 'Resource Center',
     subtitle: 'Find help and resources',
-    image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
+    image:
+      'https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
     description: 'Access emergency resources, shelters, and important contact information.',
-    action: '/details'
+    action: '/details',
   },
 ];
 
@@ -41,47 +44,36 @@ export const AdvancedCarousel = () => {
   const { isDark } = useTheme();
   const router = useRouter();
 
-  const handlePress = (item: typeof carouselData[0]) => {
+  const handlePress = (item: (typeof carouselData)[0]) => {
     // Navigate to different screens based on the item's action
     router.push(item.action as any);
   };
 
-  const renderCarouselItem = ({ item, index }: { item: typeof carouselData[0], index: number }) => (
-    <TouchableOpacity 
+  const renderCarouselItem = ({ item, index }: { item: (typeof carouselData)[0]; index: number }) => (
+    <TouchableOpacity
       onPress={() => handlePress(item)}
-      style={[
-        styles.carouselItem,
-        { backgroundColor: isDark ? '#2A2A2A' : '#FFFFFF' }
-      ]}
+      style={[styles.carouselItem, { backgroundColor: isDark ? '#2A2A2A' : '#FFFFFF' }]}
       activeOpacity={0.8}
     >
       {/* Image Section */}
       <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: item.image }}
-          style={styles.carouselImage}
-          alt={item.title}
-          size='full'
-        />
-        
+        <Image source={{ uri: item.image }} style={styles.carouselImage} alt={item.title} size="full" />
+
         {/* Overlay gradient effect */}
         <View style={styles.imageOverlay} />
-        
+
         {/* Text overlay on image */}
         <View style={styles.imageTextOverlay}>
-          <Text size='xl' style={styles.overlayTitle}>{item.title}</Text>
+          <Text size="xl" style={styles.overlayTitle}>
+            {item.title}
+          </Text>
           <Text style={styles.overlaySubtitle}>{item.subtitle}</Text>
         </View>
       </View>
 
       {/* Content below image */}
       <View style={styles.contentContainer}>
-        <Text style={[
-          styles.itemDescription,
-          { color: isDark ? '#FFFFFF' : '#333333' }
-        ]}>
-          {item.description}
-        </Text>
+        <Text style={[styles.itemDescription, { color: isDark ? '#FFFFFF' : '#333333' }]}>{item.description}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -94,16 +86,15 @@ export const AdvancedCarousel = () => {
           style={[
             styles.paginationDot,
             {
-              backgroundColor: index === currentIndex 
-                ? (isDark ? '#FFFFFF' : '#007AFF') 
-                : (isDark ? '#555555' : '#CCCCCC'),
+              backgroundColor:
+                index === currentIndex ? (isDark ? '#FFFFFF' : '#007AFF') : isDark ? '#555555' : '#CCCCCC',
               width: index === currentIndex ? 20 : 8,
-            }
+            },
           ]}
-        //   onPress={() => {
-        //     // Optional: Allow users to tap dots to navigate
-        //     setCurrentIndex(index);
-        //   }}
+          //   onPress={() => {
+          //     // Optional: Allow users to tap dots to navigate
+          //     setCurrentIndex(index);
+          //   }}
         />
       ))}
     </View>
@@ -124,13 +115,13 @@ export const AdvancedCarousel = () => {
             parallaxScrollingScale: 0.9,
             parallaxScrollingOffset: 50,
           }}
-          onSnapToItem={(index) => {
+          onSnapToItem={index => {
             // Use onSnapToItem for more stable index tracking
             setCurrentIndex(index);
           }}
           renderItem={renderCarouselItem}
           style={styles.carousel}
-        //   enableSnap={true}
+          //   enableSnap={true}
           snapEnabled
           autoFillData={false}
           // Prevent vertical scroll interference
@@ -143,16 +134,10 @@ export const AdvancedCarousel = () => {
 
       {/* Current Item Text (follows carousel) */}
       <View style={styles.currentItemInfo}>
-        <Text size='md' style={[
-          styles.currentItemTitle,
-          { color: isDark ? '#FFFFFF' : '#333333' }
-        ]}>
+        <Text size="md" style={[styles.currentItemTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
           {carouselData[currentIndex]?.title || carouselData[0]?.title}
         </Text>
-        <Text style={[
-          styles.currentItemSubtitle,
-          { color: isDark ? '#CCCCCC' : '#666666' }
-        ]}>
+        <Text style={[styles.currentItemSubtitle, { color: isDark ? '#CCCCCC' : '#666666' }]}>
           {carouselData[currentIndex]?.subtitle || carouselData[0]?.subtitle}
         </Text>
       </View>

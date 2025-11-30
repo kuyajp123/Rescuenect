@@ -1,17 +1,22 @@
 import { HoveredButton } from '@/components/components/button/Button';
+import DetailsCard from '@/components/components/card/DetailsCard';
 import { storageHelpers } from '@/components/helper/storage';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { Colors } from '@/constants/Colors';
 import { useMap } from '@/contexts/MapContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import MapboxGL from '@rnmapbox/maps';
+import { EvacuationCenter } from '@/types/components';
+import MapboxGL, { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
+import type { FeatureCollection } from 'geojson';
 import { ChevronLeft, MapIcon } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '../text';
 
 interface MapViewProps {
   coords?: { lat: number; lng: number };
+  data?: EvacuationCenter[];
   handleMapPress?: (event: any) => void;
   onPress?: (coords: [number, number]) => void;
   showButtons?: boolean;
@@ -33,6 +38,7 @@ interface MapViewProps {
 
 export const MapView: React.FC<MapViewProps> = ({
   coords,
+  data,
   handleMapPress,
   pitchEnabled = false,
   rotateEnabled = true,
@@ -55,6 +61,7 @@ export const MapView: React.FC<MapViewProps> = ({
   const { setMapStyle } = useMap();
   const [showMapStyles, setShowMapStyles] = useState(false);
   const [mapStyleState, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
+  const [selectedMarker, setSelectedMarker] = useState<EvacuationCenter | null>(null);
 
   useEffect(() => {
     const loadMapStyle = async () => {
@@ -92,6 +99,31 @@ export const MapView: React.FC<MapViewProps> = ({
     []
   );
 
+  // Convert EvacuationCenterFormData[] to GeoJSON FeatureCollection
+  const evacuationCentersGeoJson: FeatureCollection | undefined = data
+    ? {
+        type: 'FeatureCollection',
+        features: data
+          .filter(
+            center =>
+              center.coordinates &&
+              typeof center.coordinates.lng === 'number' &&
+              typeof center.coordinates.lat === 'number'
+          )
+          .map((center, idx) => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [center.coordinates!.lng, center.coordinates!.lat],
+            },
+            properties: {
+              ...center,
+            },
+            id: center.id ?? idx,
+          })),
+      }
+    : undefined;
+
   return (
     <View style={styles.mapStyle}>
       <MapboxGL.MapView
@@ -117,6 +149,35 @@ export const MapView: React.FC<MapViewProps> = ({
           followUserLocation={followUserLocation}
           followZoomLevel={16}
         />
+
+        {/* Register your icon asset here */}
+        <Images
+          images={{
+            pin: require('@/assets/images/marker/marker-icon-blue.png'), // <-- use a PNG image instead of SVG
+          }}
+        />
+
+        {/* Marker source */}
+        <ShapeSource
+          id="marker-source"
+          shape={evacuationCentersGeoJson}
+          onPress={e => {
+            const feature = e.features[0]; // clicked marker feature
+            setSelectedMarker(
+              evacuationCentersGeoJson?.features.find(f => f.id === feature.id)?.properties as EvacuationCenter
+            );
+          }}
+        >
+          <SymbolLayer
+            id="marker-layer"
+            style={{
+              iconImage: 'pin', // matches the key from <Images>
+              iconSize: 1, // adjust size here
+              iconAllowOverlap: true,
+              iconIgnorePlacement: true,
+            }}
+          />
+        </ShapeSource>
 
         {show3DBuildings && (
           <MapboxGL.VectorSource id="buildingSource" url="mapbox://mapbox.mapbox-streets-v8">
@@ -145,6 +206,11 @@ export const MapView: React.FC<MapViewProps> = ({
           </MapboxGL.PointAnnotation>
         )}
       </MapboxGL.MapView>
+
+      {/* Simple detail view */}
+      {selectedMarker && (
+        <DetailsCard selectedMarker={selectedMarker} isDark={isDark} onClose={() => setSelectedMarker(null)} />
+      )}
 
       {showButtons && (
         <>

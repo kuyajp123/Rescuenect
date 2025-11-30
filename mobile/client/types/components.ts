@@ -263,3 +263,39 @@ export interface WeatherStore {
   setWeather?: (weather: WeatherData) => void;
   clearWeather?: () => void;
 }
+
+type CenterTypes = {
+  type:
+    | 'school'
+    | 'barangay hall'
+    | 'gymnasium'
+    | 'church'
+    | 'government building'
+    | 'private facility'
+    | 'vacant building'
+    | 'covered court'
+    | 'other';
+};
+
+export interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+// type for evacuation center
+export interface EvacuationCenterFormData {
+  name: string;
+  location: string;
+  coordinates: Coordinates | null;
+  capacity: string;
+  type: CenterTypes['type'];
+  status: 'available' | 'full' | 'closed';
+  contact?: string;
+  description?: string;
+}
+
+export interface EvacuationCenter extends EvacuationCenterFormData {
+  id: string,
+  createdAt: FirebaseFirestore.Timestamp | string;
+  images?: string[]; // Array of image URLs
+}

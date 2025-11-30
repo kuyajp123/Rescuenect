@@ -1,34 +1,39 @@
+import { useAuth } from '@/components/store/useAuth';
 import Body from '@/components/ui/layout/Body';
 import { MapView } from '@/components/ui/map/MapView';
-import type { FeatureCollection, GeoJsonProperties, Point } from 'geojson';
-import React from 'react';
+import { API_ROUTES } from '@/config/endpoints';
+import { EvacuationCenter } from '@/types/components';
+import BottomSheet from '@gorhom/bottom-sheet';
+import axios from 'axios';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const testMarkers: FeatureCollection<Point, GeoJsonProperties> = {
-  type: 'FeatureCollection',
-  features: [
-    {
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [120.9794, 14.5995], // Manila
-      },
-      properties: {},
-    },
-    {
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [121.0437, 14.676], // Quezon City
-      },
-      properties: {},
-    },
-  ],
-};
-
 export const evacuation = () => {
   const insets = useSafeAreaInsets();
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  const auth = useAuth(state => state.authUser);
+  const [evacuationCenters, setEvacuationCenters] = useState<EvacuationCenter[] | null>(null);
+
+  useEffect(() => {
+    const fetchEvacuationCenters = async () => {
+      const token = await auth?.getIdToken();
+      try {
+        const response = await axios.get<EvacuationCenter[]>(API_ROUTES.EVACUATION.GET_CENTERS, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        // console.log('Evacuation Centers:', JSON.stringify(response.data, null, 2));
+        setEvacuationCenters(response.data);
+      } catch (error) {
+        console.error('Error fetching evacuation centers:', error);
+      }
+    };
+    fetchEvacuationCenters();
+  }, []);
+
   return (
     <Body
       style={[
@@ -39,7 +44,7 @@ export const evacuation = () => {
         },
       ]}
     >
-      <MapView showButtons={true} showStyleSelector={true} />
+      <MapView showButtons={true} showStyleSelector={true} data={evacuationCenters ?? undefined} />
     </Body>
   );
 };

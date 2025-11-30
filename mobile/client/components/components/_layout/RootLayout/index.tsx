@@ -137,7 +137,7 @@ function RootLayoutContent() {
             },
             headerShadowVisible: false,
             headerLeft: () => <HeaderBackButton router={handleBack} />,
-            animation: 'slide_from_right',
+            animation: 'none',
             animationDuration: 150,
             animationTypeForReplace: 'push',
           }}
