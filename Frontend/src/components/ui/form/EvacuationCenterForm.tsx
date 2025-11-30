@@ -30,6 +30,7 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
   const [images, setImages] = useState<(File | null)[]>([null, null, null]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [responseMessage, setResponseMessage] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const user = auth.currentUser;
 
   // Handle image selection
@@ -43,6 +44,7 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData) as { [k: string]: FormDataEntryValue };
@@ -73,6 +75,7 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      setIsLoading(false);
       return;
     }
 
@@ -127,6 +130,8 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
       console.error('Error submitting evacuation center form:', error);
       setErrors({ submit: `Failed to submit form. ${error instanceof Error ? error.message : 'Unknown error'}` });
     }
+
+    setIsLoading(false);
   };
 
   return (
@@ -201,8 +206,15 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
             placeholder="Enter center description"
             variant="bordered"
           />
-          <Button className="absolute bottom-4 right-4" variant="solid" color="primary" type="submit">
-            Submit
+          <Button
+            className="absolute bottom-4 right-4"
+            variant="solid"
+            color="primary"
+            type="submit"
+            disabled={isLoading}
+            isLoading={isLoading}
+          >
+            {isLoading ? 'Submitting...' : 'Submit'}
           </Button>
         </Form>
       </div>

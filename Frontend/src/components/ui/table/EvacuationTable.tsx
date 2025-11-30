@@ -215,7 +215,15 @@ export default function EvacuationTable({ data, onDeleteRequest }: EvacuationTab
                 </Button>
               </DropdownTrigger>
               <DropdownMenu>
-                <DropdownItem key="view">View</DropdownItem>
+                <DropdownItem
+                  key="view"
+                  onPress={() => {
+                    openEvacuationPanel(user);
+                    setSelectedKeys(new Set());
+                  }}
+                >
+                  View
+                </DropdownItem>
                 <DropdownItem key="delete" className="text-danger" color="danger" onPress={() => onDeleteRequest(user)}>
                   Delete
                 </DropdownItem>

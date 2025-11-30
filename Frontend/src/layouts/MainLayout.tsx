@@ -51,7 +51,7 @@ const MainLayout = () => {
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
                   {data?.type === 'status' && data.data ? `${data.data.firstName} ${data.data.lastName} Details` : null}
-                  {data?.type === 'evacuation' && data.data ? `${data.data.name} Evacuation Center` : null}
+                  {data?.type === 'evacuation' && data.data ? `${data.data.name} Details` : null}
                   {!data ? 'Status Details' : null}
                 </h3>
                 <Button variant="light" onPress={closePanel}>
@@ -63,7 +63,7 @@ const MainLayout = () => {
               {data?.type === 'status' && data.data ? (
                 <StatusPanel data={data} />
               ) : data?.type === 'evacuation' && data.data ? (
-                <EvacuationPanel />
+                <EvacuationPanel data={data} />
               ) : null}
             </div>
           </div>

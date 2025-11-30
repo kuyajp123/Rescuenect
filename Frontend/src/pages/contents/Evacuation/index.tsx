@@ -53,6 +53,7 @@ const index = () => {
   const user = auth.currentUser;
   const navigate = useNavigate();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
     async function fetchEvacuationCenters() {
@@ -90,6 +91,7 @@ const index = () => {
   };
 
   const handleDeleteCenter = async (centerId: string) => {
+    setIsLoading(true);
     const token = await user?.getIdToken();
 
     if (!token) {
@@ -116,6 +118,8 @@ const index = () => {
     } catch (error) {
       console.error('Error deleting evacuation center:', error);
     }
+
+    setIsLoading(false);
   };
 
   return (
@@ -184,7 +188,7 @@ const index = () => {
                 <h3 className="text-lg">Evacuation Center Details</h3>
               </CardHeader>
               <CardBody>
-                {evacuationCenters.length > 0 ? (
+                {evacuationCenters.length === 0 ? (
                   <div className="h-full w-full flex justify-center items-center">
                     <p className="text-gray-500">No evacuation centers available.</p>
                   </div>
@@ -234,7 +238,7 @@ const index = () => {
                       <p>{selectedCenter?.description}</p>
                     </div>
                     {selectedCenter?.images && selectedCenter.images.length > 0 && (
-                      <div className="flex gap-2 overflow-x-auto">
+                      <div className="flex gap-2 overflow-x-auto pb-1">
                         {selectedCenter.images.map((image: string, index: number) => (
                           <img
                             key={index}
@@ -271,8 +275,10 @@ const index = () => {
                   onPress={() => {
                     handleDeleteCenter(selectedCenter?.id);
                   }}
+                  disabled={isLoading}
+                  isLoading={isLoading}
                 >
-                  Delete
+                  {isLoading ? 'Deleting' : 'Delete'}
                 </Button>
               </ModalFooter>
             </>
