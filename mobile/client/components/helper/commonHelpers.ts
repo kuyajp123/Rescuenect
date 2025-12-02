@@ -224,3 +224,12 @@ export const normalizeCategory = (category: any): Category[] => {
   }
   return [];
 };
+
+// Format to Capitalized teh first letter of each word
+export const formatToCapitalized = (text: string): string => {
+  return text
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};

@@ -10,6 +10,12 @@ export const _layout = () => {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="notificationDetails"
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 };

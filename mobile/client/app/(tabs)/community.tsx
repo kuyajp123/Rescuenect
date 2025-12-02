@@ -56,7 +56,9 @@ const community = () => {
       />
 
       <Button onPress={() => router.push('/evacuation')}>
-        <Text bold>View Evacuation Center</Text>
+        <Text style={{ color: '#ffffff' }} bold>
+          View Evacuation Center
+        </Text>
       </Button>
     </Body>
   );

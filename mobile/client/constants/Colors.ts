@@ -42,6 +42,24 @@ export const Colors = {
     light: '#5B5B5B',
   },
 
+  // Muted Colors (desaturated, subtle variations)
+  muted: {
+    // Light mode muted colors
+    light: {
+      background: '#f1f5f9', // Very light slate gray
+      foreground: '#64748b', // Medium slate gray
+      border: '#cbd5e1', // Light slate border
+      text: '#475569', // Muted text gray
+    },
+    // Dark mode muted colors
+    dark: {
+      background: '#1e293b', // Dark slate background
+      foreground: '#94a3b8', // Light slate gray
+      border: '#334155', // Dark slate border
+      text: '#94a3b8', // Muted light text
+    },
+  },
+
   // Button Interactive States
   button: {
     // Primary button states (based on brand colors)

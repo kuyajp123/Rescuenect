@@ -8,14 +8,16 @@ export const _layout = () => {
         name="index"
         options={{
           headerShown: false,
-          animation: 'none',
+          animation: 'default',
+          presentation: 'card',
         }}
       />
       <Stack.Screen
         name="(saveLocation)/index"
         options={{
           headerShown: false,
-          animation: 'none',
+          animation: 'default',
+          presentation: 'card',
         }}
       />
     </Stack>

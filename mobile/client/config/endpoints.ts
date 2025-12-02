@@ -28,4 +28,7 @@ export const API_ROUTES = {
   EVACUATION: {
     GET_CENTERS: `${BASE_URL}/unified/getCenters`,
   },
+  NOTIFICATION: {
+    GET_NOTIFICATION_DETAILS: `${BASE_URL}/unified/getNotificationDetails`,
+  },
 };

@@ -1,4 +1,5 @@
 import { HoveredButton } from '@/components/components/button/Button';
+import { formatToCapitalized } from '@/components/helper/commonHelpers';
 import { useAuth } from '@/components/store/useAuth';
 import { useUserData } from '@/components/store/useBackendResponse';
 import { useNotificationStore } from '@/components/store/useNotificationStore';
@@ -7,12 +8,14 @@ import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { BaseNotification } from '@/types/notification';
+import { useRouter } from 'expo-router';
 import { Activity, AlertCircle, Bell, Cloud } from 'lucide-react-native';
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 const index = () => {
   const { isDark } = useTheme();
+  const router = useRouter();
   const notifications = useNotificationStore(state => state.notifications);
   const userData = useUserData((state: any) => state.userData);
   const authUser = useAuth(state => state.authUser);
@@ -112,8 +115,11 @@ const index = () => {
                 },
               ]}
               onPress={() => {
-                // TODO: Navigate to notification detail or mark as read
-                console.log('Notification pressed:', notification.id);
+                // Navigate to notification details screen
+                router.push({
+                  pathname: '/notification/notificationDetails',
+                  params: { notificationId: notification.id },
+                });
               }}
             >
               <View style={styles.notificationContent}>
@@ -137,7 +143,7 @@ const index = () => {
                 <View style={styles.metaRow}>
                   <Text size="xs" emphasis="light">
                     {notification.type === 'weather'
-                      ? userData?.barangay.charAt(0).toUpperCase() + userData?.barangay.slice(1)
+                      ? formatToCapitalized(userData?.barangay)
                       : notification.type === 'earthquake'
                       ? (notification.data as { place?: string })?.place
                       : notification.location.replace('_', ' ').toUpperCase()}

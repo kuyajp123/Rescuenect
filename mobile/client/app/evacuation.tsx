@@ -3,15 +3,13 @@ import Body from '@/components/ui/layout/Body';
 import { MapView } from '@/components/ui/map/MapView';
 import { API_ROUTES } from '@/config/endpoints';
 import { EvacuationCenter } from '@/types/components';
-import BottomSheet from '@gorhom/bottom-sheet';
 import axios from 'axios';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export const evacuation = () => {
   const insets = useSafeAreaInsets();
-  const bottomSheetRef = useRef<BottomSheet>(null);
   const auth = useAuth(state => state.authUser);
   const [evacuationCenters, setEvacuationCenters] = useState<EvacuationCenter[] | null>(null);
 

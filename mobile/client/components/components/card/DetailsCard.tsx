@@ -22,6 +22,8 @@ interface Images {
 }
 
 const DetailsCard: React.FC<DetailsCardProps> = ({ selectedMarker, isDark, onClose }) => {
+  const [activeIndex, setActiveIndex] = React.useState(0);
+
   if (!selectedMarker) return null;
 
   const data = selectedMarker.images
@@ -31,113 +33,170 @@ const DetailsCard: React.FC<DetailsCardProps> = ({ selectedMarker, isDark, onClo
     : [];
 
   const renderItem = ({ item, index }: { item: Images; index: number }) => (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
-          borderColor: isDark ? Colors.border.dark : Colors.border.light,
-          justifyContent: 'center',
-          alignItems: 'center',
-        },
-      ]}
-    >
+    <View style={styles.carouselItemContainer}>
       <Image source={{ uri: item.uri }} style={styles.carouselImage} resizeMode="cover" />
     </View>
   );
-  return (
-    <Card style={styles.detailBox}>
-      {/* Header row: title and close button */}
-      <View style={styles.detailHeaderRow}>
-        <Text style={[styles.title, { fontSize: 16 }]}>Center Details</Text>
-        <IconButton onPress={onClose}>
-          <X size={20} color={isDark ? Colors.text.dark : Colors.text.light} />
-        </IconButton>
-      </View>
-      {/* Name and status badge row */}
-      <View style={styles.detailNameRow}>
-        <Text size="md" bold>
-          {selectedMarker.name}
-        </Text>
-        <Badge
-          size="sm"
-          variant="solid"
-          style={styles.detailBadge}
-          action={
-            ({ available: 'success', full: 'warning', closed: 'error' }[selectedMarker.status] as
-              | 'success'
-              | 'warning'
-              | 'error'
-              | 'info'
-              | 'muted'
-              | undefined) || 'error'
-          }
-        >
-          <BadgeText style={{ padding: 4 }}>{selectedMarker.status}</BadgeText>
-        </Badge>
-      </View>
-      {/* Location row - styled to match location field */}
-      <View style={styles.detailLocationRow}>
-        <View style={styles.detailLocationIconBox}>
-          <MapPin color={isDark ? Colors.icons.dark : Colors.icons.light} size={20} />
-        </View>
-        <Text style={styles.detailLabelText}>Location: </Text>
-        <Text style={[styles.detailLocationText, styles.detailWrapText]} numberOfLines={0} ellipsizeMode="tail">
-          {selectedMarker.location}
-        </Text>
-      </View>
-      {/* Other details */}
-      <View style={styles.detailLocationRow}>
-        <View style={styles.detailLocationIconBox}>
-          <UsersRound color={isDark ? Colors.icons.dark : Colors.icons.light} size={20} />
-        </View>
-        <Text style={styles.detailLabelText}>Capacity: </Text>
-        <Text style={[styles.detailLocationText, styles.detailWrapText]} numberOfLines={0} ellipsizeMode="tail">
-          {selectedMarker.capacity}
-        </Text>
-      </View>
-      <View style={styles.detailLocationRow}>
-        <View style={styles.detailLocationIconBox}>
-          <House color={isDark ? Colors.icons.dark : Colors.icons.light} size={20} />
-        </View>
-        <Text style={styles.detailLabelText}>Type: </Text>
-        <Text style={[styles.detailLocationText, styles.detailWrapText]} numberOfLines={0} ellipsizeMode="tail">
-          {selectedMarker.type}
-        </Text>
-      </View>
-      <View style={styles.detailLocationRow}>
-        <View style={styles.detailLocationIconBox}>
-          <Phone color={isDark ? Colors.icons.dark : Colors.icons.light} size={20} />
-        </View>
-        <Text style={styles.detailLabelText}>Contact: </Text>
-        <Text style={[styles.detailLocationText, styles.detailWrapText]} numberOfLines={0} ellipsizeMode="tail">
-          {selectedMarker.contact}
-        </Text>
-      </View>
-      <View style={styles.detailLocationRow}>
-        <Text style={[styles.detailLocationText, styles.detailWrapText]} numberOfLines={0} ellipsizeMode="tail">
-          {selectedMarker.description}
-        </Text>
-      </View>
-      {/* Images */}
-      {/* {selectedMarker.images && selectedMarker.images.length > 0 && (
-        <View style={styles.detailImagesRow}>
-          {selectedMarker.images.map((imageUri: string, index: number) => (
-            <Image key={index} source={{ uri: imageUri }} style={styles.detailImage} resizeMode="cover" />
-          ))}
-        </View>
-      )} */}
 
-      <Carousel
-        loop={false}
-        width={screenWidth * 0.85}
-        height={200}
-        data={data}
-        scrollAnimationDuration={200}
-        renderItem={renderItem}
-        style={{ alignSelf: 'center' }}
-        
-      />
+  return (
+    <Card style={[styles.detailBox, { backgroundColor: isDark ? Colors.background.dark : Colors.background.light }]}>
+      {/* Images Carousel at top */}
+      {data.length > 0 && (
+        <View style={styles.carouselContainer}>
+          <Carousel
+            loop={false}
+            width={screenWidth}
+            height={220}
+            data={data}
+            scrollAnimationDuration={300}
+            renderItem={renderItem}
+            onSnapToItem={index => setActiveIndex(index)}
+            pagingEnabled
+          />
+          {/* Pagination dots */}
+          {data.length > 1 && (
+            <View style={styles.paginationContainer}>
+              {data.map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.paginationDot,
+                    {
+                      backgroundColor:
+                        index === activeIndex ? Colors.brand.dark : isDark ? Colors.border.dark : Colors.border.light,
+                      opacity: index === activeIndex ? 1 : 0.5,
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Close button */}
+      <IconButton onPress={onClose} style={styles.closeButton}>
+        <X size={22} color={Colors.text.dark} />
+      </IconButton>
+
+      {/* Content Container */}
+      <View style={styles.contentContainer}>
+        {/* Name and status badge row */}
+        <View style={styles.detailNameRow}>
+          <Text size="lg" bold style={{ flex: 1 }}>
+            {selectedMarker.name}
+          </Text>
+          <Badge
+            size="sm"
+            variant="solid"
+            style={styles.detailBadge}
+            action={
+              ({ available: 'success', full: 'warning', closed: 'error' }[selectedMarker.status] as
+                | 'success'
+                | 'warning'
+                | 'error'
+                | 'info'
+                | 'muted'
+                | undefined) || 'error'
+            }
+          >
+            <BadgeText style={{ padding: 6 }}>{selectedMarker.status.toUpperCase()}</BadgeText>
+          </Badge>
+        </View>
+
+        {/* Description */}
+        {selectedMarker.description && (
+          <Text style={styles.descriptionText} numberOfLines={3} ellipsizeMode="tail">
+            {selectedMarker.description}
+          </Text>
+        )}
+
+        {/* Divider */}
+        <View style={[styles.divider, { backgroundColor: isDark ? Colors.border.dark : Colors.border.light }]} />
+
+        {/* Details Grid */}
+        <View style={styles.detailsGrid}>
+          {/* Location */}
+          <View style={styles.detailItem}>
+            <View
+              style={[
+                styles.iconCircle,
+                { backgroundColor: isDark ? Colors.muted.dark.background : Colors.muted.light.background },
+              ]}
+            >
+              <MapPin color={isDark ? Colors.icons.dark : Colors.icons.light} size={18} />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text size="xs" emphasis="light" style={styles.detailLabel}>
+                Location
+              </Text>
+              <Text size="sm" bold numberOfLines={2} ellipsizeMode="tail">
+                {selectedMarker.location}
+              </Text>
+            </View>
+          </View>
+
+          {/* Capacity */}
+          <View style={styles.detailItem}>
+            <View
+              style={[
+                styles.iconCircle,
+                { backgroundColor: isDark ? Colors.muted.dark.background : Colors.muted.light.background },
+              ]}
+            >
+              <UsersRound color={isDark ? Colors.icons.dark : Colors.icons.light} size={18} />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text size="xs" emphasis="light" style={styles.detailLabel}>
+                Capacity
+              </Text>
+              <Text size="sm" bold>
+                {selectedMarker.capacity} people
+              </Text>
+            </View>
+          </View>
+
+          {/* Type */}
+          <View style={styles.detailItem}>
+            <View
+              style={[
+                styles.iconCircle,
+                { backgroundColor: isDark ? Colors.muted.dark.background : Colors.muted.light.background },
+              ]}
+            >
+              <House color={isDark ? Colors.icons.dark : Colors.icons.light} size={18} />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text size="xs" emphasis="light" style={styles.detailLabel}>
+                Type
+              </Text>
+              <Text size="sm" bold>
+                {selectedMarker.type}
+              </Text>
+            </View>
+          </View>
+
+          {/* Contact */}
+          <View style={styles.detailItem}>
+            <View
+              style={[
+                styles.iconCircle,
+                { backgroundColor: isDark ? Colors.muted.dark.background : Colors.muted.light.background },
+              ]}
+            >
+              <Phone color={isDark ? Colors.icons.dark : Colors.icons.light} size={18} />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text size="xs" emphasis="light" style={styles.detailLabel}>
+                Contact
+              </Text>
+              <Text size="sm" bold numberOfLines={1}>
+                {selectedMarker.contact}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
     </Card>
   );
 };
@@ -147,70 +206,104 @@ export default DetailsCard;
 const styles = StyleSheet.create({
   detailBox: {
     position: 'absolute',
-    bottom: 10,
-    left: 10,
-    right: 10,
-    padding: 15,
-    borderRadius: 10,
-    elevation: 3,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderRadius: 20,
+    elevation: 8,
     shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    overflow: 'hidden',
+    paddingTop: 0,
   },
-  detailHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  carouselContainer: {
+    width: '100%',
+    position: 'relative',
     alignItems: 'center',
-    marginBottom: 10,
+  },
+  carouselItemContainer: {
+    width: '100%',
+    height: 220,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  carouselImage: {
+    width: '100%',
+    height: '100%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+    gap: 6,
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 12,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 20,
+    padding: 8,
+    zIndex: 10,
+  },
+  contentContainer: {
+    paddingTop: 16,
   },
   detailNameRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 5,
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    gap: 12,
   },
   detailBadge: {
     borderRadius: 8,
-    padding: 4,
   },
-  detailLocationRow: {
+  descriptionText: {
+    fontSize: 14,
+    lineHeight: 20,
+    opacity: 0.8,
+    marginBottom: 16,
+  },
+  divider: {
+    height: 1,
+    width: '100%',
+    marginBottom: 16,
+  },
+  detailsGrid: {
+    gap: 16,
+  },
+  detailItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    marginBottom: 8,
-    borderRadius: 8,
-    paddingVertical: 6,
+    alignItems: 'flex-start',
+    gap: 12,
   },
-  detailLocationIconBox: {
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  detailLocationText: {
-    fontSize: 15,
-    color: Colors.text.dark,
-    fontWeight: '500',
-    flexShrink: 1,
-    flexWrap: 'wrap',
+  detailTextContainer: {
+    flex: 1,
+    gap: 2,
   },
-  detailWrapText: {
-    flexShrink: 1,
-    flexWrap: 'wrap',
-  },
-  detailLabelText: {
-    fontSize: 15,
-    fontWeight: '400',
-    marginRight: 2,
-  },
-  carouselImage: {
-    width: screenWidth * 0.7,
-    height: 200,
-    borderRadius: 12,
-  },
-  title: { marginBottom: 5 },
-  card: {
-    width: screenWidth * 0.7,
-    borderWidth: 1,
-    borderRadius: 16,
+  detailLabel: {
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });

@@ -18,4 +18,19 @@ export class UnifiedModel {
       throw error;
     }
   }
+
+  public static async getNotificationDetails(notificationId: string) {
+    try {
+      const docRef = db.collection('notifications').doc(notificationId);
+      const docSnap = await docRef.get();
+      if (docSnap.exists) {
+        return { id: docSnap.id, ...docSnap.data() };
+      } else {
+        throw new Error('Notification not found');
+      }
+    } catch (error) {
+      console.error('❌ Error in UnifiedModel.getNotificationDetails:', error);
+      throw error;
+    }
+  }
 }

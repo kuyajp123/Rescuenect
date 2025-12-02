@@ -5,4 +5,6 @@ const unifiedRoutes = Router();
 
 unifiedRoutes.get('/getCenters', UnifiedController.getCenters);
 
+unifiedRoutes.get('/getNotificationDetails', UnifiedController.getNotificationDetails);
+
 export default unifiedRoutes;

@@ -116,9 +116,8 @@ function RootLayoutContent() {
             },
             headerShadowVisible: false,
             headerLeft: () => <HeaderBackButton router={handleBack} />,
-            animation: 'slide_from_right',
-            animationDuration: 150,
-            animationTypeForReplace: 'push',
+            animation: 'default',
+            presentation: 'card',
           }}
         />
         <Stack.Screen
@@ -165,7 +164,8 @@ function RootLayoutContent() {
             },
             headerShadowVisible: false,
             headerLeft: () => <HeaderBackButton router={handleBack} />,
-            animation: 'none',
+            animation: 'default',
+            presentation: 'card',
           }}
         />
         <Stack.Screen
@@ -217,7 +217,8 @@ function RootLayoutContent() {
             },
             headerShadowVisible: false,
             headerLeft: () => <HeaderBackButton router={handleBack} />,
-            animation: 'none',
+            animation: 'default',
+            presentation: 'card',
           }}
         />
         <Stack.Screen name="+not-found" />
