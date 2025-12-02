@@ -4,9 +4,11 @@ import { sendEarthquakeNotification } from '../_shared/fcm-client.ts';
 import {
   getExistingEarthquakes,
   getUserTokens,
+  initializeFirebase,
   replaceEarthquakesInFirestore,
-  saveNotificationHistory,
 } from '../_shared/firestore-client.ts';
+import type { EarthquakeNotificationData } from '../_shared/notification-schema.ts';
+import { NotificationService } from '../_shared/notification-service.ts';
 import type { EarthquakeMonitorResult } from '../_shared/types.ts';
 
 console.log('🌍 Earthquake Monitor Function Loaded');
@@ -95,47 +97,102 @@ serve(async (req: Request) => {
         const fcmResult = await sendEarthquakeNotification(earthquake, tokens);
 
         if (fcmResult.success > 0) {
-          // Only save notification history and increment counter if notifications were actually sent
+          // Save notification using new NotificationService
           try {
-            await saveNotificationHistory(
-              {
-                title: `🚨 Earthquake Alert - Magnitude ${earthquake.magnitude}`,
-                body: `${earthquake.place} - Stay alert and follow safety protocols.`,
-                type: 'earthquake',
-                level:
-                  earthquake.priority === 'critical' ? 'critical' : earthquake.priority === 'high' ? 'warning' : 'info',
-                category: 'seismic',
-                data: {
-                  earthquake_id: earthquake.id,
-                  magnitude: earthquake.magnitude,
-                  severity: earthquake.severity,
-                  tsunami_warning: earthquake.tsunami_warning,
-                },
-              },
-              {
-                location: 'Philippines',
-                audience: 'both',
-                magnitude: earthquake.magnitude,
+            const db = initializeFirebase();
+            const notificationService = new NotificationService(db);
+
+            // Prepare earthquake notification data
+            // Map priority: 'normal' -> 'medium' for schema compatibility
+            const mappedPriority: 'critical' | 'high' | 'medium' | 'low' =
+              earthquake.priority === 'normal' ? 'medium' : earthquake.priority;
+
+            const earthquakeData: EarthquakeNotificationData = {
+              earthquakeId: earthquake.id,
+              magnitude: earthquake.magnitude,
+              place: earthquake.place,
+              coordinates: {
+                latitude: earthquake.coordinates.latitude,
+                longitude: earthquake.coordinates.longitude,
                 depth: earthquake.coordinates.depth,
-                coordinates: {
-                  lat: earthquake.coordinates.latitude,
-                  lng: earthquake.coordinates.longitude,
-                },
-                source: 'USGS',
-                // Remove weatherZone since it's undefined for earthquake notifications
               },
-              fcmResult.success,
-              fcmResult.errors
-            );
+              severity: earthquake.severity,
+              tsunamiWarning: earthquake.tsunami_warning,
+              priority: mappedPriority,
+              usgsUrl: earthquake.usgs_url,
+              source: 'usgs',
+              distanceFromNaic: earthquake.distance_km,
+            };
+
+            // Prepare delivery status (only add errors if they exist)
+            const deliveryStatus: {
+              success: number;
+              failure: number;
+              errors?: string[];
+            } = {
+              success: fcmResult.success,
+              failure: fcmResult.failure,
+            };
+
+            if (fcmResult.errors.length > 0) {
+              deliveryStatus.errors = fcmResult.errors;
+            }
+
+            // Determine notification title based on severity
+            let title = '';
+            if (earthquake.tsunami_warning) {
+              title = `🌊 TSUNAMI WARNING - Magnitude ${earthquake.magnitude} Earthquake`;
+            } else if (earthquake.magnitude >= 6.0) {
+              title = `🚨 CRITICAL EARTHQUAKE - Magnitude ${earthquake.magnitude}`;
+            } else if (earthquake.magnitude >= 5.0) {
+              title = `🔴 Strong Earthquake - Magnitude ${earthquake.magnitude}`;
+            } else if (earthquake.magnitude >= 4.0) {
+              title = `🟠 Earthquake Alert - Magnitude ${earthquake.magnitude}`;
+            } else {
+              title = `🟡 Minor Earthquake - Magnitude ${earthquake.magnitude}`;
+            }
+
+            // Determine notification message
+            const timeString = new Date(earthquake.time).toLocaleString('en-PH', {
+              timeZone: 'Asia/Manila',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+
+            let message = '';
+            if (earthquake.tsunami_warning) {
+              message = `🌊 TSUNAMI THREAT: Magnitude ${earthquake.magnitude} earthquake ${earthquake.place} at ${timeString}. MOVE TO HIGHER GROUND IMMEDIATELY!`;
+            } else if (earthquake.magnitude >= 6.0) {
+              message = `🆘 CRITICAL: Magnitude ${earthquake.magnitude} earthquake ${earthquake.place} at ${timeString}. TAKE IMMEDIATE SHELTER!`;
+            } else if (earthquake.magnitude >= 5.0) {
+              message = `⚠️ Strong earthquake detected: Magnitude ${earthquake.magnitude} ${earthquake.place} at ${timeString}. Take safety precautions!`;
+            } else if (earthquake.magnitude >= 4.0) {
+              message = `Magnitude ${earthquake.magnitude} earthquake occurred ${earthquake.place} at ${timeString}. Stay alert and follow safety protocols.`;
+            } else {
+              message = `Minor earthquake detected: Magnitude ${earthquake.magnitude} ${earthquake.place} at ${timeString}.`;
+            }
+
+            // Create the notification in the new schema
+            await notificationService.createEarthquakeNotification({
+              title: title,
+              message: message,
+              location: 'central_naic', // Default location for earthquake (affects all of Naic)
+              audience: 'both',
+              sentTo: fcmResult.success + fcmResult.failure,
+              earthquakeData: earthquakeData,
+              deliveryStatus: deliveryStatus,
+            });
+
+            earthquake.notification_sent = true;
+            notificationsSent++; // Only increment if notifications were actually sent
+
+            console.log(`✅ Notification sent for earthquake ${earthquake.id} to ${fcmResult.success} users`);
           } catch (historyError) {
-            console.error(`⚠️ Failed to save notification history for ${earthquake.id}:`, historyError);
-            // Don't fail the whole process if history saving fails
+            console.error(`⚠️ Failed to save notification for ${earthquake.id}:`, historyError);
+            // Don't fail the whole process if notification saving fails
           }
-
-          earthquake.notification_sent = true;
-          notificationsSent++; // Only increment if notifications were actually sent
-
-          console.log(`✅ Notification sent for earthquake ${earthquake.id} to ${fcmResult.success} users`);
         }
 
         notificationResults.push({

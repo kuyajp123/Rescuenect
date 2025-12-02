@@ -1,3 +1,10 @@
+// Deno type declaration for Edge Functions
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+};
+
 import { cert, getApps, initializeApp, type ServiceAccount } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import _ from 'lodash';

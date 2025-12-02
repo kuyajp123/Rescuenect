@@ -1,3 +1,10 @@
+// Deno type declaration for Edge Functions
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+};
+
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getMessaging, MulticastMessage, type Messaging, type SendResponse } from 'firebase-admin/messaging';
 
