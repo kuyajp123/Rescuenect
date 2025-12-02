@@ -212,7 +212,7 @@ export const CustomOutlineButton = ({
   </Button>
 );
 
-export const HoveredButton = ({ children, style, onPress }: ButtonProps) => {
+export const HoveredButton = ({ children, style, onPress, onLongPress }: ButtonProps & { onLongPress?: () => void }) => {
   const { isDark } = useTheme();
 
   return (
@@ -220,6 +220,7 @@ export const HoveredButton = ({ children, style, onPress }: ButtonProps) => {
       android_ripple={{ color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
       onPress={onPress}
       style={[style]}
+      onLongPress={onLongPress}
     >
       {children}
     </Pressable>

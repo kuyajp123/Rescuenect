@@ -8,32 +8,31 @@ import { inititallizeAppStorage } from '@/config/asyncStorage';
 
 const Index = () => {
   const [loading, setLoading] = useState(true);
-  const [evacuationCenters, setEvacuationCenters] = useState(null);
   const router = useRouter();
 
-  // useEffect(() => {
-  //   const initializeApp = async () => {
-  //     try {
-  //       // Initialize storage with defaults FIRST
-  //       await inititallizeAppStorage();
-
-  //       // Initialize auth LAST (this triggers navigation)
-  //       await initializeAuth();
-  //     } catch (error) {
-  //       console.error('❌ Error during app initialization:', error);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   // storage.clear(); // Clear AsyncStorage for testing purposes
-  //   // handleLogout();
-  //   initializeApp();
-  // }, []);
-
   useEffect(() => {
-    router.replace('/notification');
-  }, [router]);
+    const initializeApp = async () => {
+      try {
+        // Initialize storage with defaults FIRST
+        await inititallizeAppStorage();
+
+        // Initialize auth LAST (this triggers navigation)
+        await initializeAuth();
+      } catch (error) {
+        console.error('❌ Error during app initialization:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // storage.clear(); // Clear AsyncStorage for testing purposes
+    // handleLogout();
+    initializeApp();
+  }, []);
+
+  // useEffect(() => {
+  //   router.replace('/notification' as any);
+  // }, [router]);
 
   if (loading) {
     return <SplashScreen />;

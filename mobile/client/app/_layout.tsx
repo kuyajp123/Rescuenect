@@ -14,6 +14,7 @@ import MapContext from '@/contexts/MapContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { useIdToken } from '@/hooks/useIdToken';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useNotificationSubscriber } from '@/hooks/useNotificationSubscriber';
 import { useSaveStatusSettings } from '@/hooks/useSaveStatusSettings';
 import { useStatusFetchBackgroundData } from '@/hooks/useStatusFetchBackgroundData';
 import { subscribeToWeatherData } from '@/hooks/useWeatherData';
@@ -27,7 +28,6 @@ import { SheetProvider } from 'react-native-actions-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import '../global.css';
-import { useEarthquakeListener } from '@/hooks/useEarthquakeListener';
 
 MapboxGL.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_API_TOKEN!);
 
@@ -41,7 +41,13 @@ export default function RootLayout() {
   const setUserData = useUserData((state: any) => state.setUserData);
   const setWeather = useWeatherStore(state => state.setWeather);
   const setSavedLocations = useSavedLocationsStore(state => state.setSavedLocations);
-  useEarthquakeListener();
+
+  // Subscribe to notifications with user location for filtering
+  useNotificationSubscriber({
+    userLocation: userData?.barangay || undefined,
+    userId: authUser?.uid || undefined,
+    maxNotifications: 50,
+  });
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;

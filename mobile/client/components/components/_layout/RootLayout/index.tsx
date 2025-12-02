@@ -24,7 +24,7 @@ function RootLayoutContent() {
   // Enhanced notification button component
   const NotificationButton = () => {
     return (
-      <IconButton onPress={() => router.push('/notification')}>
+      <IconButton onPress={() => router.push('/notification' as any)} style={styles.notificationButton}>
         <Bell size={20} color={isDark ? Colors.text.dark : Colors.text.light} />
       </IconButton>
     );
