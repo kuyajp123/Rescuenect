@@ -24,7 +24,7 @@ serve(async (req: Request) => {
 
     const result = await processor.processWeatherNotifications({
       type: 'current',
-      includeNormalConditions: true, // Include normal conditions for testing
+      includeNormalConditions: false, // Include normal conditions for testing
       targetAudience: 'both', // Send to both admin and users
     });
 

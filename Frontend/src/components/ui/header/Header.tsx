@@ -1,3 +1,4 @@
+import { SecondaryButton } from '@/components/ui/button';
 import { revokeToken } from '@/config/notificationPermission';
 import { ThemeSwitcher } from '@/hooks/ThemeSwitcher';
 import { Avatar } from '@heroui/avatar';
@@ -71,6 +72,9 @@ const Header = () => {
         case '/profile':
           label = 'Profile';
           break;
+        case '/notification':
+          label = 'Notification';
+          break;
         default:
           label = segment.charAt(0).toUpperCase() + segment.slice(1);
       }
@@ -111,7 +115,13 @@ const Header = () => {
       <div className="flex flex-row space-x-5 items-center p-4">
         <ThemeSwitcher />
         <div>
-          <Bell size={20} className="inline-block mr-2" />
+          <SecondaryButton
+            className="rounded-full border-none"
+            onPress={() => navigate('/notification', { replace: true })}
+            isIconOnly
+          >
+            <Bell size={20} />
+          </SecondaryButton>
         </div>
         <div>
           <Settings size={20} className="inline-block mr-2" />

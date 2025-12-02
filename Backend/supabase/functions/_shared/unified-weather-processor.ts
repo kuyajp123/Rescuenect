@@ -89,14 +89,21 @@ export class UnifiedWeatherProcessor {
       config.includeNormalConditions
     );
 
-    if (notifications.length === 0) {
+    // Filter to only CRITICAL and WARNING (unless normal conditions are explicitly included)
+    const filteredNotifications = config.includeNormalConditions
+      ? notifications
+      : notifications.filter(n => n.level === 'CRITICAL' || n.level === 'WARNING');
+
+    if (filteredNotifications.length === 0) {
       return;
     }
 
-    console.log(`📢 Found ${notifications.length} weather notifications for ${location}`);
+    console.log(
+      `📢 Found ${filteredNotifications.length} weather notifications for ${location} (${notifications.length} total conditions detected)`
+    );
 
     // Send notifications for each condition found
-    for (const notification of notifications) {
+    for (const notification of filteredNotifications) {
       try {
         await this.sendWeatherNotification(notification, location, config, result);
       } catch (error) {

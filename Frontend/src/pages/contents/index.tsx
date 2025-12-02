@@ -7,5 +7,17 @@ import Evacuation from './Evacuation';
 import AddNewCenter from './Evacuation/AddNewCenter';
 import Residents from './Residents';
 import Weather from './Weather';
+import { Notification } from './Notification';
 
-export { AddNewCenter, Dashboard, Earthquake, Evacuation, HistoryVersions, Residents, Status, StatusHistory, Weather };
+export {
+  AddNewCenter,
+  Dashboard,
+  Earthquake,
+  Evacuation,
+  HistoryVersions,
+  Residents,
+  Notification,
+  Status,
+  StatusHistory,
+  Weather,
+};

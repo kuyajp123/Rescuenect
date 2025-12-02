@@ -13,6 +13,7 @@ import {
   Status,
   StatusHistory,
   Weather,
+  Notification,
 } from '@/pages/contents';
 import Login from './pages/auth/Login';
 
@@ -38,6 +39,7 @@ const Router = () => {
         <Route path="/evacuation/add_new_center" element={<AddNewCenter />} />
         <Route path="/residents" element={<Residents />} />
         <Route path="/profile" element={<AdminProfile />} />
+        <Route path="/notification" element={<Notification />} />
       </Route>
 
       {/* Auth layout */}

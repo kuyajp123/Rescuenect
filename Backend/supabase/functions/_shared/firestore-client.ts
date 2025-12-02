@@ -1,6 +1,7 @@
 import { cert, getApps, initializeApp, type ServiceAccount } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import _ from 'lodash';
+import type { EarthquakeNotificationData, NotificationType, WeatherNotificationData } from './notification-schema.ts';
 import { EarthquakeData } from './types.ts';
 
 // barangayMap['barangay name']
@@ -40,7 +41,7 @@ export const barangayMap: Record<string, string> = {
 // Singleton pattern for Firebase initialization
 let firestoreInstance: Firestore | null = null;
 
-const initializeFirebase = () => {
+export const initializeFirebase = () => {
   // Return existing instance if already initialized
   if (firestoreInstance) {
     return firestoreInstance;
@@ -272,6 +273,7 @@ export async function getUserTokens(
 
 /**
  * Save notification history for tracking - supports all notification types
+ * UPDATED: Uses new unified notification schema
  */
 export async function saveNotificationHistory(
   notification: {
@@ -298,47 +300,92 @@ export async function saveNotificationHistory(
   const db = initializeFirebase();
 
   try {
-    await db.collection('notifications').add({
-      // Core notification content
-      title: notification.title,
-      body: notification.body,
-      type: notification.type,
-      level: notification.level || 'info',
-      category: notification.category,
+    // Import notification service types
+    const { NotificationService } = await import('./notification-service.ts');
+    const notificationService = new NotificationService(db);
 
-      // Metadata - flexible structure for different notification types (filter out undefined values)
-      metadata: Object.fromEntries(
-        Object.entries({
-          location: metadata.location,
-          audience: metadata.audience,
-          weatherZone: metadata.weatherZone,
-          magnitude: metadata.magnitude,
-          depth: metadata.depth,
-          coordinates: metadata.coordinates,
-          source: metadata.source,
-          ...Object.fromEntries(
-            Object.entries(metadata).filter(
-              ([key]) =>
-                !['location', 'audience', 'weatherZone', 'magnitude', 'depth', 'coordinates', 'source'].includes(key)
-            )
-          ),
-        }).filter(([_, value]) => value !== undefined)
-      ),
+    // Prepare location
+    const location = metadata.weatherZone || metadata.location || 'central_naic';
+    const audience = metadata.audience || 'both';
 
-      // Delivery information
-      sentTo: sentTo,
-      errors: errors,
-      errorCount: errors.length,
+    // Prepare delivery status
+    const deliveryStatus = {
+      success: sentTo,
+      failure: errors.length,
+      errors: errors.length > 0 ? errors : undefined,
+    };
 
-      // Timestamps
-      timestamp: new Date(),
-      createdAt: new Date().toISOString(),
+    // Create notification based on type
+    if (notification.type === 'weather') {
+      // Extract weather-specific data
+      const weatherData = {
+        weatherType:
+          (notification.data?.condition_type as 'current' | 'forecast_3h' | 'forecast_tomorrow') || 'current',
+        severity: (notification.level?.toUpperCase() as 'CRITICAL' | 'WARNING' | 'ADVISORY' | 'INFO') || 'INFO',
+        category: (notification.category as unknown) || 'Clear',
+        priority:
+          notification.level === 'critical'
+            ? 1
+            : notification.level === 'warning'
+            ? 2
+            : notification.level === 'emergency'
+            ? 1
+            : 3,
+        source: (metadata.source as 'weather_api' | 'manual') || 'weather_api',
+        ...(notification.data || {}),
+      };
 
-      // Additional data payload (filter out undefined values)
-      data: notification.data
-        ? Object.fromEntries(Object.entries(notification.data).filter(([_, value]) => value !== undefined))
-        : {},
-    });
+      await notificationService.createWeatherNotification({
+        title: notification.title,
+        message: notification.body,
+        location,
+        audience,
+        sentTo,
+        weatherData: weatherData as WeatherNotificationData,
+        deliveryStatus,
+      });
+    } else if (notification.type === 'earthquake') {
+      // Extract earthquake-specific data
+      const earthquakeData = {
+        earthquakeId: (notification.data?.earthquake_id as string) || `eq_${Date.now()}`,
+        magnitude: metadata.magnitude || 0,
+        place: (notification.data?.location as string) || 'Unknown',
+        coordinates: {
+          latitude: metadata.coordinates?.lat || 0,
+          longitude: metadata.coordinates?.lng || 0,
+          depth: metadata.depth || 0,
+        },
+        severity: (notification.data?.severity as unknown) || 'minor',
+        tsunamiWarning: (notification.data?.tsunami_warning as boolean) || false,
+        priority: (notification.data?.priority as unknown) || 'medium',
+        source: (metadata.source as 'usgs' | 'phivolcs' | 'manual') || 'usgs',
+        usgsUrl: notification.data?.usgs_url as string,
+      };
+
+      await notificationService.createEarthquakeNotification({
+        title: notification.title,
+        message: notification.body,
+        location,
+        audience,
+        sentTo,
+        earthquakeData: earthquakeData as EarthquakeNotificationData,
+        deliveryStatus,
+      });
+    } else {
+      // Generic notification
+      await notificationService.createNotification({
+        type: notification.type as NotificationType,
+        title: notification.title,
+        message: notification.body,
+        location,
+        audience,
+        sentTo,
+        data: notification.data,
+        deliveryStatus,
+      });
+    }
+
+    console.log(`✅ Notification saved using new schema: ${notification.type} - ${location}`);
   } catch (error) {
     console.error('Error saving notification history:', error);
     throw error;
