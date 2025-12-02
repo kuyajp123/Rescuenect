@@ -991,7 +991,7 @@ export const createStatus = () => {
       <Pressable key="current-status-image-pressable" onPress={handleImageModalOpen}>
         <Image key="current-status-image" style={styles.statusImage} source={{ uri: formData.image }} />
       </Pressable>
-    ) : formData != null && formData.image === '' ? null : (
+    ) : !authUser ? null : formData != null && formData.image === '' ? null : (
       <CustomImagePicker key="image-picker" id="map-image-picker-actionSheet" />
     ),
     <View key="spacer" style={{ marginVertical: 20 }} />,
@@ -1123,7 +1123,7 @@ export const createStatus = () => {
   };
 
   const sendSMS = () => {
-    const { firstName, lastName, condition, phoneNumber, lat, lng, location, note } = statusForm;
+    const { firstName, lastName, condition, phoneNumber, lat, lng, location, note, category, people } = statusForm;
 
     const LGU = '09123456789'; // Replace with actual LGU number
 
@@ -1134,6 +1134,8 @@ export const createStatus = () => {
     lat: ${lat}
     lng: ${lng}
     Location: ${location ? location : ''}
+    Category: ${category.join(', ')}
+    People with you: ${people}
     Note: ${note ? note : ''}
     Time: ${GetTime()}
     Date: ${GetDate()}

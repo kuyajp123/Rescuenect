@@ -63,12 +63,7 @@ const index = () => {
         return;
       }
       try {
-        const response = await axios.get<EvacuationCenter[]>(API_ENDPOINTS.EVACUATION.GET_CENTERS, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        console.log('Evacuation Centers:', JSON.stringify(response.data, null, 2));
+        const response = await axios.get<EvacuationCenter[]>(API_ENDPOINTS.EVACUATION.GET_CENTERS);
         setEvacuationCenters(response.data);
       } catch (error) {
         console.error('Error fetching evacuation centers:', error);

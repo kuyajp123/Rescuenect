@@ -27,6 +27,7 @@ import { SheetProvider } from 'react-native-actions-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import '../global.css';
+import { useEarthquakeListener } from '@/hooks/useEarthquakeListener';
 
 MapboxGL.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_API_TOKEN!);
 
@@ -40,6 +41,7 @@ export default function RootLayout() {
   const setUserData = useUserData((state: any) => state.setUserData);
   const setWeather = useWeatherStore(state => state.setWeather);
   const setSavedLocations = useSavedLocationsStore(state => state.setSavedLocations);
+  useEarthquakeListener();
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;

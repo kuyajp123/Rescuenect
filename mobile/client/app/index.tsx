@@ -11,29 +11,29 @@ const Index = () => {
   const [evacuationCenters, setEvacuationCenters] = useState(null);
   const router = useRouter();
 
-  useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        // Initialize storage with defaults FIRST
-        await inititallizeAppStorage();
-
-        // Initialize auth LAST (this triggers navigation)
-        await initializeAuth();
-      } catch (error) {
-        console.error('❌ Error during app initialization:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // storage.clear(); // Clear AsyncStorage for testing purposes
-    // handleLogout();
-    initializeApp();
-  }, []);
-
   // useEffect(() => {
-  //   router.replace('/evacuation');
-  // }, [router]);
+  //   const initializeApp = async () => {
+  //     try {
+  //       // Initialize storage with defaults FIRST
+  //       await inititallizeAppStorage();
+
+  //       // Initialize auth LAST (this triggers navigation)
+  //       await initializeAuth();
+  //     } catch (error) {
+  //       console.error('❌ Error during app initialization:', error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   // storage.clear(); // Clear AsyncStorage for testing purposes
+  //   // handleLogout();
+  //   initializeApp();
+  // }, []);
+
+  useEffect(() => {
+    router.replace('/notification');
+  }, [router]);
 
   if (loading) {
     return <SplashScreen />;

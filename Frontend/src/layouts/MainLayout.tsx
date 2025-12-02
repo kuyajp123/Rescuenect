@@ -28,7 +28,7 @@ const MainLayout = () => {
       )}
 
       {/* Main content area */}
-      <div className={`flex flex-col h-full w-full ${sidebarOpen ? 'lg:ml-5' : 'lg:ml-16'}`}>
+      <div className={`flex flex-col h-full w-full md:mx-4 ${sidebarOpen ? 'lg:ml-5' : 'lg:ml-16'}`}>
         <div className="flex-shrink-0 ">
           <Header />
         </div>

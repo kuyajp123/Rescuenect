@@ -19,11 +19,7 @@ export const evacuation = () => {
     const fetchEvacuationCenters = async () => {
       const token = await auth?.getIdToken();
       try {
-        const response = await axios.get<EvacuationCenter[]>(API_ROUTES.EVACUATION.GET_CENTERS, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await axios.get<EvacuationCenter[]>(API_ROUTES.EVACUATION.GET_CENTERS);
 
         // console.log('Evacuation Centers:', JSON.stringify(response.data, null, 2));
         setEvacuationCenters(response.data);

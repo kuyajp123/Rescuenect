@@ -2,8 +2,6 @@
 ../../Backend/
 ../../Frontend/
 
-# Ignore backend server
-../Backend/
 
 # Ignore any tar archives (these cause permission issues)
 *.tar
