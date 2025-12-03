@@ -210,10 +210,69 @@ const notificationDetails = () => {
 
         {/* Earthquake Specific Data */}
         {isEarthquake && earthquakeData && (
-          <View style={styles.dataCard}>
-            <Text size="lg" bold style={styles.sectionTitle}>
-              Earthquake Details
-            </Text>
+          <>
+            {/* Map Visualization */}
+            {earthquakeData.coordinates && (
+              <View style={styles.mapContainer}>
+                <View style={styles.mapHeader}>
+                  <MapPin size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
+                  <Text size="lg" bold>
+                    Impact Map
+                  </Text>
+                </View>
+                <View style={styles.map}>
+                  <MapView
+                    centerCoordinate={[earthquakeData.coordinates.longitude, earthquakeData.coordinates.latitude]}
+                    zoomLevel={9}
+                    minZoomLevel={7}
+                    maxZoomLevel={15}
+                    earthquakeData={{
+                      coordinates: earthquakeData.coordinates,
+                      severity: earthquakeData.severity,
+                      magnitude: earthquakeData.magnitude,
+                      impact_radii: earthquakeData.impact_radii,
+                    }}
+                    showButtons={false}
+                    showStyleSelector={true}
+                    interactive={true}
+                    show3DBuildings={false}
+                    scrollEnabled={false}
+                    rotateEnabled={false}
+                    zoomEnabled={false}
+                    compassEnabled={false}
+                    pitchEnabled={false}
+                  />
+                </View>
+                {earthquakeData.impact_radii && (
+                  <View style={styles.legendContainer}>
+                    <Text size="xs" bold style={{ marginBottom: 8 }}>
+                      Impact Zones:
+                    </Text>
+                    <View style={styles.legendRow}>
+                      <View style={[styles.legendDot, { backgroundColor: 'rgba(255, 0, 0, 0.35)' }]} />
+                      <Text size="xs">
+                        Strong: {earthquakeData.impact_radii.strong_shaking_radius_km.toFixed(1)} km
+                      </Text>
+                    </View>
+                    <View style={styles.legendRow}>
+                      <View style={[styles.legendDot, { backgroundColor: 'rgba(255, 165, 0, 0.35)' }]} />
+                      <Text size="xs">
+                        Moderate: {earthquakeData.impact_radii.moderate_shaking_radius_km.toFixed(1)} km
+                      </Text>
+                    </View>
+                    <View style={styles.legendRow}>
+                      <View style={[styles.legendDot, { backgroundColor: 'rgba(255, 215, 0, 0.35)' }]} />
+                      <Text size="xs">Felt: {earthquakeData.impact_radii.felt_radius_km.toFixed(1)} km</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
+
+            <View style={styles.dataCard}>
+              <Text size="lg" bold style={styles.sectionTitle}>
+                Earthquake Details
+              </Text>
 
               <View style={styles.dataRow}>
                 <Text size="sm" emphasis="light">
