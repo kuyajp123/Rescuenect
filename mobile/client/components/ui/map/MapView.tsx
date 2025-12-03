@@ -14,9 +14,68 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '../text';
 
+// Get color based on earthquake severity
+const getEarthquakeSeverityColor = (severity: string) => {
+  switch (severity) {
+    case 'micro':
+      return '#ADFF2F'; // Yellow-green
+    case 'minor':
+      return '#FFD700'; // Gold/Yellow
+    case 'light':
+      return '#FFA500'; // Orange
+    case 'moderate':
+      return '#FF4500'; // Orange-red
+    case 'strong':
+      return '#FF0000'; // Red
+    case 'major':
+      return '#8B0000'; // Dark red
+    case 'great':
+      return '#4B0000'; // Very dark red
+    default:
+      return '#808080'; // Gray for unknown
+  }
+};
+
+// Get the appropriate radius image based on earthquake severity
+const getEarthquakeRadiusImage = (severity: string) => {
+  switch (severity) {
+    case 'micro':
+      return require('@/assets/images/marker/radius/micro.png');
+    case 'minor':
+      return require('@/assets/images/marker/radius/minor.png');
+    case 'light':
+      return require('@/assets/images/marker/radius/light.png');
+    case 'moderate':
+      return require('@/assets/images/marker/radius/moderate.png');
+    case 'strong':
+      return require('@/assets/images/marker/radius/strong.png');
+    case 'major':
+      return require('@/assets/images/marker/radius/major.png');
+    case 'great':
+      return require('@/assets/images/marker/radius/great.png');
+    default:
+      return require('@/assets/images/marker/radius/moderate.png'); // fallback
+  }
+};
+
+interface EarthquakeData {
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
+  severity: string;
+  magnitude: number;
+  impact_radii?: {
+    felt_radius_km: number;
+    moderate_shaking_radius_km: number;
+    strong_shaking_radius_km: number;
+  };
+}
+
 interface MapViewProps {
   coords?: { lat: number; lng: number };
   data?: EvacuationCenter[];
+  earthquakeData?: EarthquakeData;
   handleMapPress?: (event: any) => void;
   onPress?: (coords: [number, number]) => void;
   showButtons?: boolean;
@@ -39,6 +98,7 @@ interface MapViewProps {
 export const MapView: React.FC<MapViewProps> = ({
   coords,
   data,
+  earthquakeData,
   handleMapPress,
   pitchEnabled = false,
   rotateEnabled = true,
@@ -154,30 +214,35 @@ export const MapView: React.FC<MapViewProps> = ({
         <Images
           images={{
             pin: require('@/assets/images/marker/marker-icon-blue.png'), // <-- use a PNG image instead of SVG
+            earthquakeRadius: earthquakeData
+              ? getEarthquakeRadiusImage(earthquakeData.severity)
+              : require('@/assets/images/marker/radius/moderate.png'),
           }}
         />
 
         {/* Marker source */}
-        <ShapeSource
-          id="marker-source"
-          shape={evacuationCentersGeoJson}
-          onPress={e => {
-            const feature = e.features[0]; // clicked marker feature
-            setSelectedMarker(
-              evacuationCentersGeoJson?.features.find(f => f.id === feature.id)?.properties as EvacuationCenter
-            );
-          }}
-        >
-          <SymbolLayer
-            id="marker-layer"
-            style={{
-              iconImage: 'pin', // matches the key from <Images>
-              iconSize: 1, // adjust size here
-              iconAllowOverlap: true,
-              iconIgnorePlacement: true,
+        {evacuationCentersGeoJson && (
+          <ShapeSource
+            id="marker-source"
+            shape={evacuationCentersGeoJson}
+            onPress={e => {
+              const feature = e.features[0]; // clicked marker feature
+              setSelectedMarker(
+                evacuationCentersGeoJson?.features.find(f => f.id === feature.id)?.properties as EvacuationCenter
+              );
             }}
-          />
-        </ShapeSource>
+          >
+            <SymbolLayer
+              id="marker-layer"
+              style={{
+                iconImage: 'pin', // matches the key from <Images>
+                iconSize: 1, // adjust size here
+                iconAllowOverlap: true,
+                iconIgnorePlacement: true,
+              }}
+            />
+          </ShapeSource>
+        )}
 
         {show3DBuildings && (
           <MapboxGL.VectorSource id="buildingSource" url="mapbox://mapbox.mapbox-streets-v8">
@@ -204,6 +269,58 @@ export const MapView: React.FC<MapViewProps> = ({
           >
             <View style={[styles.tapMarker, { backgroundColor: Colors.brand.dark }]} />
           </MapboxGL.PointAnnotation>
+        )}
+
+        {/* Earthquake radius using PNG image overlay */}
+        {earthquakeData && (
+          <>
+            {/* Earthquake radius image using ShapeSource for better positioning */}
+            <ShapeSource
+              id="earthquake-radius-source"
+              shape={{
+                type: 'FeatureCollection',
+                features: [
+                  {
+                    type: 'Feature',
+                    geometry: {
+                      type: 'Point',
+                      coordinates: [earthquakeData.coordinates.longitude, earthquakeData.coordinates.latitude],
+                    },
+                    properties: {},
+                  },
+                ],
+              }}
+            >
+              <SymbolLayer
+                id="earthquake-radius-layer"
+                style={{
+                  iconImage: 'earthquakeRadius',
+                  iconSize: 0.2, // Adjust size as needed
+                  iconAllowOverlap: true,
+                  iconIgnorePlacement: false,
+                  iconOpacity: 0.4,
+                }}
+              />
+            </ShapeSource>
+
+            {/* Earthquake epicenter marker */}
+            <MapboxGL.PointAnnotation
+              id="earthquake-epicenter"
+              coordinate={[earthquakeData.coordinates.longitude, earthquakeData.coordinates.latitude]}
+            >
+              <View
+                style={[
+                  styles.tapMarker,
+                  {
+                    backgroundColor: getEarthquakeSeverityColor(earthquakeData.severity),
+                    width: 16,
+                    height: 16,
+                    borderWidth: 3,
+                  },
+                ]}
+              />
+            </MapboxGL.PointAnnotation>
+          </>
         )}
       </MapboxGL.MapView>
 

@@ -137,6 +137,13 @@ export interface EarthquakeNotificationData {
 
   // Distance from Naic (optional)
   distanceFromNaic?: number; // in kilometers
+
+  // Impact radii for visualization
+  impact_radii?: {
+    felt_radius_km: number;
+    moderate_shaking_radius_km: number;
+    strong_shaking_radius_km: number;
+  };
 }
 
 /**

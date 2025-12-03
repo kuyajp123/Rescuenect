@@ -30,5 +30,7 @@ export const API_ROUTES = {
   },
   NOTIFICATION: {
     GET_NOTIFICATION_DETAILS: `${BASE_URL}/unified/getNotificationDetails`,
+    MARK_AS_READ: `${BASE_URL}/unified/markNotificationAsRead`,
+    MARK_AS_HIDDEN: `${BASE_URL}/unified/markNotificationAsHidden`,
   },
 };

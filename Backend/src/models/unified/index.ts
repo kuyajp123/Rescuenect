@@ -46,4 +46,16 @@ export class UnifiedModel {
       throw error;
     }
   }
+
+  public static async markNotificationAsHidden(notificationId: string, userId: string) { 
+    try {
+      const docRef = db.collection('notifications').doc(notificationId);
+      await docRef.update({
+        hiddenBy: FieldValue.arrayUnion(userId),
+      });
+    } catch (error) {
+      console.error('❌ Error in UnifiedModel.markNotificationAsHidden:', error);
+      throw error;
+    }
+  }
 }

@@ -25,6 +25,6 @@ export const API_ENDPOINTS = {
   },
   NOTIFICATION: {
     MARK_AS_READ: `${BACKEND_URL}/unified/markNotificationAsRead`,
-    MARK_AS_HIDDEN: `${BACKEND_URL}/admin/notification/markAsHidden`,
+    MARK_AS_HIDDEN: `${BACKEND_URL}/unified/markNotificationAsHidden`,
   },
 };
