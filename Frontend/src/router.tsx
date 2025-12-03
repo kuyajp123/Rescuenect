@@ -14,6 +14,7 @@ import {
   StatusHistory,
   Weather,
   Notification,
+  NotificationDetails,
 } from '@/pages/contents';
 import Login from './pages/auth/Login';
 
@@ -40,6 +41,7 @@ const Router = () => {
         <Route path="/residents" element={<Residents />} />
         <Route path="/profile" element={<AdminProfile />} />
         <Route path="/notification" element={<Notification />} />
+        <Route path="/notification/details" element={<NotificationDetails />} />
       </Route>
 
       {/* Auth layout */}

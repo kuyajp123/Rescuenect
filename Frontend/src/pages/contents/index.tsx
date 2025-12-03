@@ -8,6 +8,7 @@ import AddNewCenter from './Evacuation/AddNewCenter';
 import Residents from './Residents';
 import Weather from './Weather';
 import { Notification } from './Notification';
+import { NotificationDetails } from './Notification/NotificationDetails';
 
 export {
   AddNewCenter,
@@ -20,4 +21,5 @@ export {
   Status,
   StatusHistory,
   Weather,
+  NotificationDetails,
 };

@@ -4,6 +4,7 @@ import { useAuth } from '@/components/store/useAuth';
 import { useUserData } from '@/components/store/useBackendResponse';
 import { useNotificationStore } from '@/components/store/useNotificationStore';
 import Body from '@/components/ui/layout/Body';
+import { MapView } from '@/components/ui/map/MapView';
 import { Text } from '@/components/ui/text';
 import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
@@ -31,47 +32,56 @@ const notificationDetails = () => {
   const { notificationId } = useLocalSearchParams<{ notificationId: string }>();
   const authUser = useAuth(state => state.authUser);
   const markAsRead = useNotificationStore(state => state.markAsRead);
+  const notificationData = useNotificationStore(state => state.notifications);
   const userData = useUserData((state: any) => state.userData);
 
   const [notification, setNotification] = useState<BaseNotification | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const foundNotification = notificationData.find(n => n.id === notificationId);
+
   useEffect(() => {
-    const fetchNotification = async () => {
-      if (!notificationId) {
-        setError('No notification ID provided');
-        setLoading(false);
-        return;
-      }
+    if (!notificationId) {
+      setError('No notification ID provided');
+      return;
+    }
 
+    setNotification(foundNotification || null);
+
+    // Mark as read if user is logged in
+    if (authUser?.uid && foundNotification && !foundNotification?.readBy?.includes(authUser.uid)) {
+      markAsRead(foundNotification.id, authUser.uid);
+    }
+
+    if (foundNotification) setLoading(false);
+  }, [notificationId, authUser?.uid, markAsRead, setNotification]);
+
+  useEffect(() => {
+    const markNotificationAsRead = async () => {
+      if (!authUser?.uid || !notificationId) return;
+
+      const idToken = await authUser?.getIdToken();
       try {
-        setLoading(true);
-
-        const response = await axios.get<BaseNotification>(`${API_ROUTES.NOTIFICATION.GET_NOTIFICATION_DETAILS}`, {
-          params: { id: notificationId },
-        });
-
-        if (response.data) {
-          setNotification(response.data);
-
-          // Mark as read if user is logged in
-          if (authUser?.uid && !response.data.readBy?.includes(authUser.uid)) {
-            markAsRead(response.data.id, authUser.uid);
+        await axios.post(
+          API_ROUTES.NOTIFICATION.MARK_AS_READ,
+          {
+            notificationId,
+            userId: authUser?.uid,
+          },
+          {
+            headers: { Authorization: `Bearer ${idToken}` },
           }
-        } else {
-          setError('Notification not found');
-        }
-      } catch (err) {
-        console.error('Error fetching notification:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load notification');
-      } finally {
-        setLoading(false);
+        );
+
+        markAsRead(notificationId, authUser.uid);
+      } catch (error) {
+        console.error('❌ Error marking notification as read:', error);
       }
     };
 
-    fetchNotification();
-  }, [notificationId, authUser?.uid, markAsRead]);
+    markNotificationAsRead();
+  }, []);
 
   // Get icon based on notification type
   const getNotificationIcon = (type: BaseNotification['type']) => {
@@ -200,63 +210,123 @@ const notificationDetails = () => {
 
         {/* Earthquake Specific Data */}
         {isEarthquake && earthquakeData && (
-          <View style={styles.dataCard}>
-            <Text size="lg" bold style={styles.sectionTitle}>
-              Earthquake Details
-            </Text>
-
-            <View style={styles.dataRow}>
-              <Text size="sm" emphasis="light">
-                Magnitude:
-              </Text>
-              <Text size="md" bold>
-                {earthquakeData.magnitude}
-              </Text>
-            </View>
-
-            <View style={styles.dataRow}>
-              <Text size="sm" emphasis="light">
-                Location:
-              </Text>
-              <Text size="sm" style={{ flex: 1, textAlign: 'right' }}>
-                {earthquakeData.place}
-              </Text>
-            </View>
-
-            <View style={styles.dataRow}>
-              <Text size="sm" emphasis="light">
-                Depth:
-              </Text>
-              <Text size="sm">{earthquakeData.coordinates.depth} km</Text>
-            </View>
-
-            <View style={styles.dataRow}>
-              <Text size="sm" emphasis="light">
-                Severity:
-              </Text>
-              <Text size="sm" style={{ textTransform: 'capitalize' }}>
-                {earthquakeData.severity}
-              </Text>
-            </View>
-
-            {earthquakeData.tsunamiWarning && (
-              <View style={[styles.warningBanner, { backgroundColor: Colors.semantic.error }]}>
-                <AlertCircle size={20} color="white" />
-                <Text size="sm" bold style={{ color: 'white', marginLeft: 8 }}>
-                  TSUNAMI WARNING
-                </Text>
+          <>
+            {/* Map Visualization */}
+            {earthquakeData.coordinates && (
+              <View style={styles.mapContainer}>
+                <View style={styles.mapHeader}>
+                  <MapPin size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
+                  <Text size="lg" bold>
+                    Impact Map
+                  </Text>
+                </View>
+                <View style={styles.map}>
+                  <MapView
+                    centerCoordinate={[earthquakeData.coordinates.longitude, earthquakeData.coordinates.latitude]}
+                    zoomLevel={9}
+                    minZoomLevel={7}
+                    maxZoomLevel={15}
+                    earthquakeData={{
+                      coordinates: earthquakeData.coordinates,
+                      severity: earthquakeData.severity,
+                      magnitude: earthquakeData.magnitude,
+                      impact_radii: earthquakeData.impact_radii,
+                    }}
+                    showButtons={false}
+                    showStyleSelector={true}
+                    interactive={true}
+                    show3DBuildings={false}
+                    scrollEnabled={false}
+                    rotateEnabled={false}
+                    zoomEnabled={false}
+                    compassEnabled={false}
+                    
+                  />
+                </View>
+                {earthquakeData.impact_radii && (
+                  <View style={styles.legendContainer}>
+                    <Text size="xs" bold style={{ marginBottom: 8 }}>
+                      Impact Zones:
+                    </Text>
+                    <View style={styles.legendRow}>
+                      <View style={[styles.legendDot, { backgroundColor: 'rgba(255, 0, 0, 0.35)' }]} />
+                      <Text size="xs">
+                        Strong: {earthquakeData.impact_radii.strong_shaking_radius_km.toFixed(1)} km
+                      </Text>
+                    </View>
+                    <View style={styles.legendRow}>
+                      <View style={[styles.legendDot, { backgroundColor: 'rgba(255, 165, 0, 0.35)' }]} />
+                      <Text size="xs">
+                        Moderate: {earthquakeData.impact_radii.moderate_shaking_radius_km.toFixed(1)} km
+                      </Text>
+                    </View>
+                    <View style={styles.legendRow}>
+                      <View style={[styles.legendDot, { backgroundColor: 'rgba(255, 215, 0, 0.35)' }]} />
+                      <Text size="xs">Felt: {earthquakeData.impact_radii.felt_radius_km.toFixed(1)} km</Text>
+                    </View>
+                  </View>
+                )}
               </View>
             )}
 
-            {earthquakeData.distanceFromNaic && (
+            <View style={styles.dataCard}>
+              <Text size="lg" bold style={styles.sectionTitle}>
+                Earthquake Details
+              </Text>
+
               <View style={styles.dataRow}>
                 <Text size="sm" emphasis="light">
-                  Distance from Naic:
+                  Magnitude:
                 </Text>
-                <Text size="sm">{earthquakeData.distanceFromNaic.toFixed(1)} km</Text>
+                <Text size="md" bold>
+                  {earthquakeData.magnitude}
+                </Text>
               </View>
-            )}
-          </View>
+
+              <View style={styles.dataRow}>
+                <Text size="sm" emphasis="light">
+                  Location:
+                </Text>
+                <Text size="sm" style={{ flex: 1, textAlign: 'right' }}>
+                  {earthquakeData.place}
+                </Text>
+              </View>
+
+              <View style={styles.dataRow}>
+                <Text size="sm" emphasis="light">
+                  Depth:
+                </Text>
+                <Text size="sm">{earthquakeData.coordinates.depth} km</Text>
+              </View>
+
+              <View style={styles.dataRow}>
+                <Text size="sm" emphasis="light">
+                  Severity:
+                </Text>
+                <Text size="sm" style={{ textTransform: 'capitalize' }}>
+                  {earthquakeData.severity}
+                </Text>
+              </View>
+
+              {earthquakeData.tsunamiWarning && (
+                <View style={[styles.warningBanner, { backgroundColor: Colors.semantic.error }]}>
+                  <AlertCircle size={20} color="white" />
+                  <Text size="sm" bold style={{ color: 'white', marginLeft: 8 }}>
+                    TSUNAMI WARNING
+                  </Text>
+                </View>
+              )}
+
+              {earthquakeData.distanceFromNaic && (
+                <View style={styles.dataRow}>
+                  <Text size="sm" emphasis="light">
+                    Distance from Naic:
+                  </Text>
+                  <Text size="sm">{earthquakeData.distanceFromNaic.toFixed(1)} km</Text>
+                </View>
+              )}
+            </View>
+          </>
         )}
 
         {/* Weather Specific Data */}
@@ -331,6 +401,26 @@ const notificationDetails = () => {
                   Forecast Time:
                 </Text>
                 <Text size="sm">{new Date(weatherData.forecastTime).toLocaleString()}</Text>
+              </View>
+            )}
+
+            {weatherData.humidity && (
+              <View style={styles.dataRow}>
+                {/* <Calendar size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} /> */}
+                <Text size="sm" emphasis="light">
+                  Humidity:
+                </Text>
+                <Text size="sm">{weatherData.humidity}%</Text>
+              </View>
+            )}
+
+            {weatherData.uvIndex && (
+              <View style={styles.dataRow}>
+                {/* <Calendar size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} /> */}
+                <Text size="sm" emphasis="light">
+                  UV Index:
+                </Text>
+                <Text size="sm">{weatherData.uvIndex}</Text>
               </View>
             )}
           </View>
@@ -421,5 +511,41 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginVertical: 8,
+  },
+  mapContainer: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  mapHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    paddingBottom: 8,
+  },
+  map: {
+    height: 300,
+    width: '100%',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  legendContainer: {
+    padding: 12,
+    paddingTop: 8,
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#888',
   },
 });

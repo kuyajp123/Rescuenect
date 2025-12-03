@@ -18,11 +18,13 @@ import {
   Wind,
 } from 'lucide-react';
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const CURRENT_USER_LOCATION = 'bancaan';
 
 export const Notification = () => {
   const uid = auth.currentUser?.uid;
+  const navigate = useNavigate();
 
   const getIdToken = async () => {
     return await auth.currentUser?.getIdToken();
@@ -117,7 +119,7 @@ export const Notification = () => {
 
   // Check if notification is read by current user
   const isRead = (notification: BaseNotification): boolean => {
-    return notification.readBy?.includes(uid || '') || false;
+    return notification.readBy?.includes(uid) || false;
   };
 
   // Format timestamp
@@ -142,36 +144,36 @@ export const Notification = () => {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  // Handle notification click (mark as read)
+  // Handle notification click (navigate to details)
   const handleNotificationClick = async (notification: BaseNotification) => {
-    const idToken = getIdToken();
-
-    if (!isRead(notification)) {
-      try {
-        await axios.post(
-          API_ENDPOINTS.NOTIFICATION.MARK_AS_READ,
-          {
-            notificationId: notification.id,
-            userId: uid,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${idToken}`,
-            },
-          }
-        );
-
-        markAsRead(notification.id, uid);
-      } catch (error) {
-        console.error('Error marking notification as read:', error);
-      }
-    }
+    navigate('/notification/details', {
+      state: {
+        notification,
+      },
+    });
   };
 
   // Handle delete notification
-  const handleDelete = (notification: BaseNotification) => {
-    markAsHidden(notification.id, uid);
-    // TODO: Update Firestore with markAsHidden
+  const handleDelete = async (notification: BaseNotification) => {
+    try {
+      const idToken = await getIdToken();
+      await axios.post(
+        API_ENDPOINTS.NOTIFICATION.MARK_AS_HIDDEN,
+        {
+          notificationId: notification.id,
+          userId: uid,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
+      
+      markAsHidden(notification.id, uid);
+    } catch (error) {
+      console.error('Error marking notification as hidden:', error);
+    }
   };
 
   if (error) {

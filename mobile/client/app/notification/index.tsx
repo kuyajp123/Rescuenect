@@ -5,20 +5,24 @@ import { useUserData } from '@/components/store/useBackendResponse';
 import { useNotificationStore } from '@/components/store/useNotificationStore';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
+import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { BaseNotification } from '@/types/notification';
+import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { Activity, AlertCircle, Bell, Cloud } from 'lucide-react-native';
-import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 
 const index = () => {
   const { isDark } = useTheme();
   const router = useRouter();
   const notifications = useNotificationStore(state => state.notifications);
+  const markAsHidden = useNotificationStore(state => state.markAsHidden);
   const userData = useUserData((state: any) => state.userData);
   const authUser = useAuth(state => state.authUser);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Get icon based on notification type
   const getNotificationIcon = (type: BaseNotification['type']) => {
@@ -71,6 +75,56 @@ const index = () => {
     }
   };
 
+  // Handle notification deletion
+  const handleDeleteNotification = async (notification: BaseNotification) => {
+    if (!authUser?.uid) {
+      Alert.alert('Error', 'You must be logged in to delete notifications');
+      return;
+    }
+
+    Alert.alert('Delete Notification', 'Are you sure you want to delete this notification?', [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setDeletingId(notification.id);
+          try {
+            // Get ID token from Firebase Auth
+            const idToken = await authUser.getIdToken();
+
+            // Call API to mark as hidden
+            const response = await axios.post(
+              API_ROUTES.NOTIFICATION.MARK_AS_HIDDEN,
+              {
+                notificationId: notification.id,
+                userId: authUser.uid,
+              },
+              {
+                headers: { Authorization: `Bearer ${idToken}` },
+              }
+            );
+
+            if (response.status === 500 || response.status === 400) {
+              throw new Error('Failed to delete notification');
+            }
+
+            // Update local state
+            markAsHidden(notification.id, authUser.uid);
+          } catch (error) {
+            console.error('Error deleting notification:', error);
+            Alert.alert('Error', 'Failed to delete notification. Please try again.');
+          } finally {
+            setDeletingId(null);
+          }
+        },
+      },
+    ]);
+  };
+
   if (notifications.length === 0) {
     return (
       <Body style={{ padding: 0 }}>
@@ -112,6 +166,7 @@ const index = () => {
                       : notification.type === 'weather'
                       ? Colors.semantic.info
                       : Colors.brand.dark,
+                  opacity: deletingId === notification.id ? 0.5 : 1,
                 },
               ]}
               onPress={() => {
@@ -120,6 +175,10 @@ const index = () => {
                   pathname: '/notification/notificationDetails',
                   params: { notificationId: notification.id },
                 });
+              }}
+              onLongPress={() => {
+                if (deletingId === notification.id) return;
+                handleDeleteNotification(notification);
               }}
             >
               <View style={styles.notificationContent}>

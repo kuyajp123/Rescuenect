@@ -122,6 +122,11 @@ serve(async (req: Request) => {
               usgsUrl: earthquake.usgs_url,
               source: 'usgs',
               distanceFromNaic: earthquake.distance_km,
+              impact_radii: {
+                felt_radius_km: earthquake.impact_radii.felt_radius_km,
+                moderate_shaking_radius_km: earthquake.impact_radii.moderate_shaking_radius_km,
+                strong_shaking_radius_km: earthquake.impact_radii.strong_shaking_radius_km,
+              },
             };
 
             // Prepare delivery status (only add errors if they exist)
