@@ -1,4 +1,5 @@
 import { db } from '@/db/firestoreConfig';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export class UnifiedModel {
   private static pathRef() {
@@ -30,6 +31,18 @@ export class UnifiedModel {
       }
     } catch (error) {
       console.error('❌ Error in UnifiedModel.getNotificationDetails:', error);
+      throw error;
+    }
+  }
+
+  public static async markNotificationAsRead(notificationId: string, userId: string) {
+    try {
+      const docRef = db.collection('notifications').doc(notificationId);
+      await docRef.update({
+        readBy: FieldValue.arrayUnion(userId),
+      });
+    } catch (error) {
+      console.error('❌ Error in UnifiedModel.markNotificationAsRead:', error);
       throw error;
     }
   }

@@ -39,4 +39,26 @@ export class UnifiedController {
       });
     }
   }
+
+  static async markNotificationAsRead(req: Request, res: Response): Promise<void> {
+    try {
+      const { notificationId, userId } = req.body;
+      if (!notificationId || !userId) {
+        res.status(400).json({ message: 'Notification ID and User ID are required' });
+        return;
+      }
+
+      await UnifiedModel.markNotificationAsRead(notificationId, userId);
+      res.status(200).json({ message: 'Notification marked as read' });
+    } catch (error) {
+      console.error('❌ Failed to get notification details:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      res.status(500).json({
+        message: 'Failed to get notification details',
+        error: typeof error === 'string' ? error : (error as Error).message,
+      });
+    }
+  }
 }
