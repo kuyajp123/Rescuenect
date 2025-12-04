@@ -18,7 +18,8 @@ import {
   TableRow,
   User,
 } from '@heroui/react';
-import React, { useEffect } from 'react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
@@ -87,6 +88,8 @@ const Residents = () => {
     column: 'name',
     direction: 'ascending',
   });
+
+  const navigate = useNavigate();
 
   const [page, setPage] = React.useState(1);
 
@@ -218,11 +221,13 @@ const Residents = () => {
                 </Button>
               </DropdownTrigger>
               <DropdownMenu>
-                <DropdownItem key="view" onPress={() => {}}>
-                  View
-                </DropdownItem>
-                <DropdownItem key="delete" className="text-danger" color="danger" onPress={() => {}}>
-                  Delete
+                <DropdownItem
+                  key="view"
+                  onPress={() => {
+                    navigate('/residents/profile', { state: { resident: user } });
+                  }}
+                >
+                  View Profile
                 </DropdownItem>
               </DropdownMenu>
             </Dropdown>

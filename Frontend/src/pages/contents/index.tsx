@@ -5,7 +5,8 @@ import { Dashboard } from './Dashboard';
 import Earthquake from './Earthquake';
 import Evacuation from './Evacuation';
 import AddNewCenter from './Evacuation/AddNewCenter';
-import Residents from './Residents';
+import Residents from './Residents/index';
+import ResidentsProfile from './Residents/ResidentsProfile';
 import Weather from './Weather';
 import { Notification } from './Notification';
 import { NotificationDetails } from './Notification/NotificationDetails';
@@ -22,4 +23,5 @@ export {
   StatusHistory,
   Weather,
   NotificationDetails,
+  ResidentsProfile,
 };

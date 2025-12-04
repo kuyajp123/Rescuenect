@@ -47,7 +47,7 @@ export class UnifiedModel {
     }
   }
 
-  public static async markNotificationAsHidden(notificationId: string, userId: string) { 
+  public static async markNotificationAsHidden(notificationId: string, userId: string) {
     try {
       const docRef = db.collection('notifications').doc(notificationId);
       await docRef.update({
@@ -55,6 +55,44 @@ export class UnifiedModel {
       });
     } catch (error) {
       console.error('❌ Error in UnifiedModel.markNotificationAsHidden:', error);
+      throw error;
+    }
+  }
+
+  public static async getResidentStatuses(userId: string) {
+    try {
+      // Get all statuses for this user
+      const snapshot = await db
+        .collection('status')
+        .doc(userId)
+        .collection('statuses')
+        .orderBy('createdAt', 'desc')
+        .get();
+
+      if (snapshot.empty) {
+        return [];
+      }
+
+      // Group by parentId and get only the latest version of each
+      const statusMap = new Map();
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const parentId = data.parentId;
+
+        // If we haven't seen this parentId, or if this version is newer, store it
+        if (!statusMap.has(parentId)) {
+          statusMap.set(parentId, { id: doc.id, ...data });
+        }
+      });
+
+      // Convert map to array and sort by createdAt descending (newest first)
+      return Array.from(statusMap.values()).sort((a, b) => {
+        const aTime = a.createdAt?._seconds || 0;
+        const bTime = b.createdAt?._seconds || 0;
+        return bTime - aTime;
+      });
+    } catch (error) {
+      console.error('❌ Error in UnifiedModel.getResidentStatuses:', error);
       throw error;
     }
   }

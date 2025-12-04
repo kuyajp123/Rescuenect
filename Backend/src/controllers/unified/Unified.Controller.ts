@@ -83,4 +83,26 @@ export class UnifiedController {
       });
     }
   }
+
+  static async getResidentStatuses(req: Request, res: Response): Promise<void> {
+    try {
+      const residentId = req.query.residentId as string;
+      if (!residentId) {
+        res.status(400).json({ message: 'Resident ID is required' });
+        return;
+      }
+
+      const statuses = await UnifiedModel.getResidentStatuses(residentId);
+      res.status(200).json({ statuses });
+    } catch (error) {
+      console.error('❌ Failed to get resident statuses:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      res.status(500).json({
+        message: 'Failed to get resident statuses',
+        error: typeof error === 'string' ? error : (error as Error).message,
+      });
+    }
+  }
 }
