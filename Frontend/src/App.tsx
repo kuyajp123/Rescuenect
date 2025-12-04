@@ -1,5 +1,6 @@
 import { permissionAllowed } from '@/config/notificationPermission.ts';
 import { useEarthquakeSnapshot } from '@/hooks/useEarthquakeSnapshot';
+import { useResidentsStore } from '@/hooks/useFetchResidents';
 import { useNotificationSubscriber } from '@/hooks/useNotificationSubscriber';
 import { useStatusHistory } from '@/hooks/useStatusHistory';
 import { useAuth } from '@/stores/useAuth';
@@ -67,6 +68,15 @@ function App() {
     userId: auth?.uid,
     maxNotifications: 100,
   });
+
+  // Fetch residents when auth is available
+  const fetchResidents = useResidentsStore(state => state.fetchResidents);
+
+  useEffect(() => {
+    if (auth) {
+      fetchResidents();
+    }
+  }, [auth, fetchResidents]);
 
   return (
     <BrowserRouter>

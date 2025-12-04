@@ -1,10 +1,9 @@
-import { EvacuationCenter } from '@/types/types';
-import type { ChipProps, Selection, SortDescriptor } from '@heroui/react';
+import { useResidentsStore, type ResidentTypes } from '@/hooks/useFetchResidents';
+import type { Selection, SortDescriptor } from '@heroui/react';
 import { ChevronDown, EllipsisVertical, Search } from 'lucide-react';
 
 import {
   Button,
-  Chip,
   Dropdown,
   DropdownItem,
   DropdownMenu,
@@ -19,7 +18,7 @@ import {
   TableRow,
   User,
 } from '@heroui/react';
-import React from 'react';
+import React, { useEffect } from 'react';
 
 function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
@@ -28,82 +27,64 @@ function capitalize(s: string) {
 const columns = [
   { name: 'ID', uid: 'id', sortable: true },
   { name: 'NAME', uid: 'name', sortable: true },
-  { name: 'LOCATION', uid: 'location', sortable: true },
-  { name: 'CAPACITY', uid: 'capacity', sortable: true },
-  { name: 'CONTACT', uid: 'contact', sortable: true },
-  { name: 'TYPE', uid: 'type', sortable: true },
-  { name: 'STATUS', uid: 'status', sortable: true },
+  { name: 'EMAIL', uid: 'email' },
+  { name: 'PHONE NUMBER', uid: 'phoneNumber' },
+  { name: 'BARANGAY', uid: 'barangay', sortable: true },
+  { name: 'UPDATED AT', uid: 'updatedAt', sortable: true },
   { name: 'CREATED AT', uid: 'createdAt', sortable: true },
   { name: 'ACTIONS', uid: 'actions' },
 ];
 
-const statusOptions = [
-  { name: 'Available', uid: 'available' },
-  { name: 'Full', uid: 'full' },
-  { name: 'Closed', uid: 'closed' },
+const barangayOptions = [
+  { name: 'Labac', uid: 'labac' },
+  { name: 'Mabolo', uid: 'mabolo' },
+  { name: 'Bancaan', uid: 'bancaan' },
+  { name: 'Balsahan', uid: 'balsahan' },
+  { name: 'Bagong Karsada', uid: 'bagong karsada' },
+  { name: 'Sapa', uid: 'sapa' },
+  { name: 'Bucana Sasahan', uid: 'bucana sasahan' },
+  { name: 'Capt C. Nazareno', uid: 'capt c. nazareno' },
+  { name: 'Gomez-Zamora', uid: 'gomez-zamora' },
+  { name: 'Kanluran', uid: 'kanluran' },
+  { name: 'Humbac', uid: 'humbac' },
+  { name: 'Bucana Malaki', uid: 'bucana malaki' },
+  { name: 'Ibayo Estacion', uid: 'ibayo estacion' },
+  { name: 'Ibayo Silangan', uid: 'ibayo silangan' },
+  { name: 'Latoria', uid: 'latoria' },
+  { name: 'Munting Mapino', uid: 'munting mapino' },
+  { name: 'Timalan Balsahan', uid: 'timalan balsahan' },
+  { name: 'Timalan Concepcion', uid: 'timalan concepcion' },
+  { name: 'Muzon', uid: 'muzon' },
+  { name: 'Malainem Bago', uid: 'malainem bago' },
+  { name: 'Santulan', uid: 'santulan' },
+  { name: 'Calubcob', uid: 'calubcob' },
+  { name: 'Makina', uid: 'makina' },
+  { name: 'San Roque', uid: 'san roque' },
+  { name: 'Sabang', uid: 'sabang' },
+  { name: 'Molino', uid: 'molino' },
+  { name: 'Halang', uid: 'halang' },
+  { name: 'Palangue 1', uid: 'palangue 1' },
+  { name: 'Malainem Luma', uid: 'malainem luma' },
+  { name: 'Palangue 2 & 3', uid: 'palangue 2 & 3' },
 ];
 
-// Remove static users array, use data prop instead
+const INITIAL_VISIBLE_COLUMNS = ['name', 'email', 'phoneNumber', 'barangay', 'actions'];
 
-const statusColorMap: Record<string, ChipProps['color']> = {
-  available: 'success',
-  full: 'warning',
-  closed: 'danger',
-};
-
-const INITIAL_VISIBLE_COLUMNS = ['name', 'location', 'type', 'status', 'actions'];
-
-type User = EvacuationCenter;
-
-interface EvacuationTableProps {
-  data: EvacuationCenter[];
-  onDeleteRequest: (center: EvacuationCenter) => void;
+interface FirestoreTimestamp {
+  _seconds: number;
+  _nanoseconds: number;
 }
-
-const data: EvacuationCenter[] = [
-  {
-    id: '1',
-    name: 'Center A',
-    location: 'Location A',
-    coordinates: { lat: 0, lng: 0 },
-    capacity: '100',
-    contact: '09171234567',
-    type: 'barangay hall',
-    status: 'available',
-    createdAt: '2021-07-01',
-  },
-  {
-    id: '2',
-    name: 'Center B',
-    location: 'Location B',
-    coordinates: { lat: 0, lng: 0 },
-    capacity: '50',
-    contact: '09179876543',
-    type: 'school',
-    status: 'full',
-    createdAt: '2021-07-02',
-  },
-  {
-    id: '3',
-    name: 'Center C',
-    location: 'Location C',
-    coordinates: { lat: 0, lng: 0 },
-    capacity: '0',
-    contact: '09173456789',
-    type: 'covered court',
-    status: 'closed',
-    createdAt: '2021-07-03',
-  },
-];
 
 const Residents = () => {
   const [filterValue, setFilterValue] = React.useState('');
-  // const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set([]));
+  const residents = useResidentsStore(state => state.residents);
+  const isLoading = useResidentsStore(state => state.loading);
+  const totalCount = useResidentsStore(state => state.totalCount);
   const [visibleColumns, setVisibleColumns] = React.useState<Selection>(new Set(INITIAL_VISIBLE_COLUMNS));
   const [statusFilter, setStatusFilter] = React.useState<Selection>('all');
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-    column: 'status',
+    column: 'name',
     direction: 'ascending',
   });
 
@@ -117,20 +98,20 @@ const Residents = () => {
   }, [visibleColumns]);
 
   const filteredItems = React.useMemo(() => {
-    let filteredUsers = Array.isArray(data) ? [...data] : [];
+    let filteredUsers = [...residents];
 
     if (hasSearchFilter) {
-      filteredUsers = filteredUsers.filter(user => (user.name ?? '').toLowerCase().includes(filterValue.toLowerCase()));
+      filteredUsers = filteredUsers.filter(user => {
+        const fullName = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase();
+        return fullName.includes(filterValue.toLowerCase());
+      });
     }
-    if (statusFilter !== 'all' && Array.from(statusFilter).length !== statusOptions.length) {
-      filteredUsers = filteredUsers.filter(user => user.status && Array.from(statusFilter).includes(user.status));
+    if (statusFilter !== 'all' && Array.from(statusFilter).length !== barangayOptions.length) {
+      filteredUsers = filteredUsers.filter(user => user.barangay && Array.from(statusFilter).includes(user.barangay));
     }
-
-    // Only show items with a name (ignore incomplete objects)
-    filteredUsers = filteredUsers.filter(user => user.name);
 
     return filteredUsers;
-  }, [data, filterValue, statusFilter]);
+  }, [residents, filterValue, statusFilter]);
 
   const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
 
@@ -142,32 +123,34 @@ const Residents = () => {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: User, b: User) => {
-      const first = a[sortDescriptor.column as keyof User];
-      const second = b[sortDescriptor.column as keyof User];
-      if (sortDescriptor.column === 'capacity') {
-        const numA = Number(first) || 0;
-        const numB = Number(second) || 0;
-        const cmp = numA < numB ? -1 : numA > numB ? 1 : 0;
+    return [...items].sort((a: ResidentTypes, b: ResidentTypes) => {
+      if (sortDescriptor.column === 'name') {
+        const nameA = `${a.firstName || ''} ${a.lastName || ''}`.toLowerCase();
+        const nameB = `${b.firstName || ''} ${b.lastName || ''}`.toLowerCase();
+        const cmp = nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
         return sortDescriptor.direction === 'descending' ? -cmp : cmp;
-      } else if (sortDescriptor.column === 'createdAt') {
+      } else if (sortDescriptor.column === 'createdAt' || sortDescriptor.column === 'updatedAt') {
         // Sort by Firestore timestamp
-        const getSeconds = (value: unknown) => {
-          if (
-            value &&
-            typeof value === 'object' &&
-            'seconds' in value &&
-            typeof (value as { seconds: unknown }).seconds === 'number'
-          ) {
-            return (value as { seconds: number }).seconds;
+        const getSeconds = (value: FirestoreTimestamp | undefined) => {
+          if (value && typeof value === 'object' && '_seconds' in value) {
+            return value._seconds;
           }
           return 0;
         };
+        const first = a[sortDescriptor.column as keyof ResidentTypes] as FirestoreTimestamp | undefined;
+        const second = b[sortDescriptor.column as keyof ResidentTypes] as FirestoreTimestamp | undefined;
         const secA = getSeconds(first);
         const secB = getSeconds(second);
         const cmp = secA < secB ? -1 : secA > secB ? 1 : 0;
         return sortDescriptor.direction === 'descending' ? -cmp : cmp;
+      } else if (sortDescriptor.column === 'barangay') {
+        const strA = (a.barangay ?? '').toLowerCase();
+        const strB = (b.barangay ?? '').toLowerCase();
+        const cmp = strA < strB ? -1 : strA > strB ? 1 : 0;
+        return sortDescriptor.direction === 'descending' ? -cmp : cmp;
       } else {
+        const first = a[sortDescriptor.column as keyof ResidentTypes];
+        const second = b[sortDescriptor.column as keyof ResidentTypes];
         const strA = (first ?? '').toString().toLowerCase();
         const strB = (second ?? '').toString().toLowerCase();
         const cmp = strA < strB ? -1 : strA > strB ? 1 : 0;
@@ -176,61 +159,55 @@ const Residents = () => {
     });
   }, [sortDescriptor, items]);
 
-  const renderCell = React.useCallback((user: User, columnKey: React.Key) => {
-    const cellValue = user[columnKey as keyof User];
+  const renderCell = React.useCallback((user: ResidentTypes, columnKey: React.Key) => {
+    const formatTimestamp = (timestamp: FirestoreTimestamp | undefined): string => {
+      if (!timestamp || typeof timestamp !== 'object' || !('_seconds' in timestamp)) {
+        return '';
+      }
+      const date = new Date(timestamp._seconds * 1000);
+      return date.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    };
+
     switch (columnKey) {
       case 'id':
-        return <span className="text-xs text-default-400">{String(cellValue)}</span>;
+        return <span className="text-xs text-default-400">{user.id}</span>;
       case 'name':
         return (
-          <div className="flex flex-col">
-            <p className="text-bold text-small capitalize">{String(cellValue)}</p>
-          </div>
+          <User
+            name={`${user.firstName || ''} ${user.lastName || ''}`}
+            description={user.uid}
+            avatarProps={{
+              src: user.photo,
+              size: 'sm',
+            }}
+          />
         );
-      case 'location':
+      case 'email':
         return (
           <div className="flex flex-col">
-            <p className="text-bold text-small capitalize">{String(cellValue)}</p>
+            <p className="text-bold text-small">{user.email || '-'}</p>
           </div>
         );
-      case 'contact':
+      case 'phoneNumber':
         return (
           <div className="flex flex-col">
-            <p className="text-bold text-small capitalize">{String(cellValue)}</p>
+            <p className="text-bold text-small">{user.phoneNumber || '-'}</p>
           </div>
         );
-      case 'capacity':
-        return <span>{String(cellValue)}</span>;
-      case 'type':
-        return <span className="capitalize">{String(cellValue)}</span>;
-      case 'status':
+      case 'barangay':
         return (
-          <Chip className="capitalize" color={statusColorMap[user.status ?? 'closed']} size="sm" variant="flat">
-            {String(cellValue)}
-          </Chip>
+          <div className="flex flex-col">
+            <p className="text-bold text-small capitalize">{user.barangay || '-'}</p>
+          </div>
         );
-      case 'createdAt': {
-        // Firestore timestamp: { _seconds: number, _nanoseconds: number } or { seconds: number }
-        let dateStr = '';
-        let dateObj: Date | null = null;
-        if (cellValue && typeof cellValue === 'object') {
-          if ('toDate' in cellValue && typeof cellValue.toDate === 'function') {
-            dateObj = cellValue.toDate();
-          } else if ('_seconds' in cellValue && typeof cellValue._seconds === 'number') {
-            dateObj = new Date(cellValue._seconds * 1000);
-          } else if ('seconds' in cellValue && typeof cellValue.seconds === 'number') {
-            dateObj = new Date(cellValue.seconds * 1000);
-          }
-        }
-        if (dateObj) {
-          dateStr = dateObj.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          });
-        }
-        return <span className="text-xs text-default-400">{dateStr}</span>;
-      }
+      case 'createdAt':
+        return <span className="text-xs text-default-400">{formatTimestamp(user.createdAt)}</span>;
+      case 'updatedAt':
+        return <span className="text-xs text-default-400">{formatTimestamp(user.updatedAt)}</span>;
       case 'actions':
         return (
           <div className="relative flex justify-end items-center gap-2">
@@ -252,7 +229,7 @@ const Residents = () => {
           </div>
         );
       default:
-        return String(cellValue);
+        return '';
     }
   }, []);
 
@@ -315,7 +292,7 @@ const Residents = () => {
                 selectionMode="multiple"
                 onSelectionChange={setStatusFilter}
               >
-                {statusOptions.map(status => (
+                {barangayOptions.map(status => (
                   <DropdownItem key={status.uid} className="capitalize">
                     {capitalize(status.name)}
                   </DropdownItem>
@@ -347,7 +324,7 @@ const Residents = () => {
         </div>
         <div className="flex justify-between items-center">
           <span className="text-default-400 text-small">
-            Total {Array.isArray(data) ? data.filter(d => d.name).length : 0} centers
+            Total {totalCount} resident{totalCount !== 1 ? 's' : ''}
           </span>
           <label className="flex items-center text-default-400 text-small">
             Rows per page:
@@ -363,7 +340,7 @@ const Residents = () => {
         </div>
       </div>
     );
-  }, [filterValue, statusFilter, visibleColumns, onSearchChange, onRowsPerPageChange, data, hasSearchFilter]);
+  }, [filterValue, statusFilter, visibleColumns, onSearchChange, onRowsPerPageChange, hasSearchFilter]);
 
   const bottomContent = React.useMemo(() => {
     return (
@@ -398,13 +375,12 @@ const Residents = () => {
   return (
     <Table
       isHeaderSticky
-      aria-label="Example table with custom cells, pagination and sorting"
+      aria-label="Residents table with custom cells, pagination and sorting"
       bottomContent={bottomContent}
       bottomContentPlacement="outside"
       classNames={{
         wrapper: 'max-h-[582px]',
       }}
-      // selectedKeys={selectedKeys}
       selectionMode="single"
       sortDescriptor={sortDescriptor}
       topContent={topContent}
@@ -423,7 +399,11 @@ const Residents = () => {
           </TableColumn>
         )}
       </TableHeader>
-      <TableBody emptyContent={'No evacuation centers found'} items={sortedItems}>
+      <TableBody
+        emptyContent={isLoading ? 'Loading residents...' : 'No residents found'}
+        items={sortedItems}
+        isLoading={isLoading}
+      >
         {item => <TableRow key={item.id}>{columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
       </TableBody>
     </Table>
