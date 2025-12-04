@@ -4,6 +4,8 @@ import { create } from 'zustand';
 interface NotificationStore {
   notifications: BaseNotification[];
   unreadCount: number;
+  error?: string | null;
+  isLoading?: boolean;
 
   // Actions
   setNotifications: (notifications: BaseNotification[]) => void;
@@ -13,6 +15,10 @@ interface NotificationStore {
   markAsRead: (id: string, userId: string) => void;
   markAsHidden: (id: string, userId: string) => void;
   clearAll: () => void;
+
+  // state
+  setError: (error: string | null) => void;
+  setIsLoading: (isLoading: boolean) => void;
 
   // Getters
   getUnreadCount: (userId?: string) => number;
@@ -24,6 +30,13 @@ interface NotificationStore {
 export const useNotificationStore = create<NotificationStore>((set, get) => ({
   notifications: [],
   unreadCount: 0,
+
+  setError: error => {
+    set({ error });
+  },
+  setIsLoading: isLoading => {
+    set({ isLoading });
+  },
 
   setNotifications: notifications => {
     set({ notifications });

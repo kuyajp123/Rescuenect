@@ -2,7 +2,7 @@ import { db } from '@/lib/firebaseConfig';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import type { BaseNotification } from '@/types/types';
 import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 interface UseNotificationSubscriberProps {
   userLocation?: string; // User's barangay/location for filtering weather notifications
@@ -16,8 +16,8 @@ export const useNotificationSubscriber = ({
   maxNotifications = 50,
 }: UseNotificationSubscriberProps = {}) => {
   const setNotifications = useNotificationStore(state => state.setNotifications);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const setIsLoading = useNotificationStore(state => state.setIsLoading);
+  const setError = useNotificationStore(state => state.setError);
 
   useEffect(() => {
     // Build query for notifications
@@ -98,6 +98,4 @@ export const useNotificationSubscriber = ({
       unsubscribe();
     };
   }, [userLocation, userId, maxNotifications, setNotifications]);
-
-  return { isLoading, error };
 };

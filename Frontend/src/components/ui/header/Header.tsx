@@ -1,6 +1,8 @@
 import { SecondaryButton } from '@/components/ui/button';
 import { revokeToken } from '@/config/notificationPermission';
 import { ThemeSwitcher } from '@/hooks/ThemeSwitcher';
+import { auth } from '@/lib/firebaseConfig';
+import { useNotificationStore } from '@/stores/useNotificationStore';
 import { Avatar } from '@heroui/avatar';
 import {
   BreadcrumbItem,
@@ -14,11 +16,17 @@ import {
 } from '@heroui/react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Bell, PlusIcon, Settings } from 'lucide-react';
+import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const getUnreadCount = useNotificationStore(state => state.getUnreadCount);
+  const notifications = useNotificationStore(state => state.notifications);
+  const uid = auth.currentUser?.uid;
+
+  const unreadCount = useMemo(() => getUnreadCount(uid), [notifications, getUnreadCount]);
 
   const handleSignOut = async () => {
     const auth = getAuth();
@@ -114,7 +122,7 @@ const Header = () => {
 
       <div className="flex flex-row space-x-5 items-center p-4">
         <ThemeSwitcher />
-        <div>
+        <div className="relative">
           <SecondaryButton
             className="rounded-full border-none"
             onPress={() => navigate('/notification', { replace: true })}
@@ -122,6 +130,14 @@ const Header = () => {
           >
             <Bell size={20} />
           </SecondaryButton>
+            {unreadCount > 0 && (
+            <span
+              className="absolute -top-1 -right-1 min-w-5 h-5 bg-red-500 rounded-full border border-white flex items-center justify-center text-white text-xs font-semibold px-1"
+              style={{ zIndex: 9999 }}
+            >
+              {unreadCount}
+            </span>
+            )}
         </div>
         <div>
           <Settings size={20} className="inline-block mr-2" />

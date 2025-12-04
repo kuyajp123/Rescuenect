@@ -1,6 +1,6 @@
 import { SecondaryButton } from '@/components/ui/button';
 import { API_ENDPOINTS } from '@/config/endPoints';
-import { useNotificationSubscriber } from '@/hooks/useNotificationSubscriber';
+
 import { auth } from '@/lib/firebaseConfig';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import type { BaseNotification, EarthquakeNotificationData, WeatherNotificationData } from '@/types/types';
@@ -19,8 +19,6 @@ import {
 } from 'lucide-react';
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-const CURRENT_USER_LOCATION = 'bancaan';
 
 export const Notification = () => {
   const uid = auth.currentUser?.uid;
@@ -45,14 +43,7 @@ export const Notification = () => {
     );
   }
 
-  // Subscribe to notifications
-  const { isLoading, error } = useNotificationSubscriber({
-    userLocation: CURRENT_USER_LOCATION,
-    userId: uid,
-    maxNotifications: 100,
-  });
-
-  const { notifications, markAsRead, markAsHidden, getUnreadCount } = useNotificationStore();
+  const { notifications, isLoading, error, markAsRead, markAsHidden, getUnreadCount } = useNotificationStore();
 
   // Get unread count
   const unreadCount = useMemo(() => getUnreadCount(uid), [notifications, getUnreadCount]);
@@ -169,7 +160,7 @@ export const Notification = () => {
           },
         }
       );
-      
+
       markAsHidden(notification.id, uid);
     } catch (error) {
       console.error('Error marking notification as hidden:', error);

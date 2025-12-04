@@ -1,5 +1,6 @@
 import { permissionAllowed } from '@/config/notificationPermission.ts';
 import { useEarthquakeSnapshot } from '@/hooks/useEarthquakeSnapshot';
+import { useNotificationSubscriber } from '@/hooks/useNotificationSubscriber';
 import { useStatusHistory } from '@/hooks/useStatusHistory';
 import { useAuth } from '@/stores/useAuth';
 import 'leaflet/dist/leaflet.css';
@@ -13,7 +14,7 @@ import { useStatusStore } from './stores/useStatusStore';
 import { useWeatherStore } from './stores/useWeatherStores';
 
 function App() {
-  const location = 'bancaan';
+  const CURRENT_USER_LOCATION = 'bancaan';
   const setWeather = useWeatherStore(state => state.setWeather);
   const setStatus = useStatusStore(state => state.setData);
   const fetchStatuses = useStatusHistory(state => state.fetchStatusHistory);
@@ -26,18 +27,18 @@ function App() {
   }, [statuses, setStatus]);
 
   useEffect(() => {
-    fetchStatuses(); 
+    fetchStatuses();
   }, [fetchStatuses]);
 
   useEffect(() => {
-    const unsubscribe = subscribeToWeatherData(location, weatherData => {
+    const unsubscribe = subscribeToWeatherData(CURRENT_USER_LOCATION, weatherData => {
       setWeather(weatherData);
     });
 
     return () => {
       unsubscribe();
     };
-  }, [location, setWeather]);
+  }, [CURRENT_USER_LOCATION, setWeather]);
 
   useEffect(() => {
     const enableNotification = async () => {
@@ -59,6 +60,13 @@ function App() {
   }, [auth]);
 
   useEarthquakeSnapshot();
+
+  // Subscribe to notifications
+  useNotificationSubscriber({
+    userLocation: CURRENT_USER_LOCATION,
+    userId: auth?.uid,
+    maxNotifications: 100,
+  });
 
   return (
     <BrowserRouter>
