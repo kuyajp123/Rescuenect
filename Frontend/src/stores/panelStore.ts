@@ -1,9 +1,10 @@
-import { EvacuationCenter, StatusCardProps } from '@/types/types';
+import { EvacuationCenter, StatusCardProps, StatusDataCard } from '@/types/types';
 import { create } from 'zustand';
 
 export type PanelSelection =
   | { type: 'status'; data: StatusCardProps }
   | { type: 'evacuation'; data: EvacuationCenter }
+  | { type: 'residentProfile'; data: StatusDataCard }
   | null;
 
 interface PanelState {

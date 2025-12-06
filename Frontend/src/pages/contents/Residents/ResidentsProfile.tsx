@@ -1,6 +1,7 @@
-import { StatusCardVersionTwo, StatusData } from '@/components/ui/card/StatusCard/StatusCard';
+import { StatusCardVersionTwo } from '@/components/ui/card/StatusCard/StatusCard';
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
+import { StatusDataCard } from '@/types/types';
 import { Avatar, Card, CardBody } from '@heroui/react';
 import axios from 'axios';
 import { Calendar, MapPin, Phone, UserRound } from 'lucide-react';
@@ -10,10 +11,10 @@ import { useLocation } from 'react-router-dom';
 const ResidentsProfile = () => {
   const location = useLocation();
   const { resident } = location.state || {};
-  const [statuses, setStatuses] = useState<StatusData[]>([]);
+  const [statuses, setStatuses] = useState<StatusDataCard[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<StatusData | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<StatusDataCard | null>(null);
 
   useEffect(() => {
     const fetchResidentStatuses = async () => {
@@ -111,7 +112,7 @@ const ResidentsProfile = () => {
       </Card>
 
       <div className="grid grid-cols-4 gap-4 pb-6">
-        {statuses.map((status) => (
+        {statuses.map(status => (
           <StatusCardVersionTwo key={status.id} mode="residentProfile" data={status} />
         ))}
       </div>

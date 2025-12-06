@@ -506,3 +506,31 @@ export interface AnnouncementNotificationData {
   // Source
   source: 'admin' | 'system';
 }
+
+export interface StatusDataCard {
+  id?: string;
+  parentId: string;
+  versionId: string;
+  statusType: 'current' | 'history' | 'deleted';
+  uid: string;
+  profileImage: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  condition: 'safe' | 'evacuated' | 'affected' | 'missing';
+  lat: number | null;
+  lng: number | null;
+  location?: string | null;
+  note: string;
+  image: string;
+  category: Category[] | string;
+  people: number | string;
+  shareLocation: boolean;
+  shareContact: boolean;
+  expirationDuration: 12 | 24;
+  expiresAt: { _seconds: number; _nanoseconds: number };
+  createdAt: { _seconds?: number; _nanoseconds?: number; seconds?: number; nanoseconds?: number };
+  updatedAt?: { _seconds?: number; _nanoseconds?: number; seconds?: number; nanoseconds?: number };
+  deletedAt?: { _seconds: number; _nanoseconds: number };
+  retentionUntil: { _seconds: number; _nanoseconds: number };
+}

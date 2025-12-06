@@ -1,38 +1,10 @@
 import { Map } from '@/components/ui/Map';
-import { Category } from '@/types/types';
+import { Category, StatusDataCard } from '@/types/types';
 import { Avatar, Button, Card, CardBody, CardFooter, CardHeader, Chip, Image } from '@heroui/react';
 import { Clock, MapPin } from 'lucide-react';
 
-export interface StatusData {
-  id?: string;
-  parentId: string;
-  versionId: string;
-  statusType: 'current' | 'history' | 'deleted';
-  uid: string;
-  profileImage: string;
-  firstName: string;
-  lastName: string;
-  phoneNumber: string;
-  condition: 'safe' | 'evacuated' | 'affected' | 'missing';
-  lat: number | null;
-  lng: number | null;
-  location?: string | null;
-  note: string;
-  image: string;
-  category: Category[] | string;
-  people: number | string;
-  shareLocation: boolean;
-  shareContact: boolean;
-  expirationDuration: 12 | 24;
-  expiresAt: { _seconds: number; _nanoseconds: number };
-  createdAt: { _seconds?: number; _nanoseconds?: number; seconds?: number; nanoseconds?: number };
-  updatedAt?: { _seconds?: number; _nanoseconds?: number; seconds?: number; nanoseconds?: number };
-  deletedAt?: { _seconds: number; _nanoseconds: number };
-  retentionUntil: { _seconds: number; _nanoseconds: number };
-}
-
 interface StatusCardVersionTwoProps {
-  data?: StatusData;
+  data?: StatusDataCard;
   mode?: 'residentProfile' | 'versionHistory';
   onViewDetails?: () => void;
 }
