@@ -94,7 +94,7 @@ export type Category =
   | 'medical-emergency'
   | 'other';
 
-interface StatusData {
+export interface StatusData {
   // Core versioning fields
   parentId: string;
   versionId: string;

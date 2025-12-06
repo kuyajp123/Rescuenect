@@ -17,6 +17,7 @@ import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useNotificationSubscriber } from '@/hooks/useNotificationSubscriber';
 import { useSaveStatusSettings } from '@/hooks/useSaveStatusSettings';
 import { useStatusFetchBackgroundData } from '@/hooks/useStatusFetchBackgroundData';
+import { useCurrentStatuses } from '@/hooks/useStatusSubscriber';
 import { subscribeToWeatherData } from '@/hooks/useWeatherData';
 import { messaging } from '@/lib/firebaseConfig';
 import { onTokenRefresh } from '@react-native-firebase/messaging';
@@ -41,6 +42,7 @@ export default function RootLayout() {
   const setUserData = useUserData((state: any) => state.setUserData);
   const setWeather = useWeatherStore(state => state.setWeather);
   const setSavedLocations = useSavedLocationsStore(state => state.setSavedLocations);
+  useCurrentStatuses();
 
   // Subscribe to notifications with user location for filtering
   useNotificationSubscriber({

@@ -1,13 +1,13 @@
-import { PrimaryButton } from "@/components/components/button/Button";
-import type { CommunityStatusProps } from "@/types/components";
-import { Text } from "@/components/ui/text";
-import { VStack } from "@/components/ui/vstack";
-import { ColorCombinations, Colors } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
-import { useRouter } from "expo-router";
-import { ChevronRight } from "lucide-react-native";
-import React from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { PrimaryButton } from '@/components/components/button/Button';
+import { useStatusStore } from '@/components/store/useCurrentStatusStore';
+import { Text } from '@/components/ui/text';
+import { VStack } from '@/components/ui/vstack';
+import { ColorCombinations, Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useRouter } from 'expo-router';
+import { ChevronRight } from 'lucide-react-native';
+import React from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 // Status Card Component
 const StatusCard = ({
@@ -26,11 +26,7 @@ const StatusCard = ({
   const { isDark } = useTheme();
 
   return (
-    <TouchableOpacity
-      style={styles.statusCard}
-      activeOpacity={1}
-      onPress={onPress}
-    >
+    <TouchableOpacity style={styles.statusCard} activeOpacity={1} onPress={onPress}>
       <View style={styles.statusHeader}>
         <View style={styles.statusDot} className={colorClass} />
         <Text>{label}</Text>
@@ -48,14 +44,10 @@ const StatusCard = ({
   );
 };
 
-export const CommunityStatus = ({
-  safe,
-  evacuated,
-  affected,
-  missing,
-}: CommunityStatusProps) => {
+export const CommunityStatus = () => {
   const { isDark } = useTheme();
   const router = useRouter();
+  const { statusCounts, statusesByCondition } = useStatusStore();
 
   return (
     <View>
@@ -75,39 +67,51 @@ export const CommunityStatus = ({
             <View style={styles.leftColumn}>
               <StatusCard
                 status="safe"
-                count={safe ?? 0}
+                count={statusCounts.safe}
                 label="Safe"
                 colorClass="bg-safe-500"
-                onPress={() => alert("Safe pressed!")}
+                onPress={() => {
+                  console.log('Safe statuses:', statusesByCondition.safe);
+                  router.push('post/status' as any);
+                }}
               />
               <StatusCard
                 status="affected"
-                count={affected ?? 0}
+                count={statusCounts.affected}
                 label="Affected"
                 colorClass="bg-affected-500"
-                onPress={() => alert("affected pressed!")}
+                onPress={() => {
+                  console.log('Affected statuses:', statusesByCondition.affected);
+                  router.push('post/status' as any);
+                }}
               />
             </View>
 
             <View style={styles.rightColumn}>
               <StatusCard
                 status="evacuated"
-                count={evacuated ?? 0}
+                count={statusCounts.evacuated}
                 label="Evacuated"
                 colorClass="bg-evacuated-500"
-                onPress={() => alert("evacuated pressed!")}
+                onPress={() => {
+                  console.log('Evacuated statuses:', statusesByCondition.evacuated);
+                  router.push('post/status' as any);
+                }}
               />
               <StatusCard
                 status="missing"
-                count={missing ?? 0}
+                count={statusCounts.missing}
                 label="Missing"
                 colorClass="bg-missing-500"
-                onPress={() => alert("missing pressed!")}
+                onPress={() => {
+                  console.log('Missing statuses:', statusesByCondition.missing);
+                  router.push('post/status' as any);
+                }}
               />
             </View>
           </View>
-          <PrimaryButton onPress={() => router.push("post/status" as any)}>
-            <Text style={{ color: "#ffffff" }} bold>
+          <PrimaryButton onPress={() => router.push('post/status' as any)}>
+            <Text style={{ color: '#ffffff' }} bold>
               View all Status
             </Text>
           </PrimaryButton>
@@ -120,31 +124,31 @@ export const CommunityStatus = ({
 const styles = StyleSheet.create({
   statusContainer: {
     padding: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     gap: 5,
     marginBottom: 20,
     borderRadius: 10,
   },
   leftColumn: {
-    width: "45%",
-    flexDirection: "column",
-    alignItems: "center",
+    width: '45%',
+    flexDirection: 'column',
+    alignItems: 'center',
     gap: 10,
   },
   rightColumn: {
-    width: "45%",
-    flexDirection: "column",
-    alignItems: "center",
+    width: '45%',
+    flexDirection: 'column',
+    alignItems: 'center',
     gap: 10,
   },
   statusCard: {
     padding: 10,
   },
   statusHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 5,
   },
   statusDot: {
@@ -153,10 +157,10 @@ const styles = StyleSheet.create({
     borderRadius: 50,
   },
   statusContent: {
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginTop: 2,
   },
 });

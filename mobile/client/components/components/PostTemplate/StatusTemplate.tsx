@@ -1,18 +1,14 @@
-import { ImageModal } from "@/components/components/image-modal/ImageModal";
-import type { StatusTemplateProps } from "@/types/components";
-import {
-  Avatar,
-  AvatarFallbackText,
-  AvatarImage,
-} from "@/components/ui/avatar";
-import { Badge, BadgeIcon, BadgeText } from "@/components/ui/badge";
-import { Box } from "@/components/ui/box";
-import { Divider } from "@/components/ui/divider";
-import { Image } from "@/components/ui/image";
-import { Text } from "@/components/ui/text";
-import { VStack } from "@/components/ui/vstack";
-import { ColorCombinations } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { ImageModal } from '@/components/components/image-modal/ImageModal';
+import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
+import { Badge, BadgeIcon, BadgeText } from '@/components/ui/badge';
+import { Box } from '@/components/ui/box';
+import { Divider } from '@/components/ui/divider';
+import { Image } from '@/components/ui/image';
+import { Text } from '@/components/ui/text';
+import { VStack } from '@/components/ui/vstack';
+import { ColorCombinations } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { StatusData } from '@/types/components';
 import {
   CircleCheck,
   CircleQuestionMark,
@@ -22,26 +18,29 @@ import {
   Phone,
   ShieldCheck,
   Users,
-} from "lucide-react-native";
-import React, { useState } from "react";
-import { StyleSheet, TouchableOpacity } from "react-native";
+} from 'lucide-react-native';
+import React, { useState } from 'react';
+import { StyleSheet, TouchableOpacity } from 'react-native';
+
+interface StatusTemplateProps extends StatusData {
+  style?: object;
+}
 
 export const StatusTemplate: React.FC<StatusTemplateProps> = ({
   style,
-  id,
-  picture,
+  uid,
+  profileImage,
   firstName,
   lastName,
-  status,
-  date,
-  time,
-  loc,
+  condition,
+  createdAt,
+  location,
   lat,
   lng,
-  description,
+  note,
   image,
-  person,
-  contact,
+  people,
+  phoneNumber,
 }) => {
   const { isDark } = useTheme();
   const [isImageModalVisible, setIsImageModalVisible] = useState(false);
@@ -54,23 +53,56 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
     setIsImageModalVisible(false);
   };
 
+  const formatDate = (
+    timestamp:
+      | {
+          _seconds?: number;
+          _nanoseconds?: number;
+          seconds?: number;
+          nanoseconds?: number;
+        }
+      | string
+  ) => {
+    if (typeof timestamp === 'string') {
+      const date = new Date(timestamp);
+      return date.toLocaleString('en-PH', {
+        timeZone: 'Asia/Manila',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    }
+    const seconds = timestamp._seconds || timestamp.seconds || 0;
+    const date = new Date(seconds * 1000);
+    return date.toLocaleString('en-PH', {
+      timeZone: 'Asia/Manila',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
   // Dynamic styles based on theme
   const dynamicStyles = {
     container: {
-      backgroundColor: isDark
-        ? ColorCombinations.statusTemplate.dark
-        : ColorCombinations.statusTemplate.light,
+      backgroundColor: isDark ? ColorCombinations.statusTemplate.dark : ColorCombinations.statusTemplate.light,
     },
     ellipsisIcon: {
-      color: isDark ? "#A6A6A6" : "#5B5B5B",
+      color: isDark ? '#A6A6A6' : '#5B5B5B',
     },
     avatarBadge: {
-      backgroundColor: isDark ? "#4CAF50" : "#81C784",
+      backgroundColor: isDark ? '#4CAF50' : '#81C784',
     },
   };
 
   return (
-    <Box style={[styles.container, dynamicStyles.container, style]} key={id}>
+    <Box style={[styles.container, dynamicStyles.container]} key={uid}>
       <VStack space="sm">
         {/* Header with menu icon */}
         <Box style={styles.header}>
@@ -82,11 +114,11 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
           {/* User info section */}
           <Box style={styles.userSection}>
             <Box style={styles.avatarContainer}>
-              {picture && (
+              {profileImage && (
                 <Avatar size="md">
                   <AvatarImage
                     source={{
-                      uri: picture,
+                      uri: profileImage,
                     }}
                     alt={`${firstName} ${lastName}`}
                   />
@@ -103,7 +135,7 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
                 {firstName} {lastName}
               </Text>
               <Text style={styles.timestamp} size="2xs" emphasis="light">
-                {date} • {time}
+                {formatDate(createdAt)}
               </Text>
             </Box>
           </Box>
@@ -113,62 +145,58 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
             <Badge
               size="sm"
               action={
-                status == "evacuated"
-                  ? "info"
-                  : status == "safe"
-                  ? "success"
-                  : status == "missing"
-                  ? "error"
-                  : status == "affected"
-                  ? "warning"
-                  : "muted"
+                condition == 'evacuated'
+                  ? 'info'
+                  : condition == 'safe'
+                  ? 'success'
+                  : condition == 'missing'
+                  ? 'error'
+                  : condition == 'affected'
+                  ? 'warning'
+                  : 'muted'
               }
               variant="solid"
               style={styles.statusBadge}
             >
               <BadgeIcon
                 as={
-                  status == "evacuated"
+                  condition == 'evacuated'
                     ? ShieldCheck
-                    : status == "safe"
+                    : condition == 'safe'
                     ? CircleCheck
-                    : status == "affected"
+                    : condition == 'affected'
                     ? Info
-                    : status == "missing"
+                    : condition == 'missing'
                     ? CircleQuestionMark
                     : undefined
                 }
               />
-              <BadgeText>{status}</BadgeText>
+              <BadgeText>{condition}</BadgeText>
             </Badge>
           </Box>
         </Box>
 
         {/* Location section */}
-        {loc && (
+        {location && (
           <Box style={styles.locationContainer}>
             <Box style={styles.locationIconContainer}>
               <MapPin size={16} color={dynamicStyles.ellipsisIcon.color} />
             </Box>
 
             <Box style={styles.locationContent}>
-              <Text style={styles.locationText}>{loc}</Text>
+              <Text style={styles.locationText}>{location}</Text>
 
-              {lng && (
-                <Text style={styles.coordinateText}>Longitude: {lng}</Text>
-              )}
+              {lng && <Text style={styles.coordinateText}>Longitude: {lng}</Text>}
 
-              {lat && (
-                <Text style={styles.coordinateText}>Latitude: {lat}</Text>
-              )}
+              {lat && <Text style={styles.coordinateText}>Latitude: {lat}</Text>}
             </Box>
           </Box>
         )}
 
         {/* Description section */}
-        {description && (
+        {note && (
           <Box style={styles.descriptionContainer}>
-            <Text style={styles.descriptionText}>{description}</Text>
+            <Text style={styles.descriptionText}>{note}</Text>
           </Box>
         )}
 
@@ -187,7 +215,7 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
         )}
 
         {/* Footer section - Number of people and contact */}
-        {(person || contact) && (
+        {(people || phoneNumber) && (
           <>
             <Box style={styles.footerDividerContainer}>
               <Divider />
@@ -196,16 +224,13 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
             <Box style={styles.footerMainContainer}>
               {/* People count section */}
               <Box style={styles.peopleSection}>
-                {person && (
+                {people && (
                   <>
                     <Box style={styles.peopleIconContainer}>
-                      <Users
-                        size={16}
-                        color={dynamicStyles.ellipsisIcon.color}
-                      />
+                      <Users size={16} color={dynamicStyles.ellipsisIcon.color} />
                     </Box>
                     <Box style={styles.peopleTextContainer}>
-                      <Text>{person} Person</Text>
+                      <Text>{people} Person</Text>
                     </Box>
                   </>
                 )}
@@ -213,16 +238,13 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
 
               {/* Contact section */}
               <Box style={styles.contactSection}>
-                {contact && (
+                {phoneNumber && (
                   <>
                     <Box style={styles.contactIconContainer}>
-                      <Phone
-                        size={16}
-                        color={dynamicStyles.ellipsisIcon.color}
-                      />
+                      <Phone size={16} color={dynamicStyles.ellipsisIcon.color} />
                     </Box>
                     <Box style={styles.contactTextContainer}>
-                      <Text>{contact}</Text>
+                      <Text>{phoneNumber}</Text>
                     </Box>
                   </>
                 )}
@@ -255,23 +277,23 @@ const styles = StyleSheet.create({
 
   // Header styles
   header: {
-    flexDirection: "row-reverse",
+    flexDirection: 'row-reverse',
   },
 
   // Main content styles
   mainContent: {
     flex: 1,
-    flexDirection: "row",
-    height: "auto",
-    width: "100%",
+    flexDirection: 'row',
+    height: 'auto',
+    width: '100%',
   },
 
   // User section styles
   userSection: {
-    width: "70%",
-    flexWrap: "wrap",
+    width: '70%',
+    flexWrap: 'wrap',
     gap: 8,
-    flexDirection: "row",
+    flexDirection: 'row',
   },
 
   avatarContainer: {
@@ -279,24 +301,24 @@ const styles = StyleSheet.create({
   },
 
   userInfo: {
-    width: "75%",
-    flexWrap: "wrap",
+    width: '75%',
+    flexWrap: 'wrap',
   },
 
   userName: {
-    maxWidth: "100%",
+    maxWidth: '100%',
   },
 
   timestamp: {
-    maxWidth: "100%",
+    maxWidth: '100%',
   },
 
   // Status section styles
   statusSection: {
-    width: "30%",
-    justifyContent: "flex-end",
-    alignItems: "flex-start",
-    flexDirection: "row",
+    width: '30%',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
+    flexDirection: 'row',
   },
 
   statusBadge: {
@@ -306,46 +328,46 @@ const styles = StyleSheet.create({
 
   // Location section styles
   locationContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
   },
 
   locationIconContainer: {
     width: 40,
-    flexDirection: "row-reverse",
+    flexDirection: 'row-reverse',
     paddingTop: 5,
   },
 
   locationContent: {
     flex: 1,
-    flexWrap: "wrap",
-    maxWidth: "85%",
+    flexWrap: 'wrap',
+    maxWidth: '85%',
   },
 
   locationText: {
-    maxWidth: "100%",
+    maxWidth: '100%',
   },
 
   coordinateText: {
-    maxWidth: "100%",
+    maxWidth: '100%',
   },
 
   // Description section styles
   descriptionContainer: {
-    width: "100%",
+    width: '100%',
     paddingTop: 5,
     paddingLeft: 48,
-    flexDirection: "row",
+    flexDirection: 'row',
   },
 
   descriptionText: {
-    maxWidth: "85%",
+    maxWidth: '85%',
   },
 
   // Image section styles
   imageContainer: {
-    width: "100%",
-    flexDirection: "row",
+    width: '100%',
+    flexDirection: 'row',
     paddingLeft: 48,
   },
 
@@ -359,21 +381,21 @@ const styles = StyleSheet.create({
   },
 
   footerMainContainer: {
-    width: "100%",
-    flexDirection: "row",
-    justifyContent: "flex-end",
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
   },
 
   // People count section styles
   peopleSection: {
-    width: "50%",
-    flexDirection: "row",
+    width: '50%',
+    flexDirection: 'row',
     gap: 8,
   },
 
   peopleIconContainer: {
     width: 40,
-    flexDirection: "row-reverse",
+    flexDirection: 'row-reverse',
     paddingTop: 5,
   },
 
@@ -383,16 +405,16 @@ const styles = StyleSheet.create({
 
   // Contact section styles
   contactSection: {
-    width: "50%",
-    flexDirection: "row",
+    width: '50%',
+    flexDirection: 'row',
     gap: 8,
-    justifyContent: "flex-end",
-    alignItems: "flex-start",
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
   },
 
   contactIconContainer: {
     width: 40,
-    flexDirection: "row-reverse",
+    flexDirection: 'row-reverse',
     paddingTop: 5,
   },
 
