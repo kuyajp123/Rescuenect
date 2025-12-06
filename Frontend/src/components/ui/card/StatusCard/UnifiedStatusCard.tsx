@@ -9,7 +9,7 @@ interface StatusCardVersionTwoProps {
   onViewDetails?: () => void;
 }
 
-export const StatusCardVersionTwo = ({ data, mode = 'residentProfile', onViewDetails }: StatusCardVersionTwoProps) => {
+export const UnifiedStatusCard = ({ data, mode = 'residentProfile', onViewDetails }: StatusCardVersionTwoProps) => {
   if (!data) {
     return null;
   }
@@ -39,6 +39,17 @@ export const StatusCardVersionTwo = ({ data, mode = 'residentProfile', onViewDet
         return 'default';
     }
   };
+
+  const getStatusTypeColor = (statusType: string) => { 
+    switch (statusType) {
+      case 'current':
+        return 'success';
+      case 'history':
+        return 'warning';
+      default:
+        return 'danger';
+    }
+  }
 
   const parseCategory = (category: Category[] | string): Category[] => {
     if (Array.isArray(category)) {
@@ -71,9 +82,7 @@ export const StatusCardVersionTwo = ({ data, mode = 'residentProfile', onViewDet
           <>
             {/* Header for resident's profile */}
             <div className="flex justify-between w-full items-start">
-              <Chip size="sm" color="default" variant="flat">
-                {data.statusType.toUpperCase()}
-              </Chip>
+              <p className={`text-${getStatusTypeColor(data.statusType)}`}>{data.statusType.toUpperCase()}</p>
               <Chip size="sm" color={getConditionColor(data.condition)} variant="flat">
                 {data.condition.toUpperCase()}
               </Chip>
@@ -111,7 +120,14 @@ export const StatusCardVersionTwo = ({ data, mode = 'residentProfile', onViewDet
         {mode === 'residentProfile' ? (
           <>
             {/* Display image for resident's profile */}
-            {data.image && <Image src={data.image} width={'100%'} alt="Status" className="w-full h-60 object-cover rounded-lg mb-3" />}
+            {data.image && (
+              <Image
+                src={data.image}
+                width={'100%'}
+                alt="Status"
+                className="w-full h-60 object-cover rounded-lg mb-3"
+              />
+            )}
           </>
         ) : (
           <>

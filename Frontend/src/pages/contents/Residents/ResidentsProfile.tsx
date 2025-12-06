@@ -1,4 +1,4 @@
-import { StatusCardVersionTwo } from '@/components/ui/card/StatusCard/StatusCard';
+import { UnifiedStatusCard } from '@/components/ui/card/StatusCard/UnifiedStatusCard';
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
 import { StatusDataCard } from '@/types/types';
@@ -80,6 +80,17 @@ const ResidentsProfile = () => {
     fetchResidentStatuses();
   }, [resident?.id]);
 
+  const formatDate = (timestamp: {
+    _seconds?: number;
+    _nanoseconds?: number;
+    seconds?: number;
+    nanoseconds?: number;
+  }) => {
+    const seconds = timestamp._seconds || timestamp.seconds || 0;
+    const date = new Date(seconds * 1000);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
   return (
     <div className="w-full">
       <Card className="mb-6">
@@ -87,23 +98,25 @@ const ResidentsProfile = () => {
           <div className="flex items-start gap-4">
             <Avatar src="https://heroui.com/images/hero-card-complete.jpeg" size="lg" className="w-20 h-20" />
             <div className="flex-1">
-              <h1 className="text-2xl font-bold mb-2">Name here</h1>
+              <h1 className="text-2xl font-bold mb-2">
+                {resident?.firstName} {resident?.lastName}
+              </h1>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                 <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                   <Phone size={16} />
-                  <span>Phone number here</span>
+                  <span>{resident?.phoneNumber}</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                   <MapPin size={16} />
-                  <span>Brangay here</span>
+                  <span>Brgy {resident?.barangay}</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                   <Calendar size={16} />
-                  <span>Registered: Date here</span>
+                  <span>Registered: {resident?.createdAt ? formatDate(resident.createdAt) : 'Date here'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                   <UserRound size={16} />
-                  <span>Email here</span>
+                  <span>{resident?.email}</span>
                 </div>
               </div>
             </div>
@@ -113,7 +126,7 @@ const ResidentsProfile = () => {
 
       <div className="grid grid-cols-4 gap-4 pb-6">
         {statuses.map(status => (
-          <StatusCardVersionTwo key={status.id} mode="residentProfile" data={status} />
+          <UnifiedStatusCard key={status.id} mode="residentProfile" data={status} />
         ))}
       </div>
     </div>

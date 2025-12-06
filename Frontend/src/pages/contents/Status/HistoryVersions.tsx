@@ -1,8 +1,7 @@
-import { StatusCardVersionTwo } from '@/components/ui/card/StatusCard/StatusCard';
+import { UnifiedStatusCard } from '@/components/ui/card/StatusCard/UnifiedStatusCard';
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
 import { useVersionHistoryStore } from '@/stores/useVersionHistoryStore';
-import { Chip } from '@heroui/react';
 import axios from 'axios';
 import { useEffect } from 'react';
 
@@ -81,6 +80,17 @@ const HistoryVersions = () => {
     };
   }, [currentParentId, setVersions, setLoading, setError, resetData]);
 
+  const getStatusTypeColor = (statusType: string) => {
+    switch (statusType) {
+      case 'current':
+        return 'success';
+      case 'history':
+        return 'warning';
+      default:
+        return 'danger';
+    }
+  };
+
   return (
     <div className="max-h-screen overflow-y-auto w-full">
       {/* Header */}
@@ -90,9 +100,9 @@ const HistoryVersions = () => {
           {currentParentId && (
             <div className="flex gap-4">
               <p className="text-sm text-default-500">Parent ID: {currentParentId}</p>{' '}
-              <Chip size="sm" color="default" variant="flat">
+              <p className={`text-${getStatusTypeColor(versions[0]?.statusType)}`}>
                 {versions[0]?.statusType.toUpperCase()}
-              </Chip>
+              </p>
             </div>
           )}
           {!currentParentId && <p className="text-sm text-default-500 mt-1">No status selected</p>}
@@ -117,7 +127,7 @@ const HistoryVersions = () => {
       {!isLoading && !error && versions.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-6 px-4">
           {versions.map(version => (
-            <StatusCardVersionTwo
+            <UnifiedStatusCard
               key={version.versionId}
               data={version as any}
               mode="versionHistory"
