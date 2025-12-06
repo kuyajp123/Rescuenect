@@ -16,6 +16,7 @@ interface VersionHistoryItem {
   lat: number;
   lng: number;
   condition: string;
+  statusType: 'current' | 'history' | 'deleted';
 }
 
 export interface VersionHistoryState {
