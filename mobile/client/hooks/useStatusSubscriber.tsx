@@ -40,8 +40,6 @@ export const useCurrentStatuses = () => {
         setStatuses(currentStatuses);
         setLoading(false);
         setError(null);
-
-        console.log('Fetched statuses:', JSON.stringify(currentStatuses, null, 2));
       },
       (err: FirestoreError) => {
         console.error('Error fetching statuses:', err);
