@@ -1,7 +1,9 @@
 import { UnifiedStatusCard } from '@/components/ui/card/StatusCard/UnifiedStatusCard';
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
+import { usePanelStore } from '@/stores/panelStore';
 import { useVersionHistoryStore } from '@/stores/useVersionHistoryStore';
+import { Card, CardBody, Skeleton } from '@heroui/react';
 import axios from 'axios';
 import { useEffect } from 'react';
 
@@ -15,8 +17,16 @@ const HistoryVersions = () => {
   const setLoading = useVersionHistoryStore(state => state.setLoading);
   const setError = useVersionHistoryStore(state => state.setError);
   const resetData = useVersionHistoryStore(state => state.resetData);
+  const { openStatusHistoryPanel, closePanel, setSelectedUser } = usePanelStore();
 
   const user = auth.currentUser;
+
+  useEffect(() => {
+    return () => {
+      closePanel();
+      setSelectedUser(null);
+    };
+  }, [closePanel, setSelectedUser]);
 
   useEffect(() => {
     const fetchVersionHistory = async () => {
@@ -49,6 +59,7 @@ const HistoryVersions = () => {
         // Handle both old and new response formats
         const versions = (response.data as any).versions || response.data || [];
         setVersions(versions);
+        console.log('Fetched version history:', JSON.stringify(versions, null, 2));
       } catch (error: any) {
         console.error('Error fetching version history:', error);
 
@@ -111,8 +122,19 @@ const HistoryVersions = () => {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="flex items-center justify-center p-12">
-          <p className="text-gray-500">Loading version history...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-6 px-4">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <Card key={index} className="animate-pulse">
+              <CardBody>
+                <div className="flex flex-col items-start">
+                  <Skeleton className="w-16 h-16 rounded-full mb-4" />
+                  <Skeleton className="h-6 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-1/2 mb-2" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              </CardBody>
+            </Card>
+          ))}
         </div>
       )}
 
@@ -132,8 +154,8 @@ const HistoryVersions = () => {
               data={version as any}
               mode="versionHistory"
               onViewDetails={() => {
-                console.log('View details for:', version.versionId);
-                // TODO: Implement side panel or modal
+                console.log('View details for:', version.versionId, version);
+                openStatusHistoryPanel(version as any);
               }}
             />
           ))}

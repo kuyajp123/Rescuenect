@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
 import { usePanelStore } from '@/stores/panelStore';
 import { StatusDataCard } from '@/types/types';
-import { Avatar, Card, CardBody } from '@heroui/react';
+import { Avatar, Card, CardBody, Skeleton } from '@heroui/react';
 import axios from 'axios';
 import { Calendar, MapPin, Phone, UserRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -103,6 +103,38 @@ const ResidentsProfile = () => {
       year: 'numeric',
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="w-full">
+        <Card className="mb-6">
+          <CardBody className="p-6">
+            <div className="flex items-start gap-4">
+              <Skeleton className="w-20 h-20 rounded-full" />
+              <div className="flex-1">
+                <Skeleton className="h-6 w-1/2 mb-4" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                  <Skeleton className="h-4 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-3/4 mb-2" />
+                </div>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+        <div className="grid grid-cols-4 gap-4 pb-6">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} className="h-48 w-full rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className="text-red-500">Error: {error}</div>;
+  }
 
   return (
     <div className="w-full">
