@@ -52,6 +52,9 @@ const MainLayout = () => {
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
                   {data?.type === 'status' && data.data ? `${data.data.firstName} ${data.data.lastName} Details` : null}
                   {data?.type === 'evacuation' && data.data ? `${data.data.name} Details` : null}
+                  {data?.type === 'residentProfile' && data.data
+                    ? `${data.data.firstName} ${data.data.lastName} Details`
+                    : null}
                   {!data ? 'Status Details' : null}
                 </h3>
                 <Button variant="light" onPress={closePanel}>
@@ -64,6 +67,8 @@ const MainLayout = () => {
                 <StatusPanel data={data} />
               ) : data?.type === 'evacuation' && data.data ? (
                 <EvacuationPanel data={data} />
+              ) : data?.type === 'residentProfile' && data.data ? (
+                <StatusPanel data={data} />
               ) : null}
             </div>
           </div>

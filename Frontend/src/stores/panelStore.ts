@@ -12,6 +12,7 @@ interface PanelState {
   selectedUser: PanelSelection;
   openStatusPanel: (data: StatusCardProps) => void;
   openEvacuationPanel: (data: EvacuationCenter) => void;
+  openResidentProfilePanel: (data: StatusDataCard) => void;
   closePanel: () => void;
   togglePanel: () => void;
   setSelectedUser: (userData: PanelSelection) => void;
@@ -31,6 +32,12 @@ export const usePanelStore = create<PanelState>(set => ({
     set({
       isOpen: true,
       selectedUser: { type: 'evacuation', data },
+    }),
+
+  openResidentProfilePanel: data =>
+    set({
+      isOpen: true,
+      selectedUser: { type: 'residentProfile', data },
     }),
 
   closePanel: () =>

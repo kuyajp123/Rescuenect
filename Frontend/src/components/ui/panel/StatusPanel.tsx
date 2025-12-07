@@ -1,9 +1,84 @@
 import { StatusCard } from '@/components/ui/card/StatusCard';
 import { Map } from '@/components/ui/Map';
+import { Card, CardBody, CardHeader, Chip, Image, User } from '@heroui/react';
+import { MapPin, Phone, Users } from 'lucide-react';
 
 export const StatusPanel = ({ data }: { data: any }) => {
+  // Helper function to format timestamps
+  const formatTimestamp = (
+    timestamp: { _seconds?: number; _nanoseconds?: number; seconds?: number; nanoseconds?: number } | string | undefined
+  ) => {
+    if (!timestamp) return 'N/A';
+
+    if (typeof timestamp === 'string') {
+      return new Date(timestamp).toLocaleString();
+    }
+
+    const seconds = timestamp._seconds || timestamp.seconds || 0;
+    const date = new Date(seconds * 1000);
+    return date.toLocaleString('en-PH', {
+      timeZone: 'Asia/Manila',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  // Helper function to get condition color
+  const getConditionColor = (condition: string) => {
+    switch (condition) {
+      case 'safe':
+        return 'success';
+      case 'evacuated':
+        return 'primary';
+      case 'affected':
+        return 'warning';
+      case 'missing':
+        return 'danger';
+      default:
+        return 'default';
+    }
+  };
+
+  // Parse category if it's a string
+  const parseCategory = (category: any) => {
+    if (Array.isArray(category)) {
+      return category;
+    }
+
+    if (typeof category === 'string' && category) {
+      try {
+        let cleanedCategory = category.trim();
+        if (cleanedCategory.startsWith('"') && cleanedCategory.endsWith('"')) {
+          cleanedCategory = cleanedCategory.slice(1, -1);
+        }
+        cleanedCategory = cleanedCategory.replace(/^\n*"?|"?\n*$/g, '');
+        return JSON.parse(cleanedCategory);
+      } catch (e) {
+        if (category.includes(',')) {
+          return category.split(',').map((c: string) => c.trim());
+        }
+      }
+    }
+    return [];
+  };
+
+  const getStatusTypeColor = (statusType: string) => {
+    switch (statusType) {
+      case 'current':
+        return 'success';
+      case 'history':
+        return 'warning';
+      default:
+        return 'danger';
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[1fr_2fr] gap-4 h-full">
+    <div className="grid grid-rows-[1fr_2fr] gap-4 h-full overflow-auto">
       <div className="h-full">
         <div className="h-full rounded-lg overflow-hidden">
           {data?.type === 'status' && data.data ? (
@@ -26,26 +101,29 @@ export const StatusPanel = ({ data }: { data: any }) => {
               attribution=""
               markerType="status"
             />
-          ) : data?.type === 'evacuation' && data.data ? (
+          ) : data?.type === 'residentProfile' &&
+            data.data &&
+            data.data.lat &&
+            data.data.lng &&
+            data.data.shareLocation ? (
             <Map
-              key={`map-evacuation-${data.data.id}`}
+              key={`map-residentProfile-${data.data.id || data.data.parentId}`}
               data={[
                 {
-                  uid: data.data.id,
-                  lat: data.data.coordinates?.lat ?? 0,
-                  lng: data.data.coordinates?.lng ?? 0,
+                  uid: data.data.id || data.data.parentId,
+                  lat: data.data.lat,
+                  lng: data.data.lng,
+                  condition: data.data.condition,
                 },
               ]}
-              center={
-                data.data.coordinates ? [data.data.coordinates.lat, data.data.coordinates.lng] : [14.2965, 120.7925]
-              }
+              center={[data.data.lat, data.data.lng]}
               hasMapStyleSelector={false}
               zoomControl={false}
               dragging={false}
               hasMapControl={true}
               zoom={15}
               attribution=""
-              markerType="default"
+              markerType="status"
             />
           ) : (
             <Map
@@ -84,9 +162,120 @@ export const StatusPanel = ({ data }: { data: any }) => {
             category={data.data.category}
             people={data.data.people}
           />
-        ) : data?.type === 'evacuation' && data.data ? (
-          <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
-            <p>Evacuation Center Details Placeholder</p>
+        ) : data?.type === 'residentProfile' && data.data ? (
+          <div className="space-y-4">
+            {/* Status Info Card */}
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col w-full gap-2">
+                  <div className="flex justify-between items-start">
+                    <User
+                      name={`${data.data.firstName} ${data.data.lastName}`}
+                      description={formatTimestamp(data.data.createdAt)}
+                      avatarProps={{ src: data.data.profileImage }}
+                    />
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <p className={`font-bold text-${getStatusTypeColor(data.data.statusType)}`}>
+                      {data.data.statusType.toUpperCase()}
+                    </p>
+                    <Chip size="sm" variant='flat' color={getConditionColor(data.data.condition)}>
+                      {data.data.condition.toUpperCase()}
+                    </Chip>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardBody className="space-y-4">
+                {data.data.image && (
+                  <div className="w-full overflow-hidden rounded-lg">
+                    <Image src={data.data.image} alt="Status" className="w-full object-cover" />
+                  </div>
+                )}
+
+                {data.data.note && (
+                  <div>
+                    <p className="text-sm font-semibold mb-1">Note:</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{data.data.note}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+                  <div className="flex items-center gap-2">
+                    <Users size={16} className="text-gray-500" />
+                    <div>
+                      <p className="text-xs text-gray-500">People</p>
+                      <p className="text-sm font-semibold">{data.data.people}</p>
+                    </div>
+                  </div>
+
+                  {data.data.shareContact && (
+                    <div className="flex items-center gap-2">
+                      <Phone size={16} className="text-gray-500" />
+                      <div>
+                        <p className="text-xs text-gray-500">Contact</p>
+                        <p className="text-sm font-semibold">{data.data.phoneNumber}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {data.data.location && (
+                  <div className="flex items-start gap-2 pt-2 border-t">
+                    <MapPin size={16} className="text-gray-500 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 mb-1">Location</p>
+                      <p className="text-sm">{data.data.location}</p>
+                      {data.data.shareLocation && data.data.lat && data.data.lng && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          {data.data.lat.toFixed(6)}, {data.data.lng.toFixed(6)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {data.data.category && parseCategory(data.data.category).length > 0 && (
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-gray-500 mb-2">Categories</p>
+                    <div className="flex flex-wrap gap-2">
+                      {parseCategory(data.data.category).map((cat: string, idx: number) => (
+                        <Chip key={idx} size="sm" color="default" variant="flat">
+                          {cat}
+                        </Chip>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-2 border-t space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-500">Duration:</span>
+                    <span className="font-semibold">{data.data.expirationDuration}h</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-500">Expires:</span>
+                    <span className="font-semibold">{formatTimestamp(data.data.expiresAt)}</span>
+                  </div>
+                  {data.data.updatedAt && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-500">Updated:</span>
+                      <span className="font-semibold">{formatTimestamp(data.data.updatedAt)}</span>
+                    </div>
+                  )}
+                  {data.data.deletedAt && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-500">Deleted:</span>
+                      <span className="font-semibold text-red-500">{formatTimestamp(data.data.deletedAt)}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-gray-400">Version: {data.data.versionId}</p>
+                  <p className="text-xs text-gray-400">Parent: {data.data.parentId}</p>
+                </div>
+              </CardBody>
+            </Card>
           </div>
         ) : (
           <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">

@@ -22,7 +22,7 @@ export const UnifiedStatusCard = ({ data, mode = 'residentProfile', onViewDetail
   }) => {
     const seconds = timestamp._seconds || timestamp.seconds || 0;
     const date = new Date(seconds * 1000);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const getConditionColor = (condition: string) => {
@@ -82,7 +82,7 @@ export const UnifiedStatusCard = ({ data, mode = 'residentProfile', onViewDetail
           <>
             {/* Header for resident's profile */}
             <div className="flex justify-between w-full items-start">
-              <p className={`text-${getStatusTypeColor(data.statusType)}`}>{data.statusType.toUpperCase()}</p>
+              <p className={`text-${getStatusTypeColor(data.statusType)} font-bold`}>{data.statusType.toUpperCase()}</p>
               <Chip size="sm" color={getConditionColor(data.condition)} variant="flat">
                 {data.condition.toUpperCase()}
               </Chip>

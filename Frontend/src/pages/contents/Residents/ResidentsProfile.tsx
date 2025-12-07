@@ -1,6 +1,7 @@
 import { UnifiedStatusCard } from '@/components/ui/card/StatusCard/UnifiedStatusCard';
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
+import { usePanelStore } from '@/stores/panelStore';
 import { StatusDataCard } from '@/types/types';
 import { Avatar, Card, CardBody } from '@heroui/react';
 import axios from 'axios';
@@ -14,7 +15,14 @@ const ResidentsProfile = () => {
   const [statuses, setStatuses] = useState<StatusDataCard[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<StatusDataCard | null>(null);
+  const { openResidentProfilePanel, closePanel, setSelectedUser } = usePanelStore();
+
+  useEffect(() => {
+    return () => {
+      closePanel();
+      setSelectedUser(null);
+    };
+  }, [closePanel, setSelectedUser]);
 
   useEffect(() => {
     const fetchResidentStatuses = async () => {
@@ -88,7 +96,12 @@ const ResidentsProfile = () => {
   }) => {
     const seconds = timestamp._seconds || timestamp.seconds || 0;
     const date = new Date(seconds * 1000);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString('en-PH', {
+      timeZone: 'Asia/Manila',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
   };
 
   return (
@@ -96,7 +109,7 @@ const ResidentsProfile = () => {
       <Card className="mb-6">
         <CardBody className="p-6">
           <div className="flex items-start gap-4">
-            <Avatar src="https://heroui.com/images/hero-card-complete.jpeg" size="lg" className="w-20 h-20" />
+            <Avatar src={resident?.photo} size="lg" className="w-20 h-20" />
             <div className="flex-1">
               <h1 className="text-2xl font-bold mb-2">
                 {resident?.firstName} {resident?.lastName}
@@ -126,7 +139,14 @@ const ResidentsProfile = () => {
 
       <div className="grid grid-cols-4 gap-4 pb-6">
         {statuses.map(status => (
-          <UnifiedStatusCard key={status.id} mode="residentProfile" data={status} />
+          <UnifiedStatusCard
+            key={status.id}
+            mode="residentProfile"
+            data={status}
+            onViewDetails={() => {
+              openResidentProfilePanel(status);
+            }}
+          />
         ))}
       </div>
     </div>
