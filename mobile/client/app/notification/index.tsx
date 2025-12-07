@@ -1,4 +1,4 @@
-import { HoveredButton } from '@/components/components/button/Button';
+import { HoveredButton, IconButton } from '@/components/components/button/Button';
 import { formatToCapitalized } from '@/components/helper/commonHelpers';
 import { useAuth } from '@/components/store/useAuth';
 import { useUserData } from '@/components/store/useBackendResponse';
@@ -19,7 +19,9 @@ const index = () => {
   const { isDark } = useTheme();
   const router = useRouter();
   const notifications = useNotificationStore(state => state.notifications);
+  const unreadCount = useNotificationStore(state => state.unreadCount);
   const markAsHidden = useNotificationStore(state => state.markAsHidden);
+  const markAllAsRead = useNotificationStore(state => state.markAllAsRead);
   const userData = useUserData((state: any) => state.userData);
   const authUser = useAuth(state => state.authUser);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -144,11 +146,86 @@ const index = () => {
     );
   }
 
+  // Handle mark all as read
+  const handleMarkAllAsRead = async () => {
+    if (!authUser?.uid) {
+      Alert.alert('Error', 'You must be logged in to mark notifications as read');
+      return;
+    }
+
+    const unreadNotifications = notifications.filter(notif => !notif.readBy?.includes(authUser.uid));
+
+    if (unreadNotifications.length === 0) {
+      Alert.alert('Info', 'All notifications are already marked as read');
+      return;
+    }
+
+    let notificationToBeUpdated: any[] = [];
+
+    unreadNotifications.forEach(notif => {
+      notificationToBeUpdated.push({ notificationId: notif.id });
+    });
+
+    Alert.alert(
+      'Mark All as Read',
+      `Are you sure you want to mark ${unreadNotifications.length} notification${
+        unreadNotifications.length > 1 ? 's' : ''
+      } as read?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Mark All',
+          onPress: async () => {
+            try {
+              // Get ID token from Firebase Auth
+              const idToken = await authUser.getIdToken();
+
+              // Call API to mark all as read
+              const response = await axios.post(
+                API_ROUTES.NOTIFICATION.MARK_ALL_AS_READ,
+                {
+                  userId: authUser.uid,
+                  notificationId: notificationToBeUpdated,
+                },
+                {
+                  headers: { Authorization: `Bearer ${idToken}` },
+                }
+              );
+
+              if (response.status === 500 || response.status === 400) {
+                throw new Error('Failed to mark all notifications as read');
+              }
+
+              // Update local state
+              markAllAsRead(authUser.uid);
+              Alert.alert('Success', 'All notifications marked as read');
+            } catch (error) {
+              console.error('Error marking all as read:', error);
+              Alert.alert('Error', 'Failed to mark notifications as read. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <Body style={{ padding: 0 }}>
-      <Text size="3xl" bold style={styles.header}>
-        Notifications
-      </Text>
+      <View style={styles.headerContainer}>
+        <Text size="3xl" bold style={styles.header}>
+          Notifications
+        </Text>
+        {unreadCount > 0 && (
+          <IconButton style={styles.markAllButton} onPress={handleMarkAllAsRead}>
+            <Text size="sm" style={{ color: Colors.brand.dark }}>
+              Mark All Read
+            </Text>
+          </IconButton>
+        )}
+      </View>
       <ScrollView style={styles.scrollView}>
         {notifications.map(notification => {
           const isRead = authUser?.uid ? notification.readBy?.includes(authUser.uid) : false;
@@ -223,10 +300,21 @@ const index = () => {
 export default index;
 
 const styles = StyleSheet.create({
-  header: {
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
-    marginLeft: 20,
+    marginHorizontal: 20,
     marginTop: 8,
+  },
+  header: {
+    margin: 0,
+  },
+  markAllButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   scrollView: {
     flex: 1,

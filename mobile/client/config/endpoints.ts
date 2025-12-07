@@ -13,6 +13,7 @@ export const API_ROUTES = {
     SAVE_STATUS: `${BASE_URL}/mobile/status/createStatus`,
     GET_STATUS: (statusId: string) => `${BASE_URL}/mobile/status/getStatus/${statusId}`,
     DELETE_STATUS: `${BASE_URL}/mobile/status/deleteStatus`,
+    GET_ALL_MY_STATUSES: `${BASE_URL}/unified/getResidentStatuses`,
   },
   DATA: {
     SAVE_USER_DATA: `${BASE_URL}/mobile/data/saveUserInfo`,
@@ -31,6 +32,7 @@ export const API_ROUTES = {
   NOTIFICATION: {
     GET_NOTIFICATION_DETAILS: `${BASE_URL}/unified/getNotificationDetails`,
     MARK_AS_READ: `${BASE_URL}/unified/markNotificationAsRead`,
+    MARK_ALL_AS_READ: `${BASE_URL}/unified/markAllNotificationsAsRead`,
     MARK_AS_HIDDEN: `${BASE_URL}/unified/markNotificationAsHidden`,
   },
 };

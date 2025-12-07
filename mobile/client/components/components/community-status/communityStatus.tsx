@@ -81,7 +81,6 @@ export const CommunityStatus = () => {
                 label="Affected"
                 colorClass="bg-affected-500"
                 onPress={() => {
-                  console.log('Affected statuses:', statusesByCondition.affected);
                   router.push('post/status' as any);
                 }}
               />

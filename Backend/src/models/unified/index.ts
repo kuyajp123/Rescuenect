@@ -96,4 +96,22 @@ export class UnifiedModel {
       throw error;
     }
   }
+
+  public static async markAllNotificationsAsRead(userId: string, notificationIds: string[]) {
+    try {
+      const batch = db.batch();
+
+      notificationIds.forEach(notificationId => {
+        const docRef = db.collection('notifications').doc(notificationId);
+        batch.update(docRef, {
+          readBy: FieldValue.arrayUnion(userId),
+        });
+      });
+      await batch.commit();
+      return;
+    } catch (error) {
+      console.error('❌ Error in UnifiedModel.markAllNotificationsAsRead:', error);
+      throw error;
+    }
+  }
 }

@@ -37,10 +37,12 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
   location,
   lat,
   lng,
+  shareLocation,
   note,
   image,
   people,
   phoneNumber,
+  shareContact,
 }) => {
   const { isDark } = useTheme();
   const [isImageModalVisible, setIsImageModalVisible] = useState(false);
@@ -102,7 +104,7 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
   };
 
   return (
-    <Box style={[styles.container, dynamicStyles.container]} key={uid}>
+    <Box style={[styles.container, dynamicStyles.container, style]} key={uid}>
       <VStack space="sm">
         {/* Header with menu icon */}
         <Box style={styles.header}>
@@ -177,7 +179,7 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
         </Box>
 
         {/* Location section */}
-        {location && (
+        {shareLocation && location && (
           <Box style={styles.locationContainer}>
             <Box style={styles.locationIconContainer}>
               <MapPin size={16} color={dynamicStyles.ellipsisIcon.color} />
@@ -238,7 +240,7 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
 
               {/* Contact section */}
               <Box style={styles.contactSection}>
-                {phoneNumber && (
+                {shareContact && phoneNumber && (
                   <>
                     <Box style={styles.contactIconContainer}>
                       <Phone size={16} color={dynamicStyles.ellipsisIcon.color} />

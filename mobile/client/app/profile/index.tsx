@@ -1,22 +1,56 @@
 import { Button } from '@/components/components/button/Button';
 import { StatusTemplate } from '@/components/components/PostTemplate/StatusTemplate';
 import { useAuth } from '@/components/store/useAuth';
-import { useStatusStore } from '@/components/store/useCurrentStatusStore';
+import { useUserData } from '@/components/store/useBackendResponse';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
+import { Box } from '@/components/ui/box';
+import { HStack } from '@/components/ui/hstack';
 import Body from '@/components/ui/layout/Body';
+import { Skeleton, SkeletonText } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
+import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { auth } from '@/lib/firebaseConfig';
+import { StatusData } from '@/types/components';
+import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { Ellipsis, MapPinPlus } from 'lucide-react-native';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 const index = () => {
   const authUser = useAuth(state => state.authUser)!;
-  const currentStatus = useStatusStore(state => state.statusData.find(status => status.uid === authUser.uid));
+  const [statuses, setStatuses] = useState<StatusData[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { isDark } = useTheme();
   const router = useRouter();
+  const userData = useUserData(state => state.userData);
+
+  useEffect(() => {
+    const fetchStatuses = async () => {
+      const idToken = await auth.currentUser?.getIdToken();
+      try {
+        setIsLoading(true);
+        const response = await axios.get<any>(API_ROUTES.STATUS.GET_ALL_MY_STATUSES, {
+          params: { residentId: authUser.uid },
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        });
+
+        setStatuses(response.data.statuses || []);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error fetching resident statuses:', error);
+        setError('Failed to fetch statuses.');
+        setIsLoading(false);
+      }
+    };
+
+    fetchStatuses();
+  }, []);
 
   return (
     <Body>
@@ -26,17 +60,19 @@ const index = () => {
             <AvatarFallbackText></AvatarFallbackText>
             <AvatarImage
               source={{
-                uri: 'https://randomuser.me/api/portraits/men/11.jpg',
+                uri:
+                  auth.currentUser?.photoURL ||
+                  'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y',
               }}
             />
           </Avatar>
         </View>
         <View style={{ marginTop: 10 }}>
           <Text size="2xl" bold>
-            John Doe
+            {userData.firstName} {userData.lastName}
           </Text>
           <Text size="sm" emphasis="light">
-            johndoe@example.com
+            {auth.currentUser?.email}
           </Text>
         </View>
       </View>
@@ -57,7 +93,34 @@ const index = () => {
         </Button>
       </View>
       <View style={styles.lists}>
-        {currentStatus ? <StatusTemplate {...currentStatus} /> : <Text>No current status available.</Text>}
+        {isLoading ? (
+          <Box className="w-full gap-4 p-3 rounded-md bg-background-100">
+            <HStack>
+              <Skeleton variant="circular" className="h-[50px] w-[50px] mr-2" />
+              <SkeletonText _lines={2} gap={1} className="h-5 w-3/5" />
+            </HStack>
+            <Skeleton variant="sharp" className="h-[200px]" />
+            <SkeletonText _lines={2} className="h-5" />
+            <HStack className="gap-1 align-middle"></HStack>
+          </Box>
+        ) : statuses.length > 0 ? (
+          statuses.map(status => <StatusTemplate key={status.versionId} {...status} style={{ marginBottom: 10 }} />)
+        ) : (
+          <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+            <Text size="lg" bold style={{ marginBottom: 8 }}>
+              No statuses yet
+            </Text>
+            <Text size="sm" emphasis="light" style={{ textAlign: 'center', paddingHorizontal: 20 }}>
+              Your status updates will appear here
+            </Text>
+          </View>
+        )}
+
+        {error && (
+          <Text size="sm" emphasis="light" style={styles.errorText}>
+            {error}
+          </Text>
+        )}
       </View>
     </Body>
   );
@@ -74,6 +137,12 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   lists: {
+    marginTop: 20,
+    marginBottom: 40,
+  },
+  errorText: {
+    color: Colors.semantic.error,
+    textAlign: 'center',
     marginTop: 20,
   },
 });

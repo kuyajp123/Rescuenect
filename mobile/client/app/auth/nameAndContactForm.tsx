@@ -52,6 +52,7 @@ const nameAndContactForm = () => {
   const router = useRouter();
   const userData = useUserData(state => state.userData);
   const setUserData = useUserData(state => state.setUserData);
+  const [isLoading, setIsLoading] = useState(false);
 
   // ✅ Use the custom hook instead of manual token management
   const { getToken } = useIdToken();
@@ -119,6 +120,7 @@ const nameAndContactForm = () => {
 
     // If all fields are valid, proceed with saving the user
     if (firstName.trim() && lastName.trim() && contactNumber && isValidContactNumber(contactNumber)) {
+      setIsLoading(true);
       try {
         // Convert contact number to E.164 format
         const e164ContactNumber = convertToE164Format(contactNumber);
@@ -173,6 +175,7 @@ const nameAndContactForm = () => {
         const savedUserData = await storageHelpers.getData(STORAGE_KEYS.USER);
         // Reset the Zustand store after successful save
         reset();
+        setIsLoading(false);
 
         // Navigate to main app
         router.replace('/auth/setupComplete' as any);
@@ -189,6 +192,7 @@ const nameAndContactForm = () => {
           ...newErrors,
           contactNumber: 'Failed to save user data. Please try again.',
         });
+        setIsLoading(false);
       }
     }
   };
@@ -247,7 +251,9 @@ const nameAndContactForm = () => {
       </View>
 
       <View style={styles.primaryButton}>
-        <PrimaryButton onPress={handleSaveUser}>Save</PrimaryButton>
+        <PrimaryButton style={[isLoading ? { opacity: 0.5 } : null]} onPress={isLoading ? () => {} : handleSaveUser}>
+          {isLoading ? 'Saving...' : 'Next'}
+        </PrimaryButton>
         <Pressable onPress={() => router.back()}>
           <Text style={styles.backText}>Back</Text>
         </Pressable>

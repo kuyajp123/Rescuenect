@@ -1,4 +1,5 @@
 import { HeaderBackButton, IconButton } from '@/components/components/button/Button';
+import { useNotificationStore } from '@/components/store/useNotificationStore';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { Colors } from '@/constants/Colors';
 import { useFontSize } from '@/contexts/FontSizeContext';
@@ -15,6 +16,7 @@ function RootLayoutContent() {
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const unreadCount = useNotificationStore(state => state.unreadCount);
 
   // Enhanced back button component
   const handleBack = () => {
@@ -24,9 +26,28 @@ function RootLayoutContent() {
   // Enhanced notification button component
   const NotificationButton = () => {
     return (
-      <IconButton onPress={() => router.push('/notification' as any)} style={styles.notificationButton}>
-        <Bell size={20} color={isDark ? Colors.text.dark : Colors.text.light} />
-      </IconButton>
+      <View style={{ position: 'relative' }}>
+        <IconButton onPress={() => router.push('/notification' as any)} style={styles.notificationButton}>
+          <Bell size={20} color={isDark ? Colors.text.dark : Colors.text.light} />
+        </IconButton>
+        {unreadCount > 0 && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: 10,
+              height: 10,
+              borderRadius: 10,
+              backgroundColor: 'red',
+              borderWidth: 1,
+              borderColor: 'gray',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          />
+        )}
+      </View>
     );
   };
 

@@ -1,16 +1,19 @@
-import type { BaseNotification } from '../../types/notification';
 import { create } from 'zustand';
+import type { BaseNotification } from '../../types/notification';
 
 interface NotificationStore {
   notifications: BaseNotification[];
   unreadCount: number;
+  userId: string | null;
 
   // Actions
+  setUserId: (userId: string | null) => void;
   setNotifications: (notifications: BaseNotification[]) => void;
   addNotification: (notification: BaseNotification) => void;
   updateNotification: (id: string, updates: Partial<BaseNotification>) => void;
   removeNotification: (id: string) => void;
   markAsRead: (id: string, userId: string) => void;
+  markAllAsRead: (userId: string) => void;
   markAsHidden: (id: string, userId: string) => void;
   clearAll: () => void;
 
@@ -24,15 +27,35 @@ interface NotificationStore {
 export const useNotificationStore = create<NotificationStore>((set, get) => ({
   notifications: [],
   unreadCount: 0,
+  userId: null,
+
+  setUserId: userId => {
+    set({ userId });
+    // Recalculate unread count when userId changes
+    const state = get();
+    const count = userId
+      ? state.notifications.filter(notif => !notif.readBy?.includes(userId)).length
+      : state.notifications.length;
+    set({ unreadCount: count });
+  },
 
   setNotifications: notifications => {
-    set({ notifications });
+    const userId = get().userId;
+    const count = userId ? notifications.filter(notif => !notif.readBy?.includes(userId)).length : notifications.length;
+    set({ notifications, unreadCount: count });
   },
 
   addNotification: notification => {
-    set(state => ({
-      notifications: [notification, ...state.notifications],
-    }));
+    set(state => {
+      const newNotifications = [notification, ...state.notifications];
+      const count = state.userId
+        ? newNotifications.filter(notif => !notif.readBy?.includes(state.userId!)).length
+        : newNotifications.length;
+      return {
+        notifications: newNotifications,
+        unreadCount: count,
+      };
+    });
   },
 
   updateNotification: (id, updates) => {
@@ -48,8 +71,8 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   },
 
   markAsRead: (id, userId) => {
-    set(state => ({
-      notifications: state.notifications.map(notif => {
+    set(state => {
+      const updatedNotifications = state.notifications.map(notif => {
         if (notif.id === id) {
           const readBy = notif.readBy || [];
           if (!readBy.includes(userId)) {
@@ -57,8 +80,31 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
           }
         }
         return notif;
-      }),
-    }));
+      });
+      const count = state.userId
+        ? updatedNotifications.filter(notif => !notif.readBy?.includes(state.userId!)).length
+        : updatedNotifications.length;
+      return {
+        notifications: updatedNotifications,
+        unreadCount: count,
+      };
+    });
+  },
+
+  markAllAsRead: userId => {
+    set(state => {
+      const updatedNotifications = state.notifications.map(notif => {
+        const readBy = notif.readBy || [];
+        if (!readBy.includes(userId)) {
+          return { ...notif, readBy: [...readBy, userId] };
+        }
+        return notif;
+      });
+      return {
+        notifications: updatedNotifications,
+        unreadCount: 0, // All notifications are now read
+      };
+    });
   },
 
   markAsHidden: (id, userId) => {

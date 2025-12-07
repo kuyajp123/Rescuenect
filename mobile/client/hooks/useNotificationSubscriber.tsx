@@ -15,12 +15,18 @@ export const useNotificationSubscriber = ({
   userId,
   maxNotifications = 50,
 }: UseNotificationSubscriberProps = {}) => {
-  const { setNotifications, addNotification, updateNotification } = useNotificationStore();
+  const { setNotifications, setUserId } = useNotificationStore();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Set userId in store for unread count calculation
+    if (userId) {
+      setUserId(userId);
+    }
+  }, [userId, setUserId]);
 
+  useEffect(() => {
     // Build query for notifications
     let notificationQuery = query(
       collection(db, 'notifications'),

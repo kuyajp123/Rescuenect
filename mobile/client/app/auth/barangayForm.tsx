@@ -34,7 +34,8 @@ const barangayForm = () => {
   const [selectedBarangay, setSelectedBarangay] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState('');
   const authUser = useAuth(state => state.authUser);
-  const isLoading = useAuth(state => state.isLoading);
+  const [isLoading, setIsLoading] = useState(false);
+  const authLoading = useAuth(state => state.isLoading);
   const setUserData = useUserData(state => state.setUserData);
   const userData = useUserData(state => state.userData);
 
@@ -85,6 +86,8 @@ const barangayForm = () => {
       return;
     }
 
+    setIsLoading(true);
+
     let fcmToken = '';
 
     if (authUser) {
@@ -98,12 +101,15 @@ const barangayForm = () => {
           setErrorMessage('Failed to authenticate. Please try again.');
           return;
         }
+
+        setIsLoading(false);
       } catch (error) {
         console.error('❌ Error getting token:', error);
         setErrorMessage('Failed to authenticate. Please try again.');
+        setIsLoading(false);
         return;
       }
-    } else if (isLoading) {
+    } else if (authLoading) {
       console.log('⏳ Authentication still loading, please wait...');
       setErrorMessage('Please wait for authentication to complete.');
     }
@@ -148,7 +154,6 @@ const barangayForm = () => {
       );
 
       // console.log('✅ Backend response:', response.data);
-
     } catch (error) {
       console.error('❌ Error saving barangay:', error);
       if (axios.isAxiosError(error)) {
@@ -241,7 +246,7 @@ const barangayForm = () => {
           onPress={isLoading ? () => {} : handleSaveBarangay}
           style={[isLoading ? { opacity: 0.5 } : null]}
         >
-          {isLoading ? 'Loading...' : 'Next'}
+          {isLoading ? 'Saving...' : 'Next'}
         </PrimaryButton>
       </View>
     </Body>

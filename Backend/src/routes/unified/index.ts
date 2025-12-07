@@ -18,4 +18,6 @@ unifiedRoutes.post('/markNotificationAsHidden', UnifiedController.markNotificati
 
 unifiedRoutes.get('/getResidentStatuses', UnifiedController.getResidentStatuses);
 
+unifiedRoutes.post('/markAllNotificationsAsRead', UnifiedController.markAllNotificationsAsRead);
+
 export default unifiedRoutes;

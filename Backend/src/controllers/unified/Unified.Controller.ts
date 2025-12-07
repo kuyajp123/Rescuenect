@@ -105,4 +105,27 @@ export class UnifiedController {
       });
     }
   }
+
+  static async markAllNotificationsAsRead(req: Request, res: Response): Promise<void> {
+    try {
+      const { userId, notificationId } = req.body;
+      if (!userId || !notificationId) {
+        res.status(400).json({ message: 'User ID and Notification IDs are required' });
+        return;
+      }
+      for (const notif of notificationId) {
+        await UnifiedModel.markNotificationAsRead(notif.notificationId, userId);
+      }
+      res.status(200).json({ message: 'All notifications marked as read' });
+    } catch (error) {
+      console.error('❌ Failed to get resident statuses:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      res.status(500).json({
+        message: 'Failed to get resident statuses',
+        error: typeof error === 'string' ? error : (error as Error).message,
+      });
+    }
+  }
 }

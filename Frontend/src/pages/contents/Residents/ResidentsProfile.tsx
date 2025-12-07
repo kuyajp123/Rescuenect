@@ -169,6 +169,7 @@ const ResidentsProfile = () => {
         </CardBody>
       </Card>
 
+      {statuses.length === 0 && <div className="text-center col-span-4">Resident has no Status yet.</div>}
       <div className="grid grid-cols-4 gap-4 pb-6">
         {statuses.map(status => (
           <UnifiedStatusCard
