@@ -118,6 +118,10 @@
     // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
     "skipLibCheck": true /* Skip type checking all .d.ts files. */
   },
-  "include": ["src/**/*", "supabase/functions/_shared/weather-notification-core.ts"],
+  "include": [
+    "src/**/*",
+    "supabase/functions/_shared/weather-notification-core.ts",
+    "src/docs/notification/notification-examples.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

@@ -9,7 +9,7 @@ import { cert, getApps, initializeApp, type ServiceAccount } from 'firebase-admi
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import _ from 'lodash';
 import type { EarthquakeNotificationData, NotificationType, WeatherNotificationData } from './notification-schema.ts';
-import { EarthquakeData } from './types.ts';
+import { EarthquakeData } from './types';
 
 // barangayMap['barangay name']
 export const barangayMap: Record<string, string> = {
@@ -308,7 +308,7 @@ export async function saveNotificationHistory(
 
   try {
     // Import notification service types
-    const { NotificationService } = await import('./notification-service.ts');
+    const { NotificationService } = await import('./notification-service');
     const notificationService = new NotificationService(db);
 
     // Prepare location

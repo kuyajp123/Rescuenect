@@ -2,8 +2,8 @@
 // NOTIFICATION SYSTEM USAGE EXAMPLES
 // ============================================
 
-import { initializeFirebase } from './firestore-client.ts';
-import { NotificationService } from './notification-service.ts';
+import { initializeFirebase } from '../../../supabase/functions/_shared/firestore-client.js';
+import { NotificationService } from '../../../supabase/functions/_shared/notification-service.js';
 
 // Initialize the service
 const db = initializeFirebase();
