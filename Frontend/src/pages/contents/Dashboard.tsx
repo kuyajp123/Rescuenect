@@ -1,5 +1,11 @@
+import { useResidentsStore } from '@/hooks/useFetchResidents';
+import { useAllStatusStore } from '@/stores/useAllStatusStore';
+import { useEarthquakeStore } from '@/stores/useEarthquakeStore';
+import { useStatusStore } from '@/stores/useStatusStore';
+import { Category, StatusData } from '@/types/types';
 import { Card, CardBody, CardHeader, Chip } from '@heroui/react';
 import { Activity, AlertTriangle, Calendar, TrendingUp, Users } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
 import {
   Bar,
   BarChart,
@@ -16,106 +22,176 @@ import {
   YAxis,
 } from 'recharts';
 
-const PieData = [
-  { name: 'Safe', value: 120 },
-  { name: 'Evacuated', value: 45 },
-  { name: 'Affected', value: 80 },
-  { name: 'Missing', value: 10 },
-];
-
-const WeekData = [
-  {
-    week: 'Week 1',
-    safe: 120,
-    evacuated: 30,
-    affected: 55,
-    missing: 5,
-  },
-  {
-    week: 'Week 2',
-    safe: 150,
-    evacuated: 40,
-    affected: 70,
-    missing: 8,
-  },
-  {
-    week: 'Week 3',
-    safe: 100,
-    evacuated: 35,
-    affected: 60,
-    missing: 12,
-  },
-  {
-    week: 'Week 4',
-    safe: 180,
-    evacuated: 25,
-    affected: 45,
-    missing: 4,
-  },
-];
-
-const earthquakeData = [
-  { date: 'Dec 1', magnitude: 3.2 },
-  { date: 'Dec 3', magnitude: 4.5 },
-  { date: 'Dec 5', magnitude: 2.8 },
-  { date: 'Dec 8', magnitude: 5.1 },
-  { date: 'Dec 12', magnitude: 4.0 },
-  { date: 'Dec 16', magnitude: 6.2 },
-  { date: 'Dec 20', magnitude: 3.9 },
-  { date: 'Dec 25', magnitude: 5.5 },
-];
-
-const categoryData = [
-  { category: 'Earthquake', count: 12 },
-  { category: 'Flood', count: 8 },
-  { category: 'Landslide', count: 4 },
-  { category: 'Fire', count: 2 },
-  { category: 'Typhoon', count: 6 },
-  { category: 'Emergency', count: 10 },
-];
-
 const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'];
 
-const statsCards = [
-  {
-    title: 'Total Residents',
-    value: '255',
-    change: '+12%',
-    trend: 'up',
-    icon: Users,
-    color: 'bg-blue-500/10 dark:bg-blue-500/20',
-    iconColor: 'text-blue-600 dark:text-blue-400',
-  },
-  {
-    title: 'Active Incidents',
-    value: '42',
-    change: '+8%',
-    trend: 'up',
-    icon: AlertTriangle,
-    color: 'bg-orange-500/10 dark:bg-orange-500/20',
-    iconColor: 'text-orange-600 dark:text-orange-400',
-  },
-  {
-    title: 'Safe Status',
-    value: '180',
-    change: '+5%',
-    trend: 'up',
-    icon: Activity,
-    color: 'bg-green-500/10 dark:bg-green-500/20',
-    iconColor: 'text-green-600 dark:text-green-400',
-  },
-  {
-    title: 'This Month',
-    value: 'Dec 2024',
-    change: 'Week 4',
-    trend: 'neutral',
-    icon: Calendar,
-    color: 'bg-purple-500/10 dark:bg-purple-500/20',
-    iconColor: 'text-purple-600 dark:text-purple-400',
-  },
-];
+// Helper function to parse categories
+const parseCategory = (category: Category[] | string): Category[] => {
+  if (Array.isArray(category)) return category;
+  if (typeof category !== 'string') return [];
+
+  const trimmed = category.trim();
+
+  try {
+    if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+      const unquoted = trimmed.slice(1, -1).replace(/\\"/g, '"');
+      return JSON.parse(unquoted);
+    }
+    return JSON.parse(trimmed);
+  } catch {
+    try {
+      return trimmed.split(',').map((c: string) => c.trim() as Category);
+    } catch {
+      return [];
+    }
+  }
+};
+
+// Helper to get timestamp in milliseconds
+const getTimestamp = (date: any): number => {
+  if (!date) return 0;
+  if (date._seconds) return date._seconds * 1000;
+  if (date.seconds) return date.seconds * 1000;
+  if (typeof date === 'string') return new Date(date).getTime();
+  return 0;
+};
 
 export const Dashboard = () => {
+  const totalCount = useResidentsStore(state => state.totalCount);
+  const statusData = useAllStatusStore(state => state.allStatuses);
+  const earthquakes = useEarthquakeStore(state => state.earthquakes);
+  const currentStatuses = useStatusStore(state => state.statusData);
+
+  // Calculate status counts
+  const safeCount = currentStatuses.filter(item => item.condition === 'safe').length;
+  const evacuatedCount = currentStatuses.filter(item => item.condition === 'evacuated').length;
+  const affectedCount = currentStatuses.filter(item => item.condition === 'affected').length;
+  const missingCount = currentStatuses.filter(item => item.condition === 'missing').length;
+  const activeIncidents = currentStatuses.length;
+
+  // Dynamic Pie Chart Data - Status Distribution
+  const PieData = useMemo(
+    () => [
+      { name: 'Safe', value: safeCount || 0 },
+      { name: 'Evacuated', value: evacuatedCount || 0 },
+      { name: 'Affected', value: affectedCount || 0 },
+      { name: 'Missing', value: missingCount || 0 },
+    ],
+    [safeCount, evacuatedCount, affectedCount, missingCount]
+  );
+
+  // Dynamic Weekly Data - Group statuses by week of current month
+  const WeekData = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    // Calculate how many weeks have passed in current month
+    const currentWeekNumber = Math.ceil(now.getDate() / 7);
+
+    // Create weeks array based on current week (only show weeks that have occurred)
+    const weeks: any[] = [];
+    for (let i = 1; i <= Math.min(currentWeekNumber, 5); i++) {
+      weeks.push({ week: `Week ${i}`, safe: 0, evacuated: 0, affected: 0, missing: 0 });
+    }
+
+    statusData.forEach((status: StatusData) => {
+      const timestamp = getTimestamp(status.createdAt);
+      const statusDate = new Date(timestamp);
+
+      // Only count statuses from current month
+      if (statusDate.getMonth() === currentMonth && statusDate.getFullYear() === currentYear) {
+        const statusDay = statusDate.getDate();
+        const weekNumber = Math.ceil(statusDay / 7);
+
+        // Find the corresponding week
+        const weekIndex = weekNumber - 1;
+        if (weekIndex >= 0 && weekIndex < weeks.length) {
+          const week = weeks[weekIndex];
+          if (status.condition === 'safe') week.safe++;
+          else if (status.condition === 'evacuated') week.evacuated++;
+          else if (status.condition === 'affected') week.affected++;
+          else if (status.condition === 'missing') week.missing++;
+        }
+      }
+    });
+
+    return weeks;
+  }, [statusData]);
+
+  // Dynamic Earthquake Data - Last 8 earthquakes sorted by time
+  const earthquakeData = useMemo(() => {
+    return earthquakes
+      .sort((a, b) => b.time - a.time)
+      .slice(0, 8)
+      .reverse()
+      .map(eq => ({
+        date: new Date(eq.time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        magnitude: eq.magnitude,
+      }));
+  }, [earthquakes]);
+
+  // Dynamic Category Data - Count categories from all statuses
+  const categoryData = useMemo(() => {
+    const categoryCounts: Record<string, number> = {};
+
+    statusData.forEach((status: StatusData) => {
+      const categories = parseCategory(status.category);
+      categories.forEach(cat => {
+        const capitalizedCat = cat.charAt(0).toUpperCase() + cat.slice(1);
+        categoryCounts[capitalizedCat] = (categoryCounts[capitalizedCat] || 0) + 1;
+      });
+    });
+
+    return Object.entries(categoryCounts)
+      .map(([category, count]) => ({ category, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [statusData]);
+
+  // Dynamic stats cards
+  const statsCards = useMemo(() => {
+    const currentMonth = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const currentWeek = `Week ${Math.ceil(new Date().getDate() / 7)}`;
+
+    return [
+      {
+        title: 'Total Residents',
+        value: totalCount.toString(),
+        change: totalCount > 0 ? `${totalCount} registered` : 'No data',
+        trend: 'up' as const,
+        icon: Users,
+        color: 'bg-blue-500/10 dark:bg-blue-500/20',
+        iconColor: 'text-blue-600 dark:text-blue-400',
+      },
+      {
+        title: 'Active Incidents',
+        value: activeIncidents.toString(),
+        change: activeIncidents > 0 ? `${activeIncidents} active` : 'No incidents',
+        trend: activeIncidents > 0 ? ('up' as const) : ('neutral' as const),
+        icon: AlertTriangle,
+        color: 'bg-orange-500/10 dark:bg-orange-500/20',
+        iconColor: 'text-orange-600 dark:text-orange-400',
+      },
+      {
+        title: 'Safe Status',
+        value: safeCount.toString(),
+        change: safeCount > 0 ? `${Math.round((safeCount / (activeIncidents || 1)) * 100)}% of total` : 'No data',
+        trend: 'up' as const,
+        icon: Activity,
+        color: 'bg-green-500/10 dark:bg-green-500/20',
+        iconColor: 'text-green-600 dark:text-green-400',
+      },
+      {
+        title: 'This Month',
+        value: currentMonth,
+        change: currentWeek,
+        trend: 'neutral' as const,
+        icon: Calendar,
+        color: 'bg-purple-500/10 dark:bg-purple-500/20',
+        iconColor: 'text-purple-600 dark:text-purple-400',
+      },
+    ];
+  }, [totalCount, activeIncidents, safeCount]);
+
   const renderLabel = ({ percent }: any) => {
     return `${(percent * 100).toFixed(0)}%`;
   };
@@ -142,7 +218,7 @@ export const Dashboard = () => {
   };
 
   return (
-    <div className="w-full h-full overflow-auto bg-gray-50 dark:bg-gray-950 p-6">
+    <div className="w-full h-full overflow-auto p-6">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Dashboard Overview</h1>
@@ -192,47 +268,177 @@ export const Dashboard = () => {
           </CardHeader>
           <CardBody className="pt-4">
             <div className="w-full h-[280px]">
-              <ResponsiveContainer>
-                <PieChart>
-                  <defs>
-                    <filter id="shadow" height="200%">
-                      <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
-                      <feOffset dx="0" dy="2" result="offsetblur" />
-                      <feComponentTransfer>
-                        <feFuncA type="linear" slope="0.2" />
-                      </feComponentTransfer>
-                      <feMerge>
-                        <feMergeNode />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                  </defs>
-                  <Pie
-                    data={PieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    dataKey="value"
-                    label={renderLabel}
-                    filter="url(#shadow)"
-                  >
-                    {PieData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                        className="hover:opacity-80 transition-opacity cursor-pointer"
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend
-                    wrapperStyle={{ paddingTop: '20px' }}
-                    iconType="circle"
-                    formatter={value => <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              {activeIncidents > 0 ? (
+                <ResponsiveContainer>
+                  <PieChart>
+                    <defs>
+                      <filter id="shadow" height="200%">
+                        <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+                        <feOffset dx="0" dy="2" result="offsetblur" />
+                        <feComponentTransfer>
+                          <feFuncA type="linear" slope="0.2" />
+                        </feComponentTransfer>
+                        <feMerge>
+                          <feMergeNode />
+                          <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                      </filter>
+                    </defs>
+                    <Pie
+                      data={PieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={90}
+                      dataKey="value"
+                      label={renderLabel}
+                      filter="url(#shadow)"
+                    >
+                      {PieData.map((_entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                          className="hover:opacity-80 transition-opacity cursor-pointer"
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend
+                      wrapperStyle={{ paddingTop: '20px' }}
+                      iconType="circle"
+                      formatter={value => <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-gray-500 dark:text-gray-400">No status data available</p>
+                </div>
+              )}
+            </div>
+          </CardBody>
+        </Card>
+
+        {/* Incident Categories */}
+        <Card className="hover:shadow-lg transition-shadow duration-300 border-none">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between w-full">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Incident Categories</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">All Categories in Status </p>
+              </div>
+              <Chip size="sm" color="warning" variant="flat">
+                {categoryData.reduce((sum, cat) => sum + cat.count, 0)} Total
+              </Chip>
+            </div>
+          </CardHeader>
+          <CardBody className="pt-4">
+            <div className="w-full h-[280px]">
+              {categoryData.length > 0 ? (
+                <ResponsiveContainer>
+                  <BarChart data={categoryData}>
+                    <defs>
+                      <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.8} />
+                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.8} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#e5e7eb"
+                      className="dark:stroke-gray-800"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="category"
+                      stroke="#9ca3af"
+                      className="dark:stroke-gray-600"
+                      tick={{ fill: '#6b7280', fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                    />
+                    <YAxis stroke="#9ca3af" className="dark:stroke-gray-600" tick={{ fill: '#6b7280', fontSize: 12 }} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }} />
+                    <Legend
+                      wrapperStyle={{ paddingTop: '10px' }}
+                      iconType="circle"
+                      formatter={value => <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>}
+                    />
+                    <Bar dataKey="count" fill="url(#barGradient)" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-gray-500 dark:text-gray-400">No category data available</p>
+                </div>
+              )}
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+
+      {/* Bottom Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Earthquake Activity */}
+        <Card className="hover:shadow-lg transition-shadow duration-300 border-none">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between w-full">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Earthquake Activity</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Magnitude readings this month</p>
+              </div>
+              <Chip size="sm" color={earthquakes.length > 0 ? 'danger' : 'default'} variant="flat">
+                {earthquakes.length} Events
+              </Chip>
+            </div>
+          </CardHeader>
+          <CardBody className="pt-4">
+            <div className="w-full h-[280px]">
+              {earthquakeData.length > 0 ? (
+                <ResponsiveContainer>
+                  <LineChart data={earthquakeData}>
+                    <defs>
+                      <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-800" />
+                    <XAxis
+                      dataKey="date"
+                      stroke="#9ca3af"
+                      className="dark:stroke-gray-600"
+                      tick={{ fill: '#6b7280', fontSize: 12 }}
+                    />
+                    <YAxis
+                      domain={[0, 10]}
+                      stroke="#9ca3af"
+                      className="dark:stroke-gray-600"
+                      tick={{ fill: '#6b7280', fontSize: 12 }}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend
+                      wrapperStyle={{ paddingTop: '10px' }}
+                      iconType="circle"
+                      formatter={value => <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="magnitude"
+                      stroke="#ef4444"
+                      strokeWidth={3}
+                      dot={{ r: 5, fill: '#ef4444', strokeWidth: 2, stroke: '#fff' }}
+                      activeDot={{ r: 7, strokeWidth: 2 }}
+                      fill="url(#lineGradient)"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-gray-500 dark:text-gray-400">No earthquake data available</p>
+                </div>
+              )}
             </div>
           </CardBody>
         </Card>
@@ -246,7 +452,7 @@ export const Dashboard = () => {
                 <p className="text-sm text-gray-600 dark:text-gray-400">Status changes over 4 weeks</p>
               </div>
               <Chip size="sm" color="success" variant="flat">
-                +15%
+                {activeIncidents} Total
               </Chip>
             </div>
           </CardHeader>
@@ -295,122 +501,6 @@ export const Dashboard = () => {
                   <Bar dataKey="evacuated" stackId="a" fill="url(#evacuatedGradient)" radius={[0, 0, 0, 0]} />
                   <Bar dataKey="affected" stackId="a" fill="url(#affectedGradient)" radius={[0, 0, 0, 0]} />
                   <Bar dataKey="missing" stackId="a" fill="url(#missingGradient)" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* Bottom Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Earthquake Activity */}
-        <Card className="hover:shadow-lg transition-shadow duration-300 border-none">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between w-full">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Earthquake Activity</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Magnitude readings this month</p>
-              </div>
-              <Chip size="sm" color="danger" variant="flat">
-                Alert
-              </Chip>
-            </div>
-          </CardHeader>
-          <CardBody className="pt-4">
-            <div className="w-full h-[280px]">
-              <ResponsiveContainer>
-                <LineChart data={earthquakeData}>
-                  <defs>
-                    <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-800" />
-                  <XAxis
-                    dataKey="date"
-                    stroke="#9ca3af"
-                    className="dark:stroke-gray-600"
-                    tick={{ fill: '#6b7280', fontSize: 12 }}
-                  />
-                  <YAxis
-                    domain={[0, 10]}
-                    stroke="#9ca3af"
-                    className="dark:stroke-gray-600"
-                    tick={{ fill: '#6b7280', fontSize: 12 }}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend
-                    wrapperStyle={{ paddingTop: '10px' }}
-                    iconType="circle"
-                    formatter={value => <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="magnitude"
-                    stroke="#ef4444"
-                    strokeWidth={3}
-                    dot={{ r: 5, fill: '#ef4444', strokeWidth: 2, stroke: '#fff' }}
-                    activeDot={{ r: 7, strokeWidth: 2 }}
-                    fill="url(#lineGradient)"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardBody>
-        </Card>
-
-        {/* Incident Categories */}
-        <Card className="hover:shadow-lg transition-shadow duration-300 border-none">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between w-full">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Incident Categories</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Distribution by type</p>
-              </div>
-              <Chip size="sm" color="warning" variant="flat">
-                42 Total
-              </Chip>
-            </div>
-          </CardHeader>
-          <CardBody className="pt-4">
-            <div className="w-full h-[280px]">
-              <ResponsiveContainer>
-                <BarChart data={categoryData} layout="horizontal">
-                  <defs>
-                    <linearGradient id="barGradient" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.8} />
-                      <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.8} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#e5e7eb"
-                    className="dark:stroke-gray-800"
-                    horizontal={false}
-                  />
-                  <XAxis
-                    type="number"
-                    stroke="#9ca3af"
-                    className="dark:stroke-gray-600"
-                    tick={{ fill: '#6b7280', fontSize: 12 }}
-                  />
-                  <YAxis
-                    dataKey="category"
-                    type="category"
-                    stroke="#9ca3af"
-                    className="dark:stroke-gray-600"
-                    tick={{ fill: '#6b7280', fontSize: 12 }}
-                    width={100}
-                  />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }} />
-                  <Legend
-                    wrapperStyle={{ paddingTop: '10px' }}
-                    iconType="circle"
-                    formatter={value => <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>}
-                  />
-                  <Bar dataKey="count" fill="url(#barGradient)" radius={[0, 8, 8, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

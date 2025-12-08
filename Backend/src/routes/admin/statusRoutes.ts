@@ -8,4 +8,6 @@ statusRoutes.use(AuthMiddleware.verifyToken);
 
 statusRoutes.get('/getVersions', StatusController.getVersions);
 
+statusRoutes.get('/getAllLatestStatuses', StatusController.getAllLatestStatuses);
+
 export default statusRoutes;

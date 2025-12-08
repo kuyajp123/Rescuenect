@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { saveFCMtoken } from './helper/commonHelpers.ts';
 import { subscribeToWeatherData } from './helper/getWeatherData';
+import { useAllLatestStatuses } from './hooks/useAllLatestStatuses.tsx';
 import { useCurrentStatuses } from './hooks/useCurrentStatuses.tsx';
 import Router from './router';
 import { useStatusStore } from './stores/useStatusStore';
@@ -19,13 +20,26 @@ function App() {
   const setWeather = useWeatherStore(state => state.setWeather);
   const setStatus = useStatusStore(state => state.setData);
   const fetchStatuses = useStatusHistory(state => state.fetchStatusHistory);
+
+  // Get real-time current statuses for the map and status page
   const { statuses } = useCurrentStatuses();
+
   const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
-  const auth = useAuth(state => state.auth);
+  const authUser = useAuth(state => state.auth);
+
+  // Fetch all latest statuses once for dashboard analytics
+  const { refetch: refetchAllStatuses } = useAllLatestStatuses();
 
   useEffect(() => {
     setStatus(statuses);
   }, [statuses, setStatus]);
+
+  // Fetch all latest statuses when auth is ready
+  useEffect(() => {
+    if (authUser) {
+      refetchAllStatuses();
+    }
+  }, [authUser]);
 
   useEffect(() => {
     fetchStatuses();
@@ -46,10 +60,9 @@ function App() {
       try {
         const fcmToken = await permissionAllowed(VAPID_KEY);
 
-        if (fcmToken && auth) {
+        if (fcmToken && authUser) {
           // Update token in backend
-          const response = await saveFCMtoken(fcmToken, auth);
-          console.log('FCM token saved response:', response);
+          await saveFCMtoken(fcmToken, authUser);
         }
       } catch (error) {
         console.error('Failed to enable notifications:', error);
@@ -58,14 +71,14 @@ function App() {
     };
     enableNotification();
     console.log('enableNotification effect ran');
-  }, [auth]);
+  }, [authUser]);
 
   useEarthquakeSnapshot();
 
   // Subscribe to notifications
   useNotificationSubscriber({
     userLocation: CURRENT_USER_LOCATION,
-    userId: auth?.uid,
+    userId: authUser?.uid,
     maxNotifications: 100,
   });
 
@@ -73,10 +86,10 @@ function App() {
   const fetchResidents = useResidentsStore(state => state.fetchResidents);
 
   useEffect(() => {
-    if (auth) {
+    if (authUser) {
       fetchResidents();
     }
-  }, [auth, fetchResidents]);
+  }, [authUser, fetchResidents]);
 
   return (
     <BrowserRouter>

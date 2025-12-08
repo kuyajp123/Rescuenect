@@ -63,4 +63,43 @@ export class StatusModel {
       throw error;
     }
   }
+
+  public static async getAllLatestStatuses() {
+    try {
+      // Use collectionGroup to get all statuses from all users
+      const allStatusesSnapshot = await db.collectionGroup('statuses').orderBy('createdAt', 'desc').get();
+
+      if (allStatusesSnapshot.empty) {
+        console.log('⚠️ No statuses found in any user collection');
+        return [];
+      }
+
+      // Group by parentId and get only the latest version of each
+      const statusMap = new Map();
+      let processedCount = 0;
+
+      allStatusesSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const parentId = data.parentId;
+
+        // If we haven't seen this parentId yet, store it (since we're ordered by createdAt desc, first is latest)
+        if (!statusMap.has(parentId)) {
+          statusMap.set(parentId, { id: doc.id, ...data });
+          processedCount++;
+        }
+      });
+
+      // Convert to array and sort by createdAt descending (newest first)
+      const allLatestStatuses = Array.from(statusMap.values()).sort((a, b) => {
+        const aTime = a.createdAt?._seconds || 0;
+        const bTime = b.createdAt?._seconds || 0;
+        return bTime - aTime;
+      });
+
+      return allLatestStatuses;
+    } catch (error) {
+      console.error('❌ Error in UnifiedModel.getAllLatestStatuses:', error);
+      throw error;
+    }
+  }
 }

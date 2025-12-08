@@ -30,5 +30,6 @@ export const API_ENDPOINTS = {
   RESIDENTS: {
     GET_RESIDENTS: `${BACKEND_URL}/admin/residents/getResidents`,
     GET_RESIDENTS_STATUS: `${BACKEND_URL}/unified/getResidentStatuses`,
-  }
+    GET_ALL_LATEST_STATUSES: `${BACKEND_URL}/admin/status/getAllLatestStatuses`,
+  },
 };

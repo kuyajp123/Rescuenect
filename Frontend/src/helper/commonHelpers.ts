@@ -144,10 +144,8 @@ export const saveFCMtoken = async (fcmToken: string, user: any) => {
   try {
     // Update token in backend
     if (user && user.uid) {
-      console.log('🔄 Saving FCM token for user:', user.uid);
 
       const idToken = await user.getIdToken();
-      console.log('✅ Got Firebase ID token, making API request...');
 
       const response = await axios.put(
         API_ENDPOINTS.AUTH.UPDATE_FCM_TOKEN,
@@ -155,7 +153,6 @@ export const saveFCMtoken = async (fcmToken: string, user: any) => {
         { headers: { Authorization: `Bearer ${idToken}` }, withCredentials: true }
       );
 
-      console.log('✅ FCM token saved successfully:', response.data);
       return response.data;
     } else {
       console.warn('⚠️ Cannot save FCM token: user or uid missing');
