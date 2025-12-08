@@ -5,7 +5,7 @@ import { useStatusStore } from '@/stores/useStatusStore';
 import { Category, StatusData } from '@/types/types';
 import { Card, CardBody, CardHeader, Chip } from '@heroui/react';
 import { Activity, AlertTriangle, Calendar, TrendingUp, Users } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   Bar,
   BarChart,
@@ -218,7 +218,7 @@ export const Dashboard = () => {
   };
 
   return (
-    <div className="w-full h-full overflow-auto p-6">
+    <div className="w-full h-full overflow-auto p-4">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Dashboard Overview</h1>
