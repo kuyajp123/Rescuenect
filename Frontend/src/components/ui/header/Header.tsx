@@ -2,6 +2,7 @@ import { SecondaryButton } from '@/components/ui/button';
 import { revokeToken } from '@/config/notificationPermission';
 import { ThemeSwitcher } from '@/hooks/ThemeSwitcher';
 import { auth } from '@/lib/firebaseConfig';
+import { useAuth } from '@/stores/useAuth';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import { Avatar } from '@heroui/avatar';
 import {
@@ -25,6 +26,7 @@ const Header = () => {
   const getUnreadCount = useNotificationStore(state => state.getUnreadCount);
   const notifications = useNotificationStore(state => state.notifications);
   const uid = auth.currentUser?.uid;
+  const admin = useAuth(state => state.auth);
 
   const unreadCount = useMemo(() => getUnreadCount(uid), [notifications, getUnreadCount]);
 
@@ -130,14 +132,14 @@ const Header = () => {
           >
             <Bell size={20} />
           </SecondaryButton>
-            {unreadCount > 0 && (
+          {unreadCount > 0 && (
             <span
               className="absolute -top-1 -right-1 min-w-5 h-5 bg-red-500 rounded-full border border-white flex items-center justify-center text-white text-xs font-semibold px-1"
               style={{ zIndex: 9999 }}
             >
               {unreadCount}
             </span>
-            )}
+          )}
         </div>
         <div>
           <Settings size={20} className="inline-block mr-2" />
@@ -155,11 +157,11 @@ const Header = () => {
               <div className=" flex items-center">
                 <Avatar
                   size="sm"
-                  src="https://i.pravatar.cc/150?u=a042581f4e29026024d"
-                  name="John Doe"
+                  src={admin?.photoURL || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}
+                  name={admin?.displayName || 'John Doe'}
                   className="inline-block mr-2 "
                 />
-                <span className="text-default-600">John Doe</span>
+                <span className="text-default-600">{admin?.displayName}</span>
               </div>
             </DropdownTrigger>
             <DropdownMenu
@@ -185,14 +187,15 @@ const Header = () => {
                   <User
                     avatarProps={{
                       size: 'sm',
-                      src: 'https://avatars.githubusercontent.com/u/30373425?v=4',
+                      src:
+                        admin?.photoURL || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y',
                     }}
                     classNames={{
                       name: 'text-default-600',
                       description: 'text-default-500',
                     }}
-                    description="@jrgarciadev"
-                    name="Junior Garcia"
+                    description={admin?.email!}
+                    name={admin?.displayName!}
                   />
                 </DropdownItem>
                 <DropdownItem onClick={() => navigate('/profile', { replace: true })} key="dashboard">

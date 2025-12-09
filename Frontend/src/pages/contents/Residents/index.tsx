@@ -272,7 +272,7 @@ const Residents = () => {
   const topContent = React.useMemo(() => {
     return (
       <div className="flex flex-col gap-4">
-        <p className="text-3xl font-bold mb-2">Evacuation centers</p>
+        <p className="text-3xl font-bold mb-2">Resident Lists</p>
         <div className="flex justify-between gap-3 items-end">
           <Input
             isClearable

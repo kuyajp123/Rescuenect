@@ -149,7 +149,11 @@ export const Dashboard = () => {
 
   // Dynamic stats cards
   const statsCards = useMemo(() => {
-    const currentMonth = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const currentMonth = new Date().toLocaleDateString('en-PH', {
+      timeZone: 'Asia/Manila',
+      month: 'long',
+      year: 'numeric',
+    });
     const currentWeek = `Week ${Math.ceil(new Date().getDate() / 7)}`;
 
     return [
@@ -325,7 +329,7 @@ export const Dashboard = () => {
             <div className="flex items-center justify-between w-full">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Incident Categories</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">All Categories in Status </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Total category occurrences</p>
               </div>
               <Chip size="sm" color="warning" variant="flat">
                 {categoryData.reduce((sum, cat) => sum + cat.count, 0)} Total
@@ -452,7 +456,8 @@ export const Dashboard = () => {
                 <p className="text-sm text-gray-600 dark:text-gray-400">Status changes over 4 weeks</p>
               </div>
               <Chip size="sm" color="success" variant="flat">
-                {activeIncidents} Total
+                {WeekData.reduce((sum, week) => sum + week.safe + week.evacuated + week.affected + week.missing, 0)}{' '}
+                Total
               </Chip>
             </div>
           </CardHeader>
