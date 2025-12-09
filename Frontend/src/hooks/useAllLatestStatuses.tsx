@@ -33,7 +33,6 @@ export const useAllLatestStatuses = () => {
         },
       });
 
-      console.log('Fetched all latest statuses:', response.data.statuses.length, 'statuses');
       setAllStatuses(response.data.statuses);
     } catch (err) {
       console.error('Error fetching all latest statuses:', err);

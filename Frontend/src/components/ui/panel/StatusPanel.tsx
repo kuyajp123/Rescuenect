@@ -1,5 +1,6 @@
 import { StatusCard } from '@/components/ui/card/StatusCard';
 import { Map } from '@/components/ui/Map';
+import { parseCategory } from '@/helper/commonHelpers';
 import { Card, CardBody, CardHeader, Chip, Image, User } from '@heroui/react';
 import { MapPin, Phone, Users } from 'lucide-react';
 
@@ -41,29 +42,6 @@ export const StatusPanel = ({ data }: { data: any }) => {
       default:
         return 'default';
     }
-  };
-
-  // Parse category if it's a string
-  const parseCategory = (category: any) => {
-    if (Array.isArray(category)) {
-      return category;
-    }
-
-    if (typeof category === 'string' && category) {
-      try {
-        let cleanedCategory = category.trim();
-        if (cleanedCategory.startsWith('"') && cleanedCategory.endsWith('"')) {
-          cleanedCategory = cleanedCategory.slice(1, -1);
-        }
-        cleanedCategory = cleanedCategory.replace(/^\n*"?|"?\n*$/g, '');
-        return JSON.parse(cleanedCategory);
-      } catch (e) {
-        if (category.includes(',')) {
-          return category.split(',').map((c: string) => c.trim());
-        }
-      }
-    }
-    return [];
   };
 
   const getStatusTypeColor = (statusType: string) => {

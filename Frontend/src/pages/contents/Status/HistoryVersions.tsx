@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
 import { usePanelStore } from '@/stores/panelStore';
 import { useVersionHistoryStore } from '@/stores/useVersionHistoryStore';
+import { StatusDataCard } from '@/types/types';
 import { Card, CardBody, Skeleton } from '@heroui/react';
 import axios from 'axios';
 import { useEffect } from 'react';
@@ -59,7 +60,6 @@ const HistoryVersions = () => {
         // Handle both old and new response formats
         const versions = (response.data as any).versions || response.data || [];
         setVersions(versions);
-        console.log('Fetched version history:', JSON.stringify(versions, null, 2));
       } catch (error: any) {
         console.error('Error fetching version history:', error);
 
@@ -151,10 +151,9 @@ const HistoryVersions = () => {
           {versions.map(version => (
             <UnifiedStatusCard
               key={version.versionId}
-              data={version as any}
+              data={version as unknown as StatusDataCard}
               mode="versionHistory"
               onViewDetails={() => {
-                console.log('View details for:', version.versionId, version);
                 openStatusHistoryPanel(version as any);
               }}
             />

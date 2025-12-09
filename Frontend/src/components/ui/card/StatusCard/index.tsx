@@ -1,4 +1,4 @@
-import { formatTimeRemaining, formatTimeSince } from '@/helper/commonHelpers';
+import { formatTimeRemaining, formatTimeSince, parseCategory } from '@/helper/commonHelpers';
 import { StatusTemplateProps } from '@/types/types';
 import { Avatar, Card, CardBody, CardFooter, CardHeader, Chip, Image } from '@heroui/react';
 import { Ellipsis, MapPin, Phone, UserRound } from 'lucide-react';
@@ -21,6 +21,8 @@ export const StatusCard = ({
   className,
   vid,
 }: StatusTemplateProps) => {
+  const parsedCategory = parseCategory(category);
+
   return (
     <Card
       className={`max-w-[500px] max-h-[580px] dark:border dark:border-gray-700 ${className}`}
@@ -82,6 +84,20 @@ export const StatusCard = ({
       </CardHeader>
       <CardBody className="px-3 py-0 text-small">
         <div className="w-full">
+          {parsedCategory.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-2">
+              {parsedCategory.slice(0, 5).map((cat, idx) => (
+                <Chip key={idx} size="sm" color="default" variant="flat" className="text-xs">
+                  {cat}
+                </Chip>
+              ))}
+              {parsedCategory.length > 5 && (
+                <Chip size="sm" variant="flat" className="text-xs">
+                  +{parsedCategory.length - 5}
+                </Chip>
+              )}
+            </div>
+          )}
           <p className="text-wrap break-words max-h-24 overflow-y-auto">{note}</p>
         </div>
         <Image alt="HeroUI hero Image" src={image} className="mt-4" />

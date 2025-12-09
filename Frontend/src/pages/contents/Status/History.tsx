@@ -20,6 +20,7 @@ import { useStatusHistory } from '@/hooks/useStatusHistory';
 import { usePanelStore, type PanelSelection } from '@/stores/panelStore';
 import { useStatusStore } from '@/stores/useStatusStore';
 import { useVersionHistoryStore } from '@/stores/useVersionHistoryStore';
+import { StatusCardProps } from '@/types/types';
 import type { ChipProps, Selection, SortDescriptor } from '@heroui/react';
 import {
   Button,
@@ -41,7 +42,6 @@ import {
 import { ChevronDown, EllipsisVertical, History, RefreshCcw, Search, UserRound } from 'lucide-react';
 import React, { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { StatusCardProps } from '@/types/types'
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
@@ -576,7 +576,7 @@ export const StatusHistory = () => {
   }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
 
   return (
-    <div className='w-full'>
+    <div className="w-full">
       <p className="text-3xl font-bold mb-5">Status History</p>
       <Table
         isHeaderSticky

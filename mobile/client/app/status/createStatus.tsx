@@ -1,5 +1,5 @@
 import { getAddress } from '@/API/getAddress';
-import { CustomOutlineButton, IconButton } from '@/components/components/button/Button';
+import { IconButton } from '@/components/components/button/Button';
 import CustomImagePicker from '@/components/components/CustomImagePicker';
 import { ImageModal } from '@/components/components/image-modal/ImageModal';
 import Map, { CustomButton, RadioField, TextInputField } from '@/components/components/Map';
@@ -39,6 +39,7 @@ import { navigateToStatusSettings } from '@/routes/route';
 import { AddressState, Category, StatusFormErrors, StatusStateData } from '@/types/components';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
+import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
 import { isEqual } from 'lodash';
 import { Bookmark, Ellipsis, Info, Minus, Navigation, Plus, Settings, SquarePen, Trash } from 'lucide-react-native';
@@ -349,7 +350,7 @@ export const createStatus = () => {
     } else {
       setActiveStatusCoords(false);
     }
-  }, []); // Run once before first render
+  }, [formData, setActiveStatusCoords]); // Watch formData changes to update activeStatusCoords
 
   // Reset coordinate states on component mount and cleanup on unmount
   useEffect(() => {
@@ -941,50 +942,58 @@ export const createStatus = () => {
 
     <View
       style={{
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 4,
-        justifyContent: 'flex-start',
-        alignItems: 'flex-start',
+        flexDirection: 'column',
+        gap: 15,
       }}
       key="category-input-container"
     >
-      {categories.map((c: Category) => (
-        <CustomOutlineButton
-          key={`category-button-${c}`}
-          color={isDark ? Colors.brand.dark : Colors.brand.light}
-          width="auto"
-          variant={statusForm.category.includes(c) ? 'solid' : 'outline'}
-          style={{ marginBottom: 4 }}
-          onPress={() => {
-            let newCategories: Category[] = [];
-            const currentCategories = statusForm.category || [];
+      {categories.map((c: Category) => {
+        const isChecked = statusForm.category.includes(c);
+        return (
+          <Pressable
+            key={`category-checkbox-${c}`}
+            style={styles.checkboxContainer}
+            onPress={() => {
+              let newCategories: Category[] = [];
+              const currentCategories = statusForm.category || [];
 
-            if (currentCategories.includes(c)) {
-              newCategories = currentCategories.filter((cat: Category) => cat !== c);
-            } else {
-              newCategories = [...currentCategories, c];
-            }
+              if (currentCategories.includes(c)) {
+                newCategories = currentCategories.filter((cat: Category) => cat !== c);
+              } else {
+                newCategories = [...currentCategories, c];
+              }
 
-            handleInputChange('category', newCategories as any);
-          }}
-        >
-          <Text
-            size="sm"
-            style={{
-              color: statusForm.category.includes(c)
-                ? isDark
-                  ? Colors.text.dark
-                  : 'white'
-                : isDark
-                ? Colors.brand.dark
-                : Colors.text.light,
+              handleInputChange('category', newCategories as any);
             }}
           >
-            {c.charAt(0).toUpperCase() + c.slice(1).replace(/-/g, ' ')}
-          </Text>
-        </CustomOutlineButton>
-      ))}
+            <Checkbox
+              value={isChecked}
+              onValueChange={() => {
+                let newCategories: Category[] = [];
+                const currentCategories = statusForm.category || [];
+
+                if (currentCategories.includes(c)) {
+                  newCategories = currentCategories.filter((cat: Category) => cat !== c);
+                } else {
+                  newCategories = [...currentCategories, c];
+                }
+
+                handleInputChange('category', newCategories as any);
+              }}
+              color={isChecked ? (isDark ? Colors.brand.dark : Colors.brand.light) : undefined}
+              style={styles.checkbox}
+            />
+            <Text
+              style={{
+                color: isDark ? Colors.text.dark : Colors.text.light,
+                fontSize: 16,
+              }}
+            >
+              {c.charAt(0).toUpperCase() + c.slice(1).replace(/-/g, ' ')}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>,
 
     formData?.image ? (
@@ -1487,5 +1496,14 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     width: '100%',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  checkbox: {
+    width: 25,
+    height: 25,
   },
 });

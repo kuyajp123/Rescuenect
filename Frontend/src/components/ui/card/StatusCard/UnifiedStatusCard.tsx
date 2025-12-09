@@ -1,5 +1,6 @@
 import { Map } from '@/components/ui/Map';
-import { Category, StatusDataCard } from '@/types/types';
+import { parseCategory } from '@/helper/commonHelpers';
+import { StatusDataCard } from '@/types/types';
 import { Avatar, Button, Card, CardBody, CardFooter, CardHeader, Chip, Image } from '@heroui/react';
 import { Clock, MapPin } from 'lucide-react';
 
@@ -22,7 +23,12 @@ export const UnifiedStatusCard = ({ data, mode = 'residentProfile', onViewDetail
   }) => {
     const seconds = timestamp._seconds || timestamp.seconds || 0;
     const date = new Date(seconds * 1000);
-    return date.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString('en-PH', {
+      timeZone: 'Asia/Manila',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
   };
 
   const getConditionColor = (condition: string) => {
@@ -40,7 +46,7 @@ export const UnifiedStatusCard = ({ data, mode = 'residentProfile', onViewDetail
     }
   };
 
-  const getStatusTypeColor = (statusType: string) => { 
+  const getStatusTypeColor = (statusType: string) => {
     switch (statusType) {
       case 'current':
         return 'success';
@@ -49,28 +55,6 @@ export const UnifiedStatusCard = ({ data, mode = 'residentProfile', onViewDetail
       default:
         return 'danger';
     }
-  }
-
-  const parseCategory = (category: Category[] | string): Category[] => {
-    if (Array.isArray(category)) {
-      return category;
-    }
-
-    if (typeof category === 'string' && category) {
-      try {
-        let cleanedCategory = category.trim();
-        if (cleanedCategory.startsWith('"') && cleanedCategory.endsWith('"')) {
-          cleanedCategory = cleanedCategory.slice(1, -1);
-        }
-        cleanedCategory = cleanedCategory.replace(/^\n*"?|"?\n*$/g, '');
-        return JSON.parse(cleanedCategory);
-      } catch (e) {
-        if (category.includes(',')) {
-          return category.split(',').map(c => c.trim()) as Category[];
-        }
-      }
-    }
-    return [];
   };
 
   const parsedCategory = parseCategory(data.category);

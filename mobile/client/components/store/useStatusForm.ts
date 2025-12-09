@@ -1,5 +1,5 @@
-import { create } from 'zustand';
 import { StatusStateData } from '@/types/components';
+import { create } from 'zustand';
 
 type StatusFormStore = {
   formData: StatusStateData | null;
@@ -31,9 +31,9 @@ export const useStatusFormStore = create<StatusFormStore>(set => ({
   isLoading: false,
   error: false,
   setFormData: data =>
-    set(state => ({
-      formData: state.formData ? { ...state.formData, ...data } : data,
-    })),
+    set({
+      formData: data,
+    }),
   setLoading: loading => set({ isLoading: loading }),
   setError: (error: boolean) => set({ error }),
   resetFormData: () => set({ formData: null, error: false }),

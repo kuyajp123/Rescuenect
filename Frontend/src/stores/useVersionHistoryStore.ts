@@ -1,23 +1,6 @@
+import { StatusDataCard } from '@/types/types';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
-interface VersionHistoryItem {
-  versionId: string;
-  parentId: string;
-  uid: string;
-  // Add other version fields you might need
-  updatedAt: string;
-  createdAt: string;
-  profileImage: string;
-  firstName: string;
-  lastName: string;
-  note?: string;
-  location: string;
-  lat: number;
-  lng: number;
-  condition: string;
-  statusType: 'current' | 'history' | 'deleted';
-}
 
 export interface VersionHistoryState {
   // Current parent ID for fetching versions
@@ -25,7 +8,7 @@ export interface VersionHistoryState {
 
   uid: string;
   // List of version history items
-  versions: VersionHistoryItem[];
+  versions: StatusDataCard[];
   // Loading state
   isLoading: boolean;
   // Error state
@@ -38,7 +21,7 @@ interface VersionHistoryActions {
   // Set the user ID
   setUid: (uid: string) => void;
   // Set the versions data
-  setVersions: (versions: VersionHistoryItem[]) => void;
+  setVersions: (versions: StatusDataCard[]) => void;
   // Set loading state
   setLoading: (isLoading: boolean) => void;
   // Set error state
@@ -62,7 +45,7 @@ export const useVersionHistoryStore = create<VersionHistoryStore>()(
       // Actions
       setParentId: (parentId: string) => set({ currentParentId: parentId }),
       setUid: (uid: string) => set({ uid }),
-      setVersions: (versions: VersionHistoryItem[]) => set({ versions }),
+      setVersions: (versions: StatusDataCard[]) => set({ versions }),
       setLoading: (isLoading: boolean) => set({ isLoading }),
       setError: (error: string | null) => set({ error }),
       resetData: () =>

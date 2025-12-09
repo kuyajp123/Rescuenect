@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from '@/config/endPoints';
+import { Category } from '@/types/types';
 import axios from 'axios';
 import { differenceInHours, differenceInMinutes, formatDistanceToNow } from 'date-fns';
 import { useLocation } from 'react-router-dom';
@@ -144,7 +145,6 @@ export const saveFCMtoken = async (fcmToken: string, user: any) => {
   try {
     // Update token in backend
     if (user && user.uid) {
-
       const idToken = await user.getIdToken();
 
       const response = await axios.put(
@@ -169,7 +169,6 @@ export const saveFCMtoken = async (fcmToken: string, user: any) => {
   }
 };
 
-
 // get selected value text based on selected value
 export function getSelectedStatusText({ allStatusesSelected, selectedStatuses, statusOptions, statuses }: any) {
   // If everything is selected
@@ -187,3 +186,25 @@ export function getSelectedStatusText({ allStatusesSelected, selectedStatuses, s
   // Convert selected keys → labels
   return individualSelected.map((status: any) => statuses.find((s: any) => s.key === status)?.label).join(', ');
 }
+
+//helper function to parse the category string to return array
+export const parseCategory = (category: Category[] | string): Category[] => {
+  if (Array.isArray(category)) return category;
+  if (typeof category !== 'string') return [];
+
+  const trimmed = category.trim();
+
+  try {
+    if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+      const unquoted = trimmed.slice(1, -1).replace(/\\"/g, '"');
+      return JSON.parse(unquoted);
+    }
+    return JSON.parse(trimmed);
+  } catch {
+    try {
+      return trimmed.split(',').map((c: string) => c.trim() as Category);
+    } catch {
+      return [];
+    }
+  }
+};

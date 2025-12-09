@@ -1,8 +1,9 @@
+import { parseCategory } from '@/helper/commonHelpers';
 import { useResidentsStore } from '@/hooks/useFetchResidents';
 import { useAllStatusStore } from '@/stores/useAllStatusStore';
 import { useEarthquakeStore } from '@/stores/useEarthquakeStore';
 import { useStatusStore } from '@/stores/useStatusStore';
-import { Category, StatusData } from '@/types/types';
+import { StatusData } from '@/types/types';
 import { Card, CardBody, CardHeader, Chip } from '@heroui/react';
 import { Activity, AlertTriangle, Calendar, TrendingUp, Users } from 'lucide-react';
 import { useMemo } from 'react';
@@ -23,28 +24,6 @@ import {
 } from 'recharts';
 
 const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'];
-
-// Helper function to parse categories
-const parseCategory = (category: Category[] | string): Category[] => {
-  if (Array.isArray(category)) return category;
-  if (typeof category !== 'string') return [];
-
-  const trimmed = category.trim();
-
-  try {
-    if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
-      const unquoted = trimmed.slice(1, -1).replace(/\\"/g, '"');
-      return JSON.parse(unquoted);
-    }
-    return JSON.parse(trimmed);
-  } catch {
-    try {
-      return trimmed.split(',').map((c: string) => c.trim() as Category);
-    } catch {
-      return [];
-    }
-  }
-};
 
 // Helper to get timestamp in milliseconds
 const getTimestamp = (date: any): number => {

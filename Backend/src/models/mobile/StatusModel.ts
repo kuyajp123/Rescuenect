@@ -31,17 +31,25 @@ export class StatusModel {
         throw new Error(`Invalid userId provided: ${userId}`);
       }
 
-      // Check if user already has an active status
+      // Check if user already has an active (current) status
+      // Note: We only look for 'current' status, not 'deleted' or 'history'
       const existingStatusQuery = await this.pathRef(userId).where('statusType', '==', 'current').limit(1).get();
 
       if (!existingStatusQuery.empty) {
-        // Update existing status instead of creating new one
+        // Update existing current status instead of creating new one
         const existingDoc = existingStatusQuery.docs[0];
         const existingData = existingDoc.data();
-        return await StatusModel.conditionalUpdateStatus(userId, existingData.parentId, statusData);
+
+        // Double-check the status is actually current (not deleted)
+        if (existingData.statusType !== 'current') {
+          console.log("⚠️ Found status but it's not current, creating new branch");
+          // Fall through to create new status
+        } else {
+          return await StatusModel.conditionalUpdateStatus(userId, existingData.parentId, statusData);
+        }
       }
 
-      // Generate IDs for new status
+      // Generate IDs for new status (new branch)
       const parentId = `status-${Date.now()}`;
       const versionId = `${parentId}-v1`;
 
@@ -62,12 +70,13 @@ export class StatusModel {
         imageUrl = await ImageUploadService.uploadStatusImage(file, userId, parentId, versionId);
       }
 
-      // Create the status document
+      // Create the status document - DO NOT include 'id' field, versionId is the document ID
       await statusRef.set({
+        ...statusData,
+        uid: userId, // Important: always set uid (override any uid in statusData)
         parentId: parentId,
         versionId: versionId,
         statusType: 'current',
-        ...statusData,
         image: imageUrl || '', // Use uploaded image URL or empty string
         expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
         retentionUntil: admin.firestore.Timestamp.fromDate(retentionUntil),
@@ -160,11 +169,18 @@ export class StatusModel {
         .get();
 
       if (currentQuery.empty) {
-        throw new Error('Current status not found');
+        throw new Error(`Current status not found for parentId: ${parentId}. Status may have been deleted.`);
       }
 
       const currentDoc = currentQuery.docs[0];
       const currentData = currentDoc.data();
+
+      // Additional safety check: ensure the found status is actually current
+      if (currentData.statusType !== 'current') {
+        throw new Error(
+          `Status found but is not current (${currentData.statusType}). Cannot update deleted/history status.`
+        );
+      }
 
       const allVersionsQuery = await this.pathRef(userId).where('parentId', '==', parentId).get();
 

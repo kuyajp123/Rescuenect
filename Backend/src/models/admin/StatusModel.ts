@@ -82,10 +82,30 @@ export class StatusModel {
         const data = doc.data();
         const parentId = data.parentId;
 
-        // If we haven't seen this parentId yet, store it (since we're ordered by createdAt desc, first is latest)
-        if (!statusMap.has(parentId)) {
+        // Get the current entry for this parentId (if any)
+        const existing = statusMap.get(parentId);
+
+        // Priority logic:
+        // 1. Always prefer 'current' status over others
+        // 2. If both are current or neither is current, prefer the one with latest createdAt
+        if (!existing) {
+          // First time seeing this parentId
           statusMap.set(parentId, { id: doc.id, ...data });
           processedCount++;
+        } else {
+          const existingTime = existing.createdAt?._seconds || 0;
+          const currentTime = data.createdAt?._seconds || 0;
+
+          // Replace if:
+          // - New status is 'current' and existing is not
+          // - Both have same statusType but new one is more recent
+          const shouldReplace =
+            (data.statusType === 'current' && existing.statusType !== 'current') ||
+            (data.statusType === existing.statusType && currentTime > existingTime);
+
+          if (shouldReplace) {
+            statusMap.set(parentId, { id: doc.id, ...data });
+          }
         }
       });
 
@@ -96,9 +116,12 @@ export class StatusModel {
         return bTime - aTime;
       });
 
+      console.log(
+        `✅ Processed ${processedCount} unique parent statuses from ${allStatusesSnapshot.docs.length} total versions`
+      );
       return allLatestStatuses;
     } catch (error) {
-      console.error('❌ Error in UnifiedModel.getAllLatestStatuses:', error);
+      console.error('❌ Error in StatusModel.getAllLatestStatuses:', error);
       throw error;
     }
   }
