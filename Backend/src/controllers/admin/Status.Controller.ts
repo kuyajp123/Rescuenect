@@ -51,4 +51,37 @@ export class StatusController {
       });
     }
   }
+
+  static async resolveStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const uid = req.body.uid as string;
+    const versionId = req.body.versionId as string;
+    const resolvedNote = req.body.resolvedNote as string;
+
+    // Validate required parameters
+    if (!uid || !versionId || !resolvedNote) {
+      console.error('❌ Missing required parameters:', { uid, versionId, resolvedNote });
+      res.status(400).json({
+        message: 'Missing required parameters: uid, versionId, and resolvedNote are required',
+        received: { uid, versionId, resolvedNote },
+      });
+      return;
+    }
+
+    try {
+      await StatusModel.resolveStatus(uid, versionId, resolvedNote);
+      res.json({
+        success: true,
+        message: 'Status resolved successfully',
+      });
+      return;
+    } catch (error) {
+      console.error('❌ Error in resolveStatus:', error);
+      res.status(500).json({
+        message: 'Internal Server Error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: process.env.NODE_ENV === 'development' ? (error as Error)?.stack : undefined,
+      });
+      return;
+    }
+  }
 }

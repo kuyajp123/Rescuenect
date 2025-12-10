@@ -67,10 +67,8 @@ function App() {
       } catch (error) {
         console.error('Failed to enable notifications:', error);
       }
-      console.log('enableNotification called');
     };
     enableNotification();
-    console.log('enableNotification effect ran');
   }, [authUser]);
 
   useEarthquakeSnapshot();

@@ -59,7 +59,7 @@ const notificationDetails = () => {
 
   useEffect(() => {
     const markNotificationAsRead = async () => {
-      if (!authUser?.uid || !notificationId) return;
+      if (!authUser?.uid || !notificationId || !notification) return;
 
       const idToken = await authUser?.getIdToken();
       try {
@@ -67,7 +67,7 @@ const notificationDetails = () => {
           API_ROUTES.NOTIFICATION.MARK_AS_READ,
           {
             notificationId,
-            userId: authUser?.uid,
+            uid: authUser?.uid,
           },
           {
             headers: { Authorization: `Bearer ${idToken}` },
@@ -80,8 +80,34 @@ const notificationDetails = () => {
       }
     };
 
-    markNotificationAsRead();
-  }, []);
+    const markNotificationAsReadInStatusResolved = async () => {
+      if (!authUser?.uid || !notificationId) return;
+
+      const idToken = await authUser?.getIdToken();
+      try {
+        await axios.post(
+          API_ROUTES.NOTIFICATION.MARK_AS_READ_IN_STATUS_RESOLVED,
+          {
+            notificationId,
+            uid: authUser?.uid,
+          },
+          {
+            headers: { Authorization: `Bearer ${idToken}` },
+          }
+        );
+
+        markAsRead(notificationId, authUser.uid);
+      } catch (error) {
+        console.error('❌ Error marking notification as read:', error);
+      }
+    };
+
+    if (notification?.type === 'status_resolved') {
+      markNotificationAsReadInStatusResolved();
+    } else {
+      markNotificationAsRead();
+    }
+  }, [notification, authUser?.uid, notificationId]);
 
   // Get icon based on notification type
   const getNotificationIcon = (type: BaseNotification['type']) => {
@@ -95,6 +121,8 @@ const notificationDetails = () => {
         return <Cloud color={iconColor} size={size} />;
       case 'emergency':
         return <AlertCircle color={iconColor} size={size} />;
+      case 'status_resolved':
+        return <MapPin color={iconColor} size={size} />;
       default:
         return <Bell color={iconColor} size={size} />;
     }
@@ -199,10 +227,14 @@ const notificationDetails = () => {
 
           {/* Location */}
           <View style={styles.locationRow}>
-            {notification.type === 'earthquake' ? null : (
+            {notification.type === 'earthquake' ? null : notification.type === 'status_resolved' ? null : (
               <>
                 <MapPin size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-                <Text size="sm">{notification.type === 'weather' ? formatToCapitalized(userData.barangay) : null}</Text>
+                <Text size="sm">
+                  {notification.type === 'weather'
+                    ? formatToCapitalized(userData.barangay)
+                    : notification.location?.replace('_', ' ').toUpperCase()}
+                </Text>
               </>
             )}
           </View>

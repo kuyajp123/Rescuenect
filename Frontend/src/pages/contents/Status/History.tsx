@@ -77,7 +77,7 @@ interface FirebaseStatusData {
 
 export const columns = [
   // { uid: 'no', name: 'NO' },
-  { uid: 'vid', name: 'VERSION ID' },
+  { uid: 'no', name: 'NO' },
   { uid: 'name', name: 'NAME' },
   { uid: 'condition', name: 'CONDITION' },
   { uid: 'location', name: 'LOCATION' },
@@ -90,7 +90,7 @@ export const columns = [
 export const users = [
   {
     id: '1',
-    vid: 'status-123456-v1',
+    no: '1',
     email: 'john.doe@example.com',
     profileImage: 'https://i.pravatar.cc/150?u=a042581f4e29026024d',
     firstName: 'John',
@@ -119,12 +119,14 @@ const statusColorMap: Record<string, string> = {
   current: 'text-green-500',
   history: 'text-yellow-500',
   deleted: 'text-red-500',
+  resolved: 'text-primary',
 };
 
 export const statusOptions = [
   { name: 'Active', uid: 'current' },
   { name: 'History', uid: 'history' },
   { name: 'Deleted', uid: 'deleted' },
+  { name: 'Resolved', uid: 'resolved' },
 ];
 
 export const conditionsOptions = [
@@ -183,7 +185,7 @@ export const StatusHistory = () => {
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [statusChanges, setStatusChanges] = React.useState(false);
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-    column: 'status',
+    column: 'createdAt',
     direction: 'ascending',
   });
 
@@ -525,9 +527,7 @@ export const StatusHistory = () => {
               onChange={onRowsPerPageChange}
             >
               <option value="5">5</option>
-              <option selected value="10">
-                10
-              </option>
+              <option selected value="10">10</option>
               <option value="15">15</option>
             </select>
           </label>

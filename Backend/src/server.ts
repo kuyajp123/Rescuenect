@@ -29,27 +29,6 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/', mainRouter);
 
-app.post('/send-notification', async (req, res) => {
-  try {
-    const { token, title, body, data } = req.body;
-
-    const message = {
-      notification: {
-        title: title || 'Default Title',
-        body: body || 'Default Message',
-      },
-      data: data || {}, // optional: to pass screen info, etc.
-      token, // this is the device FCM token
-    };
-
-    const response = await admin.messaging().send(message);
-    res.json({ success: true, messageId: response });
-  } catch (error: any) {
-    console.error('❌ Error sending notification:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
 app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
   console.error('Error occurred:', err);
   res.status(500).json({ error: 'Internal Server Error' });

@@ -18,7 +18,7 @@ export interface BaseNotification {
   hiddenBy?: string[]; // User IDs who have hidden/deleted from their view
 
   // Location/barangay targeting
-  location: string; // weather zone or specific barangay
+  location?: string; // weather zone or specific barangay
   barangays?: string[]; // List of affected barangays
 
   // Audience targeting
@@ -47,7 +47,8 @@ export type NotificationType =
   | 'system'
   | 'evacuation'
   | 'flood'
-  | 'typhoon';
+  | 'typhoon'
+  | 'status_resolved';
 
 /**
  * Weather notification severity levels

@@ -50,6 +50,8 @@ export const StatusPanel = ({ data }: { data: any }) => {
         return 'success';
       case 'history':
         return 'warning';
+      case 'resolved':
+        return 'primary';
       default:
         return 'danger';
     }
@@ -270,6 +272,18 @@ export const StatusPanel = ({ data }: { data: any }) => {
                       <span className="font-semibold text-red-500">{formatTimestamp(data.data.deletedAt)}</span>
                     </div>
                   )}
+                  {data.data.resolvedAt && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-500">Resolved:</span>
+                      <span className="font-semibold text-primary">{formatTimestamp(data.data.resolvedAt)}</span>
+                    </div>
+                  )}
+                  {data.data.resolvedNote && (
+                    <div className="flex flex-col gap-1 text-xs">
+                      <span className="text-gray-500">Resolved Note:</span>
+                      <span className="font-semibold break-words whitespace-pre-wrap">{data.data.resolvedNote}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-2 border-t">
@@ -383,6 +397,18 @@ export const StatusPanel = ({ data }: { data: any }) => {
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-gray-500">Deleted:</span>
                       <span className="font-semibold text-red-500">{formatTimestamp(data.data.deletedAt)}</span>
+                    </div>
+                  )}
+                  {data.data.resolvedAt && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-500">Resolved:</span>
+                      <span className="font-semibold text-primary">{formatTimestamp(data.data.resolvedAt)}</span>
+                    </div>
+                  )}
+                  {data.data.resolvedNote && (
+                    <div className="flex flex-col gap-1 text-xs">
+                      <span className="text-gray-500">Resolved Note:</span>
+                      <span className="font-semibold break-words whitespace-pre-wrap">{data.data.resolvedNote}</span>
                     </div>
                   )}
                 </div>

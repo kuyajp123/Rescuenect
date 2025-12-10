@@ -79,4 +79,46 @@ export class UserDataController {
       res.status(500).json({ message: 'Internal server error' });
     }
   }
+
+  static async markNotificationAsReadInStatusResolvedController(req: Request, res: Response): Promise<void> {
+    const { uid, notificationId } = req.body;
+
+    if (!uid || !notificationId) {
+      res.status(400).json({ message: 'Missing required fields' });
+      return;
+    }
+
+    try {
+      const result = await UserDataModel.markNotificationAsReadInStatusResolved(uid, notificationId);
+      res.status(200).json({
+        message: 'Notification marked as read successfully',
+        notificationId: result.notificationId,
+        operationType: result.operationType,
+      });
+    } catch (error: any) {
+      console.error('Error marking notification as read:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+
+  static async markNotificationAsDeletedController(req: Request, res: Response): Promise<void> {
+    const { uid, notificationId } = req.body;
+
+    if (!uid || !notificationId) {
+      res.status(400).json({ message: 'Missing required fields' });
+      return;
+    }
+
+    try {
+      const result = await UserDataModel.markNotificationAsDeleted(uid, notificationId);
+      res.status(200).json({
+        message: 'Notification marked as deleted successfully',
+        notificationId: result.notificationId,
+        operationType: result.operationType,
+      });
+    } catch (error: any) {
+      console.error('Error marking notification as deleted:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  }
 }

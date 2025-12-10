@@ -11,7 +11,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import type { BaseNotification } from '@/types/notification';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
-import { Activity, AlertCircle, Bell, Cloud } from 'lucide-react-native';
+import { Activity, AlertCircle, Bell, Cloud, MapPin } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -37,6 +37,8 @@ const index = () => {
         return <Cloud color={iconColor} size={24} />;
       case 'emergency':
         return <AlertCircle color={iconColor} size={24} />;
+      case 'status_resolved':
+        return <MapPin color={iconColor} size={24} />;
       default:
         return <Bell color={iconColor} size={24} />;
     }
@@ -78,7 +80,9 @@ const index = () => {
   };
 
   // Handle notification deletion
-  const handleDeleteNotification = async (notification: BaseNotification) => {
+  const handleNotificationAction = async (notification: BaseNotification) => {
+    const idToken = await authUser?.getIdToken();
+
     if (!authUser?.uid) {
       Alert.alert('Error', 'You must be logged in to delete notifications');
       return;
@@ -93,38 +97,69 @@ const index = () => {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          setDeletingId(notification.id);
-          try {
-            // Get ID token from Firebase Auth
-            const idToken = await authUser.getIdToken();
-
-            // Call API to mark as hidden
-            const response = await axios.post(
-              API_ROUTES.NOTIFICATION.MARK_AS_HIDDEN,
-              {
-                notificationId: notification.id,
-                userId: authUser.uid,
-              },
-              {
-                headers: { Authorization: `Bearer ${idToken}` },
-              }
-            );
-
-            if (response.status === 500 || response.status === 400) {
-              throw new Error('Failed to delete notification');
-            }
-
-            // Update local state
-            markAsHidden(notification.id, authUser.uid);
-          } catch (error) {
-            console.error('Error deleting notification:', error);
-            Alert.alert('Error', 'Failed to delete notification. Please try again.');
-          } finally {
-            setDeletingId(null);
+          console.log(notification);
+          if (notification.type === 'status_resolved') {
+            notificationMarkAsDeleted(notification.id, authUser.uid, idToken);
+          } else {
+            notificationMarkAsHidden(notification.id, authUser.uid, idToken);
           }
         },
       },
     ]);
+  };
+
+  const notificationMarkAsHidden = async (id: BaseNotification['id'], uid: string, idToken: any) => {
+    console.log('Notification marked as hidden');
+    try {
+      // Call API to mark as hidden
+      const response = await axios.post(
+        API_ROUTES.NOTIFICATION.MARK_AS_HIDDEN,
+        {
+          notificationId: id,
+          uid: uid,
+        },
+        {
+          headers: { Authorization: `Bearer ${idToken}` },
+        }
+      );
+
+      if (response.status === 500 || response.status === 400) {
+        throw new Error('Failed to delete notification');
+      }
+
+      // Update local state
+      markAsHidden(id, uid);
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      Alert.alert('Error', 'Failed to delete notification. Please try again.');
+    }
+  };
+
+  const notificationMarkAsDeleted = async (id: BaseNotification['id'], uid: string, idToken: any) => {
+    console.log('Notification marked as deleted');
+    try {
+      // Call API to mark as deleted
+      const response = await axios.post(
+        API_ROUTES.NOTIFICATION.MARK_AS_DELETED,
+        {
+          notificationId: id,
+          uid: uid,
+        },
+        {
+          headers: { Authorization: `Bearer ${idToken}` },
+        }
+      );
+
+      if (response.status === 500 || response.status === 400) {
+        throw new Error('Failed to delete notification');
+      }
+
+      // Update local state
+      markAsHidden(id, uid);
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      Alert.alert('Error', 'Failed to delete notification. Please try again.');
+    }
   };
 
   if (notifications.length === 0) {
@@ -255,7 +290,7 @@ const index = () => {
               }}
               onLongPress={() => {
                 if (deletingId === notification.id) return;
-                handleDeleteNotification(notification);
+                handleNotificationAction(notification);
               }}
             >
               <View style={styles.notificationContent}>
@@ -282,7 +317,7 @@ const index = () => {
                       ? formatToCapitalized(userData?.barangay)
                       : notification.type === 'earthquake'
                       ? (notification.data as { place?: string })?.place
-                      : notification.location.replace('_', ' ').toUpperCase()}
+                      : notification.location?.replace('_', ' ').toUpperCase()}
                   </Text>
                   <Text size="xs" emphasis="light">
                     {formatTime(notification.timestamp)}

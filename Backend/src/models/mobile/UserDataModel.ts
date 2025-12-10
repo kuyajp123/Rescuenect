@@ -64,7 +64,7 @@ export class UserDataModel {
     }
   }
 
-  static async deleteLocationData(uid: string, id: string) { 
+  static async deleteLocationData(uid: string, id: string) {
     try {
       const ref = this.pathRef(uid);
       const doc = await ref.get();
@@ -88,6 +88,68 @@ export class UserDataModel {
       }
     } catch (error) {
       console.error('Error deleting location data:', error);
+      throw error;
+    }
+  }
+
+  static async markNotificationAsReadInStatusResolved(uid: string, notificationId: string) {
+    try {
+      const ref = this.pathRef(uid);
+      const doc = await ref.get();
+      if (doc.exists) {
+        const existingData = doc.data();
+        const existingNotifications = existingData?.notifications || [];
+
+        // Filter out the notification to be marked as read
+        const updatedNotifications = existingNotifications.map((notification: any) => {
+          if (notification.id === notificationId) {
+            return { ...notification, read: true };
+          }
+          return notification;
+        });
+
+        await ref.set(
+          {
+            notifications: updatedNotifications,
+          },
+          { merge: true }
+        );
+
+        return { uid, notificationId, operationType: 'updated' };
+      } else {
+        throw new Error('User data not found');
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      throw error;
+    }
+  }
+
+  static async markNotificationAsDeleted(uid: string, notificationId: string) {
+    try {
+      const ref = this.pathRef(uid);
+      const doc = await ref.get();
+      if (doc.exists) {
+        const existingData = doc.data();
+        const existingNotifications = existingData?.notifications || [];
+
+        const deletedNotification = existingNotifications.filter(
+          (notification: any) => notification.id !== notificationId
+        );
+
+        await ref.set(
+          {
+            notifications: deletedNotification,
+          },
+          { merge: true }
+        );
+
+        return { uid, notificationId, operationType: 'deleted' };
+      } else {
+        throw new Error('User data not found');
+      }
+    } catch (error) {
+      console.error('Error marking notification as deleted:', error);
       throw error;
     }
   }

@@ -26,7 +26,6 @@ export const useAllLatestStatuses = () => {
         return;
       }
 
-      console.log('Fetching all latest statuses...');
       const response = await axios.get<{ statuses: any[] }>(API_ENDPOINTS.RESIDENTS.GET_ALL_LATEST_STATUSES, {
         headers: {
           Authorization: `Bearer ${idToken}`,

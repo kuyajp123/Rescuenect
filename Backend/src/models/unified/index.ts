@@ -35,11 +35,11 @@ export class UnifiedModel {
     }
   }
 
-  public static async markNotificationAsRead(notificationId: string, userId: string) {
+  public static async markNotificationAsRead(notificationId: string, uid: string) {
     try {
       const docRef = db.collection('notifications').doc(notificationId);
       await docRef.update({
-        readBy: FieldValue.arrayUnion(userId),
+        readBy: FieldValue.arrayUnion(uid),
       });
     } catch (error) {
       console.error('❌ Error in UnifiedModel.markNotificationAsRead:', error);
@@ -47,11 +47,11 @@ export class UnifiedModel {
     }
   }
 
-  public static async markNotificationAsHidden(notificationId: string, userId: string) {
+  public static async markNotificationAsHidden(notificationId: string, uid: string) {
     try {
       const docRef = db.collection('notifications').doc(notificationId);
       await docRef.update({
-        hiddenBy: FieldValue.arrayUnion(userId),
+        hiddenBy: FieldValue.arrayUnion(uid),
       });
     } catch (error) {
       console.error('❌ Error in UnifiedModel.markNotificationAsHidden:', error);
@@ -59,12 +59,12 @@ export class UnifiedModel {
     }
   }
 
-  public static async getResidentStatuses(userId: string) {
+  public static async getResidentStatuses(uid: string) {
     try {
       // Get all statuses for this user
       const snapshot = await db
         .collection('status')
-        .doc(userId)
+        .doc(uid)
         .collection('statuses')
         .orderBy('createdAt', 'desc')
         .get();
@@ -97,14 +97,14 @@ export class UnifiedModel {
     }
   }
 
-  public static async markAllNotificationsAsRead(userId: string, notificationIds: string[]) {
+  public static async markAllNotificationsAsRead(uid: string, notificationIds: string[]) {
     try {
       const batch = db.batch();
 
       notificationIds.forEach(notificationId => {
         const docRef = db.collection('notifications').doc(notificationId);
         batch.update(docRef, {
-          readBy: FieldValue.arrayUnion(userId),
+          readBy: FieldValue.arrayUnion(uid),
         });
       });
       await batch.commit();

@@ -19,7 +19,6 @@ export const evacuation = () => {
       try {
         const response = await axios.get<EvacuationCenter[]>(API_ROUTES.EVACUATION.GET_CENTERS);
 
-        // console.log('Evacuation Centers:', JSON.stringify(response.data, null, 2));
         setEvacuationCenters(response.data);
       } catch (error) {
         console.error('Error fetching evacuation centers:', error);
@@ -47,5 +46,4 @@ export default evacuation;
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 0 },
-  map: { flex: 1 },
 });

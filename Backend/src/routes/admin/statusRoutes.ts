@@ -10,4 +10,6 @@ statusRoutes.get('/getVersions', StatusController.getVersions);
 
 statusRoutes.get('/getAllLatestStatuses', StatusController.getAllLatestStatuses);
 
+statusRoutes.put('/resolvedStatus', StatusController.resolveStatus);
+
 export default statusRoutes;

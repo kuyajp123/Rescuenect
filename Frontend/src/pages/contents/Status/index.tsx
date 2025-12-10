@@ -2,9 +2,24 @@ import { SecondaryButton } from '@/components/ui/button';
 import { StatusCard } from '@/components/ui/card/StatusCard';
 import { Map } from '@/components/ui/Map';
 import { StatusList } from '@/components/ui/status';
+import { API_ENDPOINTS } from '@/config/endPoints';
+import { auth } from '@/lib/firebaseConfig';
 import { useStatusStore } from '@/stores/useStatusStore';
 import { MapMarkerData } from '@/types/types';
-import { Select, SelectItem } from '@heroui/react';
+import {
+  Button,
+  Drawer,
+  DrawerBody,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  Form,
+  Select,
+  SelectItem,
+  Textarea,
+  useDisclosure,
+} from '@heroui/react';
+import axios from 'axios';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -19,7 +34,38 @@ const Status = () => {
   const [selectedStatuses, setSelectedStatuses] = useState(new Set(['all']));
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const statusData = useStatusStore(state => state.statusData);
+  const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
   const navigate = useNavigate();
+  const admin = auth.currentUser;
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const note = formData.get('note') as string;
+    const idToken = await admin?.getIdToken();
+
+    if (!selectedItem) return;
+
+    try {
+      await axios.put(
+        API_ENDPOINTS.STATUS.RESOLVED_STATUS,
+        {
+          uid: selectedItem.uid,
+          versionId: selectedItem.versionId || selectedItem.vid,
+          resolvedNote: note,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
+
+      onClose(); // Close the drawer
+    } catch (error) {
+      console.error('Error resolving status:', error);
+    }
+  };
 
   const statusCount = statusData.length;
   const safeCount = statusData.filter(item => item.condition === 'safe').length;
@@ -182,6 +228,11 @@ const Status = () => {
               vid={selectedItem.versionId}
               category={selectedItem.category}
               people={selectedItem.people}
+              onResolved={() => {
+                onOpen();
+              }}
+              onViewDetails={() => {}}
+              onViewProfile={() => {}}
             />
           ) : (
             <div className="text-center flex h-full items-center justify-center">
@@ -189,6 +240,29 @@ const Status = () => {
             </div>
           )}
         </div>
+        <Drawer isOpen={isOpen} onOpenChange={onOpenChange}>
+          <DrawerContent>
+            {onClose => (
+              <>
+                <Form onSubmit={handleSubmit}>
+                  <DrawerHeader className="flex flex-col gap-1">Complete Resident Status</DrawerHeader>
+                  <DrawerBody>
+                    <p className="mb-4">Are you sure you want to complete this resident status?</p>
+                    <Textarea label="Leave some notes" placeholder="Enter note" labelPlacement="outside" name="note" />
+                  </DrawerBody>
+                  <DrawerFooter>
+                    <Button color="danger" variant="light" onPress={onClose}>
+                      Cancel
+                    </Button>
+                    <Button color="primary" type="submit">
+                      Confirm
+                    </Button>
+                  </DrawerFooter>
+                </Form>
+              </>
+            )}
+          </DrawerContent>
+        </Drawer>
       </div>
     </div>
   );

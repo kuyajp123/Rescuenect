@@ -153,6 +153,9 @@ export type StatusTemplateProps = Omit<
   style?: React.CSSProperties;
   className?: string;
   vid?: string;
+  onResolved?: () => void;
+  onViewDetails?: () => void;
+  onViewProfile?: () => void;
 };
 
 // Define the data structure for map markers

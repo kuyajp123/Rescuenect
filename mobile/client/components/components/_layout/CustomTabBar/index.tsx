@@ -26,9 +26,9 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
     sheet.hide('FAB');
   };
 
-  const handleCityNeedsPress = () => {
+  const handleCityReportsPress = () => {
     // Add navigation to city needs page here if needed
-    router.push('status/cityNeeds' as any);
+    router.push('status/cityReports' as any);
     const sheet = require('react-native-actions-sheet').SheetManager;
     sheet.hide('FAB');
   };
@@ -41,10 +41,10 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
       onPress: handleCreateStatusPress,
     },
     {
-      id: 'cityNeeds',
-      name: 'City Needs',
+      id: 'cityReports',
+      name: 'City Reports',
       icon: <MapPlus size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-      onPress: handleCityNeedsPress,
+      onPress: handleCityReportsPress,
     },
   ];
 

@@ -52,6 +52,8 @@ export const UnifiedStatusCard = ({ data, mode = 'residentProfile', onViewDetail
         return 'success';
       case 'history':
         return 'warning';
+      case 'resolved':
+        return 'primary';
       default:
         return 'danger';
     }

@@ -37,7 +37,7 @@ const _layout = () => {
         }}
       />
       <Stack.Screen
-        name="cityNeeds"
+        name="cityReports"
         options={{
           headerShown: false,
           animation: 'none',

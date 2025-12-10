@@ -97,6 +97,8 @@ const HistoryVersions = () => {
         return 'success';
       case 'history':
         return 'warning';
+      case 'resolved':
+        return 'primary';
       default:
         return 'danger';
     }

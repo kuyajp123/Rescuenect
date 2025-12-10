@@ -13,5 +13,7 @@ useDataRoutes.post('/saveUserInfo', SignInController.saveUserInfoController);
 useDataRoutes.post('/saveLocation', UserDataController.saveLocationController);
 useDataRoutes.get('/getLocations', UserDataController.getLocationsController);
 useDataRoutes.delete('/deleteLocation', UserDataController.deleteLocationController);
+useDataRoutes.post('/markNotificationAsReadInStatusResolved', UserDataController.markNotificationAsReadInStatusResolvedController);
+useDataRoutes.post('/markNotificationAsDeleted', UserDataController.markNotificationAsDeletedController);
 
 export default useDataRoutes;

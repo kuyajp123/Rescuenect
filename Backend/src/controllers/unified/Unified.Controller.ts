@@ -42,13 +42,13 @@ export class UnifiedController {
 
   static async markNotificationAsRead(req: Request, res: Response): Promise<void> {
     try {
-      const { notificationId, userId } = req.body;
-      if (!notificationId || !userId) {
+      const { notificationId, uid } = req.body;
+      if (!notificationId || !uid) {
         res.status(400).json({ message: 'Notification ID and User ID are required' });
         return;
       }
 
-      await UnifiedModel.markNotificationAsRead(notificationId, userId);
+      await UnifiedModel.markNotificationAsRead(notificationId, uid);
       res.status(200).json({ message: 'Notification marked as read' });
     } catch (error) {
       console.error('❌ Failed to get notification details:', {
@@ -64,13 +64,13 @@ export class UnifiedController {
 
   static async markNotificationAsHidden(req: Request, res: Response): Promise<void> {
     try {
-      const { notificationId, userId } = req.body;
-      if (!notificationId || !userId) {
+      const { notificationId, uid } = req.body;
+      if (!notificationId || !uid) {
         res.status(400).json({ message: 'Notification ID and User ID are required' });
         return;
       }
 
-      await UnifiedModel.markNotificationAsHidden(notificationId, userId);
+      await UnifiedModel.markNotificationAsHidden(notificationId, uid);
       res.status(200).json({ message: 'Notification marked as hidden' });
     } catch (error) {
       console.error('❌ Failed to get notification details:', {
@@ -108,13 +108,13 @@ export class UnifiedController {
 
   static async markAllNotificationsAsRead(req: Request, res: Response): Promise<void> {
     try {
-      const { userId, notificationId } = req.body;
-      if (!userId || !notificationId) {
+      const { uid, notificationId } = req.body;
+      if (!uid || !notificationId) {
         res.status(400).json({ message: 'User ID and Notification IDs are required' });
         return;
       }
       for (const notif of notificationId) {
-        await UnifiedModel.markNotificationAsRead(notif.notificationId, userId);
+        await UnifiedModel.markNotificationAsRead(notif.notificationId, uid);
       }
       res.status(200).json({ message: 'All notifications marked as read' });
     } catch (error) {

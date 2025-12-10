@@ -1,7 +1,7 @@
 import { useNotificationStore } from '@/components/store/useNotificationStore';
 import { db } from '@/lib/firebaseConfig';
 import type { BaseNotification } from '@/types/notification';
-import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, doc, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 
 interface UseNotificationSubscriberProps {
@@ -18,6 +18,8 @@ export const useNotificationSubscriber = ({
   const { setNotifications, setUserId } = useNotificationStore();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [globalNotifications, setGlobalNotifications] = useState<BaseNotification[]>([]);
+  const [userNotifications, setUserNotifications] = useState<BaseNotification[]>([]);
 
   useEffect(() => {
     // Set userId in store for unread count calculation
@@ -26,15 +28,14 @@ export const useNotificationSubscriber = ({
     }
   }, [userId, setUserId]);
 
+  // Global Notifications Subscription
   useEffect(() => {
-    // Build query for notifications
-    let notificationQuery = query(
+    const notificationQuery = query(
       collection(db, 'notifications'),
       orderBy('timestamp', 'desc'),
       limit(maxNotifications)
     );
 
-    // Subscribe to real-time updates
     const unsubscribe = onSnapshot(
       notificationQuery,
       snapshot => {
@@ -49,23 +50,15 @@ export const useNotificationSubscriber = ({
             };
 
             // Filter logic:
-            // 1. Always include earthquake notifications
-            // 2. For weather notifications, filter by user location
-            // 3. Include all other notification types
-
             if (notification.type === 'earthquake') {
-              // Always include earthquake notifications
               allNotifications.push(notification);
             } else if (notification.type === 'weather') {
-              // Filter weather by location
               if (!userLocation) {
-                // No location set, include all weather notifications
                 allNotifications.push(notification);
               } else {
-                // Check if notification is relevant to user's location
                 const isRelevant =
                   notification.location === userLocation ||
-                  notification.location === 'central_naic' || // Central location affects everyone
+                  notification.location === 'central_naic' ||
                   notification.barangays?.includes(userLocation) ||
                   false;
 
@@ -74,7 +67,6 @@ export const useNotificationSubscriber = ({
                 }
               }
             } else {
-              // Include all other notification types (announcement, emergency, etc.)
               allNotifications.push(notification);
             }
           });
@@ -84,27 +76,79 @@ export const useNotificationSubscriber = ({
             ? allNotifications.filter(notif => !notif.hiddenBy?.includes(userId))
             : allNotifications;
 
-          setNotifications(visibleNotifications);
+          setGlobalNotifications(visibleNotifications);
           setIsLoading(false);
-          setError(null);
         } catch (err) {
-          console.error('❌ Error processing notifications:', err);
+          console.error('❌ Error processing global notifications:', err);
           setError(err instanceof Error ? err.message : 'Failed to load notifications');
           setIsLoading(false);
         }
       },
       err => {
-        console.error('❌ Notification listener error:', err);
+        console.error('❌ Global notification listener error:', err);
         setError(err.message);
         setIsLoading(false);
       }
     );
 
-    // Cleanup subscription on unmount
-    return () => {
-      unsubscribe();
-    };
-  }, [userLocation, userId, maxNotifications, setNotifications]);
+    return () => unsubscribe();
+  }, [userLocation, userId, maxNotifications]);
 
+  // User-Specific Notifications Subscription
+  useEffect(() => {
+    if (!userId) {
+      setUserNotifications([]);
+      return;
+    }
+
+    const unsubscribe = onSnapshot(
+      doc(db, 'users', userId),
+      docSnapshot => {
+        try {
+          if (docSnapshot.exists()) {
+            const data = docSnapshot.data();
+            const notifications = data?.notifications || [];
+
+            const mappedNotifications: BaseNotification[] = notifications.map((n: any, index: number) => ({
+              id: n.id || `user-notif-${index}-${n.timestamp}`,
+              type: n.type || 'system',
+              title: n.title,
+              message: n.body,
+              timestamp: n.timestamp,
+              createdAt: new Date(n.timestamp).toISOString(),
+              location: 'status update',
+              audience: 'users',
+              sentTo: 1,
+              data: {
+                statusId: n.statusId,
+                type: n.type,
+              },
+              // If the stored notification says 'read: true', we verify it by checking if userId is in readBy for consistency,
+              // or just artificially construct readBy. BaseNotification expects readBy string[].
+              readBy: n.read ? [userId] : [],
+              hiddenBy: [], // User specific ones are likely not hidden via this mechanism yet
+            }));
+
+            setUserNotifications(mappedNotifications);
+          } else {
+            setUserNotifications([]);
+          }
+        } catch (err) {
+          console.error('❌ Error processing user notifications:', err);
+        }
+      },
+      err => {
+        console.error('❌ User notification listener error:', err);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [userId]);
+
+  // Merge and update store
+  useEffect(() => {
+    const merged = [...globalNotifications, ...userNotifications].sort((a, b) => b.timestamp - a.timestamp);
+    setNotifications(merged);
+  }, [globalNotifications, userNotifications, setNotifications]);
   return { isLoading, error };
 };

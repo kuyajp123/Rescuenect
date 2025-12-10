@@ -1,7 +1,20 @@
 import { formatTimeRemaining, formatTimeSince, parseCategory } from '@/helper/commonHelpers';
 import { StatusTemplateProps } from '@/types/types';
-import { Avatar, Card, CardBody, CardFooter, CardHeader, Chip, Image } from '@heroui/react';
-import { Ellipsis, MapPin, Phone, UserRound } from 'lucide-react';
+import {
+  Avatar,
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Chip,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+  Image,
+} from '@heroui/react';
+import { CheckCircle, EllipsisVertical, Info, MapPin, Phone, UserRound } from 'lucide-react';
 
 export const StatusCard = ({
   style,
@@ -20,6 +33,9 @@ export const StatusCard = ({
   expiresAt,
   className,
   vid,
+  onResolved,
+  onViewDetails,
+  onViewProfile,
 }: StatusTemplateProps) => {
   const parsedCategory = parseCategory(category);
 
@@ -55,8 +71,27 @@ export const StatusCard = ({
         </div>
         <div className="flex flex-col">
           <div className="flex flex-row justify-end gap-5">
-            <p className="opacity-70">{formatTimeRemaining(expiresAt)}</p>
-            <Ellipsis size={24} className="cursor-pointer opacity-70" />
+            <p className="opacity-70">
+              {formatTimeRemaining(expiresAt) === 'Expired' ? 'Expired' : 'Expires ' + formatTimeRemaining(expiresAt)}
+            </p>
+            <Dropdown>
+              <DropdownTrigger>
+                <Button isIconOnly size="sm" variant="light">
+                  <EllipsisVertical className="text-default-400" />
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu>
+                <DropdownItem key="resolved" startContent={<CheckCircle size={20} />} onPress={() => {onResolved?.()}}>
+                  Resolved
+                </DropdownItem>
+                <DropdownItem key="details" startContent={<Info size={20} />} onPress={() => {onViewDetails?.()}}>
+                  View Details
+                </DropdownItem>
+                <DropdownItem key="profile" startContent={<UserRound size={20} />} onPress={() => {onViewProfile?.()}}>
+                  View Profile
+                </DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
           </div>
           <div className="flex mt-5 items-center justify-center h-full">
             {condition === 'safe' && (

@@ -32,7 +32,9 @@ export const API_ROUTES = {
   NOTIFICATION: {
     GET_NOTIFICATION_DETAILS: `${BASE_URL}/unified/getNotificationDetails`,
     MARK_AS_READ: `${BASE_URL}/unified/markNotificationAsRead`,
+    MARK_AS_READ_IN_STATUS_RESOLVED: `${BASE_URL}/mobile/data/markNotificationAsReadInStatusResolved`,
     MARK_ALL_AS_READ: `${BASE_URL}/unified/markAllNotificationsAsRead`,
     MARK_AS_HIDDEN: `${BASE_URL}/unified/markNotificationAsHidden`,
+    MARK_AS_DELETED: `${BASE_URL}/mobile/data/markNotificationAsDeleted`,
   },
 };
