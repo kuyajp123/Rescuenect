@@ -131,7 +131,8 @@ const notificationDetails = () => {
   // Format timestamp
   const formatFullDate = (timestamp: number) => {
     const date = new Date(timestamp);
-    return date.toLocaleString('en-US', {
+    return date.toLocaleString('en-PH', {
+      timeZone: 'Asia/Manila',
       month: 'long',
       day: 'numeric',
       year: 'numeric',

@@ -58,7 +58,7 @@ export class StatusController {
     const resolvedNote = req.body.resolvedNote as string;
 
     // Validate required parameters
-    if (!uid || !versionId || !resolvedNote) {
+    if (!uid || !versionId) {
       console.error('❌ Missing required parameters:', { uid, versionId, resolvedNote });
       res.status(400).json({
         message: 'Missing required parameters: uid, versionId, and resolvedNote are required',

@@ -59,7 +59,7 @@ export class UserDataController {
     }
   }
 
-  static async deleteLocationController(req: Request, res: Response): Promise<void> { 
+  static async deleteLocationController(req: Request, res: Response): Promise<void> {
     const { uid, id } = req.body;
 
     if (!uid || !id) {
@@ -118,6 +118,63 @@ export class UserDataController {
       });
     } catch (error: any) {
       console.error('Error marking notification as deleted:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+
+  static async updateFcmTokenController(req: Request, res: Response): Promise<void> {
+    const { uid, fcmToken } = req.body;
+
+    if (!uid || !fcmToken) {
+      res.status(400).json({ message: 'Missing required fields' });
+      return;
+    }
+
+    try {
+      const result = await UserDataModel.updateFcmToken(uid, fcmToken);
+      res.status(200).json({
+        message: 'FCM token updated successfully',
+        data: result,
+      });
+    } catch (error: any) {
+      console.error('Error updating FCM token:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+
+  static async removeFcmTokenController(req: Request, res: Response): Promise<void> {
+    const { uid, fcmToken } = req.body;
+
+    if (!uid || !fcmToken) {
+      res.status(400).json({ message: 'Missing required fields' });
+      return;
+    }
+
+    try {
+      const result = await UserDataModel.removeFcmToken(uid, fcmToken);
+      res.status(200).json({
+        message: 'FCM token removed successfully',
+        data: result,
+      });
+    } catch (error: any) {
+      console.error('Error removing FCM token:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+
+  static async getFcmTokensController(req: Request, res: Response): Promise<void> {
+    const uid = req.query.uid as string;
+
+    if (!uid) {
+      res.status(401).json({ message: 'Missing user identification' });
+      return;
+    }
+
+    try {
+      const tokens = await UserDataModel.getFcmTokens(uid);
+      res.status(200).json({ fcmTokens: tokens });
+    } catch (error: any) {
+      console.error('Error fetching FCM tokens:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   }

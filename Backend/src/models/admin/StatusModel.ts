@@ -1,4 +1,4 @@
-import { admin, db } from '@/db/firestoreConfig';
+import { db } from '@/db/firestoreConfig';
 import { VersionHistoryItem } from '@/types/types';
 import { Timestamp } from 'firebase-admin/firestore';
 
@@ -158,66 +158,13 @@ export class StatusModel {
 
       console.log('✅ Status resolved successfully');
 
-      // Send notification to the user
+      // Send notification to the user using the notification service
+      const { IndividualNotificationService } = await import('@/services/status/individualNotification');
       try {
-        const userDoc = await db.collection('users').doc(uid).get();
-        if (userDoc.exists) {
-          const userData = userDoc.data();
-          const fcmToken = userData?.fcmToken;
-
-          const notificationId = db.collection('notifications').doc().id;
-
-          const notificationData = {
-            id: notificationId,
-            title: 'Status Resolved',
-            body: `Your status has been marked as resolved. Note: ${resolvedNote}`,
-            type: 'status_resolved',
-            statusId: versionId,
-            timestamp: Date.now(),
-            read: false,
-          };
-
-          // Store notification in user's document
-          await db
-            .collection('users')
-            .doc(uid)
-            .set(
-              {
-                notifications: admin.firestore.FieldValue.arrayUnion(notificationData),
-              },
-              { merge: true }
-            );
-
-          if (fcmToken) {
-            await admin.messaging().send({
-              token: fcmToken,
-              notification: {
-                title: notificationData.title,
-                body: notificationData.body,
-              },
-              data: {
-                type: notificationData.type,
-                statusId: notificationData.statusId,
-              },
-            });
-            console.log('✅ Notification sent to user');
-          } else {
-            console.log('⚠️ No FCM token found for user');
-          }
-        }
-      } catch (notificationError: any) {
-        console.error('❌ Failed to send notification:', notificationError);
-        // data loss prevention: if token is invalid, remove it to prevent future errors
-        if (notificationError.errorInfo?.code === 'messaging/registration-token-not-registered') {
-          try {
-            await db.collection('users').doc(uid).update({
-              fcmToken: '', // or use FieldValue.delete() if preferred, but string is safer for typing
-            });
-            console.log('ℹ️ Invalid FCM token removed for user:', uid);
-          } catch (updateError) {
-            console.error('❌ Failed to remove invalid FCM token:', updateError);
-          }
-        }
+        await IndividualNotificationService.sendStatusResolvedNotification(uid, versionId, resolvedNote);
+      } catch (notificationError) {
+        // Log but don't throw - notification failure shouldn't fail the status resolution
+        console.error('⚠️ Notification failed but status was resolved successfully:', notificationError);
       }
     } catch (error) {
       console.error('❌ Error in StatusModel.resolveStatus:', error);

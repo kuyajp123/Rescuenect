@@ -75,7 +75,7 @@ export class SignInController {
   }
 
   static async saveBarangayController(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const { uid, barangay, fcmToken } = req.body;
+    const { uid, barangay } = req.body;
 
     if (!uid || !barangay) {
       res.status(400).json({ message: 'User ID and barangay are required' });
@@ -83,29 +83,11 @@ export class SignInController {
     }
 
     try {
-      await SignInModel.saveBarangay(uid, barangay, fcmToken);
+      await SignInModel.saveBarangay(uid, barangay);
       res.json({ success: true, message: 'Barangay saved successfully' });
     } catch (error: any) {
       console.error('Error saving barangay:', error);
       res.status(500).json({ success: false, message: 'Failed to save barangay' });
-      next(error);
-    }
-  }
-
-  static async saveFcmTokenRefreshController(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const { uid, fcmToken } = req.body;
-
-    if (!uid || !fcmToken) {
-      res.status(400).json({ message: 'User ID and FCM token are required' });
-      return;
-    }
-
-    try {
-      await SignInModel.saveFcmTokenRefresh(uid, fcmToken);
-      res.json({ success: true, message: 'FCM token saved successfully' });
-    } catch (error: any) {
-      console.error('Error saving FCM token:', error);
-      res.status(500).json({ success: false, message: 'Failed to save FCM token' });
       next(error);
     }
   }

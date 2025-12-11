@@ -1,4 +1,4 @@
-import db from '@/db/firestoreConfig';
+import { admin, db } from '@/db/firestoreConfig';
 
 export class UserDataModel {
   private static pathRef(userId: string) {
@@ -7,6 +7,70 @@ export class UserDataModel {
     }
 
     return db.collection('users').doc(userId.trim());
+  }
+
+  /**
+   * Add FCM token to user's fcmTokens array (avoids duplicates)
+   */
+  static async updateFcmToken(uid: string, fcmToken: string) {
+    try {
+      const ref = this.pathRef(uid);
+
+      await ref.set(
+        {
+          fcmTokens: admin.firestore.FieldValue.arrayUnion(fcmToken),
+        },
+        { merge: true }
+      );
+
+      console.log('✅ FCM token added to user:', uid);
+      return { uid, fcmToken, operationType: 'added' };
+    } catch (error) {
+      console.error('❌ Error updating FCM token:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove FCM token from user's fcmTokens array
+   */
+  static async removeFcmToken(uid: string, fcmToken: string) {
+    try {
+      const ref = this.pathRef(uid);
+
+      await ref.set(
+        {
+          fcmTokens: admin.firestore.FieldValue.arrayRemove(fcmToken),
+        },
+        { merge: true }
+      );
+
+      console.log('✅ FCM token removed from user:', uid);
+      return { uid, fcmToken, operationType: 'removed' };
+    } catch (error) {
+      console.error('❌ Error removing FCM token:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all FCM tokens for a user
+   */
+  static async getFcmTokens(uid: string): Promise<string[]> {
+    try {
+      const ref = this.pathRef(uid);
+      const doc = await ref.get();
+
+      if (doc.exists) {
+        const data = doc.data();
+        return data?.fcmTokens || [];
+      }
+
+      return [];
+    } catch (error) {
+      console.error('❌ Error getting FCM tokens:', error);
+      throw error;
+    }
   }
 
   static async saveLocationData(uid: string, id: string, label: string, location: string, lat: number, lng: number) {

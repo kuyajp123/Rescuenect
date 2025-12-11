@@ -1,6 +1,6 @@
 import RootLayoutContent from '@/components/components/_layout/RootLayout';
 import '@/components/components/ActionSheet/sheets';
-import { storageHelpers, updateTokenInDatabase } from '@/components/helper';
+import { storageHelpers } from '@/components/helper';
 import { useAuth } from '@/components/store/useAuth';
 import { useUserData } from '@/components/store/useBackendResponse';
 import { useSavedLocationsStore } from '@/components/store/useSavedLocationsStore';
@@ -19,8 +19,7 @@ import { useSaveStatusSettings } from '@/hooks/useSaveStatusSettings';
 import { useStatusFetchBackgroundData } from '@/hooks/useStatusFetchBackgroundData';
 import { useCurrentStatuses } from '@/hooks/useStatusSubscriber';
 import { subscribeToWeatherData } from '@/hooks/useWeatherData';
-import { messaging } from '@/lib/firebaseConfig';
-import { onTokenRefresh } from '@react-native-firebase/messaging';
+import { FCMTokenService } from '@/services/fcmTokenService';
 import MapboxGL from '@rnmapbox/maps';
 import axios from 'axios';
 import React, { useEffect } from 'react';
@@ -78,25 +77,28 @@ export default function RootLayout() {
     setFormData(formDataToSet);
   }, [statusData, authUser, setFormData]);
 
+  // FCM Token Management - Register on login, refresh, and cleanup on logout
   useEffect(() => {
     if (!authUser) return;
 
-    let unsubscribeTokenRefresh: () => void = () => {};
+    // Register FCM token when user logs in
+    FCMTokenService.updateUserFcmToken(authUser).catch(error => {
+      console.error('Failed to register FCM token on login:', error);
+    });
 
-    unsubscribeTokenRefresh = onTokenRefresh(messaging, (token: string) => {
-      console.log('🔄 FCM Token refreshed:', token);
-
+    // Setup token refresh listener
+    const unsubscribeTokenRefresh = FCMTokenService.setupTokenRefreshListener(authUser, (newToken) => {
+      // Update local state with new token
       setUserData((prev: any) => ({
         userData: {
           ...prev.userData,
-          fcmToken: token,
+          fcmToken: newToken,
         },
       }));
-
-      updateTokenInDatabase(authUser, token);
     });
 
     return () => {
+      // Cleanup token refresh listener
       unsubscribeTokenRefresh();
     };
   }, [authUser]);

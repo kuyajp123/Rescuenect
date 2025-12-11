@@ -8,12 +8,19 @@ const useDataRoutes = Router();
 useDataRoutes.use(AuthMiddleware.verifyToken);
 
 useDataRoutes.post('/saveBarangay', SignInController.saveBarangayController);
-useDataRoutes.post('/saveFcmTokenRefresh', SignInController.saveFcmTokenRefreshController);
 useDataRoutes.post('/saveUserInfo', SignInController.saveUserInfoController);
 useDataRoutes.post('/saveLocation', UserDataController.saveLocationController);
 useDataRoutes.get('/getLocations', UserDataController.getLocationsController);
 useDataRoutes.delete('/deleteLocation', UserDataController.deleteLocationController);
-useDataRoutes.post('/markNotificationAsReadInStatusResolved', UserDataController.markNotificationAsReadInStatusResolvedController);
+useDataRoutes.post(
+  '/markNotificationAsReadInStatusResolved',
+  UserDataController.markNotificationAsReadInStatusResolvedController
+);
 useDataRoutes.post('/markNotificationAsDeleted', UserDataController.markNotificationAsDeletedController);
+
+// FCM Token Management Routes
+useDataRoutes.post('/updateFcmToken', UserDataController.updateFcmTokenController);
+useDataRoutes.post('/removeFcmToken', UserDataController.removeFcmTokenController);
+useDataRoutes.get('/getFcmTokens', UserDataController.getFcmTokensController);
 
 export default useDataRoutes;
