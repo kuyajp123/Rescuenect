@@ -7,7 +7,6 @@ export class StatusController {
     const file = req.file;
 
     try {
-      // Extract uid from the request body (frontend sends 'uid', not 'userId')
       const { uid } = data;
 
       // Validate uid exists

@@ -222,7 +222,7 @@ const index = () => {
               const response = await axios.post(
                 API_ROUTES.NOTIFICATION.MARK_ALL_AS_READ,
                 {
-                  userId: authUser.uid,
+                  uid: authUser.uid,
                   notificationId: notificationToBeUpdated,
                 },
                 {

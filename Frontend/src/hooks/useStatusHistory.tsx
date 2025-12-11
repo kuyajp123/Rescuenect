@@ -1,4 +1,3 @@
-import { formatTimeSince } from '@/helper/commonHelpers';
 import { db } from '@/lib/firebaseConfig'; // adjust your import path
 import { StatusData } from '@/types/types';
 import { collectionGroup, getDocs, orderBy, query } from 'firebase/firestore';
@@ -47,7 +46,8 @@ interface FirebaseStatusData {
   updatedAt?: any;
 }
 
-type User = (typeof users)[0] & {
+type User = Omit<(typeof users)[0], 'createdAt'> & {
+  createdAt: any; // Allow Firestore timestamp objects for proper sorting
   parentId?: string;
   originalStatus?: FirebaseStatusData;
 };
@@ -74,7 +74,7 @@ const transformStatusData = (dynamicData: StatusData[]): User[] => {
     lat: item.lat || 0,
     lng: item.lng || 0,
     status: item.statusType,
-    createdAt: formatTimeSince(item.createdAt),
+    createdAt: item.createdAt,
     expirationDuration: `${item.expirationDuration || 0} hours`,
     // Additional fields for action handlers
     parentId: item.parentId,

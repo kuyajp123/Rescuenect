@@ -1,21 +1,4 @@
-/**
- * Status History Table Component
- *
- * This component displays the latest status version for each parentId across all users.
- *
- * Key Features:
- * - Shows latest status per parentId (not just current statuses)
- * - Real-time updates from Firebase using collection group queries
- * - Action buttons: View Details, View History, View Profile
- * - Filtering by condition, status type, and search
- * - Compatible with Firebase status data structure
- *
- * Integration Notes:
- * - Replace useLatestStatusesForHistory with your real Firebase hook
- * - Implement handleViewDetails, handleViewHistory, handleViewUserProfile
- * - See FIRESTORE_STATUS_QUERIES.md for query documentation
- */
-
+import { formatTimeSince } from '@/helper/commonHelpers';
 import { useStatusHistory } from '@/hooks/useStatusHistory';
 import { usePanelStore, type PanelSelection } from '@/stores/panelStore';
 import { useStatusStore } from '@/stores/useStatusStore';
@@ -25,6 +8,7 @@ import type { ChipProps, Selection, SortDescriptor } from '@heroui/react';
 import {
   Button,
   Chip,
+  DateRangePicker,
   Dropdown,
   DropdownItem,
   DropdownMenu,
@@ -39,8 +23,8 @@ import {
   TableRow,
   User,
 } from '@heroui/react';
-import { ChevronDown, EllipsisVertical, History, RefreshCcw, Search, UserRound } from 'lucide-react';
-import React, { useCallback, useMemo } from 'react';
+import { ChevronDown, Delete, EllipsisVertical, History, RefreshCcw, Search, UserRound } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export function capitalize(s: string) {
@@ -176,22 +160,23 @@ export const StatusHistory = () => {
   const { openStatusPanel, closePanel, setSelectedUser } = usePanelStore();
 
   // Use Firebase data as the source
-  const users = React.useMemo(() => firebaseStatuses as StatusUser[], [firebaseStatuses]);
-  const [isLoading, setIsLoading] = React.useState(firebaseLoading);
-  const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set([]));
-  const [filterValue, setFilterValue] = React.useState('');
-  const [statusFilter, setStatusFilter] = React.useState<Selection>('all');
-  const [conditionFilter, setConditionFilter] = React.useState<Selection>('all');
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [statusChanges, setStatusChanges] = React.useState(false);
-  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+  const users = useMemo(() => firebaseStatuses as StatusUser[], [firebaseStatuses]);
+  const [isLoading, setIsLoading] = useState(firebaseLoading);
+  const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
+  const [filterValue, setFilterValue] = useState('');
+  const [statusFilter, setStatusFilter] = useState<Selection>('all');
+  const [conditionFilter, setConditionFilter] = useState<Selection>('all');
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [statusChanges, setStatusChanges] = useState(false);
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: 'createdAt',
-    direction: 'ascending',
+    direction: 'descending',
   });
 
-  const [page, setPage] = React.useState(1);
+  const [page, setPage] = useState(1);
+  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
 
-  React.useEffect(() => {
+  useEffect(() => {
     const activeStatusCount = statusData.length;
     const usersStatusesActiveCount = users.filter(
       user => user.status === 'current' || user.originalStatus?.statusType === 'current'
@@ -203,11 +188,11 @@ export const StatusHistory = () => {
   }, [statusData, users, statusChanges]);
 
   // Update loading state when Firebase loading changes
-  React.useEffect(() => {
+  useEffect(() => {
     setIsLoading(firebaseLoading);
   }, [firebaseLoading]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       closePanel();
       setSelectedUser(null);
@@ -321,7 +306,7 @@ export const StatusHistory = () => {
       case 'createdAt':
         return (
           <div className="flex flex-col">
-            <p className="text-bold text-sm">{String(cellValue)}</p>
+            <p className="text-bold text-sm">{formatTimeSince(cellValue)}</p>
           </div>
         );
       case 'actions':
@@ -373,24 +358,60 @@ export const StatusHistory = () => {
       filteredUsers = filteredUsers.filter(user => Array.from(conditionFilter).includes(user.condition));
     }
 
+    // Date range filter
+    if (dateRange.start && dateRange.end) {
+      const startDate = dateRange.start;
+      const endDate = dateRange.end;
+
+      filteredUsers = filteredUsers.filter(user => {
+        const getTimestamp = (dateValue: any): number => {
+          if (!dateValue) return 0;
+          if (typeof dateValue === 'number') return dateValue;
+          if (typeof dateValue === 'string') return new Date(dateValue).getTime();
+          if (dateValue?.seconds) return dateValue.seconds * 1000;
+          if (dateValue?.toDate) return dateValue.toDate().getTime();
+          if (dateValue instanceof Date) return dateValue.getTime();
+          return 0;
+        };
+
+        const createdAtTimestamp = getTimestamp(user.createdAt);
+        const startTimestamp = startDate.getTime();
+        const endTimestamp = endDate.getTime() + (24 * 60 * 60 * 1000 - 1); // Include end of day
+
+        return createdAtTimestamp >= startTimestamp && createdAtTimestamp <= endTimestamp;
+      });
+    }
+
     return filteredUsers;
-  }, [users, filterValue, statusFilter, conditionFilter]);
+  }, [users, filterValue, statusFilter, conditionFilter, dateRange]);
 
-  const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
-
-  const items = React.useMemo(() => {
-    const start = (page - 1) * rowsPerPage;
-    const end = start + rowsPerPage;
-
-    return filteredItems.slice(start, end);
-  }, [page, filteredItems, rowsPerPage]);
-
+  // Sort BEFORE pagination (fix: was sorting after pagination which only sorted current page)
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: StatusUser, b: StatusUser) => {
+    return [...filteredItems].sort((a: StatusUser, b: StatusUser) => {
       let first = a[sortDescriptor.column as keyof StatusUser];
       let second = b[sortDescriptor.column as keyof StatusUser];
 
-      // Handle different data types
+      // Special handling for createdAt - convert Firestore timestamps to comparable numbers
+      if (sortDescriptor.column === 'createdAt') {
+        const getTimestamp = (dateValue: any): number => {
+          if (!dateValue) return 0;
+          if (typeof dateValue === 'number') return dateValue;
+          if (typeof dateValue === 'string') return new Date(dateValue).getTime();
+          // Handle Firestore timestamp objects
+          if (dateValue?.seconds) return dateValue.seconds * 1000;
+          if (dateValue?.toDate) return dateValue.toDate().getTime();
+          if (dateValue instanceof Date) return dateValue.getTime();
+          return 0;
+        };
+
+        const firstTimestamp = getTimestamp(first);
+        const secondTimestamp = getTimestamp(second);
+        const cmp = firstTimestamp < secondTimestamp ? -1 : firstTimestamp > secondTimestamp ? 1 : 0;
+
+        return sortDescriptor.direction === 'descending' ? cmp * -1 : cmp;
+      }
+
+      // Handle other data types
       if (typeof first === 'string' && typeof second === 'string') {
         first = first.toLowerCase();
         second = second.toLowerCase();
@@ -404,7 +425,17 @@ export const StatusHistory = () => {
 
       return cmp;
     });
-  }, [sortDescriptor, items]);
+  }, [sortDescriptor, filteredItems]);
+
+  const pages = Math.ceil(sortedItems.length / rowsPerPage) || 1;
+
+  // Paginate AFTER sorting (was before, which broke sorting across pages)
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    return sortedItems.slice(start, end);
+  }, [page, sortedItems, rowsPerPage]);
 
   const onNextPage = React.useCallback(() => {
     if (page < pages) {
@@ -450,11 +481,43 @@ export const StatusHistory = () => {
             onClear={() => onClear()}
             onValueChange={onSearchChange}
           />
-          <div className="flex gap-3">
-            {/* Conditions Filter */}
+          <div className="flex w-full justify-end gap-3">
+            {/* Date Range Filter */}
+            <div className="relative w-full max-w-xs">
+              <DateRangePicker
+                onChange={value => {
+                  if (value?.start && value?.end) {
+                    setDateRange({
+                      start: new Date(value.start.year, value.start.month - 1, value.start.day),
+                      end: new Date(value.end.year, value.end.month - 1, value.end.day),
+                    });
+                    setPage(1); // Reset to first page when filter changes
+                  } else {
+                    setDateRange({ start: null, end: null });
+                  }
+                }}
+                className="max-w-xs relative"
+                label="View by date range"
+              />
+              {(dateRange.start || dateRange.end) && (
+                <Button
+                  className="absolute top-4 right-9"
+                  size="sm"
+                  radius="full"
+                  isIconOnly
+                  onPress={() => {
+                    setDateRange({ start: null, end: null });
+                    setPage(1);
+                  }}
+                >
+                  <Delete size={17} className='text-default-500' />
+                </Button>
+              )}
+            </div>
+
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
-                <Button endContent={<ChevronDown className="text-small" />} variant="flat">
+                <Button endContent={<ChevronDown size={20} />} variant="flat">
                   Condition
                 </Button>
               </DropdownTrigger>
@@ -477,7 +540,7 @@ export const StatusHistory = () => {
             {/* Status Filter */}
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
-                <Button endContent={<ChevronDown className="text-small" />} variant="flat">
+                <Button endContent={<ChevronDown size={20} />} variant="flat">
                   Status
                 </Button>
               </DropdownTrigger>
@@ -518,7 +581,7 @@ export const StatusHistory = () => {
         </div>
         <div className="flex justify-between mt-3 items-center">
           <span className="text-default-400 text-small">
-            Showing {filteredItems.length} of {totalCount} statuses
+            Showing {sortedItems.length} of {totalCount} statuses
           </span>
           <label className="flex items-center text-default-400 text-small">
             Rows per page:
@@ -527,7 +590,9 @@ export const StatusHistory = () => {
               onChange={onRowsPerPageChange}
             >
               <option value="5">5</option>
-              <option selected value="10">10</option>
+              <option selected value="10">
+                10
+              </option>
               <option value="15">15</option>
             </select>
           </label>
@@ -535,14 +600,16 @@ export const StatusHistory = () => {
       </div>
     );
   }, [
-    filteredItems.length,
+    sortedItems.length,
     filterValue,
     statusFilter,
     conditionFilter,
+    dateRange,
     onSearchChange,
     onRowsPerPageChange,
     hasSearchFilter,
     statusChanges,
+    totalCount,
   ]);
 
   const bottomContent = useMemo(() => {
@@ -620,7 +687,7 @@ export const StatusHistory = () => {
             </TableColumn>
           )}
         </TableHeader>
-        <TableBody isLoading={isLoading} items={sortedItems} emptyContent={'No status found'}>
+        <TableBody isLoading={isLoading} items={items} emptyContent={'No status found'}>
           {(item: StatusUser) => (
             <TableRow
               key={item.vid}

@@ -1,12 +1,21 @@
 import { storageHelpers } from '@/components/helper/storage';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
-import messaging from '@react-native-firebase/messaging';
+import { getApp } from '@react-native-firebase/app';
+import {
+  AuthorizationStatus,
+  getMessaging,
+  getToken,
+  hasPermission,
+  onTokenRefresh,
+  requestPermission,
+} from '@react-native-firebase/messaging';
 import axios from 'axios';
 
 /**
  * FCM Token Management Service
  * Handles token registration, refresh, and removal for push notifications
+ * Updated to use React Native Firebase v22 modular API
  */
 export class FCMTokenService {
   private static currentToken: string | null = null;
@@ -16,8 +25,8 @@ export class FCMTokenService {
    */
   private static async getDeviceToken(): Promise<string | null> {
     try {
-      const token = await messaging().getToken();
-      console.log('📱 FCM Device Token:', token);
+      const messagingInstance = getMessaging(getApp());
+      const token = await getToken(messagingInstance);
       return token;
     } catch (error) {
       console.error('❌ Error getting FCM token:', error);
@@ -30,13 +39,11 @@ export class FCMTokenService {
    */
   private static async requestPermission(): Promise<boolean> {
     try {
-      const authStatus = await messaging().requestPermission();
-      const enabled =
-        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      const messagingInstance = getMessaging(getApp());
+      const authStatus = await requestPermission(messagingInstance);
+      const enabled = authStatus === AuthorizationStatus.AUTHORIZED || authStatus === AuthorizationStatus.PROVISIONAL;
 
       if (enabled) {
-        console.log('✅ Notification permission granted:', authStatus);
         return true;
       } else {
         console.log('⚠️ Notification permission denied');
@@ -93,7 +100,6 @@ export class FCMTokenService {
         }
       );
 
-      console.log('✅ FCM token registered successfully:', response.data);
     } catch (error) {
       console.error('❌ Error updating FCM token:', error);
       throw error;
@@ -137,7 +143,6 @@ export class FCMTokenService {
       this.currentToken = null;
       await storageHelpers.setField(STORAGE_KEYS.USER, 'fcmToken', null);
 
-      console.log('✅ FCM token removed successfully:', response.data);
     } catch (error) {
       console.error('❌ Error removing FCM token:', error);
       throw error;
@@ -149,7 +154,8 @@ export class FCMTokenService {
    * Should be called once when app starts
    */
   public static setupTokenRefreshListener(authUser: any, onTokenUpdate?: (token: string) => void): () => void {
-    const unsubscribe = messaging().onTokenRefresh(async (newToken: string) => {
+    const messagingInstance = getMessaging(getApp());
+    const unsubscribe = onTokenRefresh(messagingInstance, async (newToken: string) => {
       console.log('🔄 FCM Token refreshed:', newToken);
 
       if (!authUser) {
@@ -180,8 +186,6 @@ export class FCMTokenService {
           }
         );
 
-        console.log('✅ Refreshed FCM token saved to backend');
-
         // Call optional callback
         if (onTokenUpdate) {
           onTokenUpdate(newToken);
@@ -206,11 +210,9 @@ export class FCMTokenService {
    */
   public static async checkNotificationPermission(): Promise<boolean> {
     try {
-      const authStatus = await messaging().hasPermission();
-      return (
-        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-        authStatus === messaging.AuthorizationStatus.PROVISIONAL
-      );
+      const messagingInstance = getMessaging(getApp());
+      const authStatus = await hasPermission(messagingInstance);
+      return authStatus === AuthorizationStatus.AUTHORIZED || authStatus === AuthorizationStatus.PROVISIONAL;
     } catch (error) {
       console.error('❌ Error checking notification permission:', error);
       return false;

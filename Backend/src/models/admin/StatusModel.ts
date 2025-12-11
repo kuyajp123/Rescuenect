@@ -156,8 +156,6 @@ export class StatusModel {
         { merge: true }
       );
 
-      console.log('✅ Status resolved successfully');
-
       // Send notification to the user using the notification service
       const { IndividualNotificationService } = await import('@/services/status/individualNotification');
       try {

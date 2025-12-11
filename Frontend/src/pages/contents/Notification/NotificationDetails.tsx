@@ -62,7 +62,7 @@ export const NotificationDetails = () => {
           API_ENDPOINTS.NOTIFICATION.MARK_AS_READ,
           {
             notificationId: notification.id,
-            userId: uid,
+            uid: uid,
           },
           {
             headers: {

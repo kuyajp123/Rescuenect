@@ -39,8 +39,6 @@ export class IndividualNotificationService {
       }
     }
 
-    console.log(`✅ Notifications sent to ${successCount}/${fcmTokens.length} devices`);
-
     return invalidTokens;
   }
 
@@ -77,8 +75,6 @@ export class IndividualNotificationService {
           { merge: true }
         );
 
-      console.log('✅ Notification stored in user document');
-
       // Send FCM notification to all devices
       const invalidTokens = await this.sendToAllDevices(fcmTokens, notification, {
         type: notification.type,
@@ -97,7 +93,6 @@ export class IndividualNotificationService {
                 fcmTokens: admin.firestore.FieldValue.arrayRemove(token),
               });
           }
-          console.log(`ℹ️ Removed ${invalidTokens.length} invalid FCM tokens for user:`, uid);
         } catch (updateError) {
           console.error('❌ Failed to remove invalid FCM tokens:', updateError);
         }
@@ -143,8 +138,6 @@ export class IndividualNotificationService {
           { merge: true }
         );
 
-      console.log('✅ Notification stored in user document');
-
       // Send FCM notification to all devices
       const invalidTokens = await this.sendToAllDevices(fcmTokens, notification, {
         type: notification.type,
@@ -163,7 +156,6 @@ export class IndividualNotificationService {
                 fcmTokens: admin.firestore.FieldValue.arrayRemove(token),
               });
           }
-          console.log(`ℹ️ Removed ${invalidTokens.length} invalid FCM tokens for user:`, uid);
         } catch (updateError) {
           console.error('❌ Failed to remove invalid FCM tokens:', updateError);
         }

@@ -74,24 +74,44 @@ export const StatusCard = ({
             <p className="opacity-70">
               {formatTimeRemaining(expiresAt) === 'Expired' ? 'Expired' : 'Expires ' + formatTimeRemaining(expiresAt)}
             </p>
-            <Dropdown>
-              <DropdownTrigger>
-                <Button isIconOnly size="sm" variant="light">
-                  <EllipsisVertical className="text-default-400" />
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu>
-                <DropdownItem key="resolved" startContent={<CheckCircle size={20} />} onPress={() => {onResolved?.()}}>
-                  Resolved
-                </DropdownItem>
-                <DropdownItem key="details" startContent={<Info size={20} />} onPress={() => {onViewDetails?.()}}>
-                  View Details
-                </DropdownItem>
-                <DropdownItem key="profile" startContent={<UserRound size={20} />} onPress={() => {onViewProfile?.()}}>
-                  View Profile
-                </DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
+            {onResolved || onViewDetails || onViewProfile ? (
+              <Dropdown>
+                <DropdownTrigger>
+                  <Button isIconOnly size="sm" variant="light">
+                    <EllipsisVertical className="text-default-400" />
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu>
+                  <DropdownItem
+                    key="resolved"
+                    startContent={<CheckCircle size={20} />}
+                    onPress={() => {
+                      onResolved?.();
+                    }}
+                  >
+                    Resolved
+                  </DropdownItem>
+                  <DropdownItem
+                    key="details"
+                    startContent={<Info size={20} />}
+                    onPress={() => {
+                      onViewDetails?.();
+                    }}
+                  >
+                    View Details
+                  </DropdownItem>
+                  <DropdownItem
+                    key="profile"
+                    startContent={<UserRound size={20} />}
+                    onPress={() => {
+                      onViewProfile?.();
+                    }}
+                  >
+                    View Profile
+                  </DropdownItem>
+                </DropdownMenu>
+              </Dropdown>
+            ) : null}
           </div>
           <div className="flex mt-5 items-center justify-center h-full">
             {condition === 'safe' && (

@@ -23,7 +23,6 @@ export class UserDataModel {
         { merge: true }
       );
 
-      console.log('✅ FCM token added to user:', uid);
       return { uid, fcmToken, operationType: 'added' };
     } catch (error) {
       console.error('❌ Error updating FCM token:', error);
@@ -45,7 +44,6 @@ export class UserDataModel {
         { merge: true }
       );
 
-      console.log('✅ FCM token removed from user:', uid);
       return { uid, fcmToken, operationType: 'removed' };
     } catch (error) {
       console.error('❌ Error removing FCM token:', error);

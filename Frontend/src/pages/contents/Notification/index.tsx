@@ -152,7 +152,7 @@ export const Notification = () => {
         API_ENDPOINTS.NOTIFICATION.MARK_AS_HIDDEN,
         {
           notificationId: notification.id,
-          userId: uid,
+          uid: uid,
         },
         {
           headers: {
