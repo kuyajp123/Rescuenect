@@ -1,12 +1,13 @@
-import { db } from '@/db/firestoreConfig';
+import { db, withRetry } from '@/db/firestoreConfig';
 
 export class ConfigModels {
   static async updateFcmToken(uid: string, token?: string | null): Promise<Boolean | null> {
     try {
-      const adminRef = db.collection('admin').doc(uid);
-      await adminRef.update({ fcmToken: token });
-
-      return token ? true : null;
+      return await withRetry(async () => {
+        const adminRef = db.collection('admin').doc(uid);
+        await adminRef.update({ fcmToken: token });
+        return token ? true : null;
+      }, `updateFcmToken(${uid})`);
     } catch (error) {
       console.error('❌ Error updating FCM Token in Firestore:', {
         uid,

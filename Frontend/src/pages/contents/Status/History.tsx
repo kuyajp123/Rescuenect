@@ -23,7 +23,7 @@ import {
   TableRow,
   User,
 } from '@heroui/react';
-import { ChevronDown, Delete, EllipsisVertical, History, RefreshCcw, Search, UserRound } from 'lucide-react';
+import { ChevronDown, Delete, EllipsisVertical, FileText, History, RefreshCcw, Search, UserRound } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -496,7 +496,7 @@ export const StatusHistory = () => {
                     setDateRange({ start: null, end: null });
                   }
                 }}
-                className="max-w-xs relative"
+                className="relative"
                 label="View by date range"
               />
               {(dateRange.start || dateRange.end) && (
@@ -510,7 +510,7 @@ export const StatusHistory = () => {
                     setPage(1);
                   }}
                 >
-                  <Delete size={17} className='text-default-500' />
+                  <Delete size={17} className="text-default-500" />
                 </Button>
               )}
             </div>
@@ -644,7 +644,32 @@ export const StatusHistory = () => {
 
   return (
     <div className="w-full">
-      <p className="text-3xl font-bold mb-5">Status History</p>
+      <div className="flex">
+        <p className="text-3xl font-bold mb-5 mr-auto">Status History</p>
+        <Button
+          startContent={<FileText size={20} color="#FFFFFF" />}
+          color="primary"
+          onPress={() => {
+            if (sortedItems.length === 0) {
+              alert('No data to export');
+              return;
+            }
+            navigate('/status/history/save-as-pdf', {
+              state: {
+                items: sortedItems,
+                filters: {
+                  search: filterValue,
+                  status: statusFilter,
+                  condition: conditionFilter,
+                  dateRange: dateRange,
+                },
+              },
+            });
+          }}
+        >
+          Save as PDF
+        </Button>
+      </div>
       <Table
         isHeaderSticky
         aria-label="Example table with infinite pagination"

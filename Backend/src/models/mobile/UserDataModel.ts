@@ -1,4 +1,4 @@
-import { admin, db } from '@/db/firestoreConfig';
+import { admin, db, withRetry } from '@/db/firestoreConfig';
 
 export class UserDataModel {
   private static pathRef(userId: string) {
@@ -14,16 +14,18 @@ export class UserDataModel {
    */
   static async updateFcmToken(uid: string, fcmToken: string) {
     try {
-      const ref = this.pathRef(uid);
+      return await withRetry(async () => {
+        const ref = this.pathRef(uid);
 
-      await ref.set(
-        {
-          fcmTokens: admin.firestore.FieldValue.arrayUnion(fcmToken),
-        },
-        { merge: true }
-      );
+        await ref.set(
+          {
+            fcmTokens: admin.firestore.FieldValue.arrayUnion(fcmToken),
+          },
+          { merge: true }
+        );
 
-      return { uid, fcmToken, operationType: 'added' };
+        return { uid, fcmToken, operationType: 'added' };
+      }, `UserDataModel.updateFcmToken(${uid})`);
     } catch (error) {
       console.error('❌ Error updating FCM token:', error);
       throw error;
@@ -35,16 +37,18 @@ export class UserDataModel {
    */
   static async removeFcmToken(uid: string, fcmToken: string) {
     try {
-      const ref = this.pathRef(uid);
+      return await withRetry(async () => {
+        const ref = this.pathRef(uid);
 
-      await ref.set(
-        {
-          fcmTokens: admin.firestore.FieldValue.arrayRemove(fcmToken),
-        },
-        { merge: true }
-      );
+        await ref.set(
+          {
+            fcmTokens: admin.firestore.FieldValue.arrayRemove(fcmToken),
+          },
+          { merge: true }
+        );
 
-      return { uid, fcmToken, operationType: 'removed' };
+        return { uid, fcmToken, operationType: 'removed' };
+      }, `UserDataModel.removeFcmToken(${uid})`);
     } catch (error) {
       console.error('❌ Error removing FCM token:', error);
       throw error;

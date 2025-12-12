@@ -9,13 +9,14 @@ import {
   Earthquake,
   Evacuation,
   HistoryVersions,
+  Notification,
+  NotificationDetails,
   Residents,
+  ResidentsProfile,
+  SaveAsPDF,
   Status,
   StatusHistory,
   Weather,
-  Notification,
-  NotificationDetails,
-  ResidentsProfile,
 } from '@/pages/contents';
 import Login from './pages/auth/Login';
 
@@ -35,6 +36,7 @@ const Router = () => {
         <Route path="/status" element={<Status />} />
         <Route path="/status/history" element={<StatusHistory />} />
         <Route path="/status/history/versions" element={<HistoryVersions />} />
+        <Route path="/status/history/save-as-pdf" element={<SaveAsPDF />} />
         <Route path="/weather" element={<Weather />} />
         <Route path="/earthquake" element={<Earthquake />} />
         <Route path="/evacuation" element={<Evacuation />} />

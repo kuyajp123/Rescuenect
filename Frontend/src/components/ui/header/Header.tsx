@@ -70,6 +70,9 @@ const Header = () => {
         case '/status/history/versions':
           label = 'Versions';
           break;
+        case '/status/history/save-as-pdf':
+          label = 'Save as PDF';
+          break;
         case '/weather':
           label = 'Weather';
           break;

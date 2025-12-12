@@ -5,11 +5,12 @@ import { Dashboard } from './Dashboard';
 import Earthquake from './Earthquake';
 import Evacuation from './Evacuation';
 import AddNewCenter from './Evacuation/AddNewCenter';
-import Residents from './Residents/index';
-import ResidentsProfile from './Residents/ResidentsProfile';
-import Weather from './Weather';
 import { Notification } from './Notification';
 import { NotificationDetails } from './Notification/NotificationDetails';
+import Residents from './Residents/index';
+import ResidentsProfile from './Residents/ResidentsProfile';
+import SaveAsPDF from './Status/saveAsPDF';
+import Weather from './Weather';
 
 export {
   AddNewCenter,
@@ -17,11 +18,12 @@ export {
   Earthquake,
   Evacuation,
   HistoryVersions,
-  Residents,
   Notification,
+  NotificationDetails,
+  Residents,
+  ResidentsProfile,
+  SaveAsPDF,
   Status,
   StatusHistory,
   Weather,
-  NotificationDetails,
-  ResidentsProfile,
 };
