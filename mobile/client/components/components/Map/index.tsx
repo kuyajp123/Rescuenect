@@ -560,6 +560,7 @@ const Map = ({
                         field.multiline
                           ? {
                               ...styles.textInputMultiline,
+                              height: field.numberOfLines ? field.numberOfLines * 24 + 24 : 100,
                               borderColor: isDark ? Colors.border.dark : Colors.border.light,
                             }
                           : {

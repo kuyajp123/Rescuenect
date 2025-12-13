@@ -2,6 +2,7 @@ import { storageHelpers } from '@/components/helper/storage';
 import { useUserData } from '@/components/store/useBackendResponse';
 import { useCoords } from '@/components/store/useCoords';
 import { useImagePickerStore } from '@/components/store/useImagePicker';
+import { useSavedLocationsStore } from '@/components/store/useSavedLocationsStore';
 import { useStatusFormStore } from '@/components/store/useStatusForm';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
@@ -11,7 +12,6 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import axios from 'axios';
 import { signInWithCustomToken } from 'firebase/auth';
 import { Alert } from 'react-native';
-import { useSavedLocationsStore } from '@/components/store/useSavedLocationsStore'
 
 export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void) => {
   try {
@@ -108,6 +108,9 @@ export const handleLogout = async () => {
 
     await storageHelpers.removeData(STORAGE_KEYS.SAVED_LOCATIONS);
     clearLocations();
+
+    // delete the notification from storage
+    await storageHelpers.removeData(STORAGE_KEYS.GUEST_PREFS);
 
     // Sign out from Firebase (this will trigger the auth state listener)
     await auth.signOut();

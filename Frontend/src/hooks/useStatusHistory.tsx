@@ -28,6 +28,7 @@ interface FirebaseStatusData {
   lng: number;
   profileImage: string;
   parentId: string;
+  email: string;
   phoneNumber: string;
   image?: string;
   firstName: string;
@@ -65,7 +66,7 @@ const transformStatusData = (dynamicData: StatusData[]): User[] => {
     no: index + 1,
     id: item.uid || '',
     vid: item.versionId || '',
-    email: `${item.firstName?.toLowerCase() || 'unknown'}.${item.lastName?.toLowerCase() || 'user'}@example.com`,
+    email: item.email || '',
     profileImage: item.profileImage || '',
     firstName: item.firstName || 'Unknown',
     lastName: item.lastName || 'User',

@@ -341,13 +341,39 @@ export const SaveAsPDF = () => {
                   }}
                 >
                   <td style={tableCellStyle}>{item.no}</td>
-                  <td style={tableCellStyle}>
+                  <td
+                    style={{
+                      ...tableCellStyle,
+                      maxWidth: '150px',
+                      wordWrap: 'break-word',
+                      wordBreak: 'break-all',
+                      whiteSpace: 'normal',
+                    }}
+                  >
                     <strong>
                       {item.firstName} {item.lastName}
                     </strong>
                   </td>
-                  <td style={tableCellStyle}>{item.email || 'N/A'}</td>
-                  <td style={tableCellStyle}>
+                  <td
+                    style={{
+                      ...tableCellStyle,
+                      maxWidth: '150px',
+                      wordWrap: 'break-word',
+                      wordBreak: 'break-all',
+                      whiteSpace: 'normal',
+                    }}
+                  >
+                    {item.email || 'N/A'}
+                  </td>
+                  <td
+                    style={{
+                      ...tableCellStyle,
+                      maxWidth: '150px',
+                      wordWrap: 'break-word',
+                      wordBreak: 'break-all',
+                      whiteSpace: 'normal',
+                    }}
+                  >
                     {item.location || 'N/A'}
                     {item.lat && item.lng && (
                       <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>
@@ -379,7 +405,19 @@ export const SaveAsPDF = () => {
                   </td>
                   <td style={tableCellStyle}>{item.originalStatus?.people || 1}</td>
                   <td style={tableCellStyle}>{formatDate(item.createdAt)}</td>
-                  <td style={tableCellStyle}>{item.originalStatus?.note || ''}</td>
+                  <td
+                    style={{
+                      ...tableCellStyle,
+                      maxWidth: '200px',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {item.originalStatus?.note || ''}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -435,6 +473,7 @@ const tableCellStyle: React.CSSProperties = {
   padding: '10px 8px',
   color: '#4b5563',
   verticalAlign: 'middle',
+  textWrap: 'balance',
 };
 
 const badgeStyle: React.CSSProperties = {

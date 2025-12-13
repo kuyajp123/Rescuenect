@@ -154,4 +154,35 @@ export const getWeatherImage = (code: number) => {
   }
 };
 
-export default { getWeatherIcons, getWeatherCondition, getWeatherImage };
+export const getImageBackground = (weatherData: any) => {
+  const date = new Date();
+  const isDay: boolean = isDayTime(date);
+
+  const ClearDay = require('@/assets/images/weather/image/ClearDay.png');
+  const ClearNight = require('@/assets/images/weather/image/ClearNight.png');
+  const CloudyDay = require('@/assets/images/weather/image/CloudyDay.png');
+  const CloudyNight = require('@/assets/images/weather/image/CloudyNight.png');
+  const Rainy = require('@/assets/images/weather/image/Rain.png');
+  const ThunderStorm = require('@/assets/images/weather/image/ThunderStorm.png');
+
+  if (weatherData?.realtime && weatherData.realtime.length > 0) {
+    switch (getWeatherCondition(weatherData.realtime[0].weatherCode)) {
+      case 'Clear':
+        return isDay ? ClearDay : ClearNight;
+      case 'Partly Cloudy':
+      case 'Cloudy':
+        return isDay ? CloudyDay : CloudyNight;
+      case 'Rain':
+      case 'Light Rain':
+        return Rainy;
+      case 'ThunderStorm':
+        return ThunderStorm;
+      case 'Foggy':
+        return isDay ? CloudyDay : CloudyNight;
+      default:
+        return ClearDay;
+    }
+  }
+};
+
+export default { getWeatherIcons, getWeatherCondition, getWeatherImage, getImageBackground };

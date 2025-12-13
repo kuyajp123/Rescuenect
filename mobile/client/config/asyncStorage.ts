@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   APP_STATE: '@app_state',
   USER_SETTINGS: '@user_settings',
   SAVED_LOCATIONS: '@saved_locations',
+  GUEST_PREFS: '@guest_prefs',
 };
 
 //
@@ -65,7 +66,6 @@ export const clearAllData = async () => {
     console.error('Error clearing all data:', error);
   }
 };
-
 
 //
 // ------------------------------------------------------------

@@ -1,6 +1,5 @@
 import { SecondaryButton } from '@/components/ui/button';
 import { API_ENDPOINTS } from '@/config/endPoints';
-
 import { auth } from '@/lib/firebaseConfig';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import type { BaseNotification, EarthquakeNotificationData, WeatherNotificationData } from '@/types/types';

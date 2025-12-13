@@ -1,4 +1,6 @@
+import { storageHelpers } from '@/components/helper/storage';
 import { useNotificationStore } from '@/components/store/useNotificationStore';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { db } from '@/lib/firebaseConfig';
 import type { BaseNotification } from '@/types/notification';
 import { collection, doc, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
@@ -15,7 +17,7 @@ export const useNotificationSubscriber = ({
   userId,
   maxNotifications = 50,
 }: UseNotificationSubscriberProps = {}) => {
-  const { setNotifications, setUserId } = useNotificationStore();
+  const { setNotifications, setUserId, guestReadIds, guestHiddenIds, setGuestPreferences } = useNotificationStore();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [globalNotifications, setGlobalNotifications] = useState<BaseNotification[]>([]);
@@ -27,6 +29,28 @@ export const useNotificationSubscriber = ({
       setUserId(userId);
     }
   }, [userId, setUserId]);
+
+  // Load guest preferences on mount
+  useEffect(() => {
+    const loadGuestPrefs = async () => {
+      const prefs = await storageHelpers.getData<{ readIds: string[]; hiddenIds: string[] }>(STORAGE_KEYS.GUEST_PREFS);
+      if (prefs) {
+        setGuestPreferences(prefs.readIds || [], prefs.hiddenIds || []);
+      }
+    };
+    loadGuestPrefs();
+  }, [setGuestPreferences]);
+
+  // Save guest preferences when they change
+  useEffect(() => {
+    if (!userId) {
+      // Only relevant for guests, though saving acts as backup for all? No, only guest prefs matter here.
+      storageHelpers.setData(STORAGE_KEYS.GUEST_PREFS, {
+        readIds: guestReadIds,
+        hiddenIds: guestHiddenIds,
+      });
+    }
+  }, [guestReadIds, guestHiddenIds, userId]);
 
   // Global Notifications Subscription
   useEffect(() => {

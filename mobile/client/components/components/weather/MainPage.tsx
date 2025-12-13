@@ -1,6 +1,6 @@
 import { IconButton, PrimaryButton } from '@/components/components/button/Button';
 import { GlassCard } from '@/components/components/card/GlassCard';
-import { getWeatherCondition, isDayTime } from '@/components/helper/WeatherLogic';
+import { getImageBackground, getWeatherCondition } from '@/components/helper/WeatherLogic';
 import { useUserData } from '@/components/store/useBackendResponse';
 import { useWeatherStore } from '@/components/store/useWeatherStore';
 import { Divider } from '@/components/ui/divider';
@@ -26,43 +26,16 @@ export const MainPage = () => {
   const linerColorLight = ['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.2)'] as const;
   const linerColorDark = ['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.6)'] as const;
 
-  const ClearDay = require('@/assets/images/weather/image/ClearDay.png');
-  const ClearNight = require('@/assets/images/weather/image/ClearNight.png');
-  const CloudyDay = require('@/assets/images/weather/image/CloudyDay.png');
-  const CloudyNight = require('@/assets/images/weather/image/CloudyNight.png');
-  const Rainy = require('@/assets/images/weather/image/Rain.png');
-  const ThunderStorm = require('@/assets/images/weather/image/ThunderStorm.png');
-
-  const date = new Date();
-
-  function getImageBackground() {
-    const isDay: boolean = isDayTime(date);
-
-    if (weatherData?.realtime && weatherData.realtime.length > 0) {
-      switch (getWeatherCondition(weatherData.realtime[0].weatherCode)) {
-        case 'Clear':
-          return isDay ? ClearDay : ClearNight;
-        case 'Partly Cloudy':
-        case 'Cloudy':
-          return isDay ? CloudyDay : CloudyNight;
-        case 'Rain':
-        case 'Light Rain':
-          return Rainy;
-        case 'ThunderStorm':
-          return ThunderStorm;
-        case 'Foggy':
-          return isDay ? CloudyDay : CloudyNight;
-        default:
-          return ClearDay;
-      }
-    }
-  }
-
   React.useEffect(() => {}, []);
 
   return (
     <View style={styles.container}>
-      <ImageBackground source={getImageBackground()} style={styles.imageBackground} blurRadius={20} resizeMode="cover">
+      <ImageBackground
+        source={getImageBackground(weatherData)}
+        style={styles.imageBackground}
+        blurRadius={20}
+        resizeMode="cover"
+      >
         <LinearGradient
           colors={isDark ? linerColorDark : linerColorLight}
           start={{ x: 0, y: 0 }}
@@ -110,7 +83,7 @@ export const MainPage = () => {
               <Text size="6xl" style={styles.temperatureText}>
                 {Math.round(weatherData.realtime[0].temperature)}°C
               </Text>
-              <Text size='sm' style={styles.locationText}>
+              <Text size="sm" style={styles.locationText}>
                 Brgy {userData.barangay} • {getWeatherCondition(weatherData.realtime[0].weatherCode)}
               </Text>
             </View>

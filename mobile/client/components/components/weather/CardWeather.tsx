@@ -1,5 +1,7 @@
 import index from '@/components/components/weather/index';
 import { GetDate, GetTime } from '@/components/helper/DateAndTime';
+import { useUserData } from '@/components/store/useBackendResponse';
+import { useWeatherStore } from '@/components/store/useWeatherStore';
 import { Divider } from '@/components/ui/divider';
 import { Text } from '@/components/ui/text';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -7,16 +9,21 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ImageBackground, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { getImageBackground, getWeatherCondition, getWeatherIcons } from '@/components/helper/WeatherLogic';
 const { PartlyCloudyDay } = index;
 
 export const CardWeather = () => {
+  const weatherData = useWeatherStore(state => state.weather);
+  const userData = useUserData(state => state.userData);
   const router = useRouter();
   const { isDark } = useTheme();
   const [time, setTime] = useState(GetTime());
   const [date, setDate] = useState(GetDate({ weekday: 'short', month: 'short' }));
-  
+
   const linerColorLight = ['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.2)'] as const;
   const linerColorDark = ['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.6)'] as const;
+
+  const WeatherIcon = getWeatherIcons(weatherData?.realtime[0].weatherCode || 10000);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -29,9 +36,14 @@ export const CardWeather = () => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity activeOpacity={1} onPress={() => {router.push('Weather' as any)}}>
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={() => {
+          router.push('Weather' as any);
+        }}
+      >
         <ImageBackground
-          source={require('@/assets/images/weather/image/CloudyDay.png')}
+          source={getImageBackground(weatherData)}
           style={styles.imageBackground}
           imageStyle={styles.imageStyle}
           blurRadius={20}
@@ -44,35 +56,26 @@ export const CardWeather = () => {
           >
             {/* Weather Icon and Temperature Section */}
             <View>
-              <PartlyCloudyDay width={75} height={60} />
-              <Text 
-                size='3xl' 
-                bold 
-                style={styles.temperatureText}
-              >
-                39°C
+              <WeatherIcon width={75} height={60} />
+              <Text size="3xl" bold style={styles.temperatureText}>
+                {Math.round(Number(weatherData?.realtime[0].temperature))}°C
               </Text>
             </View>
 
             {/* Time, Date and Location Section */}
             <View style={styles.rightSection}>
               <View style={styles.timeContainer}>
-                <Text 
-                  size="xl" 
-                  style={styles.timeText}
-                >
+                <Text size="xl" style={styles.timeText}>
                   {time}
                 </Text>
-                <Text style={styles.dateText}>
-                  {date}
-                </Text>
+                <Text style={styles.dateText}>{date}</Text>
               </View>
-              
+
               <Divider style={styles.divider} />
-              
+
               <View style={styles.locationContainer}>
-                <Text size='2xs' style={styles.locationText}>
-                  Brgy here  •  Partly Cloudy
+                <Text size="2xs" style={styles.locationText}>
+                  {userData.barangay} • {getWeatherCondition(Number(weatherData?.realtime[0].temperature))}
                 </Text>
               </View>
             </View>
@@ -80,10 +83,10 @@ export const CardWeather = () => {
         </ImageBackground>
       </TouchableOpacity>
     </View>
-  )
-}
+  );
+};
 
-export default CardWeather
+export default CardWeather;
 
 const styles = StyleSheet.create({
   container: {
@@ -167,4 +170,4 @@ const styles = StyleSheet.create({
     },
     textShadowRadius: 5,
   },
-})
+});

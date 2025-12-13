@@ -40,6 +40,7 @@ interface FirebaseStatusData {
   profileImage: string;
   parentId: string;
   phoneNumber: string;
+  email: string;
   image?: string;
   firstName: string;
   condition: 'missing' | 'safe' | 'affected' | 'evacuated';
@@ -123,7 +124,7 @@ export const conditionsOptions = [
 type StatusUser = {
   id: string;
   vid: string;
-  email?: string;
+  email: string;
   profileImage: string;
   firstName: string;
   lastName: string;
@@ -215,6 +216,7 @@ export const StatusHistory = () => {
             firstName: selectedUser.firstName,
             lastName: selectedUser.lastName,
             profileImage: selectedUser.profileImage,
+            email: selectedUser.email || selectedUser.originalStatus?.email || 'N/A',
             phoneNumber: selectedUser.phoneNumber || selectedUser.originalStatus?.phoneNumber || 'N/A',
             condition: selectedUser.condition as 'missing' | 'safe' | 'affected' | 'evacuated',
             location: selectedUser.location,
@@ -263,17 +265,11 @@ export const StatusHistory = () => {
     const cellValue = user[columnKey as keyof StatusUser];
 
     switch (columnKey) {
-      case 'vid':
-        return (
-          <div className="flex flex-col">
-            <p className="text-bold text-sm capitalize">{String(cellValue)}</p>
-          </div>
-        );
       case 'name':
         return (
           <User
             avatarProps={{ radius: 'lg', src: user.profileImage }}
-            description={user.id}
+            description={user.email}
             name={`${user.firstName} ${user.lastName}`}
           >
             {user.firstName} {user.lastName}

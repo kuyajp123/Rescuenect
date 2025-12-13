@@ -18,10 +18,12 @@ import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 const index = () => {
   const { isDark } = useTheme();
   const router = useRouter();
+  const guestReadIds = useNotificationStore(state => state.guestReadIds);
   const notifications = useNotificationStore(state => state.notifications);
   const unreadCount = useNotificationStore(state => state.unreadCount);
   const markAsHidden = useNotificationStore(state => state.markAsHidden);
   const markAllAsRead = useNotificationStore(state => state.markAllAsRead);
+  const markAllAsGuestRead = useNotificationStore(state => state.markAllAsGuestRead);
   const userData = useUserData((state: any) => state.userData);
   const authUser = useAuth(state => state.authUser);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -81,12 +83,13 @@ const index = () => {
 
   // Handle notification deletion
   const handleNotificationAction = async (notification: BaseNotification) => {
-    const idToken = await authUser?.getIdToken();
+    const idToken = authUser ? await authUser.getIdToken() : null;
 
-    if (!authUser?.uid) {
-      Alert.alert('Error', 'You must be logged in to delete notifications');
-      return;
-    }
+    // Allow guests to delete (locally hide)
+    // if (!authUser?.uid) {
+    //   Alert.alert('Error', 'You must be logged in to delete notifications');
+    //   return;
+    // }
 
     Alert.alert('Delete Notification', 'Are you sure you want to delete this notification?', [
       {
@@ -97,6 +100,13 @@ const index = () => {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
+          if (!authUser?.uid) {
+            // Guest mode deletion/hiding
+            // For guests, we treat "delete" as "hide" locally
+            useNotificationStore.getState().markAsGuestHidden(notification.id);
+            return;
+          }
+
           console.log(notification);
           if (notification.type === 'status_resolved') {
             notificationMarkAsDeleted(notification.id, authUser.uid, idToken);
@@ -183,12 +193,10 @@ const index = () => {
 
   // Handle mark all as read
   const handleMarkAllAsRead = async () => {
-    if (!authUser?.uid) {
-      Alert.alert('Error', 'You must be logged in to mark notifications as read');
-      return;
-    }
-
-    const unreadNotifications = notifications.filter(notif => !notif.readBy?.includes(authUser.uid));
+    // Determine unread notifications based on auth state
+    const unreadNotifications = authUser?.uid
+      ? notifications.filter(notif => !notif.readBy?.includes(authUser.uid))
+      : notifications.filter(notif => !guestReadIds.includes(notif.id));
 
     if (unreadNotifications.length === 0) {
       Alert.alert('Info', 'All notifications are already marked as read');
@@ -196,7 +204,6 @@ const index = () => {
     }
 
     let notificationToBeUpdated: any[] = [];
-
     unreadNotifications.forEach(notif => {
       notificationToBeUpdated.push({ notificationId: notif.id });
     });
@@ -214,6 +221,13 @@ const index = () => {
         {
           text: 'Mark All',
           onPress: async () => {
+            // Guest handling
+            if (!authUser?.uid) {
+              markAllAsGuestRead();
+              Alert.alert('Success', 'All notifications marked as read');
+              return;
+            }
+
             try {
               // Get ID token from Firebase Auth
               const idToken = await authUser.getIdToken();
@@ -263,7 +277,9 @@ const index = () => {
       </View>
       <ScrollView style={styles.scrollView}>
         {notifications.map(notification => {
-          const isRead = authUser?.uid ? notification.readBy?.includes(authUser.uid) : false;
+          const isRead = authUser?.uid
+            ? notification.readBy?.includes(authUser.uid)
+            : guestReadIds.includes(notification.id);
 
           return (
             <HoveredButton

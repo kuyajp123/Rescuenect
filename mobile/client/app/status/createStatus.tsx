@@ -106,6 +106,7 @@ export const createStatus = () => {
   const [statusForm, setStatusForm] = useState<StatusStateData>({
     uid: authUser?.uid || '',
     profileImage: authUser?.photoURL || '',
+    email: authUser?.email || '',
     firstName: '',
     lastName: '',
     condition: '',
@@ -373,6 +374,24 @@ export const createStatus = () => {
 
   // Debounced fetch address for tapped location
   useEffect(() => {
+    // Optimization: If coords match formData (saved status), use saved location string
+    if (
+      formData &&
+      formData.location &&
+      coords &&
+      formData.lat &&
+      formData.lng &&
+      Math.abs(coords[1] - formData.lat) < 0.000001 &&
+      Math.abs(coords[0] - formData.lng) < 0.000001
+    ) {
+      setAddressCoords({
+        formatted: formData.location,
+        components: {},
+      });
+      setAddressCoordsLoading(false);
+      return;
+    }
+
     if (authUser) {
       setAddressCoordsLoading(true);
     }
@@ -411,7 +430,7 @@ export const createStatus = () => {
         setAddressCoordsLoading(false);
       }
     };
-  }, [coords, isOnline, authUser]);
+  }, [coords, isOnline, authUser, formData]);
 
   // Debounced fetch address for GPS location
   useEffect(() => {

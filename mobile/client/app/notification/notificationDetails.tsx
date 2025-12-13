@@ -52,6 +52,10 @@ const notificationDetails = () => {
     // Mark as read if user is logged in
     if (authUser?.uid && foundNotification && !foundNotification?.readBy?.includes(authUser.uid)) {
       markAsRead(foundNotification.id, authUser.uid);
+    } else if (!authUser?.uid && foundNotification) {
+      // Check if already read by guest before marking?
+      // The action handles idempotency, so safe to call.
+      useNotificationStore.getState().markAsGuestRead(foundNotification.id);
     }
 
     if (foundNotification) setLoading(false);
@@ -102,10 +106,13 @@ const notificationDetails = () => {
       }
     };
 
-    if (notification?.type === 'status_resolved') {
+    if (notification?.type === 'status_resolved' && authUser?.uid) {
       markNotificationAsReadInStatusResolved();
-    } else {
+    } else if (authUser?.uid) {
       markNotificationAsRead();
+    } else {
+      // Guest handling
+      useNotificationStore.getState().markAsGuestRead(notificationId);
     }
   }, [notification, authUser?.uid, notificationId]);
 

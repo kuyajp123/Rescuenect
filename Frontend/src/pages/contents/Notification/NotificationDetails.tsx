@@ -225,7 +225,7 @@ export const NotificationDetails = () => {
                     } as MapMarkerData,
                   ]}
                   popupType="custom"
-                  renderPopup={(item: MapMarkerData) => (
+                  renderPopup={() => (
                     <div className="space-y-2">
                       <div>
                         <strong className="text-lg">M{earthquakeData.magnitude?.toFixed(1)} Earthquake</strong>

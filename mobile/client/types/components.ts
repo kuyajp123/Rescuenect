@@ -109,6 +109,7 @@ export interface StatusData {
   firstName: string;
   lastName: string;
   phoneNumber: string;
+  email: string;
 
   // Status information
   condition: 'safe' | 'evacuated' | 'affected' | 'missing' | '';
