@@ -64,8 +64,8 @@ export const columns = [
   // { uid: 'no', name: 'NO' },
   { uid: 'no', name: 'NO' },
   { uid: 'name', name: 'NAME' },
-  { uid: 'condition', name: 'CONDITION' },
   { uid: 'location', name: 'LOCATION' },
+  { uid: 'condition', name: 'CONDITION' },
   { uid: 'status', name: 'STATUS' },
   { uid: 'createdAt', name: 'CREATED AT' },
   { uid: 'expirationDuration', name: 'DURATION' },
@@ -275,13 +275,7 @@ export const StatusHistory = () => {
             {user.firstName} {user.lastName}
           </User>
         );
-      case 'condition':
-        return (
-          <Chip className="capitalize" color={conditionColorMap[user.condition]} size="sm" variant="flat">
-            {String(cellValue)}
-          </Chip>
-        );
-      case 'location':
+        case 'location':
         return (
           <div className="flex flex-col max-w-[200px]">
             <p className="text-bold text-sm capitalize flex-wrap" title={cellValue as string}>
@@ -291,6 +285,12 @@ export const StatusHistory = () => {
             <p className="text-bold text-tiny capitalize text-default-400">lng: {String(user.lng)}</p>
           </div>
         );
+        case 'condition':
+          return (
+            <Chip className="capitalize" color={conditionColorMap[user.condition]} size="sm" variant="flat">
+              {String(cellValue)}
+            </Chip>
+          );
       case 'status':
         return (
           <div className="flex flex-col">

@@ -4,7 +4,7 @@ import { EvacuationPanel, StatusPanel } from '@/components/ui/panel';
 import SideBar from '@/components/ui/sideBar/SideBar';
 import { NotificationToast } from '@/components/ui/toast/NotificationToast';
 import { Button } from '@heroui/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePanelStore } from '../stores/panelStore.ts';
 
 const MainLayout = () => {
@@ -13,6 +13,11 @@ const MainLayout = () => {
     const saved = localStorage.getItem('sidebarExpanded');
     return saved !== null ? JSON.parse(saved) : true;
   });
+
+  // Save sidebar state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('sidebarExpanded', JSON.stringify(sidebarOpen));
+  }, [sidebarOpen]);
 
   // Get panel state from Zustand store
   const { isOpen: isPanelOpen, selectedUser: data, closePanel } = usePanelStore();
