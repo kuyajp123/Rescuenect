@@ -6,7 +6,7 @@ import { StyleSheet, } from 'react-native'
 
 export const FontSize = () => {
   return (
-    <Body style={styles.body}>
+    <Body>
       <Text size='3xl' bold style={styles.title}>
         Font Size
       </Text>
@@ -18,6 +18,5 @@ export const FontSize = () => {
 export default FontSize
 
 const styles = StyleSheet.create({
-  body: { marginBottom: 30 },
   title: { marginBottom: 20 }
 })

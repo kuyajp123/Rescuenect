@@ -142,6 +142,7 @@ export type StatusTemplateProps = Omit<
   | 'parentId'
   | 'versionId'
   | 'statusType'
+  | 'email'
   | 'shareLocation'
   | 'shareContact'
   | 'expirationDuration'

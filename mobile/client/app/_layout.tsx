@@ -1,17 +1,20 @@
-import RootLayoutContent from '@/components/components/_layout/RootLayout';
 import '@/components/components/ActionSheet/sheets';
+import { HeaderBackButton, IconButton } from '@/components/components/button/Button';
 import { storageHelpers } from '@/components/helper';
 import { useAuth } from '@/components/store/useAuth';
 import { useUserData } from '@/components/store/useBackendResponse';
+import { useNotificationStore } from '@/components/store/useNotificationStore';
 import { useSavedLocationsStore } from '@/components/store/useSavedLocationsStore';
 import { useStatusFormStore } from '@/components/store/useStatusForm';
 import { useWeatherStore } from '@/components/store/useWeatherStore';
+import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
-import { FontSizeProvider } from '@/contexts/FontSizeContext';
+import { Colors } from '@/constants/Colors';
+import { FontSizeProvider, useFontSize } from '@/contexts/FontSizeContext';
 import { HighContrastProvider } from '@/contexts/HighContrastContext';
 import MapContext from '@/contexts/MapContext';
-import { ThemeProvider } from '@/contexts/ThemeContext';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { useIdToken } from '@/hooks/useIdToken';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useNotificationSubscriber } from '@/hooks/useNotificationSubscriber';
@@ -22,14 +25,246 @@ import { subscribeToWeatherData } from '@/hooks/useWeatherData';
 import { FCMTokenService } from '@/services/fcmTokenService';
 import MapboxGL from '@rnmapbox/maps';
 import axios from 'axios';
-import React, { useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import { useFonts } from 'expo-font';
+import { Stack, useRouter } from 'expo-router';
+import { Bell } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { SheetProvider } from 'react-native-actions-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import '../global.css';
 
 MapboxGL.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_API_TOKEN!);
+
+function RootLayoutNav() {
+  const { isDark, isLoading: themeLoading } = useTheme();
+  const { isLoading: fontLoading } = useFontSize();
+  const router = useRouter();
+  const [isReady, setIsReady] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const unreadCount = useNotificationStore(state => state.unreadCount);
+
+  const handleBack = () => {
+    router.back();
+  };
+
+  const NotificationButton = () => {
+    return (
+      <View style={{ position: 'relative' }}>
+        <IconButton onPress={() => router.push('/notification' as any)} style={styles.notificationButton}>
+          <Bell size={20} color={isDark ? Colors.text.dark : Colors.text.light} />
+        </IconButton>
+        {unreadCount > 0 && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: 10,
+              height: 10,
+              borderRadius: 10,
+              backgroundColor: 'red',
+              borderWidth: 1,
+              borderColor: 'gray',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          />
+        )}
+      </View>
+    );
+  };
+
+  const [loaded] = useFonts({
+    Poppins: require('../assets/fonts/Poppins-Regular.ttf'),
+    'Poppins-Bold': require('../assets/fonts/Poppins-Bold.ttf'),
+    'Poppins-light': require('../assets/fonts/Poppins-Light.ttf'),
+    'Poppins-Medium': require('../assets/fonts/Poppins-Medium.ttf'),
+  });
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => {
+      setIsMounted(false);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+
+    const timer = setTimeout(() => {
+      if (isMounted && loaded && !themeLoading && !fontLoading) {
+        setIsReady(true);
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [loaded, themeLoading, fontLoading, isMounted]);
+
+  if (!isMounted || !isReady || themeLoading || fontLoading) {
+    return null;
+  }
+
+  return (
+    <GluestackUIProvider mode={isDark ? 'dark' : 'light'}>
+      <Stack screenOptions={{ gestureEnabled: true }}>
+        <Stack.Screen
+          name="index"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="(tabs)"
+          options={{
+            title: 'Rescuenect',
+            headerShown: true,
+            animation: 'fade',
+            animationDuration: 500,
+            headerTintColor: isDark ? Colors.text.dark : Colors.brand.light,
+            headerStyle: {
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerTitleStyle: {
+              fontSize: 24,
+              fontWeight: 'bold',
+              color: isDark ? Colors.text.dark : Colors.brand.light,
+            },
+            headerShadowVisible: false,
+            headerRight: () => (
+              <View style={styles.headerRightContainer}>
+                <NotificationButton />
+              </View>
+            ),
+          }}
+        />
+        <Stack.Screen
+          name="notification"
+          options={{
+            headerShown: true,
+            title: '',
+            headerTintColor: isDark ? Colors.text.dark : Colors.text.light,
+            headerStyle: {
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerTitleStyle: {
+              fontSize: 24,
+              fontWeight: 'bold',
+              color: isDark ? Colors.text.dark : Colors.brand.light,
+            },
+            headerShadowVisible: false,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
+            animation: 'default',
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="evacuation"
+          options={{
+            headerShown: false,
+            title: '',
+            headerTintColor: isDark ? Colors.text.dark : Colors.text.light,
+            headerStyle: {
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerTitleStyle: {
+              fontSize: 24,
+              fontWeight: 'bold',
+              color: isDark ? Colors.text.dark : Colors.brand.light,
+            },
+            headerShadowVisible: false,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
+            animation: 'none',
+            animationDuration: 150,
+            animationTypeForReplace: 'push',
+          }}
+        />
+        <Stack.Screen
+          name="post"
+          options={{
+            headerShown: true,
+            title: '',
+            headerStyle: {
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerShadowVisible: false,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
+            animation: 'none',
+          }}
+        />
+        <Stack.Screen
+          name="settings"
+          options={{
+            headerShown: true,
+            title: '',
+            headerStyle: {
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerShadowVisible: false,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
+            animation: 'default',
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="status"
+          options={{
+            headerShown: false,
+            title: '',
+            headerStyle: {
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerShadowVisible: false,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
+            animation: 'none',
+          }}
+        />
+        <Stack.Screen
+          name="Weather"
+          options={{
+            headerShown: false,
+            title: '',
+            headerStyle: {
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerShadowVisible: false,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
+            animation: 'none',
+          }}
+        />
+        <Stack.Screen
+          name="auth"
+          options={{
+            headerShown: false,
+            title: '',
+            headerStyle: {
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerShadowVisible: false,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
+            animation: 'none',
+          }}
+        />
+        <Stack.Screen
+          name="profile"
+          options={{
+            headerShown: true,
+            title: '',
+            headerStyle: {
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerShadowVisible: false,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
+            animation: 'default',
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+    </GluestackUIProvider>
+  );
+}
 
 export default function RootLayout() {
   useNetworkStatus();
@@ -87,7 +322,7 @@ export default function RootLayout() {
     });
 
     // Setup token refresh listener
-    const unsubscribeTokenRefresh = FCMTokenService.setupTokenRefreshListener(authUser, (newToken) => {
+    const unsubscribeTokenRefresh = FCMTokenService.setupTokenRefreshListener(authUser, newToken => {
       // Update local state with new token
       setUserData((prev: any) => ({
         userData: {
@@ -138,7 +373,7 @@ export default function RootLayout() {
           <HighContrastProvider>
             <SheetProvider>
               <MapContext>
-                <RootLayoutContent />
+                <RootLayoutNav />
               </MapContext>
             </SheetProvider>
           </HighContrastProvider>
@@ -151,5 +386,14 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   gestureHandlerContainer: {
     flex: 1,
+  },
+  notificationButton: {
+    borderRadius: 50,
+    padding: 8,
+  },
+  headerRightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
 });

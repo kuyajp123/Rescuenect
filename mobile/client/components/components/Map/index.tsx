@@ -9,10 +9,12 @@ import { Colors } from '@/constants/Colors';
 import { useMap } from '@/contexts/MapContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { useFocusEffect } from 'expo-router';
 import { Bookmark, Ellipsis, Navigation, Settings, X } from 'lucide-react-native';
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
+  BackHandler,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -36,6 +38,18 @@ export interface TextInputField {
   numberOfLines?: number;
   maxLength?: number;
   onFocus?: () => void;
+}
+
+export interface NumberInputField {
+  key: string;
+  label: string;
+  placeholder: string;
+  value: number;
+  onChangeText: (value: number) => void;
+  errorText?: string;
+  onIncrement?: () => void;
+  onDecrement?: () => void;
+  min?: number;
 }
 
 export interface RadioOption {
@@ -99,6 +113,7 @@ export interface MapNewProps {
 
   // Form fields
   textInputFields?: TextInputField[];
+  numberInputFields?: NumberInputField[];
   radioFields?: RadioField[];
   toggleFields?: ToggleField[];
   errMessage?: string;
@@ -142,6 +157,7 @@ const Map = ({
   label,
   titleStyle,
   textInputFields = [],
+  numberInputFields = [],
   radioFields = [],
   toggleFields = [],
   customComponents = [],
@@ -181,6 +197,7 @@ const Map = ({
   const addressGPSLoading = useGetAddress(state => state.addressGPSLoading);
 
   const bottomSheetRef = useRef<BottomSheet>(null);
+  const bottomSheetIndexRef = useRef(0);
 
   // Single variable that handles all snap point logic
   let memoizedSnapPoints;
@@ -236,9 +253,27 @@ const Map = ({
     }
   }, [coords, oneTimeLocationCoords]);
 
+  // Handle Android back button
+  useFocusEffect(
+    useCallback(() => {
+      bottomSheetIndexRef.current = 0;
+
+      const onBackPress = () => {
+        if (bottomSheetIndexRef.current > 0) {
+          bottomSheetRef.current?.snapToIndex(0);
+          return true; // Prevent default back action
+        }
+        return false; // Allow default back action (navigate to previous screen)
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [])
+  );
+
   // Bottom Sheet callbacks
   const handleSheetChanges = (index: number) => {
-    // console.log('handleSheetChanges', index);
+    bottomSheetIndexRef.current = index;
 
     if (index === 2 || index === 1) {
       setHasButtons(false);
@@ -570,6 +605,47 @@ const Map = ({
                         { color: textValueColor },
                       ]}
                     />
+                  </VStack>
+                ))}
+
+                {/* Number Input Fields */}
+                {numberInputFields.map(field => (
+                  <VStack key={field.key} style={{ marginBottom: 12 }}>
+                    <HStack>
+                      <Text>{field.label}</Text>
+                      {field.errorText && <Text style={styles.errorText}>{field.errorText}</Text>}
+                    </HStack>
+                    <TextInput
+                      placeholder={field.placeholder}
+                      value={field.value.toString()}
+                      onChangeText={text => {
+                        const num = parseInt(text) || field.min || 1;
+                        field.onChangeText(num);
+                      }}
+                      onFocus={handleInputFocus}
+                      keyboardType="numeric"
+                      style={[
+                        styles.textInput,
+                        {
+                          borderColor: isDark ? Colors.border.dark : Colors.border.light,
+                          color: textValueColor,
+                        },
+                      ]}
+                    />
+                    {(field.onIncrement || field.onDecrement) && (
+                      <HStack style={{ justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                        {field.onDecrement && (
+                          <IconButton onPress={field.onDecrement}>
+                            <Text style={{ fontSize: 20, color: textValueColor }}>−</Text>
+                          </IconButton>
+                        )}
+                        {field.onIncrement && (
+                          <IconButton onPress={field.onIncrement}>
+                            <Text style={{ fontSize: 20, color: textValueColor }}>+</Text>
+                          </IconButton>
+                        )}
+                      </HStack>
+                    )}
                   </VStack>
                 ))}
 

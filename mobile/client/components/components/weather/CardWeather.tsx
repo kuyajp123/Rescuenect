@@ -1,5 +1,6 @@
 import index from '@/components/components/weather/index';
 import { GetDate, GetTime } from '@/components/helper/DateAndTime';
+import { getImageBackground, getWeatherCondition, getWeatherIcons } from '@/components/helper/WeatherLogic';
 import { useUserData } from '@/components/store/useBackendResponse';
 import { useWeatherStore } from '@/components/store/useWeatherStore';
 import { Divider } from '@/components/ui/divider';
@@ -9,7 +10,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ImageBackground, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { getImageBackground, getWeatherCondition, getWeatherIcons } from '@/components/helper/WeatherLogic';
 const { PartlyCloudyDay } = index;
 
 export const CardWeather = () => {
@@ -58,7 +58,8 @@ export const CardWeather = () => {
             <View>
               <WeatherIcon width={75} height={60} />
               <Text size="3xl" bold style={styles.temperatureText}>
-                {Math.round(Number(weatherData?.realtime[0].temperature))}°C
+                {weatherData?.realtime[0].temperature ? Math.round(Number(weatherData.realtime[0].temperature)) : '--'}
+                °C
               </Text>
             </View>
 

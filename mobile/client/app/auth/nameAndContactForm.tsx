@@ -120,12 +120,12 @@ const nameAndContactForm = () => {
 
     // If all fields are valid, proceed with saving the user
     if (firstName.trim() && lastName.trim() && contactNumber && isValidContactNumber(contactNumber)) {
-      setIsLoading(true);
       try {
         // Convert contact number to E.164 format
         const e164ContactNumber = convertToE164Format(contactNumber);
 
         if (authUser) {
+          setIsLoading(true);
           // ✅ Use the hook's getToken method to ensure we have a valid token
           const token = await getToken();
 
@@ -137,7 +137,7 @@ const nameAndContactForm = () => {
             return;
           }
 
-          const response = await axios.post(
+          await axios.post(
             API_ROUTES.DATA.SAVE_USER_DATA,
             {
               uid: authUser?.uid,
@@ -171,9 +171,6 @@ const nameAndContactForm = () => {
           },
         });
 
-        // Debug: Check what we saved
-        const savedUserData = await storageHelpers.getData(STORAGE_KEYS.USER);
-        // Reset the Zustand store after successful save
         reset();
         setIsLoading(false);
 

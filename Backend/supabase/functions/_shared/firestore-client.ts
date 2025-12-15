@@ -258,8 +258,16 @@ export async function getUserTokens(
           }
         }
 
-        // Add FCM token if valid
-        if (userData.fcmToken && isValidToken(userData.fcmToken)) {
+        // Add FCM tokens if valid (supports both fcmTokens array and legacy fcmToken)
+        if (userData.fcmTokens && Array.isArray(userData.fcmTokens)) {
+          // New format: fcmTokens array
+          userData.fcmTokens.forEach((token: string) => {
+            if (isValidToken(token)) {
+              tokens.push(token);
+            }
+          });
+        } else if (userData.fcmToken && isValidToken(userData.fcmToken)) {
+          // Legacy format: single fcmToken (for backward compatibility)
           tokens.push(userData.fcmToken);
         }
       });

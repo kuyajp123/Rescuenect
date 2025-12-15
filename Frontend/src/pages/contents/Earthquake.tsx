@@ -191,7 +191,6 @@ const Earthquake = () => {
               const fullEarthquakeData = processedEarthquakes.find(eq => eq.id === item.uid);
               setSelectedItem(fullEarthquakeData);
               setSelectedItemType('earthquake');
-              console.log('eq data: ', JSON.stringify(fullEarthquakeData, null, 2));
             } else {
               // Find the full status data
               const fullStatusData = filteredStatusData.find(status => status.uid === item.uid);

@@ -27,7 +27,7 @@ export const Button = ({
   children,
   className = '',
   isDark = false,
-  size = 'md',
+  size = 'lg',
   justify = 'center',
   width = 'full',
 }: ButtonProps) => {

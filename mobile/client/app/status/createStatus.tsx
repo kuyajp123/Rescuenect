@@ -1,8 +1,7 @@
 import { getAddress } from '@/API/getAddress';
-import { IconButton } from '@/components/components/button/Button';
 import CustomImagePicker from '@/components/components/CustomImagePicker';
 import { ImageModal } from '@/components/components/image-modal/ImageModal';
-import Map, { CustomButton, RadioField, TextInputField } from '@/components/components/Map';
+import Map, { CustomButton, NumberInputField, RadioField, TextInputField } from '@/components/components/Map';
 import Modal from '@/components/components/Modal';
 import {
   cleanAddress,
@@ -42,9 +41,9 @@ import axios from 'axios';
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
 import { isEqual } from 'lodash';
-import { Bookmark, Ellipsis, Info, Minus, Navigation, Plus, Settings, SquarePen, Trash } from 'lucide-react-native';
+import { Bookmark, Ellipsis, Info, Navigation, Settings, SquarePen, Trash } from 'lucide-react-native';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Image, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Animated, Image, Linking, Pressable, StyleSheet, View, BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export const createStatus = () => {
@@ -774,6 +773,31 @@ export const createStatus = () => {
     },
   ];
 
+  // Define number input fields
+  const numberInputFields: NumberInputField[] = [
+    {
+      key: 'people',
+      label: 'Total people with you right now (count yourself too)',
+      placeholder: 'Enter Value',
+      value: statusForm.people,
+      onChangeText: (value: number) => handleInputChange('people', value),
+      errorText: formErrors.people,
+      min: 1,
+      onIncrement: () => {
+        setStatusForm(prev => ({
+          ...prev,
+          people: Number(prev.people) + 1,
+        }));
+      },
+      onDecrement: () => {
+        setStatusForm(prev => ({
+          ...prev,
+          people: Number(prev.people) > 1 ? Number(prev.people) - 1 : 1,
+        }));
+      },
+    },
+  ];
+
   // Define radio fields
   const radioFields: RadioField[] = [
     {
@@ -905,55 +929,6 @@ export const createStatus = () => {
 
   // Custom components
   const customComponents = [
-    <View style={{ flex: 1, flexDirection: 'column' }} key="people-with-you-input-container">
-      <View>
-        <Text>Total people with you right now (count yourself too)</Text>
-        <Text style={{ color: Colors.semantic.error }}>{formErrors.people}</Text>
-        <TextInput
-          placeholder="Enter Value"
-          value={statusForm.people.toString()}
-          onChangeText={text => {
-            const num = parseInt(text) || 1;
-            setStatusForm(prev => ({
-              ...prev,
-              people: num,
-            }));
-          }}
-          keyboardType="numeric"
-          style={[
-            {
-              ...styles.textInput,
-              borderColor: isDark ? Colors.border.dark : Colors.border.light,
-              flex: 1,
-            },
-            { color: isDark ? Colors.text.dark : Colors.text.light },
-          ]}
-        />
-      </View>
-      <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
-        <IconButton
-          onPress={() => {
-            setStatusForm(prev => ({
-              ...prev,
-              people: Number(prev.people) > 1 ? Number(prev.people) - 1 : 1,
-            }));
-          }}
-        >
-          <Minus color={isDark ? Colors.icons.dark : Colors.icons.light} />
-        </IconButton>
-        <IconButton
-          onPress={() => {
-            setStatusForm(prev => ({
-              ...prev,
-              people: Number(prev.people) + 1,
-            }));
-          }}
-        >
-          <Plus color={isDark ? Colors.icons.dark : Colors.icons.light} />
-        </IconButton>
-      </View>
-    </View>,
-
     <View style={{ flex: 1, flexDirection: 'column' }} key="category-label-container">
       <Text>Select which type of Category of your Status</Text>
       <Text style={{ color: Colors.semantic.error }}>{formErrors.category}</Text>
@@ -1335,6 +1310,7 @@ export const createStatus = () => {
           GPSlocationLabel={addressGPS ? addressGPS.formatted : 'GPS Location'}
           tappedLocationLabel={addressCoords ? addressCoords.formatted : 'Coordinates'}
           textInputFields={textInputFields}
+          numberInputFields={numberInputFields}
           radioFields={radioFields}
           // toggleFields={toggleFields}
           customComponents={customComponents}

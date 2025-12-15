@@ -1,7 +1,8 @@
-import { IconButton, PrimaryButton } from '@/components/components/button/Button';
+import { IconButton } from '@/components/components/button/Button';
 import { GlassCard } from '@/components/components/card/GlassCard';
 import { getImageBackground, getWeatherCondition } from '@/components/helper/WeatherLogic';
 import { useUserData } from '@/components/store/useBackendResponse';
+import { useNotificationStore } from '@/components/store/useNotificationStore';
 import { useWeatherStore } from '@/components/store/useWeatherStore';
 import { Divider } from '@/components/ui/divider';
 import { Text } from '@/components/ui/text';
@@ -9,9 +10,9 @@ import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, LocateFixed, TriangleAlert } from 'lucide-react-native';
+import { ChevronLeft, TriangleAlert } from 'lucide-react-native';
 import React from 'react';
-import { ImageBackground, SafeAreaView, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ImageBackground, SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FiveDaysForecast } from './FiveDaysForecast';
 import TwentyFourHourForecast from './TwentyFourHourForecast';
@@ -22,11 +23,29 @@ export const MainPage = () => {
   const insets = useSafeAreaInsets();
   const weatherData = useWeatherStore(state => state.weather);
   const userData = useUserData(state => state.userData);
+  const notifications = useNotificationStore(state => state.notifications);
 
   const linerColorLight = ['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.2)'] as const;
   const linerColorDark = ['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.6)'] as const;
 
-  React.useEffect(() => {}, []);
+  // Get the latest weather notification within 30 minutes
+  const getLatestFreshNotification = () => {
+    const now = Date.now();
+    const thirtyMinutesAgo = now - 30 * 60 * 1000; // 30 minutes in milliseconds
+
+    const freshWeatherNotifications = notifications.filter(
+      n => n.type === 'weather' && n.timestamp >= thirtyMinutesAgo && n.timestamp <= now
+    );
+
+    if (freshWeatherNotifications.length === 0) return null;
+
+    // Sort by timestamp descending (latest first)
+    const sorted = freshWeatherNotifications.sort((a, b) => b.timestamp - a.timestamp);
+
+    return sorted[0];
+  };
+
+  const latestNotification = getLatestFreshNotification();
 
   return (
     <View style={styles.container}>
@@ -59,29 +78,11 @@ export const MainPage = () => {
             </IconButton>
           </View>
 
-          {/* Search Section */}
-          <View style={styles.searchSection}>
-            <View style={styles.searchContainer}>
-              <TextInput
-                placeholder="Search for a location"
-                style={[
-                  styles.searchInput,
-                  { backgroundColor: isDark ? Colors.border.dark : '#f0f0f0', color: isDark ? '#fff' : '#000' },
-                ]}
-                placeholderTextColor={isDark ? Colors.text.dark : '#888'}
-              />
-            </View>
-            <View style={styles.buttonContainer}>
-              <PrimaryButton onPress={() => console.log('Search pressed')} style={styles.locationButton}>
-                <LocateFixed size={20} color={'#ffffff'} />
-              </PrimaryButton>
-            </View>
-          </View>
-
           {weatherData?.realtime ? (
             <View style={styles.weatherInfo}>
               <Text size="6xl" style={styles.temperatureText}>
-                {Math.round(weatherData.realtime[0].temperature)}°C
+                {weatherData?.realtime[0].temperature ? Math.round(Number(weatherData.realtime[0].temperature)) : '--'}
+                °C
               </Text>
               <Text size="sm" style={styles.locationText}>
                 Brgy {userData.barangay} • {getWeatherCondition(weatherData.realtime[0].weatherCode)}
@@ -94,14 +95,33 @@ export const MainPage = () => {
           )}
 
           <View style={styles.weatherCards}>
-            <View style={styles.cardRow}>
-              <GlassCard style={{ ...styles.weatherCard, padding: 20 }} size="small">
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', width: '100%' }}>
-                  <TriangleAlert size={20} color={Colors.text.dark} />
-                  <Text style={{ color: Colors.text.dark, width: '89%' }}>Weather Notification here.</Text>
-                </View>
-              </GlassCard>
-            </View>
+            {latestNotification && (
+              <View style={styles.cardRow}>
+                <GlassCard style={{ ...styles.weatherCard, padding: 20 }} size="small">
+                  <View style={{ flexDirection: 'column', gap: 8, width: '100%' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <TriangleAlert size={20} color={Colors.text.dark} />
+                      <Text style={{ color: Colors.text.dark, fontWeight: 'bold', fontSize: 16, flex: 1 }}>
+                        Latest Alert
+                      </Text>
+                    </View>
+                    <Text style={{ color: Colors.text.dark, fontWeight: '600', fontSize: 14 }}>
+                      {latestNotification.title}
+                    </Text>
+                    <Text style={{ color: Colors.text.dark, fontSize: 13, lineHeight: 18 }}>
+                      {latestNotification.message}
+                    </Text>
+                    <Text style={{ color: Colors.text.dark, fontSize: 11, opacity: 0.7, marginTop: 4 }}>
+                      {new Date(latestNotification.timestamp).toLocaleTimeString('en-PH', {
+                        timeZone: 'Asia/Manila',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Text>
+                  </View>
+                </GlassCard>
+              </View>
+            )}
 
             {weatherData?.realtime ? (
               <>
@@ -284,28 +304,6 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 10,
     borderRadius: 50,
-  },
-  searchSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  searchContainer: {
-    width: '80%',
-  },
-  searchInput: {
-    borderRadius: 8,
-    padding: 10,
-    paddingLeft: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  buttonContainer: {
-    width: '15%',
-  },
-  locationButton: {
-    borderRadius: 100,
   },
   weatherInfo: {
     justifyContent: 'center',

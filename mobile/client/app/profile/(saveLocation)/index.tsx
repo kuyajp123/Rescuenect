@@ -483,6 +483,20 @@ const index = () => {
         backgroundStyle={{
           backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
         }}
+        handleComponent={() => {
+          return (
+            <View style={styles.handleContainer}>
+              <View
+                style={[
+                  styles.defaultHandle,
+                  {
+                    backgroundColor: isDark ? Colors.border.light : Colors.border.dark,
+                  },
+                ]}
+              />
+            </View>
+          );
+        }}
       >
         <BottomSheetScrollView
           ref={scrollViewRef}
@@ -494,7 +508,6 @@ const index = () => {
           }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          showsHorizontalScrollIndicator={false}
           keyboardDismissMode="interactive"
         >
           <View style={{ display: 'flex', justifyContent: 'flex-end', gap: 15, flexDirection: 'row', width: '100%' }}>
@@ -545,6 +558,7 @@ const index = () => {
                       paddingHorizontal: 12,
                       paddingVertical: 8,
                       fontSize: 16,
+                      color: isDark ? Colors.text.light : Colors.text.dark,
                     }}
                   />
                 </View>
@@ -587,6 +601,7 @@ const index = () => {
                         paddingVertical: 8,
                         fontSize: 16,
                         textAlignVertical: 'top',
+                        color: isDark ? Colors.text.light : Colors.text.dark,
                       }}
                     />
                   </View>
@@ -625,6 +640,7 @@ const index = () => {
                       paddingHorizontal: 12,
                       paddingVertical: 8,
                       fontSize: 16,
+                      color: isDark ? Colors.text.dark : Colors.text.light,
                     }}
                   />
                 </View>
@@ -666,6 +682,7 @@ const index = () => {
                         paddingVertical: 8,
                         fontSize: 16,
                         textAlignVertical: 'top',
+                        color: isDark ? Colors.text.dark : Colors.text.light,
                       }}
                     />
                   </View>
@@ -761,5 +778,15 @@ const styles = StyleSheet.create({
   },
   errorMessage: {
     color: Colors.semantic.error,
+  },
+  defaultHandle: {
+    width: 30,
+    height: 4,
+    borderRadius: 2,
+  },
+  handleContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
   },
 });

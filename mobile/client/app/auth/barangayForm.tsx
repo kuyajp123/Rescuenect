@@ -86,11 +86,10 @@ const barangayForm = () => {
       return;
     }
 
-    setIsLoading(true);
-
     let fcmToken = '';
 
     if (authUser) {
+      setIsLoading(true);
       try {
         const token = await getToken();
         fcmToken = await getFcmToken(messaging);
@@ -110,7 +109,6 @@ const barangayForm = () => {
         return;
       }
     } else if (authLoading) {
-      console.log('⏳ Authentication still loading, please wait...');
       setErrorMessage('Please wait for authentication to complete.');
     }
 
@@ -137,7 +135,7 @@ const barangayForm = () => {
     }
 
     try {
-      const response = await axios.post(
+      await axios.post(
         API_ROUTES.DATA.SAVE_BARANGAY_DATA,
         {
           uid: authUser?.uid,
@@ -152,8 +150,6 @@ const barangayForm = () => {
           timeout: 30000, // 30 seconds timeout
         }
       );
-
-      // console.log('✅ Backend response:', response.data);
     } catch (error) {
       console.error('❌ Error saving barangay:', error);
       if (axios.isAxiosError(error)) {

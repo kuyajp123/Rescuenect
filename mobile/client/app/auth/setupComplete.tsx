@@ -19,11 +19,6 @@ const setupComplete = () => {
       <Text emphasis="light"> You're all set! Welcome to Rescuenect</Text>
       <View style={styles.homeButton}>
         <PrimaryButton onPress={() => router.replace('(tabs)' as any)}>Continue</PrimaryButton>
-        {/* <Pressable
-          onPress={() => router.replace("/status/createStatus" as any)}
-        >
-          <Text style={styles.setStatusText}>Set a status</Text>
-        </Pressable> */}
       </View>
     </Body>
   );
