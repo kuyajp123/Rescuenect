@@ -88,7 +88,14 @@ const index = () => {
             Save Locations
           </Text>
         </Button>
-        <Button action="secondary" width="fit" style={{ marginLeft: 10, marginTop: 20 }} onPress={() => {}}>
+        <Button
+          action="secondary"
+          width="fit"
+          style={{ marginLeft: 10, marginTop: 20 }}
+          onPress={() => {
+            router.push('profile/profileDetails' as any);
+          }}
+        >
           <Ellipsis size={24} color={isDark ? Colors.text.dark : Colors.text.light} />
         </Button>
       </View>

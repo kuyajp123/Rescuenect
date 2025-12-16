@@ -23,4 +23,6 @@ useDataRoutes.post('/updateFcmToken', UserDataController.updateFcmTokenControlle
 useDataRoutes.post('/removeFcmToken', UserDataController.removeFcmTokenController);
 useDataRoutes.get('/getFcmTokens', UserDataController.getFcmTokensController);
 
+useDataRoutes.delete('/deleteUser', SignInController.deleteUserController);
+
 export default useDataRoutes;

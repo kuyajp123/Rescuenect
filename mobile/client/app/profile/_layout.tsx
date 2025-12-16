@@ -1,5 +1,5 @@
-import { Stack } from 'expo-router'
-import React from 'react'
+import { Stack } from 'expo-router';
+import React from 'react';
 
 export const _layout = () => {
   return (
@@ -20,8 +20,16 @@ export const _layout = () => {
           presentation: 'card',
         }}
       />
+      <Stack.Screen
+        name="profileDetails"
+        options={{
+          headerShown: false,
+          animation: 'default',
+          presentation: 'card',
+        }}
+      />
     </Stack>
   );
-}
+};
 
 export default _layout;

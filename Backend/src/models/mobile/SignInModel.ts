@@ -51,4 +51,13 @@ export class SignInModel {
       throw new Error('Failed to save user info');
     }
   }
+
+  static async deleteUser(uid: string): Promise<void> {
+    try {
+      await this.userRef(uid).delete();
+    } catch (error: Error | any) {
+      console.error('Error deleting user:', error);
+      throw new Error('Failed to delete user');
+    }
+  }
 }

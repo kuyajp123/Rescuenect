@@ -22,6 +22,7 @@ export const API_ROUTES = {
     SAVE_LOCATION: `${BASE_URL}/mobile/data/saveLocation`,
     GET_LOCATIONS: `${BASE_URL}/mobile/data/getLocations`,
     DELETE_LOCATION: `${BASE_URL}/mobile/data/deleteLocation`,
+    DELETE_USER: `${BASE_URL}/mobile/data/deleteUser`,
     // FCM Token Management
     UPDATE_FCM_TOKEN: `${BASE_URL}/mobile/data/updateFcmToken`,
     REMOVE_FCM_TOKEN: `${BASE_URL}/mobile/data/removeFcmToken`,

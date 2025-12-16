@@ -119,7 +119,6 @@ const index = () => {
   };
 
   const notificationMarkAsHidden = async (id: BaseNotification['id'], uid: string, idToken: any) => {
-    console.log('Notification marked as hidden');
     try {
       // Call API to mark as hidden
       const response = await axios.post(
@@ -146,7 +145,6 @@ const index = () => {
   };
 
   const notificationMarkAsDeleted = async (id: BaseNotification['id'], uid: string, idToken: any) => {
-    console.log('Notification marked as deleted');
     try {
       // Call API to mark as deleted
       const response = await axios.post(

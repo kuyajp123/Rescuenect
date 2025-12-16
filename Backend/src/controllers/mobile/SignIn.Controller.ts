@@ -114,4 +114,24 @@ export class SignInController {
       next(error);
     }
   }
+
+  static async deleteUserController(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const { uid } = req.body;
+
+    if (!uid) {
+      res.status(400).json({ message: 'User ID is required' });
+      return;
+    }
+
+    try {
+      await SignInModel.deleteUser(uid);
+      await admin.auth().deleteUser(uid);
+
+      res.status(200).json({ success: true, message: 'User deleted successfully' });
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      res.status(500).json({ success: false, message: 'Failed to delete user' });
+      next(error);
+    }
+  }
 }
