@@ -180,6 +180,7 @@ export interface MapProps {
 
   // Optional props with defaults
   center?: [number, number];
+  maxBounds?: [[number, number], [number, number]];
   zoom?: number;
   minZoom?: number;
   maxZoom?: number;

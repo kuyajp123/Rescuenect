@@ -135,17 +135,17 @@ export const MapProvider = ({ children }: MapProviderProps) => {
         >
           {/* Add your default map children here */}
           <MapboxGL.Camera
-            zoomLevel={12}
-            centerCoordinate={[120.7752839, 14.2919325]} // [lng, lat]
+            centerCoordinate={[120.750674, 14.31808]} // [lng, lat]
             animationDuration={300}
-            minZoomLevel={11}
-            maxZoomLevel={20}
+            zoomLevel={16}
+            minZoomLevel={15}
+            maxZoomLevel={19}
             followUserLocation={followUserLocation}
             followZoomLevel={16}
-            // maxBounds={{
-            //   ne: [120.8739, 14.3628],
-            //   sw: [120.6989, 14.2214],
-            // }}
+            maxBounds={{
+              ne: [120.735, 14.305],
+              sw: [120.765, 14.33],
+            }}
           />
           <MapboxGL.VectorSource id="buildingSource" url="mapbox://mapbox.mapbox-streets-v8">
             <MapboxGL.FillExtrusionLayer

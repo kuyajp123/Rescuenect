@@ -87,6 +87,7 @@ interface MapViewProps {
   scrollEnabled?: boolean;
   zoomEnabled?: boolean;
   centerCoordinate?: [number, number];
+  maxBounds?: [[number, number], [number, number]];
   zoomLevel?: number;
   minZoomLevel?: number;
   maxZoomLevel?: number;
@@ -108,10 +109,14 @@ export const MapView: React.FC<MapViewProps> = ({
   showButtons = true,
   showStyleSelector = true,
   interactive = true,
-  centerCoordinate = [120.7752839, 14.2919325],
-  zoomLevel = 12,
-  minZoomLevel = 11,
-  maxZoomLevel = 20,
+  centerCoordinate = [120.750674, 14.31808],
+  maxBounds = [
+    [120.735, 14.305],
+    [120.765, 14.33],
+  ],
+  zoomLevel = 15,
+  minZoomLevel = 15,
+  maxZoomLevel = 19,
   followUserLocation = false,
   hasAnimation = true,
   show3DBuildings = true,
@@ -202,6 +207,10 @@ export const MapView: React.FC<MapViewProps> = ({
         <MapboxGL.Camera
           zoomLevel={zoomLevel}
           centerCoordinate={centerCoordinate}
+          maxBounds={{
+            ne: [maxBounds[1][0], maxBounds[1][1]],
+            sw: [maxBounds[0][0], maxBounds[0][1]],
+          }}
           animationDuration={300}
           animationMode={hasAnimation ? 'flyTo' : 'none'}
           minZoomLevel={minZoomLevel}

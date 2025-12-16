@@ -35,11 +35,13 @@ const Status = () => {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const statusData = useStatusStore(state => state.statusData);
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
+  const [resolvedLoading, setResolvedLoading] = useState(false);
   const navigate = useNavigate();
   const admin = auth.currentUser;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setResolvedLoading(true);
     const formData = new FormData(e.currentTarget);
     const note = formData.get('note') as string;
     const idToken = await admin?.getIdToken();
@@ -64,6 +66,8 @@ const Status = () => {
       onClose(); // Close the drawer
     } catch (error) {
       console.error('Error resolving status:', error);
+    } finally {
+      setResolvedLoading(false);
     }
   };
 
@@ -251,11 +255,17 @@ const Status = () => {
                     <Textarea label="Leave some notes" placeholder="Enter note" labelPlacement="outside" name="note" />
                   </DrawerBody>
                   <DrawerFooter>
-                    <Button color="danger" variant="light" onPress={onClose}>
+                    <Button color="danger" variant="light" onPress={onClose} disabled={resolvedLoading}>
                       Cancel
                     </Button>
-                    <Button color="primary" type="submit">
-                      Confirm
+                    <Button
+                      color="primary"
+                      type="submit"
+                      isLoading={resolvedLoading}
+                      disabled={resolvedLoading}
+                      className="ml-2"
+                    >
+                      {resolvedLoading ? 'Submitting...' : 'Submit'}
                     </Button>
                   </DrawerFooter>
                 </Form>

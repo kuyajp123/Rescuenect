@@ -148,9 +148,13 @@ export const Map = ({
   data,
   earthquakeData,
   statusData,
-  center = [14.2965, 120.7925],
-  zoom = 13,
-  minZoom = 13,
+  center = [14.31808, 120.750674],
+  maxBounds = [
+    [14.305, 120.735],
+    [14.33, 120.765],
+  ],
+  zoom = 17,
+  minZoom = 16,
   maxZoom = 18,
   height = '100%',
   width = '100%',
@@ -376,11 +380,8 @@ export const Map = ({
       scrollWheelZoom={dragging}
       keyboard={dragging}
       boxZoom={dragging}
-      // maxBounds={[
-      //   [14.2214, 120.6989],
-      //   [14.3628, 120.8739],
-      // ]}
-      // maxBoundsViscosity={1.0} // prevents moving outside bounds
+      maxBounds={maxBounds}
+      maxBoundsViscosity={1.0} // prevents moving outside bounds
     >
       {onMapClick && <MapClickHandler />}
       {/* Use DynamicTileLayer for style switching */}
