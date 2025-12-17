@@ -9,6 +9,7 @@ export const API_ENDPOINTS = {
   AUTH: {
     SIGNIN: `${BACKEND_URL}/admin/auth/signin`,
     UPDATE_FCM_TOKEN: `${BACKEND_URL}/admin/config/update-fcm-token`,
+    UPDATE_PROFILE: `${BACKEND_URL}/admin/auth/update-profile`,
   },
   STATUS: {
     GET_VERSIONS: `${BACKEND_URL}/admin/status/getVersions`,

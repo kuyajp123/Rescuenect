@@ -198,7 +198,7 @@ export const Notification = () => {
         </div>
       </div>
 
-      <div className="mt-5">
+      <div className="mt-5 h-[calc(100vh-180px)] overflow-y-auto custom-scrollbar">
         {isLoading ? (
           <div className="p-8 flex justify-center">
             <Spinner size="lg" label="Loading notifications..." />

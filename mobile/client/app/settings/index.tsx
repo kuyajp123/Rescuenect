@@ -6,7 +6,7 @@ import { useHighContrast } from '@/contexts/HighContrastContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import HighContrastOption from '@/hooks/HighContrastOption';
 import { router } from 'expo-router';
-import { AArrowUp, Bookmark, TypeOutline } from 'lucide-react-native';
+import { AArrowUp, Bookmark, Map, TypeOutline } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -65,6 +65,12 @@ export const index = () => {
             onPress={() => router.push('profile/(saveLocation)' as any)}
             description="Manage your saved locations."
             iconLeft={<Bookmark size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
+          />
+          <NavigationButton
+            label="Map Styles"
+            onPress={() => router.push('settings/(map)/mapSettings' as any)}
+            description="Change the style of the map."
+            iconLeft={<Map size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
           />
         </View>
       </View>

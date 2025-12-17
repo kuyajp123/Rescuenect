@@ -23,6 +23,7 @@ type MapContextType = {
   setMapStyle: (style: MapboxGL.StyleURL) => void;
   showMapStyles: boolean;
   toggleMapStyles: () => void;
+  setCameraCenter: (coords: [number, number]) => void;
 };
 
 type MapProviderProps = { children: React.ReactNode };
@@ -45,6 +46,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
   const hasButtons = useMapSettingsStore(state => state.hasButtons);
   const router = useRouter();
   const { isDark } = useTheme();
+  const [cameraCenter, setCameraCenter] = useState<[number, number]>([120.750674, 14.31808]);
 
   // Load saved map style from storage
 
@@ -62,6 +64,13 @@ export const MapProvider = ({ children }: MapProviderProps) => {
 
     loadMapStyle();
   }, []);
+
+  // Update camera center when active status coords change
+  useEffect(() => {
+    if (activeStatusCoords && coords && coords.length === 2) {
+      setCameraCenter(coords);
+    }
+  }, [coords, activeStatusCoords]);
 
   const setMapStyle = useCallback(async (style: MapboxGL.StyleURL) => {
     try {
@@ -135,7 +144,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
         >
           {/* Add your default map children here */}
           <MapboxGL.Camera
-            centerCoordinate={[120.750674, 14.31808]} // [lng, lat]
+            centerCoordinate={cameraCenter} // [lng, lat]
             animationDuration={300}
             zoomLevel={16}
             minZoomLevel={15}
@@ -280,6 +289,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
     setMapStyle,
     showMapStyles,
     toggleMapStyles,
+    setCameraCenter,
   };
 
   return <MapContext.Provider value={value}>{children}</MapContext.Provider>;

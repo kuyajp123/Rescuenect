@@ -18,6 +18,7 @@ import {
   Weather,
 } from '@/pages/contents';
 import { AddressForm, AdminInfo, Login, Welcome } from './pages/auth';
+import Settings from './pages/contents/Settings';
 
 import AdminProfile from './pages/profiile/AdminProfile';
 
@@ -45,6 +46,7 @@ const Router = () => {
         <Route path="/profile" element={<AdminProfile />} />
         <Route path="/notification" element={<Notification />} />
         <Route path="/notification/details" element={<NotificationDetails />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
 
       {/* Onboarding layout */}

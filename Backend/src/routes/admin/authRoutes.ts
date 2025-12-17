@@ -4,8 +4,9 @@ import { Router } from 'express';
 
 const authRoutes = Router();
 
-authRoutes.use(AuthMiddleware.verifyToken); 
+authRoutes.use(AuthMiddleware.verifyToken);
 
 authRoutes.post('/signin', LoginController.handleLogin);
+authRoutes.post('/update-profile', LoginController.updateProfile);
 
 export default authRoutes;

@@ -28,6 +28,14 @@ export const _layout = () => {
           presentation: 'card',
         }}
       />
+      <Stack.Screen
+        name="(map)/mapSettings"
+        options={{
+          headerShown: false,
+          animation: 'default',
+          presentation: 'card',
+        }}
+      />
     </Stack>
   );
 }

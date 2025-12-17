@@ -30,6 +30,8 @@ type ModalProps = {
   renderImage?: () => React.ReactNode;
   items?: Array<{ label: string; name?: string; onPress?: () => void }>;
   textAlign?: 'left' | 'center' | 'right';
+  primaryButtonAction?: 'primary' | 'secondary' | 'success' | 'error' | 'warning';
+  primaryButtonVariant?: 'solid' | 'outline' | 'link';
 };
 
 const index = ({
@@ -47,6 +49,8 @@ const index = ({
   secondaryText,
   items = [],
   textAlign,
+  primaryButtonAction = 'primary',
+  primaryButtonVariant = 'link',
 }: ModalProps) => {
   const { isDark } = useTheme();
 
@@ -60,7 +64,7 @@ const index = ({
             <X onPress={iconOnPress} size={sizeIcon || 20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
           </ModalCloseButton>
         </ModalHeader>
-        <ModalBody style={{ maxHeight: 500, }}>
+        <ModalBody style={{ maxHeight: 500 }}>
           {renderImage && renderImage()}
           {items && items.length > 0 && (
             <ScrollView>
@@ -72,15 +76,31 @@ const index = ({
               ))}
             </ScrollView>
           )}
-          {primaryText && <Text size="sm" style={{ textAlign: textAlign || 'center', marginBottom: 10 }}>{primaryText}</Text>}
-          {secondaryText && <Text size="sm" style={{ textAlign: textAlign || 'center' }}>{secondaryText}</Text>}
+          {primaryText && (
+            <Text size="sm" style={{ textAlign: textAlign || 'center', marginBottom: 10 }}>
+              {primaryText}
+            </Text>
+          )}
+          {secondaryText && (
+            <Text size="sm" style={{ textAlign: textAlign || 'center' }}>
+              {secondaryText}
+            </Text>
+          )}
         </ModalBody>
         <ModalFooter>
           <Button variant="link" width="fit" onPress={secondaryButtonOnPress}>
-            <Text size='sm'>{secondaryButtonText}</Text>
+            <Text size="sm">{secondaryButtonText}</Text>
           </Button>
-          <Button variant="link" width="fit" onPress={primaryButtonOnPress}>
-            <Text size="sm">{primaryButtonText}</Text>
+          <Button
+            action={primaryButtonAction}
+            variant={primaryButtonVariant}
+            width="fit"
+            onPress={primaryButtonOnPress}
+            style={primaryButtonVariant === 'solid' ? { borderRadius: 20 } : undefined}
+          >
+            <Text size="sm" style={primaryButtonVariant === 'solid' ? { color: 'white' } : undefined}>
+              {primaryButtonText}
+            </Text>
           </Button>
         </ModalFooter>
       </ModalContent>

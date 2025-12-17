@@ -6,6 +6,7 @@ import { Text } from '@/components/ui/text';
 import { ColorCombinations } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { loggedInUser, User } from '@/types/components';
+import { useRouter } from 'expo-router';
 import { CircleCheck, CircleQuestionMark, Info, ShieldCheck } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -17,6 +18,7 @@ interface StatusIndicatorProps {
 
 export const StatusIndicator = ({ userStatus, loggedInUser }: StatusIndicatorProps) => {
   const { isDark } = useTheme();
+  const router = useRouter();
 
   // Dynamic styles based on theme
   const dynamicStyles = {
@@ -41,7 +43,7 @@ export const StatusIndicator = ({ userStatus, loggedInUser }: StatusIndicatorPro
   return (
     <View>
       {hasActiveStatus ? (
-        <TouchableOpacity onPress={() => alert('Card pressed')} activeOpacity={1}>
+        <TouchableOpacity onPress={() => router.push('/status/createStatus')} activeOpacity={1}>
           <Card style={{ ...dynamicStyles.container }}>
             {/* Main content row */}
             <Box style={styles.mainContent}>

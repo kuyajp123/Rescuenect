@@ -1,6 +1,5 @@
 import { SecondaryButton } from '@/components/ui/button';
 import { revokeToken } from '@/config/notificationPermission';
-import { ThemeSwitcher } from '@/hooks/ThemeSwitcher';
 import { auth } from '@/lib/firebaseConfig';
 import { useAuth } from '@/stores/useAuth';
 import { useNotificationStore } from '@/stores/useNotificationStore';
@@ -16,7 +15,7 @@ import {
   User,
 } from '@heroui/react';
 import { getAuth, signOut } from 'firebase/auth';
-import { Bell, PlusIcon, Settings } from 'lucide-react';
+import { Bell, LogOut, Settings, UserRound } from 'lucide-react';
 import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -27,6 +26,7 @@ const Header = () => {
   const notifications = useNotificationStore(state => state.notifications);
   const uid = auth.currentUser?.uid;
   const admin = useAuth(state => state.auth);
+  const userData = useAuth(state => state.userData);
 
   const unreadCount = useMemo(() => getUnreadCount(uid), [notifications, getUnreadCount]);
 
@@ -126,7 +126,6 @@ const Header = () => {
       </div>
 
       <div className="flex flex-row space-x-5 items-center p-4">
-        <ThemeSwitcher />
         <div className="relative">
           <SecondaryButton
             className="rounded-full border-none"
@@ -145,9 +144,6 @@ const Header = () => {
           )}
         </div>
         <div>
-          <Settings size={20} className="inline-block mr-2" />
-        </div>
-        <div>
           <Dropdown
             showArrow
             classNames={{
@@ -161,10 +157,10 @@ const Header = () => {
                 <Avatar
                   size="sm"
                   src={admin?.photoURL || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}
-                  name={admin?.displayName || 'John Doe'}
+                  name={userData?.firstName || 'John Doe'}
                   className="inline-block mr-2 "
                 />
-                <span className="text-default-600">{admin?.displayName}</span>
+                <span className="text-default-600">{userData?.firstName}</span>
               </div>
             </DropdownTrigger>
             <DropdownMenu
@@ -201,42 +197,23 @@ const Header = () => {
                     name={admin?.displayName!}
                   />
                 </DropdownItem>
-                <DropdownItem onClick={() => navigate('/profile', { replace: true })} key="dashboard">
+                <DropdownItem
+                  onClick={() => navigate('/profile', { replace: true })}
+                  key="dashboard"
+                  startContent={<UserRound size={20} />}
+                >
                   Profile
                 </DropdownItem>
-                <DropdownItem key="settings">Settings</DropdownItem>
-                <DropdownItem key="new_project" endContent={<PlusIcon className="text-large" />}>
-                  New Project
-                </DropdownItem>
-              </DropdownSection>
-
-              <DropdownSection showDivider aria-label="Preferences">
-                <DropdownItem key="quick_search" shortcut="⌘K">
-                  Quick search
-                </DropdownItem>
                 <DropdownItem
-                  key="theme"
-                  isReadOnly
-                  className="cursor-default"
-                  endContent={
-                    <select
-                      className="z-10 outline-solid outline-transparent w-16 py-0.5 rounded-md text-tiny group-data-[hover=true]:border-default-500 border-small border-default-300 dark:border-default-200 bg-transparent text-default-500"
-                      id="theme"
-                      name="theme"
-                    >
-                      <option>System</option>
-                      <option>Dark</option>
-                      <option>Light</option>
-                    </select>
-                  }
+                  onClick={() => navigate('/settings', { replace: true })}
+                  key="settings"
+                  startContent={<Settings size={20} />}
                 >
-                  Theme
+                  Settings
                 </DropdownItem>
               </DropdownSection>
-
               <DropdownSection aria-label="Help & Feedback">
-                <DropdownItem key="help_and_feedback">Help & Feedback</DropdownItem>
-                <DropdownItem key="logout" onClick={handleSignOut}>
+                <DropdownItem key="logout" onClick={handleSignOut} startContent={<LogOut size={20} />}>
                   Log Out
                 </DropdownItem>
               </DropdownSection>

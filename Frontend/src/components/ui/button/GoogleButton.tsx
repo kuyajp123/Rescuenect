@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
-import { useAuth } from '@/stores/useAuth';
+import { useAuth, UserData } from '@/stores/useAuth';
 import { useErrorStore } from '@/stores/useErrorMessage';
 import axios from 'axios';
 import { GoogleAuthProvider, signInWithCredential, signInWithPopup } from 'firebase/auth';
@@ -9,6 +9,7 @@ import { SecondaryButton } from './';
 export const GoogleButton = () => {
   const isLoading = useAuth(state => state.isLoading);
   const isVerifying = useAuth(state => state.isVerifying);
+  const setUserData = useAuth(state => state.setUserData); // Add this
   const setError = useErrorStore(state => state.setError);
   const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
@@ -33,12 +34,17 @@ export const GoogleButton = () => {
       const tempUser = popupResult.user;
       const idToken = await tempUser.getIdToken();
 
-      // Backend verification - no fcmToken during login, will be set later
-      await axios.post(
+      // Backend verification
+      const response = await axios.post<{ user: UserData }>(
         API_ENDPOINTS.AUTH.SIGNIN,
         { email: tempUser.email, uid: tempUser.uid, fcmToken: null, barangay: 'bancaan' },
         { headers: { Authorization: `Bearer ${idToken}` }, withCredentials: true }
       );
+
+      // Save user data to store
+      if (response.data && response.data.user) {
+        setUserData(response.data.user as UserData);
+      }
 
       await signInWithCredential(auth, credential);
 

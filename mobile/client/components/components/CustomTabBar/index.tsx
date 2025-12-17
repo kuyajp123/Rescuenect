@@ -1,7 +1,7 @@
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
-import { AlignRight, House, Phone, MapPinPlus, MapPlus, Plus, UsersRound } from 'lucide-react-native';
+import { AlignRight, House, MapPinPlus, MapPlus, Phone, Plus, UsersRound } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,12 +12,13 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
   const router = useRouter();
 
   const handleFABPress = () => {
-    const sheet = require('react-native-actions-sheet').SheetManager;
-    sheet.show('FAB', {
-      payload: {
-        items: actionSheetItems,
-      },
-    });
+    // const sheet = require('react-native-actions-sheet').SheetManager;
+    // sheet.show('FAB', {
+    //   payload: {
+    //     items: actionSheetItems,
+    //   },
+    // });
+    router.push('status/createStatus' as any);
   };
 
   const handleCreateStatusPress = () => {
@@ -33,6 +34,7 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
     sheet.hide('FAB');
   };
 
+  // Action sheet items
   const actionSheetItems = [
     {
       id: 'createStatus',

@@ -1,44 +1,103 @@
-import { create } from 'zustand';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth as firebaseAuth } from '@/lib/firebaseConfig';
+import axios from 'axios';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
+
+export interface UserData {
+  uid: string;
+  email: string;
+  barangay: string;
+  onboardingComplete: boolean;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  bio?: string;
+  address?: string;
+  fcmToken?: string | null;
+}
 
 type AuthStore = {
   auth: User | null;
-  isLoading: boolean;     // Firebase auth state loading
-  isVerifying: boolean;   // Backend verification in progress
+  userData: UserData | null;
+  isLoading: boolean;
+  isVerifying: boolean;
   setAuth: (user: User | null) => void;
+  setUserData: (data: UserData | null) => void;
   setLoading: (loading: boolean) => void;
   setVerifying: (verifying: boolean) => void;
+  updateUserData: (data: Partial<UserData>) => void;
+  syncUserData: () => Promise<void>; // Added syncUserData
 };
 
-export const useAuth = create<AuthStore>((set) => ({
-  auth: null,
-  isLoading: true,
-  isVerifying: false,
-  setAuth: (user) => set({ auth: user }),
-  setLoading: (loading) => set({ isLoading: loading }),
-  setVerifying: (verifying) => set({ isVerifying: verifying }),
-}));
+export const useAuth = create<AuthStore>()(
+  persist(
+    (set, get) => ({
+      auth: null,
+      userData: null,
+      isLoading: true,
+      isVerifying: false,
+      setAuth: user => set({ auth: user }),
+      setUserData: data => set({ userData: data }),
+      setLoading: loading => set({ isLoading: loading }),
+      setVerifying: verifying => set({ isVerifying: verifying }),
+      updateUserData: data =>
+        set(state => ({
+          userData: state.userData ? { ...state.userData, ...data } : null,
+        })),
+      syncUserData: async () => {
+        const currentUser = get().auth;
+        if (!currentUser) return;
+
+        // Don't set global verifying/loading to avoid flickering if we just want to update data
+        // But if coming from hard reload, we might need it.
+        // Let's rely on ProtectedRoute waiting if userData is null.
+
+        try {
+          const idToken = await currentUser.getIdToken(true); // Force refresh token
+          // Using SIGNIN route as it returns user data.
+          // Ideally we should have a /me route but this works for now.
+          const response = await axios.post<{ user: UserData }>(
+            API_ENDPOINTS.AUTH.SIGNIN,
+            {
+              email: currentUser.email,
+              uid: currentUser.uid,
+              fcmToken: null,
+              barangay: 'bancaan', // Default/Existing param required by controller
+            },
+            { headers: { Authorization: `Bearer ${idToken}` }, withCredentials: true }
+          );
+
+          if (response.data && response.data.user) {
+            set({ userData: response.data.user });
+          }
+        } catch (error) {
+          console.error('Failed to sync user data', error);
+          // If failed, maybe sign out or just leave userData as is?
+          // If 403/404, maybe sign out.
+        }
+      },
+    }),
+    {
+      name: 'auth-storage',
+      storage: createJSONStorage(() => sessionStorage),
+      partialize: state => ({ userData: state.userData }),
+    }
+  )
+);
 
 // Always run this on auth state change
-onAuthStateChanged(firebaseAuth, (user) => {
+onAuthStateChanged(firebaseAuth, async user => {
   useAuth.getState().setAuth(user || null);
+
+  if (user) {
+    // User is logged in, sync fresh data from backend
+    // This ensures updated onboarding status on reload
+    await useAuth.getState().syncUserData();
+  } else {
+    useAuth.getState().setUserData(null);
+  }
+
   useAuth.getState().setLoading(false);
 });
-
-// auth data stored:
-// - auth: Firebase User object or null
-// - isLoading: boolean indicating if Firebase auth state is loading
-// - isVerifying: boolean indicating if backend verification is in progress
-// - setAuth: function to set the auth user
-// - setLoading: function to set loading state
-// - setVerifying: function to set verifying state
-
-// sample data in auth:
-// {
-//   "uid": "abc123",
-//   "email": "user@example.com",
-//   "displayName": "John Doe",
-//   "photoURL": "http://example.com/photo.jpg",
-//   
-// }

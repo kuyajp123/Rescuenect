@@ -71,7 +71,6 @@ export const CommunityStatus = () => {
                 label="Safe"
                 colorClass="bg-safe-500"
                 onPress={() => {
-                  console.log('Safe statuses:', statusesByCondition.safe);
                   router.push('post/status' as any);
                 }}
               />
@@ -93,7 +92,6 @@ export const CommunityStatus = () => {
                 label="Evacuated"
                 colorClass="bg-evacuated-500"
                 onPress={() => {
-                  console.log('Evacuated statuses:', statusesByCondition.evacuated);
                   router.push('post/status' as any);
                 }}
               />
@@ -103,7 +101,6 @@ export const CommunityStatus = () => {
                 label="Missing"
                 colorClass="bg-missing-500"
                 onPress={() => {
-                  console.log('Missing statuses:', statusesByCondition.missing);
                   router.push('post/status' as any);
                 }}
               />

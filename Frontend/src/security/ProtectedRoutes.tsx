@@ -1,6 +1,6 @@
 // components/ProtectedRoute.tsx
-import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/stores/useAuth';
+import { Navigate, useLocation } from 'react-router-dom';
 
 type Props = {
   children: React.ReactNode;
@@ -8,19 +8,54 @@ type Props = {
 
 export default function ProtectedRoute({ children }: Props) {
   const userAuth = useAuth(state => state.auth);
+  const userData = useAuth(state => state.userData);
   const isLoading = useAuth(state => state.isLoading);
   const isVerifying = useAuth(state => state.isVerifying);
+  const location = useLocation();
 
   // Show loading spinner while Firebase OR backend is verifying
   if (isLoading || isVerifying) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-        <p className="mt-4 text-gray-600">{isVerifying ? 'Verifying account...' : 'Loading...'}</p>
+      <div className="flex items-center justify-center min-h-screen dark:bg-bg-dark">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 dark:border-white"></div>
+        <p className="mt-4 text-gray-600 dark:text-gray-300 ml-4">
+          {isVerifying ? 'Verifying account...' : 'Loading...'}
+        </p>
       </div>
     );
   }
 
-  // Only allow access if user is authenticated AND not currently verifying
-  return userAuth && !isVerifying ? children : <Navigate to="/auth/login" replace />;
+  // 1. Not authenticated -> Login
+  if (!userAuth) {
+    return <Navigate to="/auth/login" replace />;
+  }
+
+  const isOnboardingRoute = ['/Welcome', '/address-setup', '/info-setup'].includes(location.pathname);
+
+  // 2. Authenticated but Incomplete Onboarding
+  if (userData && !userData.onboardingComplete) {
+    if (!isOnboardingRoute) {
+      // Redirect to Welcome if attempting to access dashboard
+      return <Navigate to="/Welcome" replace />;
+    }
+    // Allow access to onboarding routes
+    return children;
+  }
+
+  // 3. Authenticated AND Complete Onboarding
+  if (userData && userData.onboardingComplete) {
+    if (isOnboardingRoute) {
+      // Redirect to Dashboard if attempting to access onboarding
+      return <Navigate to="/" replace />;
+    }
+    return children;
+  }
+
+  // Fallback (e.g. userData is null but userAuth is true - shouldn't happen usually if logic is correct)
+  // If userData is still fetching, we might be here. But verified flow usually sets them together?
+  // Actually onAuthStateChanged runs, then GoogleButton sets UserData.
+  // If we refresh, onAuthStateChanged runs, but userData load might be from persist?
+  // Let's assume userData is ready if isLoading is false.
+
+  return children;
 }

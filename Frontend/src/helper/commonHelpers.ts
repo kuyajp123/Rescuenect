@@ -208,3 +208,16 @@ export const parseCategory = (category: Category[] | string): Category[] => {
     }
   }
 };
+
+// Format contact number with dashes and limit to 11 digits
+export const formatContactNumber = (text: string): string => {
+  const numericOnly = text.replace(/\D/g, '');
+  const limitedNumbers = numericOnly.slice(0, 11);
+  if (limitedNumbers.length <= 4) {
+    return limitedNumbers;
+  } else if (limitedNumbers.length <= 7) {
+    return `${limitedNumbers.slice(0, 4)}-${limitedNumbers.slice(4)}`;
+  } else {
+    return `${limitedNumbers.slice(0, 4)}-${limitedNumbers.slice(4, 7)}-${limitedNumbers.slice(7)}`;
+  }
+};

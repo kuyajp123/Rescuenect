@@ -281,6 +281,10 @@ const notificationDetails = () => {
                     zoomEnabled={false}
                     compassEnabled={false}
                     pitchEnabled={false}
+                    maxBounds={[
+                      [-180, -90],
+                      [180, 90],
+                    ]}
                   />
                 </View>
                 {earthquakeData.impact_radii && (

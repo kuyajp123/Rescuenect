@@ -30,4 +30,27 @@ export class LoginController {
       res.status(500).json({ message: `Failed to sign in user: ${error}` });
     }
   }
+
+  static async updateProfile(req: Request, res: Response): Promise<void> {
+    const { uid, firstName, lastName, phone, bio, barangay, address } = req.body;
+
+    if (!uid || !firstName || !lastName || !phone || !barangay || !address) {
+      res.status(400).json({ message: 'Missing required fields' });
+      return;
+    }
+
+    try {
+      await SignInModel.updateProfile(uid, {
+        firstName,
+        lastName,
+        phone,
+        bio: bio || 'Rescuenect Administrator',
+        barangay,
+        address,
+      });
+      res.status(200).json({ message: 'Profile updated successfully', success: true });
+    } catch (error) {
+      res.status(500).json({ message: `Failed to update profile: ${error}` });
+    }
+  }
 }

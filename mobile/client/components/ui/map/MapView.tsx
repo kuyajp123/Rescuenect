@@ -16,7 +16,7 @@ import { Text } from '../text';
 
 // Get color based on earthquake severity
 const getEarthquakeSeverityColor = (severity: string) => {
-  switch (severity) {
+  switch (severity.toLowerCase()) {
     case 'micro':
       return '#ADFF2F'; // Yellow-green
     case 'minor':
@@ -38,7 +38,7 @@ const getEarthquakeSeverityColor = (severity: string) => {
 
 // Get the appropriate radius image based on earthquake severity
 const getEarthquakeRadiusImage = (severity: string) => {
-  switch (severity) {
+  switch (severity.toLowerCase()) {
     case 'micro':
       return require('@/assets/images/marker/radius/micro.png');
     case 'minor':
@@ -94,6 +94,7 @@ interface MapViewProps {
   followUserLocation?: boolean;
   hasAnimation?: boolean;
   show3DBuildings?: boolean;
+  onMarkerPress?: (markerId: string) => void;
 }
 
 export const MapView: React.FC<MapViewProps> = ({
@@ -120,6 +121,7 @@ export const MapView: React.FC<MapViewProps> = ({
   followUserLocation = false,
   hasAnimation = true,
   show3DBuildings = true,
+  onMarkerPress,
 }) => {
   const router = useRouter();
   const { isDark } = useTheme();
@@ -236,9 +238,15 @@ export const MapView: React.FC<MapViewProps> = ({
             shape={evacuationCentersGeoJson}
             onPress={e => {
               const feature = e.features[0]; // clicked marker feature
-              setSelectedMarker(
-                evacuationCentersGeoJson?.features.find(f => f.id === feature.id)?.properties as EvacuationCenter
-              );
+              const markerId = feature.id as string;
+
+              if (onMarkerPress) {
+                onMarkerPress(markerId);
+              } else {
+                setSelectedMarker(
+                  evacuationCentersGeoJson?.features.find(f => f.id === feature.id)?.properties as EvacuationCenter
+                );
+              }
             }}
           >
             <SymbolLayer
@@ -306,7 +314,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   iconImage: 'earthquakeRadius',
                   iconSize: 0.2, // Adjust size as needed
                   iconAllowOverlap: true,
-                  iconIgnorePlacement: false,
+                  iconIgnorePlacement: true,
                   iconOpacity: 0.4,
                 }}
               />

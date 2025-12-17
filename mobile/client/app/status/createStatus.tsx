@@ -33,6 +33,7 @@ import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { categories, formFields } from '@/constants/variables';
+import { useMap } from '@/contexts/MapContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { navigateToStatusSettings } from '@/routes/route';
 import { AddressState, Category, StatusFormErrors, StatusStateData } from '@/types/components';
@@ -43,7 +44,7 @@ import { useRouter } from 'expo-router';
 import { isEqual } from 'lodash';
 import { Bookmark, Ellipsis, Info, Navigation, Settings, SquarePen, Trash } from 'lucide-react-native';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Image, Linking, Pressable, StyleSheet, View, BackHandler } from 'react-native';
+import { Animated, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export const createStatus = () => {
@@ -53,6 +54,7 @@ export const createStatus = () => {
   const setImagePickerImage = useImagePickerStore(state => state.setImage);
   const isOnline = useNetwork(state => state.isOnline);
   const { isDark } = useTheme();
+  const { setCameraCenter } = useMap();
   const authUser = useAuth(state => state.authUser);
   const router = useRouter();
 
@@ -75,13 +77,14 @@ export const createStatus = () => {
 
   // settings states
   const setFollowUserLocation = useCoords(state => state.setFollowUserLocation);
-  const [selectedCoords, setSelectedCoords] = useState<[number, number]>([0, 0]);
+  const [selectedCoords, setSelectedCoords] = useState<[number, number]>(coords ? [coords[0], coords[1]] : [0, 0]);
   const [hasUserTappedMap, setHasUserTappedMap] = useState(false); // Track if user has tapped on map
   const [isManualSelection, setIsManualSelection] = useState(false); // Track if user is making manual ButtonRadio selection
   const isFormDataLoadingRef = useRef(false); // Track if we're loading formData coordinates
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null); // For debouncing coords address calls
   const [isGPSselection, setIsGPSselection] = useState(false); // Track if user has selected GPS option
   const debounceTimerRefGPS = useRef<NodeJS.Timeout | null>(null); // For debouncing GPS address calls
+  const isSavedLocationSelectionRef = useRef(false); // Track if user selected a saved location
 
   // Form related states
   const [submitStatusLoading, setSubmitStatusLoading] = useState(false);
@@ -206,6 +209,9 @@ export const createStatus = () => {
 
       setCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : null);
       setSelectedCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : [0, 0]);
+      if (formData.lng && formData.lat) {
+        setCameraCenter([formData.lng, formData.lat]);
+      }
       setActiveStatusCoords(true);
 
       // ✅ Fix: Ensure category is always an array when loading formData
@@ -279,7 +285,7 @@ export const createStatus = () => {
 
   // Track when user taps map (coords change significantly from last selected)
   useEffect(() => {
-    if (coords && !isManualSelection && !isFormDataLoadingRef.current) {
+    if (coords && !isManualSelection && !isFormDataLoadingRef.current && !isSavedLocationSelectionRef.current) {
       // Check if this is a new map tap (coordinates changed significantly)
       const distanceThreshold = 0.001; // ~100 meters
       const latDiff = Math.abs(coords[1] - selectedCoords[1]);
@@ -373,6 +379,13 @@ export const createStatus = () => {
 
   // Debounced fetch address for tapped location
   useEffect(() => {
+    // Optimization: If selected from saved locations, skip API call
+    if (isSavedLocationSelectionRef.current) {
+      isSavedLocationSelectionRef.current = false;
+      setAddressCoordsLoading(false);
+      return;
+    }
+
     // Optimization: If coords match formData (saved status), use saved location string
     if (
       formData &&
@@ -858,6 +871,9 @@ export const createStatus = () => {
         if (formData) {
           setCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : null);
           setSelectedCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : [0, 0]);
+          if (formData.lng && formData.lat) {
+            setCameraCenter([formData.lng, formData.lat]);
+          }
           setActiveStatusCoords(true);
 
           // ✅ Fix: Ensure category is always an array when loading formData
@@ -1394,7 +1410,16 @@ export const createStatus = () => {
             label: loc.label,
             name: loc.location,
             onPress: () => {
+              // Set the address directly from the saved location label to avoid API call
+              setAddressCoords({
+                formatted: loc.location, // Use label as requested
+                components: {},
+              });
+              isSavedLocationSelectionRef.current = true;
+
               setCoords([loc.lng, loc.lat]);
+              setCameraCenter([loc.lng, loc.lat]);
+              setActiveStatusCoords(false);
               setHasUserTappedMap(false);
               toggleModal('savedLocation', false);
             },
@@ -1412,6 +1437,8 @@ export const createStatus = () => {
           iconOnPress={() => toggleModal('deleteConfirm', false)}
           sizeIcon={20}
           primaryButtonText="Confirm"
+          primaryButtonVariant="solid"
+          primaryButtonAction="error"
           primaryButtonOnPress={() => deleteStatus()}
           secondaryButtonText="Cancel"
           secondaryButtonOnPress={() => toggleModal('deleteConfirm', false)}

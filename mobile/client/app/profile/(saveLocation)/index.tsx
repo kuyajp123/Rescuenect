@@ -361,6 +361,7 @@ const SaveLocationScreen = () => {
           data={mode === 'list' ? mapMarkers : undefined} // Show all pins in list mode
           handleMapPress={handleMapPress}
           interactive={true}
+          onMarkerPress={handleItemPress}
         />
       </View>
 
@@ -517,11 +518,13 @@ const SaveLocationScreen = () => {
         modalVisible={deleteModalVisible}
         onClose={() => setDeleteModalVisible(false)}
         primaryText="Delete Location"
-        secondaryText="Are you sure?"
+        secondaryText="Are you sure you want to delete this saved location?"
         primaryButtonText="Delete"
         secondaryButtonText="Cancel"
         primaryButtonOnPress={() => handleLocationDeletion(selectedId!)}
         secondaryButtonOnPress={() => setDeleteModalVisible(false)}
+        primaryButtonAction="error"
+        primaryButtonVariant="solid"
       />
     </Body>
   );
