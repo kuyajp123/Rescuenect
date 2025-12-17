@@ -1,17 +1,9 @@
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
-} from "@heroui/modal";
-import { PrimaryButton, SecondaryButton } from "../button";
-import {Input, Button, Avatar} from "@heroui/react";
-import Label from "@/components/ui/forms/Label";
+import Label from '@/components/ui/forms/Label';
+import { Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, useDisclosure } from '@heroui/modal';
+import { Avatar, Button, Input } from '@heroui/react';
 
 export default function UserMetaCard() {
-const {isOpen, onOpen, onOpenChange} = useDisclosure();
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   return (
     <>
@@ -24,13 +16,9 @@ const {isOpen, onOpen, onOpenChange} = useDisclosure();
                 Musharof Chowdhury
               </h4>
               <div className="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Team Manager
-                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Team Manager</p>
                 <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Arizona, United States
-                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Arizona, United States</p>
               </div>
             </div>
             <div className="flex items-center order-2 gap-2 grow xl:order-3 xl:justify-end">
@@ -144,57 +132,49 @@ const {isOpen, onOpen, onOpenChange} = useDisclosure();
       </div>
       <Modal isOpen={isOpen} onOpenChange={onOpenChange} className="!max-w-2xl">
         <ModalContent>
-          {(onClose) => (
+          {onClose => (
             <>
               <ModalHeader className="flex flex-col gap-1">
                 <div className="px-2 pr-14">
-                    <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+                  <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
                     Edit Personal Information
-                    </h4>
-                    <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
+                  </h4>
+                  <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
                     Update your details to keep your profile up-to-date.
-                    </p>
+                  </p>
                 </div>
               </ModalHeader>
               <ModalBody>
                 <form className="flex flex-col">
-                    <div className="px-2 pb-3">
+                  <div className="px-2 pb-3">
                     <div>
-                        <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
+                      <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
                         Social Links
-                        </h5>
+                      </h5>
 
-                        <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
+                      <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                         <div>
-                            <Label>Facebook</Label>
-                            <Input
-                            type="text"
-                            variant="bordered"
-                            value="https://www.facebook.com/PimjoHQ"
-                            />
+                          <Label>Facebook</Label>
+                          <Input type="text" variant="bordered" value="https://www.facebook.com/PimjoHQ" />
                         </div>
 
                         <div>
-                            <Label>X.com</Label>
-                            <Input type="text" variant="bordered" value="https://x.com/PimjoHQ" />
+                          <Label>X.com</Label>
+                          <Input type="text" variant="bordered" value="https://x.com/PimjoHQ" />
                         </div>
 
                         <div>
-                            <Label>Linkedin</Label>
-                            <Input
-                            type="text"
-                            variant="bordered"
-                            value="https://www.linkedin.com/company/pimjo"
-                            />
+                          <Label>Linkedin</Label>
+                          <Input type="text" variant="bordered" value="https://www.linkedin.com/company/pimjo" />
                         </div>
 
                         <div>
-                            <Label>Instagram</Label>
-                            <Input type="text" variant="bordered" value="https://instagram.com/PimjoHQ" />
+                          <Label>Instagram</Label>
+                          <Input type="text" variant="bordered" value="https://instagram.com/PimjoHQ" />
                         </div>
-                        </div>
+                      </div>
                     </div>
-                    </div>
+                  </div>
                 </form>
               </ModalBody>
               <ModalFooter>

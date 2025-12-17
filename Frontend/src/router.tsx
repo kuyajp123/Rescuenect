@@ -1,6 +1,5 @@
 import { Route, Routes } from 'react-router-dom';
-import AuthLayout from './layouts/AuthLayout';
-import MainLayout from './layouts/MainLayout';
+import { AuthLayout, MainLayout, Onboarding } from './layouts';
 import ProtectedRoute from './security/ProtectedRoutes';
 
 import {
@@ -18,7 +17,7 @@ import {
   StatusHistory,
   Weather,
 } from '@/pages/contents';
-import Login from './pages/auth/Login';
+import { AddressForm, AdminInfo, Login, Welcome } from './pages/auth';
 
 import AdminProfile from './pages/profiile/AdminProfile';
 
@@ -46,6 +45,19 @@ const Router = () => {
         <Route path="/profile" element={<AdminProfile />} />
         <Route path="/notification" element={<Notification />} />
         <Route path="/notification/details" element={<NotificationDetails />} />
+      </Route>
+
+      {/* Onboarding layout */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <Onboarding />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/Welcome" element={<Welcome />} />
+        <Route path="/address-setup" element={<AddressForm />} />
+        <Route path="/info-setup" element={<AdminInfo />} />
       </Route>
 
       {/* Auth layout */}

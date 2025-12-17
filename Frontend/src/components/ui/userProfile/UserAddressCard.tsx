@@ -1,14 +1,6 @@
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
-} from "@heroui/modal";
-import { PrimaryButton, SecondaryButton } from "../button";
-import {Input, Button, Avatar} from "@heroui/react";
-import Label from "@/components/ui/forms/Label";
+import Label from '@/components/ui/forms/Label';
+import { Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, useDisclosure } from '@heroui/modal';
+import { Button, Input } from '@heroui/react';
 
 export default function UserAddressCard() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -18,44 +10,18 @@ export default function UserAddressCard() {
       <div className="p-5 border  border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
-              Address
-            </h4>
+            <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">Address</h4>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
               <div>
-                <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  Country
-                </p>
-                <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  United States.
-                </p>
+                <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">Barangay</p>
+                <p className="text-sm font-medium text-gray-800 dark:text-white/90">Bancaan</p>
               </div>
 
               <div>
-                <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  City/State
-                </p>
+                <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">Adress</p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  Phoenix, Arizona, United States.
-                </p>
-              </div>
-
-              <div>
-                <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  Postal Code
-                </p>
-                <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  ERT 2489
-                </p>
-              </div>
-
-              <div>
-                <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  TAX ID
-                </p>
-                <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  AS4568384
+                  B 22 L 22, Zone 1, Bancaan, Lapu-Lapu City
                 </p>
               </div>
             </div>
@@ -87,54 +53,42 @@ export default function UserAddressCard() {
       <Modal isOpen={isOpen} onOpenChange={onOpenChange} className="!max-w-2xl p-4">
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
-            <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Edit Address
-            </h4>
+            <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">Edit Address</h4>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
               Update your details to keep your profile up-to-date.
             </p>
           </div>
         </div>
       </Modal>
-            <Modal isOpen={isOpen} onOpenChange={onOpenChange} className="!max-w-2xl">
-            <ModalContent>
-            {(onClose) => (
-                <>
+      <Modal isOpen={isOpen} onOpenChange={onOpenChange} className="!max-w-2xl">
+        <ModalContent>
+          {onClose => (
+            <>
               <ModalHeader className="flex flex-col gap-1">
                 <div className="px-2 pr-14">
-                    <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+                  <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
                     Edit Personal Information
-                    </h4>
-                    <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
+                  </h4>
+                  <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
                     Update your details to keep your profile up-to-date.
-                    </p>
+                  </p>
                 </div>
               </ModalHeader>
               <ModalBody>
                 <form className="flex flex-col">
-                    <div className="px-2 overflow-y-auto custom-scrollbar">
+                  <div className="px-2 overflow-y-auto custom-scrollbar">
                     <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                        <div>
-                        <Label>Country</Label>
-                        <Input type="text" value="United States" />
-                        </div>
+                      <div>
+                        <Label>Barangay</Label>
+                        <Input type="text" value="Bancaan" />
+                      </div>
 
-                        <div>
-                        <Label>City/State</Label>
-                        <Input type="text" value="Arizona, United States." />
-                        </div>
-
-                        <div>
-                        <Label>Postal Code</Label>
-                        <Input type="text" value="ERT 2489" />
-                        </div>
-
-                        <div>
-                        <Label>TAX ID</Label>
-                        <Input type="text" value="AS4568384" />
-                        </div>
+                      <div>
+                        <Label>Address</Label>
+                        <Input type="text" value="B 22 L 22, Zone 1, Bancaan, Lapu-Lapu City." />
+                      </div>
                     </div>
-                    </div>
+                  </div>
                 </form>
               </ModalBody>
               <ModalFooter>
