@@ -2,46 +2,13 @@ import { Map } from '@/components/ui/Map';
 import EvacuationTable from '@/components/ui/table/EvacuationTable';
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
+import { usePanelStore } from '@/stores/panelStore';
 import { EvacuationCenter } from '@/types/types';
-import { Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from '@heroui/dropdown';
-import {
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  Chip,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  useDisclosure,
-} from '@heroui/react';
+import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, useDisclosure } from '@heroui/react';
 import axios from 'axios';
-import { Ellipsis, House, List, Map as MapIcon, MapPin, Phone, Plus, UsersRound } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { List, Map as MapIcon, Plus } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-const chipColors: { [key: string]: 'success' | 'danger' | 'warning' | 'default' | 'primary' | 'secondary' } = {
-  available: 'success',
-  closed: 'danger',
-  full: 'warning',
-};
-
-const fields = [
-  { key: 'location', label: 'Location', icon: <MapPin size={20} /> },
-  { key: 'capacity', label: 'Capacity', icon: <UsersRound size={20} /> },
-  { key: 'type', label: 'Type', icon: <House size={20} /> },
-  { key: 'contact', label: 'Contact', icon: <Phone size={20} /> },
-];
-
-const renderProperty = (icon: React.ReactNode, label: string, value: string | number | undefined) => (
-  <div className="flex items-center gap-2 my-2">
-    {icon}
-    <p className="text-gray-600 dark:text-gray-300">{label}:</p>
-    <p>{value ?? 'N/A'}</p>
-  </div>
-);
 
 const index = () => {
   const [viewMode, setViewMode] = useState<'map' | 'list'>(() => {
@@ -49,14 +16,18 @@ const index = () => {
     return saved === 'map' || saved === 'list' ? saved : 'list';
   });
   const [evacuationCenters, setEvacuationCenters] = useState<EvacuationCenter[]>([]);
-  const [selectedCenter, setSelectedCenter] = useState<any | null>(null);
+  // Local delete state
+  const [centerToDelete, setCenterToDelete] = useState<EvacuationCenter | null>(null);
+  
   const user = auth.currentUser;
   const navigate = useNavigate();
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onOpenChange: onDeleteOpenChange } = useDisclosure();
+  const { openEvacuationPanel, closePanel } = usePanelStore();
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  useEffect(() => {
-    async function fetchEvacuationCenters() {
+  // Fetch function to be reused
+  async function fetchEvacuationCenters() {
       const token = await user?.getIdToken();
       if (!token) {
         console.error('User is not authenticated');
@@ -68,8 +39,14 @@ const index = () => {
       } catch (error) {
         console.error('Error fetching evacuation centers:', error);
       }
-    }
+  }
+
+  useEffect(() => {
     fetchEvacuationCenters();
+    // Close panel on unmount
+    return () => {
+      closePanel();
+    };
   }, []);
 
   // Save viewMode to localStorage whenever it changes
@@ -78,10 +55,9 @@ const index = () => {
   }, [viewMode]);
 
   const handleMarkerClick = (marker: any) => {
-    // Find the full evacuation center data that corresponds to this marker
     const fullCenterData = evacuationCenters.find(item => item.id === marker.uid);
     if (fullCenterData) {
-      setSelectedCenter(fullCenterData);
+      openEvacuationPanel(fullCenterData, fetchEvacuationCenters);
     }
   };
 
@@ -108,14 +84,16 @@ const index = () => {
       setEvacuationCenters(prevCenters => prevCenters.filter(center => center.id !== centerId));
 
       // Close the modal
-      onOpenChange();
-      setSelectedCenter(null);
+      onDeleteOpenChange();
+      setCenterToDelete(null);
     } catch (error) {
       console.error('Error deleting evacuation center:', error);
+      alert('Failed to delete center.');
+    } finally {
+        setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
+
 
   return (
     <div className="w-full h-full">
@@ -155,12 +133,15 @@ const index = () => {
         <EvacuationTable
           data={evacuationCenters}
           onDeleteRequest={center => {
-            setSelectedCenter(center);
-            onOpen();
+            setCenterToDelete(center);
+            onDeleteOpen();
+          }}
+          onEditRequest={(center) => {
+             openEvacuationPanel(center, fetchEvacuationCenters);
           }}
         />
       ) : (
-        <div className="h-[90%] grid grid-cols-2 gap-4">
+        <div className="h-[90%] w-full">
           <Map
             onMarkerClick={handleMarkerClick}
             data={evacuationCenters
@@ -177,85 +158,11 @@ const index = () => {
                 ...center,
               }))}
           />
-          <div>
-            <Card className="h-full">
-              <CardHeader>
-                <h3 className="text-lg">Evacuation Center Details</h3>
-              </CardHeader>
-              <CardBody>
-                {evacuationCenters.length === 0 ? (
-                  <div className="h-full w-full flex justify-center items-center">
-                    <p className="text-gray-500">No evacuation centers available.</p>
-                  </div>
-                ) : selectedCenter ? (
-                  <>
-                    <div className="flex flex-row gap-4 mb-2">
-                      <p className="text-2xl font-bold">{selectedCenter?.name}</p>
-                      <Chip variant="flat" color={chipColors[selectedCenter?.status.toLowerCase()]}>
-                        {selectedCenter?.status}
-                      </Chip>
-                      <Dropdown>
-                        <DropdownTrigger>
-                          <Button isIconOnly variant="flat">
-                            <Ellipsis />
-                          </Button>
-                        </DropdownTrigger>
-                        <DropdownMenu aria-label="Static Actions">
-                          <DropdownItem key="delete" className="text-danger" color="danger" onPress={onOpen}>
-                            Delete
-                          </DropdownItem>
-                        </DropdownMenu>
-                      </Dropdown>
-                    </div>
-                    {fields.map(field => {
-                      let value: string | number | undefined = '';
-                      if (selectedCenter) {
-                        switch (field.key) {
-                          case 'location':
-                            value = selectedCenter.location;
-                            break;
-                          case 'capacity':
-                            value = selectedCenter.capacity;
-                            break;
-                          case 'type':
-                            value = selectedCenter.type;
-                            break;
-                          case 'contact':
-                            value = selectedCenter.contact;
-                            break;
-                          default:
-                            value = '';
-                        }
-                      }
-                      return renderProperty(field.icon, field.label, value);
-                    })}
-                    <div className="flex items-center gap-2 my-2 text-wrap">
-                      <p>{selectedCenter?.description}</p>
-                    </div>
-                    {selectedCenter?.images && selectedCenter.images.length > 0 && (
-                      <div className="flex gap-2 overflow-x-auto pb-1">
-                        {selectedCenter.images.map((image: string, index: number) => (
-                          <img
-                            key={index}
-                            src={image}
-                            alt={`${selectedCenter?.name} - Image ${index + 1}`}
-                            className="w-100 h-100 object-cover rounded-md"
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="h-full w-full flex justify-center items-center">
-                    <p className="text-gray-500">Select an evacuation center to see details.</p>
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-          </div>
         </div>
       )}
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+      
+      {/* Delete Modal */}
+      <Modal isOpen={isDeleteOpen} onOpenChange={onDeleteOpenChange}>
         <ModalContent>
           {onClose => (
             <>
@@ -268,7 +175,9 @@ const index = () => {
                 <Button
                   color="primary"
                   onPress={() => {
-                    handleDeleteCenter(selectedCenter?.id);
+                    if (centerToDelete) {
+                        handleDeleteCenter(centerToDelete.id);
+                    }
                   }}
                   disabled={isLoading}
                   isLoading={isLoading}

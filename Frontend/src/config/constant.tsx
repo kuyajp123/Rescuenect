@@ -22,6 +22,18 @@ export const getEarthquakeSeverityColor = (severity: string) => {
   }
 };
 
+export const types = [
+  { key: 'school', label: 'School' },
+  { key: 'barangay hall', label: 'Barangay Hall' },
+  { key: 'gymnasium', label: 'Gymnasium' },
+  { key: 'church', label: 'Church' },
+  { key: 'government building', label: 'Government Building' },
+  { key: 'private facility', label: 'Private Facility' },
+  { key: 'vacant building', label: 'Vacant Building' },
+  { key: 'covered court', label: 'Covered Court' },
+  { key: 'other', label: 'Other' },
+];
+
 export const severityLevels = [
   { level: 'micro', label: 'Micro', magnitude: '< 2.0' },
   { level: 'minor', label: 'Minor', magnitude: '2.0 - 3.9' },

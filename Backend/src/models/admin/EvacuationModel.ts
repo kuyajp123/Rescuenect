@@ -80,4 +80,91 @@ export class EvacuationModel {
       throw error;
     }
   }
+
+  public static async updateCenter(
+    id: string,
+    data: any,
+    newFiles: Express.Multer.File[],
+    keptImages: string[]
+  ): Promise<void> {
+    try {
+      await ensureBucketExists('evacuation-centers');
+      const docRef = this.pathRef().doc(id);
+      const docSnap = await docRef.get();
+
+      if (!docSnap.exists) {
+        throw new Error('Evacuation center not found');
+      }
+
+      const currentData = docSnap.data();
+      const currentImages = (currentData?.images as string[]) || [];
+
+      // Find images to delete (present in current but not in keptImages)
+      const imagesToDelete = currentImages.filter(img => !keptImages.includes(img));
+
+      if (imagesToDelete.length > 0) {
+        const filePathsToDelete = imagesToDelete
+          .map(url => {
+            const match = url.match(/\/public\/evacuation-centers\/(.+)$/);
+            return match ? decodeURIComponent(match[1]) : null;
+          })
+          .filter((p): p is string => !!p);
+
+        if (filePathsToDelete.length > 0) {
+          const { error: deleteError } = await supabase.storage
+            .from('evacuation-centers')
+            .remove(filePathsToDelete);
+          
+          if (deleteError) {
+            console.error('❌ Supabase image delete error during update:', deleteError);
+          }
+        }
+      }
+
+      // Upload new images
+      const newImageUrls: string[] = [];
+      if (newFiles && Array.isArray(newFiles)) {
+        for (const [index, file] of newFiles.entries()) {
+          const fileExtension = file.originalname.split('.').pop() || 'jpg';
+          // Use a timestamp to prevent overwriting or caching issues
+          const timestamp = Date.now();
+          const filePath = `evacuation-centers/${docRef.id}/image-${timestamp}-${index}.${fileExtension}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('evacuation-centers')
+            .upload(filePath, file.buffer, {
+              contentType: file.mimetype,
+              upsert: true,
+            });
+
+          if (uploadError) {
+            console.error('❌ Supabase upload error:', uploadError);
+            continue;
+          }
+
+          const { data: urlData } = supabase.storage
+            .from('evacuation-centers')
+            .getPublicUrl(filePath);
+
+          if (urlData?.publicUrl) {
+            newImageUrls.push(urlData.publicUrl);
+          }
+        }
+      }
+
+      // Combine kept images and new images
+      const finalImages = [...keptImages, ...newImageUrls];
+
+      // Update Firestore
+      await docRef.update({
+        ...data,
+        images: finalImages,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+    } catch (error) {
+      console.error('❌ Error in EvacuationModel.updateCenter:', error);
+      throw error;
+    }
+  }
 }

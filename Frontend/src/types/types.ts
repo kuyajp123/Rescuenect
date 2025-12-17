@@ -342,6 +342,7 @@ export interface EvacuationCenterFormData {
 }
 
 export interface EvacuationCenter extends EvacuationCenterFormData {
+  images: never[];
   id: string;
   createdAt: FirebaseFirestore.Timestamp | string;
 }

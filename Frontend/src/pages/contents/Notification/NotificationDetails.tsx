@@ -224,6 +224,10 @@ export const NotificationDetails = () => {
                       impact_radii: earthquakeData.impact_radii,
                     } as MapMarkerData,
                   ]}
+                  maxBounds={[
+                    [earthquakeData.coordinates.latitude - 2, earthquakeData.coordinates.longitude - 2],
+                    [earthquakeData.coordinates.latitude + 2, earthquakeData.coordinates.longitude + 2],
+                  ]}
                   popupType="custom"
                   renderPopup={() => (
                     <div className="space-y-2">
@@ -583,7 +587,9 @@ export const NotificationDetails = () => {
                 {notification.type === 'weather' ? (
                   <p className="font-medium capitalize">{notification.location}</p>
                 ) : notification.type === 'earthquake' ? (
-                  <p className="font-medium capitalize">{(notification.data as EarthquakeNotificationData)?.place || 'N/A'}</p>
+                  <p className="font-medium capitalize">
+                    {(notification.data as EarthquakeNotificationData)?.place || 'N/A'}
+                  </p>
                 ) : (
                   <p className="font-medium capitalize">N/A</p>
                 )}

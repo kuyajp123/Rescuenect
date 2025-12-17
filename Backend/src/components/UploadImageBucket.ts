@@ -26,7 +26,6 @@ export async function ensureBucketExists(BUCKET_NAME: string) {
         throw new Error(`Failed to create bucket: ${createError.message}`);
       }
 
-      // console.log('✅ Bucket created successfully:', createData);
     } else {
       // console.log('✅ Bucket already exists:', this.BUCKET_NAME);
     }

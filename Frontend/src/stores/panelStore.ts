@@ -3,7 +3,7 @@ import { create } from 'zustand';
 
 export type PanelSelection =
   | { type: 'status'; data: StatusCardProps }
-  | { type: 'evacuation'; data: EvacuationCenter }
+  | { type: 'evacuation'; data: EvacuationCenter; onUpdate?: () => void }
   | { type: 'residentProfile'; data: StatusDataCard }
   | { type: 'statusHistory'; data: StatusDataCard }
   | null;
@@ -12,7 +12,7 @@ interface PanelState {
   isOpen: boolean;
   selectedUser: PanelSelection;
   openStatusPanel: (data: StatusCardProps) => void;
-  openEvacuationPanel: (data: EvacuationCenter) => void;
+  openEvacuationPanel: (data: EvacuationCenter, onUpdate?: () => void) => void;
   openResidentProfilePanel: (data: StatusDataCard) => void;
   openStatusHistoryPanel: (data: StatusDataCard) => void;
   closePanel: () => void;
@@ -30,10 +30,10 @@ export const usePanelStore = create<PanelState>(set => ({
       selectedUser: { type: 'status', data },
     }),
 
-  openEvacuationPanel: data =>
+  openEvacuationPanel: (data, onUpdate) =>
     set({
       isOpen: true,
-      selectedUser: { type: 'evacuation', data },
+      selectedUser: { type: 'evacuation', data, onUpdate },
     }),
 
   openResidentProfilePanel: data =>

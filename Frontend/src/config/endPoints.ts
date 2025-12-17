@@ -18,6 +18,7 @@ export const API_ENDPOINTS = {
     ADD_CENTER: `${BACKEND_URL}/admin/evacuation/addCenter`,
     GET_CENTERS: `${BACKEND_URL}/unified/getCenters`,
     DELETE_CENTER: `${BACKEND_URL}/admin/evacuation/deleteCenter`,
+    UPDATE_CENTER: `${BACKEND_URL}/admin/evacuation/updateCenter`,
   },
   NOTIFICATION: {
     MARK_AS_READ: `${BACKEND_URL}/unified/markNotificationAsRead`,

@@ -38,4 +38,26 @@ export class EvacuationController {
       });
     }
   }
+
+  static async updateCenter(req: Request, res: Response): Promise<void> {
+    const raw = req.body.data;
+    const parsedData = JSON.parse(raw);
+    const { id, ...data } = parsedData;
+    const keptImages = parsedData.keptImages || [];
+    const files = req.files as Express.Multer.File[] | undefined;
+
+    try {
+      await EvacuationModel.updateCenter(id, data, files ?? [], keptImages);
+      res.status(200).json({ message: 'Evacuation center updated successfully' });
+    } catch (error) {
+      console.error('❌ Failed to update evacuation center:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      res.status(500).json({
+        message: 'Failed to update evacuation center',
+        error: typeof error === 'string' ? error : (error as Error).message,
+      });
+    }
+  }
 }

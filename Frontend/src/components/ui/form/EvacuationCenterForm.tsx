@@ -1,3 +1,4 @@
+import { types } from '@/config/constant';
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { revokeToken } from '@/config/notificationPermission';
 import { auth } from '@/lib/firebaseConfig';
@@ -7,18 +8,6 @@ import axios from 'axios';
 import { signOut } from 'firebase/auth';
 import { Plus } from 'lucide-react';
 import React, { useState } from 'react';
-
-const types = [
-  { key: 'school', label: 'School' },
-  { key: 'barangay hall', label: 'Barangay Hall' },
-  { key: 'gymnasium', label: 'Gymnasium' },
-  { key: 'church', label: 'Church' },
-  { key: 'government building', label: 'Government Building' },
-  { key: 'private facility', label: 'Private Facility' },
-  { key: 'vacant building', label: 'Vacant Building' },
-  { key: 'covered court', label: 'Covered Court' },
-  { key: 'other', label: 'Other' },
-];
 
 const status = [
   { key: 'available', label: 'Available' },
@@ -200,6 +189,8 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
           <Textarea
             key="description"
             name="description"
+            minRows={6}
+            maxRows={6}
             className="col-span-12 md:col-span-6 mb-6 md:mb-0"
             label="Description"
             labelPlacement="outside"
@@ -207,7 +198,7 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
             variant="bordered"
           />
           <Button
-            className="absolute bottom-4 right-4"
+            className="absolute top-4 right-4"
             variant="solid"
             color="primary"
             type="submit"
@@ -219,6 +210,13 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
         </Form>
       </div>
       <div className="h-full flex flex-col gap-3 justify-end">
+        {images.every(img => img === null) && errors.images && (
+            <p className="text-red-600 text-sm mt-1">{errors.images}</p>
+          )}
+          {coordinates === null && errors.coordinates && (
+            <p className="text-red-600 text-sm mt-1">{errors.coordinates}</p>
+          )}
+          {responseMessage && <p className="text-green-600 text-sm mt-1">{responseMessage}</p>}
         <p className="text-lg font-semibold">Insert Images</p>
         <div className="h-[87%] flex flex-col gap-3">
           {[0, 1, 2].map(idx => (
@@ -268,13 +266,6 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
               </CardBody>
             </Card>
           ))}
-          {images.every(img => img === null) && errors.images && (
-            <p className="text-red-600 text-sm mt-1">{errors.images}</p>
-          )}
-          {coordinates === null && errors.coordinates && (
-            <p className="text-red-600 text-sm mt-1">{errors.coordinates}</p>
-          )}
-          {responseMessage && <p className="text-green-600 text-sm mt-1">{responseMessage}</p>}
         </div>
       </div>
     </Card>
