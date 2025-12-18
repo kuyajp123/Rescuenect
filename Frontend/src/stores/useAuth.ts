@@ -48,16 +48,13 @@ export const useAuth = create<AuthStore>()(
         })),
       syncUserData: async () => {
         const currentUser = get().auth;
-        if (!currentUser) return;
-
-        // Don't set global verifying/loading to avoid flickering if we just want to update data
-        // But if coming from hard reload, we might need it.
-        // Let's rely on ProtectedRoute waiting if userData is null.
+        if (!currentUser) {
+          console.warn('Cannot sync user data: No authenticated user');
+          return;
+        }
 
         try {
           const idToken = await currentUser.getIdToken(true); // Force refresh token
-          // Using SIGNIN route as it returns user data.
-          // Ideally we should have a /me route but this works for now.
           const response = await axios.post<{ user: UserData }>(
             API_ENDPOINTS.AUTH.SIGNIN,
             {
@@ -73,9 +70,8 @@ export const useAuth = create<AuthStore>()(
             set({ userData: response.data.user });
           }
         } catch (error) {
-          console.error('Failed to sync user data', error);
-          // If failed, maybe sign out or just leave userData as is?
-          // If 403/404, maybe sign out.
+          console.error('❌ Failed to sync user data:', error);
+          // If 401/403, user might need to re-authenticate
         }
       },
     }),

@@ -216,7 +216,7 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
             />
              
-             <div className="grid grid-cols-2 gap-2 hidden">
+             <div className="hidden">
                 <Input
                   label="Lat"
                   type="number"

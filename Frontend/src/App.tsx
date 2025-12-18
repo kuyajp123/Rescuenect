@@ -4,6 +4,7 @@ import { useResidentsStore } from '@/hooks/useFetchResidents';
 import { useNotificationSubscriber } from '@/hooks/useNotificationSubscriber';
 import { useStatusHistory } from '@/hooks/useStatusHistory';
 import { useAuth } from '@/stores/useAuth';
+import { useTheme } from '@heroui/use-theme';
 import 'leaflet/dist/leaflet.css';
 import { useEffect } from 'react';
 import { BrowserRouter } from 'react-router-dom';
@@ -16,6 +17,9 @@ import { useStatusStore } from './stores/useStatusStore';
 import { useWeatherStore } from './stores/useWeatherStores';
 
 function App() {
+  // Initialize theme globally - this ensures theme is applied on every page
+  // even when ThemeSwitcher component (Settings page) is not mounted
+  useTheme();
   const CURRENT_USER_LOCATION = 'bancaan';
   const setWeather = useWeatherStore(state => state.setWeather);
   const setStatus = useStatusStore(state => state.setData);
@@ -26,6 +30,7 @@ function App() {
 
   const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
   const authUser = useAuth(state => state.auth);
+  const userData = useAuth(state => state.userData);
 
   // Fetch all latest statuses once for dashboard analytics
   const { refetch: refetchAllStatuses } = useAllLatestStatuses();
@@ -46,14 +51,14 @@ function App() {
   }, [fetchStatuses]);
 
   useEffect(() => {
-    const unsubscribe = subscribeToWeatherData(CURRENT_USER_LOCATION, weatherData => {
+    const unsubscribe = subscribeToWeatherData(userData?.barangay || CURRENT_USER_LOCATION, weatherData => {
       setWeather(weatherData);
     });
 
     return () => {
       unsubscribe();
     };
-  }, [CURRENT_USER_LOCATION, setWeather]);
+  }, [userData?.barangay, setWeather]);
 
   useEffect(() => {
     const enableNotification = async () => {
@@ -75,7 +80,7 @@ function App() {
 
   // Subscribe to notifications
   useNotificationSubscriber({
-    userLocation: CURRENT_USER_LOCATION,
+    userLocation: userData?.barangay || CURRENT_USER_LOCATION,
     userId: authUser?.uid,
     maxNotifications: 100,
   });

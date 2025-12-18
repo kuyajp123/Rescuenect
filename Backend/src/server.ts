@@ -1,4 +1,4 @@
-import db, { admin } from '@/db/firestoreConfig';
+import db from '@/db/firestoreConfig';
 import mainRouter from '@/routes';
 import cors from 'cors';
 import dotenv from 'dotenv';

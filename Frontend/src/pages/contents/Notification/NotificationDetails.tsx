@@ -257,7 +257,7 @@ export const NotificationDetails = () => {
                       )}
                     </div>
                   )}
-                  hasMapStyleSelector={true}
+                  hasMapStyleSelector={false}
                   zoomControl={true}
                   dragging={false}
                   hasMapControl={false}

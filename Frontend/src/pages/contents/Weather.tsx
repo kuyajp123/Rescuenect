@@ -1,12 +1,14 @@
 import GlassCard from '@/components/ui/card/GlassCard';
 import { DailyForecastCard, HourlyForecast, WeatherCard } from '@/components/ui/weather';
 import { DisplayDateAndTime } from '@/helper/DateAndTime';
+import { useAuth } from '@/stores/useAuth';
 import { useWeatherStore } from '@/stores/useWeatherStores';
 import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from '@heroui/react';
 
 const Weather = () => {
   const [time, date] = DisplayDateAndTime();
   const data = useWeatherStore(state => state.weather);
+  const UserData = useAuth(state => state.userData);
 
   // Determine loading state based on data availability
   const loading = !data || !data.realtime || !data.hourly || !data.daily || data.realtime.length === 0;
@@ -26,7 +28,7 @@ const Weather = () => {
               {data && data.realtime && data.realtime.length > 0 ? (
                 <WeatherCard
                   key={data.realtime[0].location.lat + data.realtime[0].location.lon}
-                  name={'bancaan'}
+                  name={UserData?.barangay || 'Your Location'}
                   icon={data.realtime[0].weatherCode}
                   precipitationProbability={data.realtime[0]?.precipitationProbability}
                   rainIntensity={data.realtime[0]?.rainIntensity}

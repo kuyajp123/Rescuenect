@@ -1,21 +1,25 @@
-import {useTheme} from "@heroui/use-theme";
-import { SecondaryButton } from "@/components/ui/button";
-import { Sun, Moon } from "lucide-react";
+import { Switch } from '@heroui/react';
+import { useTheme } from '@heroui/use-theme';
+import { Moon, Sun } from 'lucide-react';
 
 export const ThemeSwitcher = () => {
   const { theme, setTheme } = useTheme();
 
-  const handleThemeChange = () => {
-    theme === 'light' ? setTheme('dark') : setTheme('light');
-  }
+  const handleThemeChange = (isSelected: boolean) => {
+    setTheme(isSelected ? 'dark' : 'light');
+  };
 
   return (
-    <SecondaryButton 
-      className="rounded-full border-none" 
-      onPress={handleThemeChange}
-      isIconOnly
-      >
-        { theme === 'light' ? <Sun className="h-5" /> : <Moon className="h-5" /> } 
-    </SecondaryButton>
-  )
+    <Switch
+      isSelected={theme === 'dark'}
+      onValueChange={handleThemeChange}
+      color="primary"
+      size="md"
+      thumbIcon={({ isSelected, className }) =>
+        isSelected ? <Sun className={className} /> : <Moon className={className} />
+      }
+    >
+      Dark mode
+    </Switch>
+  );
 };
