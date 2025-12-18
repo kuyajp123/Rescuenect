@@ -16,10 +16,8 @@ export const ThemeSwitcher = () => {
       color="primary"
       size="md"
       thumbIcon={({ isSelected, className }) =>
-        isSelected ? <Sun className={className} /> : <Moon className={className} />
+        isSelected ? <Sun size={20} className={className} /> : <Moon size={20} className={className} />
       }
-    >
-      Dark mode
-    </Switch>
+    ></Switch>
   );
 };

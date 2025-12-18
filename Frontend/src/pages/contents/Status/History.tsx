@@ -275,7 +275,7 @@ export const StatusHistory = () => {
             {user.firstName} {user.lastName}
           </User>
         );
-        case 'location':
+      case 'location':
         return (
           <div className="flex flex-col max-w-[200px]">
             <p className="text-bold text-sm capitalize flex-wrap" title={cellValue as string}>
@@ -285,12 +285,12 @@ export const StatusHistory = () => {
             <p className="text-bold text-tiny capitalize text-default-400">lng: {String(user.lng)}</p>
           </div>
         );
-        case 'condition':
-          return (
-            <Chip className="capitalize" color={conditionColorMap[user.condition]} size="sm" variant="flat">
-              {String(cellValue)}
-            </Chip>
-          );
+      case 'condition':
+        return (
+          <Chip className="capitalize" color={conditionColorMap[user.condition]} size="sm" variant="flat">
+            {String(cellValue)}
+          </Chip>
+        );
       case 'status':
         return (
           <div className="flex flex-col">
@@ -312,7 +312,7 @@ export const StatusHistory = () => {
           <div className="flex justify-center cursor-pointer">
             <Dropdown>
               <DropdownTrigger>
-                <Button isIconOnly variant="light">
+                <Button isIconOnly variant="light" aria-label="Open actions menu">
                   <EllipsisVertical size={24} />
                 </Button>
               </DropdownTrigger>
@@ -494,6 +494,7 @@ export const StatusHistory = () => {
                 }}
                 className="relative"
                 label="View by date range"
+                aria-label="Date range filter"
               />
               {(dateRange.start || dateRange.end) && (
                 <Button
@@ -501,6 +502,7 @@ export const StatusHistory = () => {
                   size="sm"
                   radius="full"
                   isIconOnly
+                  aria-label="Clear date range filter"
                   onPress={() => {
                     setDateRange({ start: null, end: null });
                     setPage(1);
@@ -559,6 +561,7 @@ export const StatusHistory = () => {
               <Button
                 isIconOnly
                 variant="flat"
+                aria-label="Refresh status history"
                 onPress={() => {
                   fetchStatusHistory();
                   setStatusChanges(false);
@@ -584,11 +587,11 @@ export const StatusHistory = () => {
             <select
               className="bg-transparent outline-solid outline-transparent text-default-400 text-small"
               onChange={onRowsPerPageChange}
+              defaultValue="10"
+              aria-label="Rows per page"
             >
               <option value="5">5</option>
-              <option selected value="10">
-                10
-              </option>
+              <option value="10">10</option>
               <option value="15">15</option>
             </select>
           </label>

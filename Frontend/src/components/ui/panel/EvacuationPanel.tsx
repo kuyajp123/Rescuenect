@@ -2,12 +2,14 @@ import { Map } from '@/components/ui/Map';
 import { types } from '@/config/constant';
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
+import { useEvacuationStore } from '@/stores/useEvacuationStore';
 import { Button, Input, Select, SelectItem, Textarea } from '@heroui/react';
 import axios from 'axios';
 import { Pencil, Save, Upload, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 export const EvacuationPanel = ({ data }: { data: any }) => {
+  const { fetchEvacuationCenters } = useEvacuationStore();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<any>(null);
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -83,7 +85,7 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
       };
 
       submitData.append('data', JSON.stringify(updatedData));
-      
+
       newImages.forEach(file => {
         submitData.append('images', file);
       });
@@ -95,12 +97,9 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
         },
       });
 
-      // Refresh data via callback
-      if (data.onUpdate) {
-        data.onUpdate();
-      }
+      // Update store with new data
+      await fetchEvacuationCenters();
       setIsEditing(false);
-
     } catch (error) {
       console.error('Error updating evacuation center:', error);
       alert('Failed to update evacuation center.');
@@ -130,13 +129,19 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
               lng: isEditing ? formData.lng : (data.data.coordinates?.lng ?? 0),
             },
           ]}
-          center={isEditing ? [formData.lat, formData.lng] : (data.data.coordinates ? [data.data.coordinates.lat, data.data.coordinates.lng] : [14.2965, 120.7925])}
+          center={
+            isEditing
+              ? [formData.lat, formData.lng]
+              : data.data.coordinates
+                ? [data.data.coordinates.lat, data.data.coordinates.lng]
+                : [14.2965, 120.7925]
+          }
           hasMapStyleSelector={false}
           zoomControl={isEditing} // Enable controls when editing
           dragging={true}
           hasMapControl={false}
           zoom={15}
-          onMapClick={isEditing ? (coords) => setFormData({ ...formData, ...coords }) : undefined}
+          onMapClick={isEditing ? coords => setFormData({ ...formData, ...coords }) : undefined}
           markerType="default"
           attribution={''}
         />
@@ -152,7 +157,13 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
         <h2 className="text-xl font-bold">{isEditing ? 'Edit Details' : data.data.name}</h2>
         <div className="flex gap-2">
           {!isEditing ? (
-            <Button size="sm" color="primary" variant="flat" endContent={<Pencil size={16} />} onPress={() => setIsEditing(true)}>
+            <Button
+              size="sm"
+              color="primary"
+              variant="flat"
+              endContent={<Pencil size={16} />}
+              onPress={() => setIsEditing(true)}
+            >
               Edit
             </Button>
           ) : (
@@ -160,7 +171,13 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
               <Button size="sm" color="danger" variant="light" onPress={() => setIsEditing(false)}>
                 Cancel
               </Button>
-              <Button size="sm" color="primary" endContent={<Save size={16} />} onPress={handleSave} isLoading={isLoading}>
+              <Button
+                size="sm"
+                color="primary"
+                endContent={<Save size={16} />}
+                onPress={handleSave}
+                isLoading={isLoading}
+              >
                 Save
               </Button>
             </>
@@ -172,28 +189,28 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
       <div className="flex-1 overflow-y-auto pr-2 pb-4">
         {isEditing ? (
           <div className="flex flex-col gap-4">
-             <Input
+            <Input
               label="Name"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
             />
             <Select
               label="Status"
               selectedKeys={formData.status ? [formData.status] : []}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              onChange={e => setFormData({ ...formData, status: e.target.value })}
             >
               <SelectItem key="available">Available</SelectItem>
               <SelectItem key="full">Full</SelectItem>
               <SelectItem key="closed">Closed</SelectItem>
             </Select>
 
-             <Select
+            <Select
               label="Type"
               items={types}
               selectedKeys={formData.type ? [formData.type] : []}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              onChange={e => setFormData({ ...formData, type: e.target.value })}
             >
-              {(item) => <SelectItem key={item.key}>{item.label}</SelectItem>}
+              {item => <SelectItem key={item.key}>{item.label}</SelectItem>}
             </Select>
 
             <div className="grid grid-cols-2 gap-2">
@@ -201,40 +218,40 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
                 label="Capacity"
                 type="number"
                 value={formData.capacity}
-                onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
+                onChange={e => setFormData({ ...formData, capacity: e.target.value })}
               />
               <Input
                 label="Contact"
                 value={formData.contact}
-                onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+                onChange={e => setFormData({ ...formData, contact: e.target.value })}
               />
             </div>
-            
+
             <Input
               label="Location Name"
               value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              onChange={e => setFormData({ ...formData, location: e.target.value })}
             />
-             
-             <div className="hidden">
-                <Input
-                  label="Lat"
-                  type="number"
-                  value={formData.lat}
-                  onChange={(e) => setFormData({ ...formData, lat: parseFloat(e.target.value) })}
-                />
-                <Input
-                  label="Lng"
-                  type="number"
-                  value={formData.lng}
-                  onChange={(e) => setFormData({ ...formData, lng: parseFloat(e.target.value) })}
-                />
-             </div>
+
+            <div className="hidden">
+              <Input
+                label="Lat"
+                type="number"
+                value={formData.lat}
+                onChange={e => setFormData({ ...formData, lat: parseFloat(e.target.value) })}
+              />
+              <Input
+                label="Lng"
+                type="number"
+                value={formData.lng}
+                onChange={e => setFormData({ ...formData, lng: parseFloat(e.target.value) })}
+              />
+            </div>
 
             <Textarea
               label="Description"
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={e => setFormData({ ...formData, description: e.target.value })}
             />
 
             <div>
@@ -244,73 +261,84 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
                 {existingImages.map((url, index) => (
                   <div key={`existing-${index}`} className="relative group flex-shrink-0 w-80 h-60">
                     <img src={url} alt="Existing" className="w-full h-full object-cover rounded-lg border shadow-sm" />
-                    <button onClick={() => removeExistingImage(url)} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-md">
+                    <button
+                      onClick={() => removeExistingImage(url)}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                    >
                       <X size={16} />
                     </button>
                   </div>
                 ))}
                 {/* New */}
                 {newImages.map((file, index) => (
-                   <div key={`new-${index}`} className="relative group flex-shrink-0 w-80 h-60">
-                    <img src={URL.createObjectURL(file)} alt="New" className="w-full h-full object-cover rounded-lg border border-primary shadow-sm" />
-                    <button onClick={() => removeNewImage(index)} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-md">
+                  <div key={`new-${index}`} className="relative group flex-shrink-0 w-80 h-60">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt="New"
+                      className="w-full h-full object-cover rounded-lg border border-primary shadow-sm"
+                    />
+                    <button
+                      onClick={() => removeNewImage(index)}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                    >
                       <X size={16} />
                     </button>
                   </div>
                 ))}
                 {/* Upload Button */}
-                {(existingImages.length + newImages.length) < 3 && (
-                   <label className="flex-shrink-0 w-80 h-60 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:border-primary cursor-pointer transition-colors bg-gray-50 dark:bg-gray-800">
-                      <Upload size={32} className="text-gray-400" />
-                      <span className="text-sm mt-2 text-gray-500">Add Image</span>
-                      <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageChange} />
-                   </label>
+                {existingImages.length + newImages.length < 3 && (
+                  <label className="flex-shrink-0 w-80 h-60 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:border-primary cursor-pointer transition-colors bg-gray-50 dark:bg-gray-800">
+                    <Upload size={32} className="text-gray-400" />
+                    <span className="text-sm mt-2 text-gray-500">Add Image</span>
+                    <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageChange} />
+                  </label>
                 )}
               </div>
             </div>
-
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-             {/* Read-only View */}
-             <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-500 text-xs">Status</p>
-                  <p className="capitalize font-medium">{data.data.status}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-xs">Type</p>
-                  <p className="capitalize font-medium">{data.data.type}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-xs">Capacity</p>
-                  <p className="font-medium">{data.data.capacity}</p>
-                </div>
-                 <div>
-                  <p className="text-gray-500 text-xs">Contact</p>
-                  <p className="font-medium">{data.data.contact}</p>
-                </div>
-             </div>
-             
-             <div>
-                <p className="text-gray-500 text-xs">Location</p>
-                <p className="font-medium">{data.data.location}</p>
-                <p className="text-xs text-gray-400 mt-1">({data.data.coordinates?.lat}, {data.data.coordinates?.lng})</p>
-             </div>
+            {/* Read-only View */}
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-gray-500 text-xs">Status</p>
+                <p className="capitalize font-medium">{data.data.status}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-xs">Type</p>
+                <p className="capitalize font-medium">{data.data.type}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-xs">Capacity</p>
+                <p className="font-medium">{data.data.capacity}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-xs">Contact</p>
+                <p className="font-medium">{data.data.contact}</p>
+              </div>
+            </div>
 
-             <div>
-                <p className="text-gray-500 text-xs">Description</p>
-                <p className="text-sm mt-1">{data.data.description}</p>
-             </div>
+            <div>
+              <p className="text-gray-500 text-xs">Location</p>
+              <p className="font-medium">{data.data.location}</p>
+              <p className="text-xs text-gray-400 mt-1">
+                ({data.data.coordinates?.lat}, {data.data.coordinates?.lng})
+              </p>
+            </div>
 
-             <div>
-                <p className="text-gray-500 text-xs mb-2">Images</p>
-                <div className="flex p-4 gap-2 overflow-x-auto">
-                  {data.data.images?.map((imgUrl: string, index: number) => (
-                    <img key={index} src={imgUrl} alt="Center" className="w-100 h-auto object-cover rounded" />
-                  ))}
-                </div>
-             </div>
+            <div>
+              <p className="text-gray-500 text-xs">Description</p>
+              <p className="text-sm mt-1">{data.data.description}</p>
+            </div>
+
+            <div>
+              <p className="text-gray-500 text-xs mb-2">Images</p>
+              <div className="flex p-4 gap-2 overflow-x-auto">
+                {data.data.images?.map((imgUrl: string, index: number) => (
+                  <img key={index} src={imgUrl} alt="Center" className="w-100 h-auto object-cover rounded" />
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>

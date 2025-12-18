@@ -252,7 +252,7 @@ export const Dashboard = () => {
           <CardBody className="pt-4">
             <div className="w-full h-[280px]">
               {activeIncidents > 0 ? (
-                <ResponsiveContainer>
+                <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
                     <defs>
                       <filter id="shadow" height="200%">
@@ -318,7 +318,7 @@ export const Dashboard = () => {
           <CardBody className="pt-4">
             <div className="w-full h-[280px]">
               {categoryData.length > 0 ? (
-                <ResponsiveContainer>
+                <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={categoryData}>
                     <defs>
                       <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
@@ -379,7 +379,7 @@ export const Dashboard = () => {
           <CardBody className="pt-4">
             <div className="w-full h-[280px]">
               {earthquakeData.length > 0 ? (
-                <ResponsiveContainer>
+                <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={earthquakeData}>
                     <defs>
                       <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
@@ -442,7 +442,7 @@ export const Dashboard = () => {
           </CardHeader>
           <CardBody className="pt-4">
             <div className="w-full h-[280px]">
-              <ResponsiveContainer>
+              <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={WeekData} barGap={0}>
                   <defs>
                     <linearGradient id="safeGradient" x1="0" y1="0" x2="0" y2="1">

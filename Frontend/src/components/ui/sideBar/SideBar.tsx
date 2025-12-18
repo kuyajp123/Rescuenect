@@ -74,10 +74,11 @@ const SideBar = ({ isOpen, onToggle }: SideBarProps) => {
         <div className="h-full flex flex-col">
           {/* Logo */}
           <div
-            className={`flex items-center mt-4 mb-8 text-xl font-semibold text-primary dark:text-white flex-shrink-0 transition-all duration-300 ${
+            className={`flex items-center mt-4 mb-8 text-xl font-semibold text-primary dark:text-white flex-shrink-0 transition-all duration-300 cursor-pointer ${
               isExpanded ? 'p-4 pl-10' : 'justify-center p-4'
             }`}
             style={{ minHeight: '40px' }}
+            onClick={() => navigate('/')}
           >
             <img src={Logo} alt="Rescuenect Logo" className="w-6 h-6" />
             <span

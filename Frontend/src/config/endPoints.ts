@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   STATUS: {
     GET_VERSIONS: `${BACKEND_URL}/admin/status/getVersions`,
     RESOLVED_STATUS: `${BACKEND_URL}/admin/status/resolvedStatus`,
+    GET_STATUS_HISTORY: `${BACKEND_URL}/admin/status/getStatusHistory`,
   },
   EVACUATION: {
     ADD_CENTER: `${BACKEND_URL}/admin/evacuation/addCenter`,

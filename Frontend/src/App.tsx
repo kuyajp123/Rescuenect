@@ -17,8 +17,6 @@ import { useStatusStore } from './stores/useStatusStore';
 import { useWeatherStore } from './stores/useWeatherStores';
 
 function App() {
-  // Initialize theme globally - this ensures theme is applied on every page
-  // even when ThemeSwitcher component (Settings page) is not mounted
   useTheme();
   const CURRENT_USER_LOCATION = 'bancaan';
   const setWeather = useWeatherStore(state => state.setWeather);
@@ -47,8 +45,10 @@ function App() {
   }, [authUser]);
 
   useEffect(() => {
-    fetchStatuses();
-  }, [fetchStatuses]);
+    if (authUser) {
+      fetchStatuses();
+    }
+  }, [authUser, fetchStatuses]);
 
   useEffect(() => {
     const unsubscribe = subscribeToWeatherData(userData?.barangay || CURRENT_USER_LOCATION, weatherData => {

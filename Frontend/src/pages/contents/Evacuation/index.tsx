@@ -1,11 +1,9 @@
 import { Map } from '@/components/ui/Map';
 import EvacuationTable from '@/components/ui/table/EvacuationTable';
-import { API_ENDPOINTS } from '@/config/endPoints';
-import { auth } from '@/lib/firebaseConfig';
 import { usePanelStore } from '@/stores/panelStore';
+import { useEvacuationStore } from '@/stores/useEvacuationStore';
 import { EvacuationCenter } from '@/types/types';
 import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, useDisclosure } from '@heroui/react';
-import axios from 'axios';
 import { List, Map as MapIcon, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -15,31 +13,15 @@ const index = () => {
     const saved = localStorage.getItem('evacuationViewMode');
     return saved === 'map' || saved === 'list' ? saved : 'list';
   });
-  const [evacuationCenters, setEvacuationCenters] = useState<EvacuationCenter[]>([]);
   // Local delete state
   const [centerToDelete, setCenterToDelete] = useState<EvacuationCenter | null>(null);
-  
-  const user = auth.currentUser;
+
   const navigate = useNavigate();
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onOpenChange: onDeleteOpenChange } = useDisclosure();
   const { openEvacuationPanel, closePanel } = usePanelStore();
 
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  // Fetch function to be reused
-  async function fetchEvacuationCenters() {
-      const token = await user?.getIdToken();
-      if (!token) {
-        console.error('User is not authenticated');
-        return;
-      }
-      try {
-        const response = await axios.get<EvacuationCenter[]>(API_ENDPOINTS.EVACUATION.GET_CENTERS);
-        setEvacuationCenters(response.data);
-      } catch (error) {
-        console.error('Error fetching evacuation centers:', error);
-      }
-  }
+  // Use Zustand store for evacuation centers
+  const { evacuationCenters, isLoading, fetchEvacuationCenters, deleteEvacuationCenter } = useEvacuationStore();
 
   useEffect(() => {
     fetchEvacuationCenters();
@@ -57,43 +39,21 @@ const index = () => {
   const handleMarkerClick = (marker: any) => {
     const fullCenterData = evacuationCenters.find(item => item.id === marker.uid);
     if (fullCenterData) {
-      openEvacuationPanel(fullCenterData, fetchEvacuationCenters);
+      openEvacuationPanel(fullCenterData);
     }
   };
 
   const handleDeleteCenter = async (centerId: string) => {
-    setIsLoading(true);
-    const token = await user?.getIdToken();
-
-    if (!token) {
-      console.error('User is not authenticated');
-      return;
-    }
-
     try {
-      const response = await axios.delete(API_ENDPOINTS.EVACUATION.DELETE_CENTER, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        data: { id: centerId, uid: user?.uid },
-      } as any);
-
-      console.log('Delete response:', response.data);
-
-      // Refresh the evacuation centers list after deletion
-      setEvacuationCenters(prevCenters => prevCenters.filter(center => center.id !== centerId));
-
+      await deleteEvacuationCenter(centerId);
       // Close the modal
       onDeleteOpenChange();
       setCenterToDelete(null);
     } catch (error) {
       console.error('Error deleting evacuation center:', error);
       alert('Failed to delete center.');
-    } finally {
-        setIsLoading(false);
     }
   };
-
 
   return (
     <div className="w-full h-full">
@@ -136,8 +96,8 @@ const index = () => {
             setCenterToDelete(center);
             onDeleteOpen();
           }}
-          onEditRequest={(center) => {
-             openEvacuationPanel(center, fetchEvacuationCenters);
+          onEditRequest={center => {
+            openEvacuationPanel(center);
           }}
         />
       ) : (
@@ -160,7 +120,7 @@ const index = () => {
           />
         </div>
       )}
-      
+
       {/* Delete Modal */}
       <Modal isOpen={isDeleteOpen} onOpenChange={onDeleteOpenChange}>
         <ModalContent>
@@ -176,7 +136,7 @@ const index = () => {
                   color="primary"
                   onPress={() => {
                     if (centerToDelete) {
-                        handleDeleteCenter(centerToDelete.id);
+                      handleDeleteCenter(centerToDelete.id);
                     }
                   }}
                   disabled={isLoading}

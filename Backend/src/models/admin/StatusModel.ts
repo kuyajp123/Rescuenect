@@ -124,6 +124,56 @@ export class StatusModel {
     }
   }
 
+  public static async getStatusHistory() {
+    try {
+      // Use collectionGroup to get all statuses from all users
+      const allStatusesSnapshot = await db.collectionGroup('statuses').orderBy('createdAt', 'desc').get();
+
+      if (allStatusesSnapshot.empty) {
+        console.log('⚠️ No statuses found in any user collection');
+        return [];
+      }
+
+      // Group by parentId and get only the latest version based on createdAt
+      const latestStatusMap = new Map();
+
+      allStatusesSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const parentId = data.parentId;
+
+        const getTimestamp = (t: any): number => {
+          if (!t) return 0;
+          if (typeof t === 'string') return new Date(t).getTime();
+          if (t.seconds || t._seconds) return (t.seconds || t._seconds) * 1000;
+          if (t.toDate) return t.toDate().getTime();
+          return new Date(t).getTime();
+        };
+
+        const existing = latestStatusMap.get(parentId);
+        if (!existing || getTimestamp(data.createdAt) > getTimestamp(existing.createdAt)) {
+          latestStatusMap.set(parentId, { uid: doc.id, ...data });
+        }
+      });
+
+      // Convert to array and sort by createdAt descending
+      const latestStatuses = Array.from(latestStatusMap.values()).sort((a, b) => {
+        const getTimestamp = (t: any): number => {
+          if (!t) return 0;
+          if (typeof t === 'string') return new Date(t).getTime();
+          if (t.seconds || t._seconds) return (t.seconds || t._seconds) * 1000;
+          if (t.toDate) return t.toDate().getTime();
+          return new Date(t).getTime();
+        };
+        return getTimestamp(b.createdAt) - getTimestamp(a.createdAt);
+      });
+
+      return latestStatuses;
+    } catch (error) {
+      console.error('❌ Error in StatusModel.getStatusHistory:', error);
+      throw error;
+    }
+  }
+
   public static async resolveStatus(uid: string, versionId: string, resolvedNote: string) {
     try {
       const docRef = db.collection('status').doc(uid).collection('statuses').doc(versionId);

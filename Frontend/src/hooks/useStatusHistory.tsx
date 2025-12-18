@@ -1,6 +1,7 @@
-import { db } from '@/lib/firebaseConfig'; // adjust your import path
+import { API_ENDPOINTS } from '@/config/endPoints';
+import { auth } from '@/lib/firebaseConfig';
 import { StatusData } from '@/types/types';
-import { collectionGroup, getDocs, orderBy, query } from 'firebase/firestore';
+import axios from 'axios';
 import { create } from 'zustand';
 
 export const users = [
@@ -96,49 +97,55 @@ export const useStatusHistory = create<StatusStore>(set => ({
     set({ loading: true });
 
     try {
-      const snapshot = await getDocs(query(collectionGroup(db, 'statuses'), orderBy('createdAt', 'desc')));
+      // Wait for auth to be ready
+      let user = auth.currentUser;
 
-      const latestStatusMap = new Map<string, StatusData>();
+      // If no user initially, wait for auth state to resolve
+      if (!user) {
+        await new Promise<void>(resolve => {
+          const unsubscribe = auth.onAuthStateChanged(authUser => {
+            if (authUser) {
+              user = authUser;
+              unsubscribe();
+              resolve();
+            }
+          });
 
-      snapshot.docs.forEach(doc => {
-        const data = { uid: doc.id, ...doc.data() } as StatusData;
-        const parentId = data.parentId;
+          // Timeout after 5 seconds
+          setTimeout(() => {
+            unsubscribe();
+            resolve();
+          }, 5000);
+        });
+      }
 
-        const getTimestamp = (t: any): number => {
-          if (!t) return 0;
-          if (typeof t === 'string') return new Date(t).getTime();
-          if (t.seconds) return t.seconds * 1000;
-          if (t.toDate) return t.toDate().getTime();
-          return new Date(t).getTime();
-        };
+      if (!user) {
+        console.error('User is not authenticated');
+        set({ loading: false, error: 'Not authenticated' });
+        return;
+      }
 
-        const existing = latestStatusMap.get(parentId);
-        if (!existing || getTimestamp(data.createdAt) > getTimestamp(existing.createdAt)) {
-          latestStatusMap.set(parentId, data);
+      const token = await user.getIdToken();
+
+      const response = await axios.get<{ statuses: StatusData[]; totalCount: number }>(
+        API_ENDPOINTS.STATUS.GET_STATUS_HISTORY,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-      });
+      );
 
-      const latestStatuses = Array.from(latestStatusMap.values()).sort((a, b) => {
-        const getTimestamp = (t: any): number => {
-          if (!t) return 0;
-          if (typeof t === 'string') return new Date(t).getTime();
-          if (t.seconds) return t.seconds * 1000;
-          if (t.toDate) return t.toDate().getTime();
-          return new Date(t).getTime();
-        };
-        return getTimestamp(b.createdAt) - getTimestamp(a.createdAt);
-      });
-
-      const transformed = transformStatusData(latestStatuses);
+      const transformed = transformStatusData(response.data.statuses);
 
       set({
         statuses: transformed,
-        totalCount: transformed.length,
+        totalCount: response.data.totalCount,
         loading: false,
         error: null,
       });
     } catch (err: any) {
-      console.error('Error fetching latest statuses:', err);
+      console.error('Error fetching status history:', err);
       set({ error: err.message, loading: false });
     }
   },

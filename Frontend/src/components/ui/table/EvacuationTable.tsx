@@ -399,7 +399,6 @@ export default function EvacuationTable({ data, onDeleteRequest, onEditRequest }
         if (keys !== 'all' && keys instanceof Set && keys.size > 0) {
           const selectedId = Array.from(keys)[0];
           const selectedUser = data.find(user => user.id === selectedId);
-          console.log('Selected User:', selectedUser);
           if (selectedUser) {
             setSelectedUser(selectedUser as unknown as PanelSelection);
             openEvacuationPanel(selectedUser);

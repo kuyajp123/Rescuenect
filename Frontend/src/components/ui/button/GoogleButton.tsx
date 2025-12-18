@@ -52,7 +52,6 @@ export const GoogleButton = () => {
       setVerifying(false);
       setLoading(false);
 
-      console.log('Navigating to home page');
     } catch (error: any) {
       await auth.signOut();
       console.error(error);

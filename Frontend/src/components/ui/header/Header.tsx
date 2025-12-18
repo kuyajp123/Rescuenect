@@ -182,7 +182,12 @@ const Header = () => {
               }}
             >
               <DropdownSection showDivider aria-label="Profile & Actions">
-                <DropdownItem key="profile" isReadOnly className="h-14 gap-2 opacity-100">
+                <DropdownItem
+                  key="profile"
+                  isReadOnly
+                  className="h-14 gap-2 opacity-100"
+                  textValue={`${admin?.displayName} ${admin?.email}`}
+                >
                   <User
                     avatarProps={{
                       size: 'sm',
@@ -201,6 +206,7 @@ const Header = () => {
                   onClick={() => navigate('/profile', { replace: true })}
                   key="dashboard"
                   startContent={<UserRound size={20} />}
+                  textValue="Profile"
                 >
                   Profile
                 </DropdownItem>
@@ -208,12 +214,18 @@ const Header = () => {
                   onClick={() => navigate('/settings', { replace: true })}
                   key="settings"
                   startContent={<Settings size={20} />}
+                  textValue="Settings"
                 >
                   Settings
                 </DropdownItem>
               </DropdownSection>
               <DropdownSection aria-label="Help & Feedback">
-                <DropdownItem key="logout" onClick={handleSignOut} startContent={<LogOut size={20} />}>
+                <DropdownItem
+                  key="logout"
+                  onClick={handleSignOut}
+                  startContent={<LogOut size={20} />}
+                  textValue="Log Out"
+                >
                   Log Out
                 </DropdownItem>
               </DropdownSection>
