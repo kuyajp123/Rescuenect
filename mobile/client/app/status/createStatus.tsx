@@ -3,6 +3,7 @@ import CustomImagePicker from '@/components/components/CustomImagePicker';
 import { ImageModal } from '@/components/components/image-modal/ImageModal';
 import Map, { CustomButton, NumberInputField, RadioField, TextInputField } from '@/components/components/Map';
 import Modal from '@/components/components/Modal';
+import StatusOnboarding from '@/components/components/onboarding/StatusOnboarding';
 import {
   cleanAddress,
   formatContactNumber,
@@ -42,7 +43,7 @@ import axios from 'axios';
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
 import { isEqual } from 'lodash';
-import { Bookmark, Ellipsis, Info, Navigation, Settings, SquarePen, Trash } from 'lucide-react-native';
+import { Bookmark, Ellipsis, HelpCircle, Info, Navigation, Settings, SquarePen, Trash } from 'lucide-react-native';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -57,6 +58,28 @@ export const createStatus = () => {
   const { setCameraCenter } = useMap();
   const authUser = useAuth(state => state.authUser);
   const router = useRouter();
+
+  // Onboarding
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      try {
+        const hasSeen = await storageHelpers.getData(STORAGE_KEYS.HAS_SEEN_ONBOARDING);
+        if (!hasSeen) {
+          setShowOnboarding(true);
+        }
+      } catch (error) {
+        console.error('Error checking onboarding status:', error);
+      }
+    };
+    checkOnboarding();
+  }, []);
+
+  const handleOnboardingDone = async () => {
+    setShowOnboarding(false);
+    await storageHelpers.setData(STORAGE_KEYS.HAS_SEEN_ONBOARDING, true);
+  };
 
   // Coords states
   const coords = useCoords(state => state.coords);
@@ -1277,10 +1300,15 @@ export const createStatus = () => {
                   payload: {
                     items: [
                       {
-                        id: 'details',
-                        name: 'Details',
-                        icon: <Info size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-                        onPress: () => {},
+                        id: 'guide',
+                        name: 'Show Guide',
+                        icon: <HelpCircle size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+                        onPress: () => {
+                          setTimeout(() => {
+                            setShowOnboarding(true);
+                          }, 500);
+                          sheet.hide('status-more-action');
+                        },
                       },
                       {
                         id: 'settings',
@@ -1303,8 +1331,33 @@ export const createStatus = () => {
         }
       : {
           headerActionNoData: {
-            icon: <Settings size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-            onPress: navigateToStatusSettings,
+            icon: <Ellipsis size={24} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+            onPress: () => {
+              const sheet = require('react-native-actions-sheet').SheetManager;
+              sheet.show('status-ellipsis-action', {
+                payload: {
+                  items: [
+                    {
+                      id: 'guide',
+                      name: 'Show Guide',
+                      icon: <HelpCircle size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+                      onPress: () => {
+                        setTimeout(() => {
+                          setShowOnboarding(true);
+                        }, 500);
+                        sheet.hide('status-ellipsis-action');
+                      },
+                    },
+                    {
+                      id: 'settings',
+                      name: 'Settings',
+                      icon: <Settings size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+                      onPress: navigateToStatusSettings,
+                    },
+                  ],
+                },
+              });
+            },
           },
         };
   }, [formData, isDark]);
@@ -1466,6 +1519,7 @@ export const createStatus = () => {
       {modals.isImageModalVisible && formData?.image && (
         <ImageModal visible={modals.isImageModalVisible} imageUri={formData.image} onClose={handleCloseImageModal} />
       )}
+      <StatusOnboarding visible={showOnboarding} onDone={handleOnboardingDone} onSkip={handleOnboardingDone} />
     </>
   );
 };

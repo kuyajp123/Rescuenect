@@ -67,16 +67,6 @@ export const navigateToCreateStatus = () => {
   }
 };
 
-export const navigateToCityNeeds = () => {
-  try {
-    // console.log("🧭 Navigating to city needs");
-    // console.log("🧭 Route:", ROUTES.STATUS.CITY_NEEDS);
-    router.replace(ROUTES.STATUS.CITY_NEEDS);
-  } catch (error) {
-    console.error('❌ Error navigating to city needs:', error);
-  }
-};
-
 export const navigateToNotification = () => {
   try {
     router.replace(ROUTES.NOTIFICATION);
@@ -93,6 +83,7 @@ export const navigateToStatusSettings = () => {
     router.push(ROUTES.STATUS.SETTINGS);
     const sheet = require('react-native-actions-sheet').SheetManager;
     sheet.hide('status-more-action');
+    sheet.hide('status-ellipsis-action');
   } catch (error) {
     console.error('❌ Error navigating to status settings:', error);
   }

@@ -10,6 +10,7 @@ export const STORAGE_KEYS = {
   USER_SETTINGS: '@user_settings',
   SAVED_LOCATIONS: '@saved_locations',
   GUEST_PREFS: '@guest_prefs',
+  HAS_SEEN_ONBOARDING: '@has_seen_onboarding',
 };
 
 //
