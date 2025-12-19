@@ -7,6 +7,7 @@ import { Avatar } from '@heroui/avatar';
 import {
   BreadcrumbItem,
   Breadcrumbs,
+  Button,
   Dropdown,
   DropdownItem,
   DropdownMenu,
@@ -15,11 +16,16 @@ import {
   User,
 } from '@heroui/react';
 import { getAuth, signOut } from 'firebase/auth';
-import { Bell, LogOut, Settings, UserRound } from 'lucide-react';
+import { Bell, LogOut, PanelLeftClose, PanelLeftOpen, Settings, UserRound } from 'lucide-react';
 import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-const Header = () => {
+interface HeaderProps {
+  onToggle: () => void;
+  isOpen: boolean;
+}
+
+const Header = ({ onToggle, isOpen }: HeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const getUnreadCount = useNotificationStore(state => state.getUnreadCount);
@@ -59,6 +65,11 @@ const Header = () => {
       currentPath += `/${segment}`;
       const isLast = index === pathSegments.length - 1;
 
+      // Skip intermediate paths that don't have routes
+      if (currentPath === '/weather/details' || currentPath === '/weather/hourly') {
+        return;
+      }
+
       let label = '';
       switch (currentPath) {
         case '/status':
@@ -89,7 +100,14 @@ const Header = () => {
           label = 'Notification';
           break;
         default:
-          label = segment.charAt(0).toUpperCase() + segment.slice(1);
+          // specific handling for weather detail pages final segment
+          if (currentPath.startsWith('/weather/details/')) {
+             label = 'Daily Forecast Details';
+          } else if (currentPath.startsWith('/weather/hourly/')) {
+             label = 'Hourly Forecast Details';
+          } else {
+             label = segment.charAt(0).toUpperCase() + segment.slice(1);
+          }
       }
 
       breadcrumbs.push({
@@ -106,7 +124,20 @@ const Header = () => {
 
   return (
     <div className="flex flex-row justify-between w-full">
-      <div className="text-xl ml-8 font-bold flex items-end pb-4">
+      <div className="text-xl sm:ml-4 font-bold flex items-center gap-4 pb-4">
+        <Button
+          isIconOnly
+          variant="light"
+          onPress={onToggle}
+          className="min-w-10 w-10 h-10"
+          aria-label={isOpen ? 'Close sidebar' : 'Open sidebar'}
+        >
+          {isOpen ? (
+            <PanelLeftClose size={20} className="text-default-500" />
+          ) : (
+            <PanelLeftOpen size={20} className="text-default-500" />
+          )}
+        </Button>
         <Breadcrumbs>
           {breadcrumbs.map((crumb, index) => (
             <BreadcrumbItem

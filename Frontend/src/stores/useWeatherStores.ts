@@ -1,8 +1,9 @@
+import { WeatherData } from '@/types/types';
 import { create } from 'zustand';
 
 type Store = {
-  weather: any | null;
-  setWeather: (data: any) => void;
+  weather: WeatherData | null;
+  setWeather: (data: WeatherData) => void;
 };
 
 export const useWeatherStore = create<Store>((set) => ({

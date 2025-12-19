@@ -10,7 +10,9 @@ import { NotificationDetails } from './Notification/NotificationDetails';
 import Residents from './Residents/index';
 import ResidentsProfile from './Residents/ResidentsProfile';
 import SaveAsPDF from './Status/saveAsPDF';
-import Weather from './Weather';
+import Weather from './Weather/Weather';
+import DailyForecastDetails from './Weather/DailyForecastDetails';
+import HourlyDetails from './Weather/HourlyDetails';
 
 export {
   AddNewCenter,
@@ -26,4 +28,6 @@ export {
   Status,
   StatusHistory,
   Weather,
+  DailyForecastDetails,
+  HourlyDetails,
 };

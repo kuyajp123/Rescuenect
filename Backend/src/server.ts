@@ -1,5 +1,6 @@
 import db from '@/db/firestoreConfig';
 import mainRouter from '@/routes';
+import compression from 'compression';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express, { Application, NextFunction, Request, Response } from 'express';
@@ -24,6 +25,7 @@ app.use(
   })
 );
 
+app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

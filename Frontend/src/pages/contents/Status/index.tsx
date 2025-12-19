@@ -7,17 +7,17 @@ import { auth } from '@/lib/firebaseConfig';
 import { useStatusStore } from '@/stores/useStatusStore';
 import { MapMarkerData } from '@/types/types';
 import {
-  Button,
-  Drawer,
-  DrawerBody,
-  DrawerContent,
-  DrawerFooter,
-  DrawerHeader,
-  Form,
-  Select,
-  SelectItem,
-  Textarea,
-  useDisclosure,
+    Button,
+    Drawer,
+    DrawerBody,
+    DrawerContent,
+    DrawerFooter,
+    DrawerHeader,
+    Form,
+    Select,
+    SelectItem,
+    Textarea,
+    useDisclosure,
 } from '@heroui/react';
 import axios from 'axios';
 import { useState } from 'react';
@@ -172,8 +172,8 @@ const Status = () => {
   const filteredStatusCount = filteredData.length;
 
   return (
-    <div className="grid grid-cols-[2fr_1fr] gap-4" style={{ height: '100%', width: '100%' }}>
-      <div className="rounded-lg overflow-hidden" style={{ height: '100%', width: '100%' }}>
+    <div className="flex flex-col lg:grid lg:grid-cols-[2fr_1fr] gap-4 w-full h-full">
+      <div className="rounded-lg overflow-hidden w-full h-[45vh] lg:h-full">
         <Map
           data={filteredData}
           onMarkerClick={handleMarkerClick}
@@ -183,23 +183,23 @@ const Status = () => {
           overlayClassName="custom-map-overlay"
         />
       </div>
-      <div className="h-fit">
+      <div className="h-fit lg:h-full overflow-y-auto">
         <div className="flex flex-col justify-between">
           <StatusList safe={safeCount} evacuated={evacuatedCount} affected={affectedCount} missing={missingCount} />
-          <div className="mb-4 mt-6 flex flex-row gap-5 items-center ">
+          <div className="mb-4 mt-6 flex flex-col sm:flex-row gap-3 sm:gap-5 items-center">
             <Select
               label="Filter status"
               placeholder="Select a status"
               selectedKeys={selectedStatuses}
               selectionMode="multiple"
               onSelectionChange={handleStatusChange}
-              className="cursor-pointer"
+              className="cursor-pointer w-full sm:max-w-xs"
             >
               {allStatusOptions.map(statusOption => (
                 <SelectItem key={statusOption.key}>{statusOption.label}</SelectItem>
               ))}
             </Select>
-            <SecondaryButton onPress={() => navigate('/status/history')}>
+            <SecondaryButton onPress={() => navigate('/status/history')} className="w-full sm:w-auto">
               <p>History</p>
             </SecondaryButton>
           </div>

@@ -15,7 +15,11 @@ const ResidentsProfile = () => {
   const [statuses, setStatuses] = useState<StatusDataCard[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { openResidentProfilePanel, closePanel, setSelectedUser } = usePanelStore();
+  const { openResidentProfilePanel, closePanel, setSelectedUser, isOpen } = usePanelStore();
+
+  const gridClasses = isOpen
+    ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3'
+    : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 
   useEffect(() => {
     return () => {
@@ -109,11 +113,11 @@ const ResidentsProfile = () => {
       <div className="w-full">
         <Card className="mb-6">
           <CardBody className="p-6">
-            <div className="flex items-start gap-4">
-              <Skeleton className="w-20 h-20 rounded-full" />
-              <div className="flex-1">
-                <Skeleton className="h-6 w-1/2 mb-4" />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-4">
+              <Skeleton className="w-20 h-20 rounded-full flex-shrink-0" />
+              <div className="flex-1 w-full text-center md:text-left">
+                <Skeleton className="h-6 w-1/2 mb-4 mx-auto md:mx-0" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm justify-items-center md:justify-items-start">
                   <Skeleton className="h-4 w-3/4 mb-2" />
                   <Skeleton className="h-4 w-3/4 mb-2" />
                   <Skeleton className="h-4 w-3/4 mb-2" />
@@ -123,7 +127,7 @@ const ResidentsProfile = () => {
             </div>
           </CardBody>
         </Card>
-        <div className="grid grid-cols-4 gap-4 pb-6">
+        <div className={`grid gap-4 pb-6 ${gridClasses}`}>
           {Array.from({ length: 4 }).map((_, index) => (
             <Skeleton key={index} className="h-48 w-full rounded-lg" />
           ))}
@@ -140,28 +144,28 @@ const ResidentsProfile = () => {
     <div className="w-full">
       <Card className="mb-6">
         <CardBody className="p-6">
-          <div className="flex items-start gap-4">
-            <Avatar src={resident?.photo} size="lg" className="w-20 h-20" />
-            <div className="flex-1">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-4">
+            <Avatar src={resident?.photo} size="lg" className="w-24 h-24 md:w-20 md:h-20 flex-shrink-0" />
+            <div className="flex-1 w-full text-center md:text-left">
               <h1 className="text-2xl font-bold mb-2">
                 {resident?.firstName} {resident?.lastName}
               </h1>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm justify-items-center md:justify-items-start">
                 <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                  <Phone size={16} />
-                  <span>{resident?.phoneNumber}</span>
+                  <Phone size={16} className="text-primary flex-shrink-0" />
+                  <span className="break-all">{resident?.phoneNumber}</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                  <MapPin size={16} />
-                  <span>Brgy {resident?.barangay}</span>
+                  <MapPin size={16} className="text-primary flex-shrink-0" />
+                  <span className="break-words">{resident?.barangay ? `Brgy ${resident?.barangay}` : 'No barangay'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                  <Calendar size={16} />
+                  <Calendar size={16} className="text-primary flex-shrink-0" />
                   <span>Registered: {resident?.createdAt ? formatDate(resident.createdAt) : 'Date here'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                  <UserRound size={16} />
-                  <span>{resident?.email}</span>
+                  <UserRound size={16} className="text-primary flex-shrink-0" />
+                  <span className="break-all">{resident?.email}</span>
                 </div>
               </div>
             </div>
@@ -169,8 +173,8 @@ const ResidentsProfile = () => {
         </CardBody>
       </Card>
 
-      {statuses.length === 0 && <div className="text-center col-span-4">Resident has no Status yet.</div>}
-      <div className="grid grid-cols-4 gap-4 pb-6">
+      {statuses.length === 0 && <div className="text-center col-span-full">Resident has no Status yet.</div>}
+      <div className={`grid gap-4 pb-6 ${gridClasses}`}>
         {statuses.map(status => (
           <UnifiedStatusCard
             key={status.versionId}

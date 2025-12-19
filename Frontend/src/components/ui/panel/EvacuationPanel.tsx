@@ -213,7 +213,7 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
               {item => <SelectItem key={item.key}>{item.label}</SelectItem>}
             </Select>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <Input
                 label="Capacity"
                 type="number"

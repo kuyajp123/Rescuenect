@@ -18,9 +18,13 @@ const HistoryVersions = () => {
   const setLoading = useVersionHistoryStore(state => state.setLoading);
   const setError = useVersionHistoryStore(state => state.setError);
   const resetData = useVersionHistoryStore(state => state.resetData);
-  const { openStatusHistoryPanel, closePanel, setSelectedUser } = usePanelStore();
+  const { openStatusHistoryPanel, closePanel, setSelectedUser, isOpen } = usePanelStore();
 
   const user = auth.currentUser;
+
+  const gridClasses = isOpen
+    ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3'
+    : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 
   useEffect(() => {
     return () => {
@@ -124,7 +128,7 @@ const HistoryVersions = () => {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-6 px-4">
+        <div className={`grid gap-4 pb-6 px-4 ${gridClasses}`}>
           {Array.from({ length: 8 }).map((_, index) => (
             <Card key={index} className="animate-pulse">
               <CardBody>
@@ -149,7 +153,7 @@ const HistoryVersions = () => {
 
       {/* Versions Grid */}
       {!isLoading && !error && versions.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-6 px-4">
+        <div className={`grid gap-4 pb-6 px-4 ${gridClasses}`}>
           {versions.map(version => (
             <UnifiedStatusCard
               key={version.versionId}

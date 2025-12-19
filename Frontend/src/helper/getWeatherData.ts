@@ -1,19 +1,16 @@
-import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebaseConfig';
+import { DailyWeather, HourlyWeather, RealTimeWeather, WeatherData } from '@/types/types';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { getUsersBarangay } from './getUserLocation';
 
-export const subscribeToWeatherData = (location: string, callback: (data: any) => void) => {
+export const subscribeToWeatherData = (location: string, callback: (data: WeatherData) => void) => {
   const barangay = getUsersBarangay(location);
 
   const realtime = collection(db, 'weather', barangay, 'realtime');
   const hourly = collection(db, 'weather', barangay, 'hourly');
   const daily = collection(db, 'weather', barangay, 'daily');
 
-  const data: {
-    realtime: any[];
-    hourly: any[];
-    daily: any[];
-  } = {
+  const data: WeatherData = {
     realtime: [],
     hourly: [],
     daily: [],
@@ -37,8 +34,8 @@ export const subscribeToWeatherData = (location: string, callback: (data: any) =
     const realtimeData = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-    }));
-    data['realtime'] = realtimeData;
+    })) as unknown as RealTimeWeather[];
+    data.realtime = realtimeData;
     checkAndUpdate();
   });
 
@@ -46,8 +43,8 @@ export const subscribeToWeatherData = (location: string, callback: (data: any) =
     const hourlyData = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-    }));
-    data['hourly'] = hourlyData;
+    })) as unknown as HourlyWeather[];
+    data.hourly = hourlyData;
     checkAndUpdate();
   });
 
@@ -55,8 +52,8 @@ export const subscribeToWeatherData = (location: string, callback: (data: any) =
     const dailyData = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-    }));
-    data['daily'] = dailyData;
+    })) as unknown as DailyWeather[];
+    data.daily = dailyData;
     checkAndUpdate();
   });
 

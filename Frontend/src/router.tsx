@@ -4,6 +4,7 @@ import ProtectedRoute from './security/ProtectedRoutes';
 
 import {
   AddNewCenter,
+  DailyForecastDetails,
   Dashboard,
   Earthquake,
   Evacuation,
@@ -16,6 +17,7 @@ import {
   Status,
   StatusHistory,
   Weather,
+  HourlyDetails,
 } from '@/pages/contents';
 import { AddressForm, AdminInfo, Login, Welcome } from './pages/auth';
 import Settings from './pages/contents/Settings';
@@ -38,6 +40,8 @@ const Router = () => {
         <Route path="/status/history/versions" element={<HistoryVersions />} />
         <Route path="/status/history/save-as-pdf" element={<SaveAsPDF />} />
         <Route path="/weather" element={<Weather />} />
+        <Route path="/weather/details/:id" element={<DailyForecastDetails />} />
+        <Route path="/weather/hourly/:id" element={<HourlyDetails />} />
         <Route path="/earthquake" element={<Earthquake />} />
         <Route path="/evacuation" element={<Evacuation />} />
         <Route path="/evacuation/add_new_center" element={<AddNewCenter />} />

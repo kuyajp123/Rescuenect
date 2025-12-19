@@ -157,7 +157,7 @@ const Settings = () => {
             >
               <div className="w-full flex flex-col gap-3">
                 <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700">
-                  <img src="/images/map/map-light.png" alt="Light Map Style" className="w-full h-full object-cover" />
+                  <img src="public/images/map/map-light.png" alt="Light Map Style" className="w-full h-full object-cover" />
                   {selectedMapStyle === 'light' && (
                     <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-lg">
                       <div className="w-2.5 h-2.5 rounded-full bg-white" />
@@ -186,7 +186,7 @@ const Settings = () => {
             >
               <div className="w-full flex flex-col gap-3">
                 <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700">
-                  <img src="/images/map/map-dark.png" alt="Dark Map Style" className="w-full h-full object-cover" />
+                  <img src="public/images/map/map-dark.png" alt="Dark Map Style" className="w-full h-full object-cover" />
                   {selectedMapStyle === 'dark' && (
                     <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-lg">
                       <div className="w-2.5 h-2.5 rounded-full bg-white" />

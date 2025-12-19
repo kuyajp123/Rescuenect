@@ -58,8 +58,8 @@ export const StatusPanel = ({ data }: { data: any }) => {
   };
 
   return (
-    <div className="grid grid-rows-[1fr_2fr] gap-4 h-full overflow-auto">
-      <div className="h-full">
+    <div className="flex flex-col gap-4 h-full overflow-hidden">
+      <div className="shrink-0 h-[250px] relative">
         <div className="h-full rounded-lg overflow-hidden">
           {data?.type === 'status' && data.data ? (
             <Map
@@ -147,7 +147,7 @@ export const StatusPanel = ({ data }: { data: any }) => {
       </div>
 
       {/* Status Card Section */}
-      <div className="min-h-0 overflow-auto">
+      <div className="flex-1 overflow-y-auto min-h-0">
         {data?.type === 'status' && data.data ? (
           <StatusCard
             className="h-fit max-h-[500px]"
@@ -203,7 +203,7 @@ export const StatusPanel = ({ data }: { data: any }) => {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t">
                   <div className="flex items-center gap-2">
                     <Users size={16} className="text-gray-500" />
                     <div>
@@ -330,7 +330,7 @@ export const StatusPanel = ({ data }: { data: any }) => {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t">
                   <div className="flex items-center gap-2">
                     <Users size={16} className="text-gray-500" />
                     <div>

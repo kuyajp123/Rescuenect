@@ -165,9 +165,10 @@ const Earthquake = () => {
   const filteredEarthquakeData = getFilteredEarthquakeData();
   const filteredStatusData = getFilteredStatusData();
 
+
   return (
-    <div className="grid grid-cols-[2fr_1fr] gap-4" style={{ height: '100%', width: '100%' }}>
-      <div className="rounded-lg overflow-hidden" style={{ height: '100%', width: '100%' }}>
+    <div className="flex flex-col lg:grid lg:grid-cols-[2fr_1fr] gap-4 w-full h-full">
+      <div className="rounded-lg overflow-hidden w-full h-[45vh] lg:h-full">
         <Map
           earthquakeData={filteredEarthquakeData}
           statusData={filteredStatusData}
@@ -200,7 +201,7 @@ const Earthquake = () => {
           }}
         />
       </div>
-      <div className="h-fit">
+      <div className="h-fit lg:h-full overflow-y-auto">
         <div className="flex flex-col">
           <Table aria-label="Example static collection table">
             <TableHeader>
@@ -223,10 +224,10 @@ const Earthquake = () => {
               </TableRow>
             </TableBody>
           </Table>
-          <div className="flex flex-row w-full pt-4">
+          <div className="flex flex-col sm:flex-row w-full pt-4 gap-4">
             <div className=" w-full flex flex-col">
               <Select
-                className="max-w-60"
+                className="w-full sm:max-w-60"
                 label="Category Show"
                 placeholder="Select Category"
                 defaultSelectedKeys={selectedCategory}
@@ -251,7 +252,7 @@ const Earthquake = () => {
             </div>
             <div className=" w-full flex flex-col">
               <Select
-                className="max-w-60"
+                className="w-full sm:max-w-60"
                 label="Earthquake Severity"
                 placeholder="Select Severity"
                 selectedKeys={severity}

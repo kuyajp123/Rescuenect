@@ -1,9 +1,9 @@
-import { Card, CardHeader, CardBody, CardFooter } from '@heroui/react';
-import { getWeatherIcons, getWeatherCondition } from '@/helper/WeatherLogic';
-import { ForecastDataProps } from '@/types/types';
 import { GetDateAndTime } from '@/helper/DateAndTime';
+import { getWeatherCondition, getWeatherIcons } from '@/helper/WeatherLogic';
+import { ForecastDataProps } from '@/types/types';
+import { Card, CardBody, CardFooter, CardHeader } from '@heroui/react';
 
-const DailyForecastCard = ({ time, temperature, weatherCode }: ForecastDataProps) => {
+const DailyForecastCard = ({ time, temperature, weatherCode, onClick }: ForecastDataProps & { onClick?: () => void }) => {
   const date = new Date(time);
   const today = new Date();
   const tomorrow = new Date();
@@ -29,7 +29,12 @@ const DailyForecastCard = ({ time, temperature, weatherCode }: ForecastDataProps
   }
 
   return (
-    <Card className="w-auto shadow-lg p-4 dark:border dark:border-gray-700">
+    <Card
+      isPressable
+      isHoverable
+      onPress={onClick}
+      className="w-auto shadow-lg p-4 dark:border dark:border-gray-700 cursor-pointer"
+    >
       <CardHeader className="flex justify-center">{label}</CardHeader>
       <CardBody className="flex flex-col items-center gap-4 justify-center">
         <h2 className="text-lg font-semibold">{temperature}°C</h2>

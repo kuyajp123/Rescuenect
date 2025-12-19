@@ -4,9 +4,7 @@ import {
   HousePlus,
   LayoutDashboard,
   MapPin,
-  PanelRightClose,
-  PanelRightOpen,
-  UsersRound,
+  UsersRound
 } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -14,10 +12,9 @@ import Logo from '../../../../Public/images/logo/logo.svg';
 
 interface SideBarProps {
   isOpen: boolean;
-  onToggle: () => void;
 }
 
-const SideBar = ({ isOpen, onToggle }: SideBarProps) => {
+const SideBar = ({ isOpen }: SideBarProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -46,19 +43,7 @@ const SideBar = ({ isOpen, onToggle }: SideBarProps) => {
   return (
     <>
       {/* Toggle button */}
-      <button
-        onClick={onToggle}
-        className={`fixed top-4 z-40 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-          isExpanded ? 'left-[13.5rem]' : 'left-17'
-        }`}
-        aria-label={isOpen ? 'Close sidebar' : 'Open sidebar'}
-      >
-        {isOpen ? (
-          <PanelRightOpen size={20} className="text-gray-600 dark:text-gray-300" />
-        ) : (
-          <PanelRightClose size={20} className="text-gray-600 dark:text-gray-300" />
-        )}
-      </button>
+
 
       {/* Mobile overlay */}
       {isExpanded && !isOpen && <div className="fixed inset-0 z-20 lg:hidden" onClick={() => setIsHovered(false)} />}

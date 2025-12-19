@@ -23,9 +23,9 @@ const MainLayout = () => {
   const { isOpen: isPanelOpen, selectedUser: data, closePanel } = usePanelStore();
 
   return (
-    <div className="relativ flex h-screen overflow-hidden">
+    <div className="relative flex h-screen overflow-hidden">
       {/* Sidebar */}
-      <SideBar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <SideBar isOpen={sidebarOpen} />
 
       {/* Mobile overlay */}
       {sidebarOpen && (
@@ -35,19 +35,21 @@ const MainLayout = () => {
       {/* Main content area */}
       <div className={`flex flex-col h-full w-full md:mx-4 ${sidebarOpen ? 'lg:ml-5' : 'lg:ml-16'}`}>
         <div className="flex-shrink-0 ">
-          <Header />
+          <Header isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
         </div>
         <div className="flex-1 flex justify-between overflow-auto py-4 relative">
           {/* Main content area - adjusts width based on panel state */}
-          <div className={`flex justify-center ${isPanelOpen ? 'w-[68%]' : 'w-full'}`}>
+          <div className={`flex justify-center transition-all duration-300 ease-in-out w-full ${isPanelOpen ? 'lg:w-[68%]' : ''}`}>
             <Content />
           </div>
 
           {/* Side panel */}
           <div
             className={`
-            fixed right-0 top-16 h-[calc(100vh-4rem)] w-[28%] bg-white dark:bg-gray-900 shadow-xl z-30
-           border-l border-gray-200 dark:border-gray-700
+            fixed right-0 top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-900 shadow-xl z-30
+            border-l border-gray-200 dark:border-gray-700
+            transition-transform duration-300 ease-in-out
+            w-full sm:w-[450px] lg:w-[30%]
             ${isPanelOpen ? 'translate-x-0' : 'translate-x-full'}
           `}
           >
