@@ -173,7 +173,7 @@ const ResidentsProfile = () => {
       <div className="grid grid-cols-4 gap-4 pb-6">
         {statuses.map(status => (
           <UnifiedStatusCard
-            key={status.id}
+            key={status.versionId}
             mode="residentProfile"
             data={status}
             onViewDetails={() => {

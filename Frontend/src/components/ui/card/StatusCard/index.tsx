@@ -75,38 +75,38 @@ export const StatusCard = ({
               {formatTimeRemaining(expiresAt) === 'Expired' ? 'Expired' : 'Expires ' + formatTimeRemaining(expiresAt)}
             </p>
             {onResolved || onViewDetails || onViewProfile ? (
-              <Dropdown>
+              <Dropdown shouldCloseOnInteractOutside={() => true}>
                 <DropdownTrigger>
                   <Button isIconOnly size="sm" variant="light">
                     <EllipsisVertical className="text-default-400" />
                   </Button>
                 </DropdownTrigger>
-                <DropdownMenu>
-                  <DropdownItem
-                    key="resolved"
-                    startContent={<CheckCircle size={20} />}
-                    onPress={() => {
-                      onResolved?.();
-                    }}
-                  >
+                <DropdownMenu
+                  onAction={key => {
+                    // Immediately blur the focused element
+                    if (document.activeElement instanceof HTMLElement) {
+                      document.activeElement.blur();
+                    }
+
+                    // Delay action to allow dropdown to fully close
+                    setTimeout(() => {
+                      if (key === 'resolved') {
+                        onResolved?.();
+                      } else if (key === 'details') {
+                        onViewDetails?.();
+                      } else if (key === 'profile') {
+                        onViewProfile?.();
+                      }
+                    }, 150);
+                  }}
+                >
+                  <DropdownItem key="resolved" startContent={<CheckCircle size={20} />} textValue="Resolved">
                     Resolved
                   </DropdownItem>
-                  <DropdownItem
-                    key="details"
-                    startContent={<Info size={20} />}
-                    onPress={() => {
-                      onViewDetails?.();
-                    }}
-                  >
+                  <DropdownItem key="details" startContent={<Info size={20} />} textValue="View Details">
                     View Details
                   </DropdownItem>
-                  <DropdownItem
-                    key="profile"
-                    startContent={<UserRound size={20} />}
-                    onPress={() => {
-                      onViewProfile?.();
-                    }}
-                  >
+                  <DropdownItem key="profile" startContent={<UserRound size={20} />} textValue="View Profile">
                     View Profile
                   </DropdownItem>
                 </DropdownMenu>
@@ -155,7 +155,7 @@ export const StatusCard = ({
           )}
           <p className="text-wrap break-words max-h-24 overflow-y-auto">{note}</p>
         </div>
-        <Image alt="HeroUI hero Image" src={image} className="mt-4" />
+        {image && image.trim() !== '' && <Image alt="HeroUI hero Image" src={image} className="mt-4" />}
       </CardBody>
       <CardFooter className="flex flex-row justify-between h-auto">
         <div className="flex gap-2 min-w-0 justify-end flex-1 opacity-70">

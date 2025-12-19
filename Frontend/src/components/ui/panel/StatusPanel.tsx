@@ -190,7 +190,7 @@ export const StatusPanel = ({ data }: { data: any }) => {
                 </div>
               </CardHeader>
               <CardBody className="space-y-4">
-                {data.data.image && (
+                {data.data.image && data.data.image.trim() !== '' && (
                   <div className="w-full overflow-hidden rounded-lg">
                     <Image src={data.data.image} alt="Status" className="w-full object-cover" />
                   </div>
@@ -317,7 +317,7 @@ export const StatusPanel = ({ data }: { data: any }) => {
                 </div>
               </CardHeader>
               <CardBody className="space-y-4">
-                {data.data.image && (
+                {data.data.image && data.data.image.trim() !== '' && (
                   <div className="w-full overflow-hidden rounded-lg">
                     <Image src={data.data.image} alt="Status" className="w-full object-cover" />
                   </div>

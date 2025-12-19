@@ -410,7 +410,11 @@ const Residents = () => {
         items={sortedItems}
         isLoading={isLoading}
       >
-        {item => <TableRow key={item.id}>{columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
+        {item => (
+          <TableRow key={item.uid || item.id}>
+            {columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+          </TableRow>
+        )}
       </TableBody>
     </Table>
   );
