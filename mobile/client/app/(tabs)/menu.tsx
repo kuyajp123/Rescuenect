@@ -1,10 +1,10 @@
-import { handleLogout } from '@/components/auth/auth';
+import { handleLogout } from '@/auth/auth';
 import { Button, HoveredButton } from '@/components/components/button/Button';
 import GoogleButton from '@/components/components/button/GoogleButton';
 import NavigationButton from '@/components/components/button/NavigationButton';
 import { Card } from '@/components/components/card/Card';
-import { useAuth } from '@/components/store/useAuth';
-import { useUserData } from '@/components/store/useBackendResponse';
+import { useAuth } from '@/store/useAuth';
+import { useUserData } from '@/store/useBackendResponse';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';

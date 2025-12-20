@@ -1,13 +1,14 @@
-import { storageHelpers } from '@/components/helper/storage';
-import { useUserData } from '@/components/store/useBackendResponse';
-import { useCoords } from '@/components/store/useCoords';
-import { useImagePickerStore } from '@/components/store/useImagePicker';
-import { useSavedLocationsStore } from '@/components/store/useSavedLocationsStore';
-import { useStatusFormStore } from '@/components/store/useStatusForm';
+import { storageHelpers } from '@/helper/storage';
+import { useUserData } from '@/store/useBackendResponse';
+import { useCoords } from '@/store/useCoords';
+import { useImagePickerStore } from '@/store/useImagePicker';
+import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
+import { useStatusFormStore } from '@/store/useStatusForm';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
 import { auth } from '@/lib/firebaseConfig';
 import { navigateToSignIn } from '@/routes/route';
+import { FCMTokenService } from '@/services/fcmTokenService';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import axios from 'axios';
 import { signInWithCustomToken } from 'firebase/auth';
@@ -96,6 +97,7 @@ export const handleLogout = async () => {
   const setFormData = useStatusFormStore.getState().setFormData;
   const setImage = useImagePickerStore.getState().setImage;
   const clearLocations = useSavedLocationsStore.getState().clearLocations;
+  const authUser = auth.currentUser;
 
   try {
     resetFormData();
@@ -111,6 +113,10 @@ export const handleLogout = async () => {
 
     // delete the notification from storage
     await storageHelpers.removeData(STORAGE_KEYS.GUEST_PREFS);
+
+    if (authUser) {
+      FCMTokenService.removeFcmToken(authUser);
+    }
 
     // Sign out from Firebase (this will trigger the auth state listener)
     await auth.signOut();

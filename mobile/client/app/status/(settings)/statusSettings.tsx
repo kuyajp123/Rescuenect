@@ -1,7 +1,7 @@
 import { ToggleButton } from '@/components/components/button/Button';
 import NavigationButton from '@/components/components/button/NavigationButton';
-import { storageHelpers } from '@/components/helper/storage';
-import { useStatusFormStore } from '@/components/store/useStatusForm';
+import { storageHelpers } from '@/helper/storage';
+import { useStatusFormStore } from '@/store/useStatusForm';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { CustomRadio } from '@/components/ui/CustomRadio';
 import Body from '@/components/ui/layout/Body';

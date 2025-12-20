@@ -1,10 +1,8 @@
-import { storage, storageHelpers } from '@/components/helper/storage';
-import { handleLogout } from '@/components/auth/auth';
-import { initializeAuth } from '@/components/auth/firebaseAuth';
+import { initializeAuth } from '@/auth/firebaseAuth';
 import SplashScreen from '@/components/ui/loading/SplashScreen';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
 import { inititallizeAppStorage } from '@/config/asyncStorage';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 
 const Index = () => {
   const [loading, setLoading] = useState(true);

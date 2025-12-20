@@ -1,8 +1,8 @@
 import Logo from '@/assets/images/logo/logoVerti.svg';
 import { PrimaryButton } from '@/components/components/button/Button';
-import { storageHelpers } from '@/components/helper/storage';
-import { useAuth } from '@/components/store/useAuth';
-import { useUserData } from '@/components/store/useBackendResponse';
+import { storageHelpers } from '@/helper/storage';
+import { useAuth } from '@/store/useAuth';
+import { useUserData } from '@/store/useBackendResponse';
 import Body from '@/components/ui/layout/Body';
 import {
   Modal,

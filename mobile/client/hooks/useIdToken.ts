@@ -1,4 +1,4 @@
-import { useAuth } from '@/components/store/useAuth';
+import { useAuth } from '@/store/useAuth';
 import { useEffect, useState } from 'react';
 
 /**

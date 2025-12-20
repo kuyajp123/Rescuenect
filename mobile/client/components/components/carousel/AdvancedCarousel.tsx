@@ -1,4 +1,4 @@
-import { Image } from '@/components/ui/image';
+import { Image } from 'expo-image';
 import { Text } from '@/components/ui/text';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
@@ -57,7 +57,7 @@ export const AdvancedCarousel = () => {
     >
       {/* Image Section */}
       <View style={styles.imageContainer}>
-        <Image source={{ uri: item.image }} style={styles.carouselImage} alt={item.title} size="full" />
+        <Image source={{ uri: item.image }} style={styles.carouselImage} alt={item.title} />
 
         {/* Overlay gradient effect */}
         <View style={styles.imageOverlay} />

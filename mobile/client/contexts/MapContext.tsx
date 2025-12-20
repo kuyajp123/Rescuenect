@@ -1,7 +1,7 @@
 import { HoveredButton } from '@/components/components/button/Button';
-import { storageHelpers } from '@/components/helper/storage';
-import { useCoords } from '@/components/store/useCoords';
-import { useMapSettingsStore } from '@/components/store/useMapSettings';
+import { storageHelpers } from '@/helper/storage';
+import { useCoords } from '@/store/useCoords';
+import { useMapSettingsStore } from '@/store/useMapSettings';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';

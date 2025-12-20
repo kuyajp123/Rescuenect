@@ -1,8 +1,8 @@
 import { IconButton } from '@/components/components/button/Button';
-import { formatContactNumber } from '@/components/helper/commonHelpers';
-import { storageHelpers } from '@/components/helper/storage';
-import { useAuth } from '@/components/store/useAuth';
-import { useUserData } from '@/components/store/useBackendResponse';
+import { formatContactNumber } from '@/helper/commonHelpers';
+import { storageHelpers } from '@/helper/storage';
+import { useAuth } from '@/store/useAuth';
+import { useUserData } from '@/store/useBackendResponse';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { Divider } from '@/components/ui/divider';

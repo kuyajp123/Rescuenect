@@ -1,7 +1,7 @@
-import { useCoords } from '@/components/store/useCoords';
-import { useGetAddress } from '@/components/store/useGetAddress';
-import { useMapSettingsStore } from '@/components/store/useMapSettings';
-import { useStatusFormStore } from '@/components/store/useStatusForm';
+import { useCoords } from '@/store/useCoords';
+import { useGetAddress } from '@/store/useGetAddress';
+import { useMapSettingsStore } from '@/store/useMapSettings';
+import { useStatusFormStore } from '@/store/useStatusForm';
 import { HStack } from '@/components/ui/hstack';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';

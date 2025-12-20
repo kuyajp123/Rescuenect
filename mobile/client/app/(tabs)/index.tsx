@@ -1,9 +1,9 @@
 import { AdvancedCarousel } from '@/components/components/carousel/AdvancedCarousel';
 import StatusIndicator from '@/components/components/data-display/StatusIndicator';
 import { CardWeather } from '@/components/components/weather/CardWeather';
-import { storageHelpers } from '@/components/helper/storage';
-import { useAuth } from '@/components/store/useAuth';
-import { useStatusFormStore } from '@/components/store/useStatusForm';
+import { storageHelpers } from '@/helper/storage';
+import { useAuth } from '@/store/useAuth';
+import { useStatusFormStore } from '@/store/useStatusForm';
 import { Body } from '@/components/ui/layout/Body';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { User, loggedInUser } from '@/types/components';

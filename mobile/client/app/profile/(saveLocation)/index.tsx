@@ -1,10 +1,10 @@
 import { getAddress } from '@/API/getAddress';
 import { Button } from '@/components/components/button/Button';
 import Modal from '@/components/components/Modal';
-import { cleanAddress } from '@/components/helper/commonHelpers';
-import { storageHelpers } from '@/components/helper/storage';
-import { useAuth } from '@/components/store/useAuth';
-import { useSavedLocationsStore } from '@/components/store/useSavedLocationsStore';
+import { cleanAddress } from '@/helper/commonHelpers';
+import { storageHelpers } from '@/helper/storage';
+import { useAuth } from '@/store/useAuth';
+import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { Fab } from '@/components/ui/fab';
 import { HStack } from '@/components/ui/hstack';

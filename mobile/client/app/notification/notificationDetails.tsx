@@ -1,8 +1,8 @@
 import { HoveredButton } from '@/components/components/button/Button';
-import { formatToCapitalized } from '@/components/helper/commonHelpers';
-import { useAuth } from '@/components/store/useAuth';
-import { useUserData } from '@/components/store/useBackendResponse';
-import { useNotificationStore } from '@/components/store/useNotificationStore';
+import { formatToCapitalized } from '@/helper/commonHelpers';
+import { useAuth } from '@/store/useAuth';
+import { useUserData } from '@/store/useBackendResponse';
+import { useNotificationStore } from '@/store/useNotificationStore';
 import Body from '@/components/ui/layout/Body';
 import { MapView } from '@/components/ui/map/MapView';
 import { Text } from '@/components/ui/text';

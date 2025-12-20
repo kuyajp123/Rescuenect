@@ -1,6 +1,6 @@
-import { Image } from '@/components/ui/image';
+import { Image } from 'expo-image';
 import { Text } from '@/components/ui/text';
-import { Colors } from "@/constants/Colors";
+import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,15 +10,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Linking, Pressable, StyleSheet, View } from 'react-native';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 
-
 export const MainHotlineAndContact = () => {
   const { isDark } = useTheme();
-  const [showAlertDialog, setShowAlertDialog] = useState(false)
+  const [showAlertDialog, setShowAlertDialog] = useState(false);
   const scaleValue = useRef(new Animated.Value(0)).current;
 
   const fbUrl = 'fb://facewebmodal/f?href=https://www.facebook.com/share/14xwTMd2Ht/';
   const fallbackUrl = 'https://www.facebook.com/share/14xwTMd2Ht/';
-  
+
   const handleClose = () => {
     // Scale out animation
     Animated.timing(scaleValue, {
@@ -28,7 +27,7 @@ export const MainHotlineAndContact = () => {
     }).start(() => {
       setShowAlertDialog(false);
     });
-  }
+  };
 
   const showAlert = () => {
     setShowAlertDialog(true);
@@ -39,7 +38,7 @@ export const MainHotlineAndContact = () => {
       friction: 8,
       useNativeDriver: true,
     }).start();
-  }
+  };
 
   // Auto hide after 3 seconds
   useEffect(() => {
@@ -76,14 +75,14 @@ export const MainHotlineAndContact = () => {
 
   const openFacebook = () => {
     Linking.canOpenURL(fbUrl)
-      .then((supported) => {
+      .then(supported => {
         if (supported) {
           return Linking.openURL(fbUrl);
         } else {
           return Linking.openURL(fallbackUrl);
         }
       })
-      .catch((err) => console.error('An error occurred', err));
+      .catch(err => console.error('An error occurred', err));
   };
 
   const openInAppBrowser = async () => {
@@ -109,37 +108,45 @@ export const MainHotlineAndContact = () => {
     <View style={styles.container}>
       {/* Header Section with Gradient */}
       <LinearGradient
-        colors={isDark ? [Colors.background.dark, Colors.background.dark] : [Colors.background.light, Colors.background.light]}
+        colors={
+          isDark ? [Colors.background.dark, Colors.background.dark] : [Colors.background.light, Colors.background.light]
+        }
         style={styles.headerGradient}
       >
         <View style={[styles.logoContainer, styles.shadowCard]}>
           <Image
             className="rounded-2xl"
-            size="2xl"
             source={require('../../../assets/images/Cavite-Logo 1.png')}
             style={styles.logo}
-            alt='Cavite Logo'
+            alt="Cavite Logo"
+            
           />
         </View>
-        
+
         <View style={styles.titleContainer}>
-          <Text size='xl' bold style={[styles.title]}>
+          <Text size="xl" bold style={[styles.title]}>
             Emergency Hotlines & Contacts
           </Text>
-          <Text size='sm' style={[styles.subtitle]}>
+          <Text size="sm" style={[styles.subtitle]}>
             Province of Cavite
           </Text>
         </View>
       </LinearGradient>
 
       {/* Description Card */}
-      <View style={[styles.descriptionCard, { 
-        backgroundColor: isDark ? '#1f2937' : 'white',
-        borderColor: isDark ? '#374151' : '#e5e7eb'
-      }]}>
+      <View
+        style={[
+          styles.descriptionCard,
+          {
+            backgroundColor: isDark ? '#1f2937' : 'white',
+            borderColor: isDark ? '#374151' : '#e5e7eb',
+          },
+        ]}
+      >
         <Zap color={isDark ? '#fbbf24' : '#f59e0b'} size={24} style={styles.descriptionIcon} />
         <Text style={[styles.description, { color: isDark ? '#d1d5db' : '#374151' }]}>
-          Quickly access important hotlines during emergencies. Contact local responders, medical services, rescue teams, or government agencies for immediate help and guidance.
+          Quickly access important hotlines during emergencies. Contact local responders, medical services, rescue
+          teams, or government agencies for immediate help and guidance.
         </Text>
       </View>
 
@@ -147,38 +154,38 @@ export const MainHotlineAndContact = () => {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Phone color={isDark ? '#ef4444' : '#dc2626'} size={24} />
-          <Text size='lg' bold style={[styles.sectionTitle, { color: isDark ? '#ef4444' : '#dc2626' }]}>
+          <Text size="lg" bold style={[styles.sectionTitle, { color: isDark ? '#ef4444' : '#dc2626' }]}>
             Emergency Hotlines
           </Text>
         </View>
 
         {/* OPDRRMO Section */}
-        <View style={[styles.serviceCard, styles.shadowCard, { 
-          backgroundColor: isDark ? '#1f2937' : 'white',
-          borderColor: isDark ? '#374151' : '#e5e7eb'
-        }]}>
+        <View
+          style={[
+            styles.serviceCard,
+            styles.shadowCard,
+            {
+              backgroundColor: isDark ? '#1f2937' : 'white',
+              borderColor: isDark ? '#374151' : '#e5e7eb',
+            },
+          ]}
+        >
           <View style={styles.serviceHeader}>
             <View style={[styles.iconContainer, { backgroundColor: '#10b981' }]}>
               <Smartphone color="white" size={20} />
             </View>
-            <Text bold size='md' style={[styles.OPDRRMO, { color: isDark ? '#ffffff' : '#111827' }]}>
+            <Text bold size="md" style={[styles.OPDRRMO, { color: isDark ? '#ffffff' : '#111827' }]}>
               OPDRRMO (Emergency Response)
             </Text>
           </View>
-          
+
           <View style={styles.buttonContainer}>
-            <Pressable 
-              style={[styles.callButton, { backgroundColor: '#10b981' }]}
-              onPress={handlePress}
-            >
+            <Pressable style={[styles.callButton, { backgroundColor: '#10b981' }]} onPress={handlePress}>
               <Phone color="white" size={18} />
               <Text style={styles.callButtonText}>{OPDRRMO1}</Text>
             </Pressable>
-            
-            <Pressable 
-              style={[styles.callButton, { backgroundColor: '#10b981' }]}
-              onPress={handlePress1}
-            >
+
+            <Pressable style={[styles.callButton, { backgroundColor: '#10b981' }]} onPress={handlePress1}>
               <Phone color="white" size={18} />
               <Text style={styles.callButtonText}>{OPDRRMO2}</Text>
             </Pressable>
@@ -186,20 +193,26 @@ export const MainHotlineAndContact = () => {
         </View>
 
         {/* Police Department */}
-        <View style={[styles.serviceCard, styles.shadowCard, { 
-          backgroundColor: isDark ? '#1f2937' : 'white',
-          borderColor: isDark ? '#374151' : '#e5e7eb'
-        }]}>
+        <View
+          style={[
+            styles.serviceCard,
+            styles.shadowCard,
+            {
+              backgroundColor: isDark ? '#1f2937' : 'white',
+              borderColor: isDark ? '#374151' : '#e5e7eb',
+            },
+          ]}
+        >
           <View style={styles.serviceHeader}>
             <View style={[styles.iconContainer, { backgroundColor: '#3b82f6' }]}>
               <Shield color="white" size={20} />
             </View>
-            <Text bold size='md' style={{ color: isDark ? '#ffffff' : '#111827' }}>
+            <Text bold size="md" style={{ color: isDark ? '#ffffff' : '#111827' }}>
               Police Department
             </Text>
           </View>
-          
-          <Pressable 
+
+          <Pressable
             style={[styles.copyContainer, { backgroundColor: isDark ? '#333B52' : '#E9EAEA' }]}
             onPress={policeCopy}
           >
@@ -213,24 +226,30 @@ export const MainHotlineAndContact = () => {
         </View>
 
         {/* Fire Department */}
-        <View style={[styles.serviceCard, styles.shadowCard, { 
-          backgroundColor: isDark ? '#1f2937' : 'white',
-          borderColor: isDark ? '#374151' : '#e5e7eb'
-        }]}>
+        <View
+          style={[
+            styles.serviceCard,
+            styles.shadowCard,
+            {
+              backgroundColor: isDark ? '#1f2937' : 'white',
+              borderColor: isDark ? '#374151' : '#e5e7eb',
+            },
+          ]}
+        >
           <View style={styles.serviceHeader}>
             <View style={[styles.iconContainer, { backgroundColor: '#ef4444' }]}>
               <Flame color="white" size={20} />
             </View>
-            <Text bold size='md' style={{ color: isDark ? '#ffffff' : '#111827' }}>
+            <Text bold size="md" style={{ color: isDark ? '#ffffff' : '#111827' }}>
               Fire Department
             </Text>
           </View>
-          
-          <Pressable 
+
+          <Pressable
             style={[styles.copyContainer, { backgroundColor: isDark ? '#333B52' : '#E9EAEA' }]}
             onPress={fireCopy}
           >
-            <Text size='sm' style={[styles.contactNumber, { color: isDark ? '#d1d5db' : '#374151' }]}>
+            <Text size="sm" style={[styles.contactNumber, { color: isDark ? '#d1d5db' : '#374151' }]}>
               {FireNumber}
             </Text>
             <View style={[styles.copyButton, { backgroundColor: isDark ? '#374151' : '#f3f4f6' }]}>
@@ -244,46 +263,59 @@ export const MainHotlineAndContact = () => {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Mail color={isDark ? '#8b5cf6' : '#7c3aed'} size={24} />
-          <Text size='lg' bold style={[styles.sectionTitle, { color: isDark ? '#8b5cf6' : '#7c3aed' }]}>
+          <Text size="lg" bold style={[styles.sectionTitle, { color: isDark ? '#8b5cf6' : '#7c3aed' }]}>
             Contact Information
           </Text>
         </View>
 
         {/* Email Contact */}
-        <View style={[styles.contactCard, styles.shadowCard, { 
-          backgroundColor: isDark ? '#1f2937' : 'white',
-          borderColor: isDark ? '#374151' : '#e5e7eb'
-        }]}>
+        <View
+          style={[
+            styles.contactCard,
+            styles.shadowCard,
+            {
+              backgroundColor: isDark ? '#1f2937' : 'white',
+              borderColor: isDark ? '#374151' : '#e5e7eb',
+            },
+          ]}
+        >
           <View style={[styles.iconContainer, { backgroundColor: '#8b5cf6' }]}>
             <Mail color="white" size={20} />
           </View>
-          <Text style={[styles.contactText, { color: isDark ? '#d1d5db' : '#374151' }]}>
-            ask@cavite.gov.ph
-          </Text>
+          <Text style={[styles.contactText, { color: isDark ? '#d1d5db' : '#374151' }]}>ask@cavite.gov.ph</Text>
         </View>
 
         {/* Social Media */}
-        <View style={[styles.contactCard, styles.shadowCard, { 
-          backgroundColor: isDark ? '#1f2937' : 'white',
-          borderColor: isDark ? '#374151' : '#e5e7eb',
-          
-        }]}>
-          <View style={[styles.iconContainer, { backgroundColor: '#1877f2', }]}>
+        <View
+          style={[
+            styles.contactCard,
+            styles.shadowCard,
+            {
+              backgroundColor: isDark ? '#1f2937' : 'white',
+              borderColor: isDark ? '#374151' : '#e5e7eb',
+            },
+          ]}
+        >
+          <View style={[styles.iconContainer, { backgroundColor: '#1877f2' }]}>
             <Facebook color="white" size={20} />
           </View>
-          <Text style={[styles.contactText, { color: isDark ? '#d1d5db' : '#374151',}]}>
-            Follow us on {' '}
-          </Text>
-            <Pressable onPress={openFacebook}>
-              <Text style={styles.linkText}>Facebook</Text>
-            </Pressable>
+          <Text style={[styles.contactText, { color: isDark ? '#d1d5db' : '#374151' }]}>Follow us on </Text>
+          <Pressable onPress={openFacebook}>
+            <Text style={styles.linkText}>Facebook</Text>
+          </Pressable>
         </View>
 
         {/* Website */}
-        <View style={[styles.contactCard, styles.shadowCard, { 
-          backgroundColor: isDark ? '#1f2937' : 'white',
-          borderColor: isDark ? '#374151' : '#e5e7eb'
-        }]}>
+        <View
+          style={[
+            styles.contactCard,
+            styles.shadowCard,
+            {
+              backgroundColor: isDark ? '#1f2937' : 'white',
+              borderColor: isDark ? '#374151' : '#e5e7eb',
+            },
+          ]}
+        >
           <View style={[styles.iconContainer, { backgroundColor: '#059669' }]}>
             <Globe color="white" size={20} />
           </View>
@@ -291,10 +323,7 @@ export const MainHotlineAndContact = () => {
             <Text style={[styles.contactText, { color: isDark ? '#d1d5db' : '#374151' }]}>
               Visit our Official Website
             </Text>
-            <Pressable 
-              style={styles.websiteButton}
-              onPress={openInAppBrowser}
-            >
+            <Pressable style={styles.websiteButton} onPress={openInAppBrowser}>
               <Text style={styles.websiteButtonText}>Open Website</Text>
               <ExternalLink color="#059669" size={16} />
             </Pressable>
@@ -307,20 +336,23 @@ export const MainHotlineAndContact = () => {
         <Text size="2xs" bold style={[styles.disclaimerTitle, { color: isDark ? '#fbbf24' : '#f59e0b' }]}>
           Important Notice:
         </Text>
-        <Text size="2xs" emphasis="light" style={[styles.disclaimerText,]}>
-          The contact information listed in this section has been retrieved from official government websites and publicly available resources. While we do our best to keep this information accurate and updated, changes may occur without prior notice. For the most reliable and up-to-date details, please refer directly to the official government channels.
+        <Text size="2xs" emphasis="light" style={[styles.disclaimerText]}>
+          The contact information listed in this section has been retrieved from official government websites and
+          publicly available resources. While we do our best to keep this information accurate and updated, changes may
+          occur without prior notice. For the most reliable and up-to-date details, please refer directly to the
+          official government channels.
         </Text>
       </View>
 
       {/* Success Alert Dialog */}
-      <CustomAlertDialog 
+      <CustomAlertDialog
         showAlertDialog={showAlertDialog}
         handleClose={handleClose}
         text="Contact Copied to Clipboard!"
       />
     </View>
-  )
-}
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -349,9 +381,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   logo: {
-    borderRadius: 20,
+    borderRadius: 200,
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.3)',
+    width: 200,
+    height: 200,
   },
   titleContainer: {
     alignItems: 'center',
@@ -500,7 +534,7 @@ const styles = StyleSheet.create({
 // Enhanced Usage Example:
 // import MainHotlineAndContact from "@/components/ui/hotline-and-contact/MainHotlineAndContact";
 // import { ScrollView } from 'react-native';
-// 
+//
 // function MyScreen() {
 //   return (
 //     <ScrollView style={{ flex: 1 }}>

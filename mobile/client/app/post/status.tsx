@@ -1,7 +1,7 @@
 import Body from '@/components/ui/layout/Body'
 import { StatusList } from '@/components/components/PostTemplate'
 import React from 'react'
-import { useStatusStore } from '@/components/store/useCurrentStatusStore';
+import { useStatusStore } from '@/store/useCurrentStatusStore';
 
 export const status = () => {
   const { statusData } = useStatusStore();

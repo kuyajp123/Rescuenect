@@ -1,4 +1,4 @@
-import { useStatusStore } from '@/components/store/useCurrentStatusStore';
+import { useStatusStore } from '@/store/useCurrentStatusStore';
 import { db } from '@/lib/firebaseConfig';
 import { StatusData } from '@/types/components';
 import {

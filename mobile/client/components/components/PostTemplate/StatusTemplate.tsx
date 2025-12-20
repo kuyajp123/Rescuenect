@@ -3,12 +3,12 @@ import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar'
 import { Badge, BadgeIcon, BadgeText } from '@/components/ui/badge';
 import { Box } from '@/components/ui/box';
 import { Divider } from '@/components/ui/divider';
-import { Image } from '@/components/ui/image';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
 import { ColorCombinations } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { StatusData } from '@/types/components';
+import { Image } from 'expo-image';
 import {
   CircleCheck,
   CircleQuestionMark,
@@ -205,10 +205,10 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
         {/* Image section */}
         {image && (
           <Box style={styles.imageContainer}>
-            <TouchableOpacity onPress={handleImagePress} activeOpacity={0.8}>
+            <TouchableOpacity onPress={handleImagePress} activeOpacity={0.8} style={{ width: '100%' }}>
               <Image
-                className="rounded-lg"
-                size="2xl"
+                contentFit="cover"
+                style={{ width: '100%', height: 200, borderRadius: 8 }}
                 source={{ uri: image }}
                 alt={`${firstName} ${lastName} status update`}
               />

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
-import { storageHelpers } from '@/components/helper/storage';
+import { storageHelpers } from '@/helper/storage';
 
 type EmphasisType = 'light' | 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold';
 

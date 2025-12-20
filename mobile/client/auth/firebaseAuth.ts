@@ -1,7 +1,7 @@
 import { auth } from '@/lib/firebaseConfig';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { useAuth } from '@/components/store/useAuth';
+import { useAuth } from '@/store/useAuth';
 import { handleAuthNavigation, handleSignOutNavigation } from '@/components/navigations/navigation';
 
 // Configure Google Sign-In

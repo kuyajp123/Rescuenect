@@ -1,4 +1,4 @@
-import { useStatusFormStore } from '@/components/store/useStatusForm';
+import { useStatusFormStore } from '@/store/useStatusForm';
 import { db } from '@/lib/firebaseConfig';
 import { CreateStatusData } from '@/types/components';
 import { collection, limit, onSnapshot, query, where } from 'firebase/firestore';

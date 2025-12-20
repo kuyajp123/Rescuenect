@@ -1,7 +1,7 @@
 import { Button } from '@/components/components/button/Button';
 import { StatusTemplate } from '@/components/components/PostTemplate/StatusTemplate';
-import { useAuth } from '@/components/store/useAuth';
-import { useUserData } from '@/components/store/useBackendResponse';
+import { useAuth } from '@/store/useAuth';
+import { useUserData } from '@/store/useBackendResponse';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Box } from '@/components/ui/box';
 import { HStack } from '@/components/ui/hstack';

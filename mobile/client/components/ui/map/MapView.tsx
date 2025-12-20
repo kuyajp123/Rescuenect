@@ -1,6 +1,6 @@
 import { HoveredButton } from '@/components/components/button/Button';
 import DetailsCard from '@/components/components/card/DetailsCard';
-import { storageHelpers } from '@/components/helper/storage';
+import { storageHelpers } from '@/helper/storage';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { Colors } from '@/constants/Colors';
 import { useMap } from '@/contexts/MapContext';

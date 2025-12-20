@@ -1,4 +1,3 @@
-import { useAuth } from '@/components/store/useAuth';
 import Body from '@/components/ui/layout/Body';
 import { MapView } from '@/components/ui/map/MapView';
 import { API_ROUTES } from '@/config/endpoints';
@@ -10,22 +9,25 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export const evacuation = () => {
   const insets = useSafeAreaInsets();
-  const auth = useAuth(state => state.authUser);
   const [evacuationCenters, setEvacuationCenters] = useState<EvacuationCenter[] | null>(null);
 
   useEffect(() => {
     const fetchEvacuationCenters = async () => {
-      const token = await auth?.getIdToken();
       try {
         const response = await axios.get<EvacuationCenter[]>(API_ROUTES.EVACUATION.GET_CENTERS);
 
         setEvacuationCenters(response.data);
+        console.log('centers: ', JSON.stringify(response.data, null, 2));
       } catch (error) {
         console.error('Error fetching evacuation centers:', error);
       }
     };
     fetchEvacuationCenters();
   }, []);
+
+  useEffect(() => {
+    console.log('evacuationCenters: ', JSON.stringify(evacuationCenters, null, 2));
+  }, [evacuationCenters]);
 
   return (
     <Body

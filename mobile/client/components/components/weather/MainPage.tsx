@@ -1,9 +1,9 @@
 import { IconButton } from '@/components/components/button/Button';
 import { GlassCard } from '@/components/components/card/GlassCard';
-import { getImageBackground, getWeatherCondition } from '@/components/helper/WeatherLogic';
-import { useUserData } from '@/components/store/useBackendResponse';
-import { useNotificationStore } from '@/components/store/useNotificationStore';
-import { useWeatherStore } from '@/components/store/useWeatherStore';
+import { getImageBackground, getWeatherCondition } from '@/helper/WeatherLogic';
+import { useUserData } from '@/store/useBackendResponse';
+import { useNotificationStore } from '@/store/useNotificationStore';
+import { useWeatherStore } from '@/store/useWeatherStore';
 import { Divider } from '@/components/ui/divider';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
-import { storageHelpers } from '@/components/helper/storage';
+import { storageHelpers } from '@/helper/storage';
 
 export type FontSizeScale = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 

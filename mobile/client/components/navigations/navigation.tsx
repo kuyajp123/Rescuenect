@@ -1,6 +1,6 @@
-import { handleLogout } from '@/components/auth/auth';
-import { storageHelpers } from '@/components/helper/storage';
-import { useUserData } from '@/components/store/useBackendResponse';
+import { handleLogout } from '@/auth/auth';
+import { storageHelpers } from '@/helper/storage';
+import { useUserData } from '@/store/useBackendResponse';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { navigateToBarangayForm, navigateToNameAndContactForm, navigateToSignIn, navigateToTabs } from '@/routes/route';
 

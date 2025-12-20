@@ -6,7 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Camera, Image as ImageIcon } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Image, Pressable, Text as RNText, StyleSheet, View } from 'react-native';
-import { useImagePickerStore } from '@/components/store/useImagePicker';
+import { useImagePickerStore } from '@/store/useImagePicker';
 import { Button } from '../button/Button';
 
 interface CustomImagePickerProps {

@@ -1,5 +1,5 @@
-import { storageHelpers } from '@/components/helper/storage';
-import { useNotificationStore } from '@/components/store/useNotificationStore';
+import { storageHelpers } from '@/helper/storage';
+import { useNotificationStore } from '@/store/useNotificationStore';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { db } from '@/lib/firebaseConfig';
 import type { BaseNotification } from '@/types/notification';

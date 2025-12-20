@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Appearance, useColorScheme } from 'react-native';
-import { storageHelpers } from '@/components/helper/storage';
+import { storageHelpers } from '@/helper/storage';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 
 export type ColorMode = 'light' | 'dark' | 'system';

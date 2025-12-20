@@ -1,6 +1,6 @@
 import * as Location from "expo-location";
 import { useEffect, useState, useCallback } from "react";
-import { requestLocationPermission } from "@/components/helper/commonHelpers";
+import { requestLocationPermission } from "@/helper/commonHelpers";
 
 export const useLocationTracking = () => {
   const [coords, setCoords] = useState<Location.LocationObjectCoords | null>(null);

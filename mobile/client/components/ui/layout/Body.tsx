@@ -5,7 +5,7 @@ import type { StyleProp, ViewStyle } from "react-native";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "../text";
 import { VStack } from "../vstack";
-import { useNetwork } from "@/components/store/useNetwork";
+import { useNetwork } from "@/store/useNetwork";
 
 type VStackProps = ComponentProps<typeof VStack>;
 

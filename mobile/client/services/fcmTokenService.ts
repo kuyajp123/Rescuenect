@@ -1,4 +1,4 @@
-import { storageHelpers } from '@/components/helper/storage';
+import { storageHelpers } from '@/helper/storage';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
 import { getApp } from '@react-native-firebase/app';

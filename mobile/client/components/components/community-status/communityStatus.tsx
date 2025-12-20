@@ -1,5 +1,5 @@
 import { PrimaryButton } from '@/components/components/button/Button';
-import { useStatusStore } from '@/components/store/useCurrentStatusStore';
+import { useStatusStore } from '@/store/useCurrentStatusStore';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
 import { ColorCombinations, Colors } from '@/constants/Colors';

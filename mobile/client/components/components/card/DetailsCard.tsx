@@ -4,9 +4,10 @@ import { Badge, BadgeText } from '@/components/ui/badge';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { EvacuationCenter } from '@/types/components';
+import { Image } from 'expo-image';
 import { House, MapPin, Phone, UsersRound, X } from 'lucide-react-native';
 import React from 'react';
-import { Dimensions, Image, StyleSheet, View } from 'react-native';
+import { Dimensions, StyleSheet, View } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
 
 const screenWidth = Dimensions.get('window').width;
@@ -34,7 +35,7 @@ const DetailsCard: React.FC<DetailsCardProps> = ({ selectedMarker, isDark, onClo
 
   const renderItem = ({ item, index }: { item: Images; index: number }) => (
     <View style={styles.carouselItemContainer}>
-      <Image source={{ uri: item.uri }} style={styles.carouselImage} resizeMode="cover" />
+      <Image source={{ uri: item.uri }} style={styles.carouselImage} contentFit="cover" />
     </View>
   );
 

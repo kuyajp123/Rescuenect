@@ -1,8 +1,8 @@
 import index from '@/components/components/weather/index';
-import { GetDate, GetTime } from '@/components/helper/DateAndTime';
-import { getImageBackground, getWeatherCondition, getWeatherIcons } from '@/components/helper/WeatherLogic';
-import { useUserData } from '@/components/store/useBackendResponse';
-import { useWeatherStore } from '@/components/store/useWeatherStore';
+import { GetDate, GetTime } from '@/helper/DateAndTime';
+import { getImageBackground, getWeatherCondition, getWeatherIcons } from '@/helper/WeatherLogic';
+import { useUserData } from '@/store/useBackendResponse';
+import { useWeatherStore } from '@/store/useWeatherStore';
 import { Divider } from '@/components/ui/divider';
 import { Text } from '@/components/ui/text';
 import { useTheme } from '@/contexts/ThemeContext';

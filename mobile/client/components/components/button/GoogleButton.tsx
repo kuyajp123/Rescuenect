@@ -1,4 +1,4 @@
-import { handleGoogleSignIn } from '@/components/auth/auth';
+import { handleGoogleSignIn } from '@/auth/auth';
 import { LoadingOverlay } from '@/components/ui/loading/LoadingOverlay';
 import { useLoading } from '@/hooks/useLoading';
 import React from 'react';

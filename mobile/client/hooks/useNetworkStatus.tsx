@@ -1,5 +1,5 @@
 import * as Network from "expo-network";
-import { useNetwork } from "@/components/store/useNetwork";
+import { useNetwork } from "@/store/useNetwork";
 import { useEffect } from "react";
 
 export const useNetworkStatus = () => {

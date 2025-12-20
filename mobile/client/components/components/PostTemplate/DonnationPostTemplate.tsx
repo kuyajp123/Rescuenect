@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/avatar";
 import { Badge, BadgeText } from "@/components/ui/badge";
 import { Box } from "@/components/ui/box";
-import { Image } from "@/components/ui/image";
+import { Image } from 'expo-image';
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { ColorCombinations } from "@/constants/Colors";
@@ -137,7 +137,7 @@ export const DonnationPostTemplate = ({
             <TouchableOpacity onPress={handleImagePress} activeOpacity={0.8}>
               <Image
                 className="rounded-lg"
-                size="2xl"
+                style={{ width: '100%', height: '100%' }}
                 source={{ uri: image }}
                 alt={`${firstName} ${lastName} status update`}
               />

@@ -1,4 +1,4 @@
-import { getWeatherCondition, getWeatherIcons } from "@/components/helper/WeatherLogic";
+import { getWeatherCondition, getWeatherIcons } from "@/helper/WeatherLogic";
 import { Text } from '@/components/ui/text';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';

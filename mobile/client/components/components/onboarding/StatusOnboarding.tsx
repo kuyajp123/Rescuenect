@@ -1,9 +1,10 @@
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { Image } from 'expo-image';
 import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-// @ts-ignore
 import Onboarding from 'react-native-onboarding-swiper';
+import { Button } from '../button/Button';
 
 interface StatusOnboardingProps {
   visible: boolean;
@@ -19,9 +20,9 @@ const StatusOnboarding = ({ visible, onDone, onSkip }: StatusOnboardingProps) =>
   const subTextColor = isDark ? Colors.muted.dark.text : Colors.muted.light.text;
 
   const DoneButton = ({ ...props }) => (
-    <TouchableOpacity style={styles.button} {...props}>
-      <Text style={{ color: isDark ? Colors.brand.dark : Colors.brand.light, fontWeight: 'bold' }}>Done</Text>
-    </TouchableOpacity>
+    <Button style={styles.button} {...props} width="auto">
+      <Text style={{ color: Colors.text.dark, fontWeight: 'bold' }}>Done</Text>
+    </Button>
   );
 
   const SkipButton = ({ ...props }) => (
@@ -31,9 +32,9 @@ const StatusOnboarding = ({ visible, onDone, onSkip }: StatusOnboardingProps) =>
   );
 
   const NextButton = ({ ...props }) => (
-    <TouchableOpacity style={styles.button} {...props}>
-      <Text style={{ color: isDark ? Colors.brand.dark : Colors.brand.light }}>Next</Text>
-    </TouchableOpacity>
+    <Button style={styles.button} {...props} width="auto">
+      <Text style={{ color: Colors.text.dark }}>Next</Text>
+    </Button>
   );
 
   return (
@@ -50,7 +51,9 @@ const StatusOnboarding = ({ visible, onDone, onSkip }: StatusOnboardingProps) =>
           pages={[
             {
               backgroundColor: backgroundColor,
-              image: <Text style={{ fontSize: 100 }}>👋</Text>,
+              image: (
+                <Image source={require('@/assets/images/images/welcome.png')} style={{ width: 300, height: 300 }} />
+              ),
               title: <Text style={[styles.title, { color: textColor }]}>Welcome to Status Creation</Text>,
               subtitle: (
                 <Text style={[styles.subtitle, { color: subTextColor }]}>
@@ -60,7 +63,9 @@ const StatusOnboarding = ({ visible, onDone, onSkip }: StatusOnboardingProps) =>
             },
             {
               backgroundColor: backgroundColor,
-              image: <Text style={{ fontSize: 100 }}>📍</Text>,
+              image: (
+                <Image source={require('@/assets/images/images/map_model.png')} style={{ width: 300, height: 300 }} />
+              ),
               title: <Text style={[styles.title, { color: textColor }]}>How to Create a Status</Text>,
               subtitle: (
                 <View style={{ alignItems: 'center', gap: 10 }}>
@@ -74,7 +79,9 @@ const StatusOnboarding = ({ visible, onDone, onSkip }: StatusOnboardingProps) =>
             },
             {
               backgroundColor: backgroundColor,
-              image: <Text style={{ fontSize: 100 }}>✅</Text>,
+              image: (
+                <Image source={require('@/assets/images/images/complete.png')} style={{ width: 300, height: 300 }} />
+              ),
               title: <Text style={[styles.title, { color: textColor }]}>You are Protected</Text>,
               subtitle: (
                 <Text style={[styles.subtitle, { color: subTextColor }]}>

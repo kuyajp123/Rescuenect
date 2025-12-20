@@ -12,17 +12,17 @@ import {
   getCurrentPositionOnce,
   isValidContactNumber,
   normalizeCategory,
-} from '@/components/helper/commonHelpers';
-import { GetDate, GetTime } from '@/components/helper/DateAndTime';
-import { storageHelpers } from '@/components/helper/storage';
-import { useAuth } from '@/components/store/useAuth';
-import { useCoords } from '@/components/store/useCoords';
-import { useGetAddress } from '@/components/store/useGetAddress';
-import { useImagePickerStore } from '@/components/store/useImagePicker';
-import { useMapSettingsStore } from '@/components/store/useMapSettings';
-import { useNetwork } from '@/components/store/useNetwork';
-import { useSavedLocationsStore } from '@/components/store/useSavedLocationsStore';
-import { useStatusFormStore } from '@/components/store/useStatusForm';
+} from '@/helper/commonHelpers';
+import { GetDate, GetTime } from '@/helper/DateAndTime';
+import { storageHelpers } from '@/helper/storage';
+import { useAuth } from '@/store/useAuth';
+import { useCoords } from '@/store/useCoords';
+import { useGetAddress } from '@/store/useGetAddress';
+import { useImagePickerStore } from '@/store/useImagePicker';
+import { useMapSettingsStore } from '@/store/useMapSettings';
+import { useNetwork } from '@/store/useNetwork';
+import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
+import { useStatusFormStore } from '@/store/useStatusForm';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { ButtonRadio } from '@/components/ui/CustomRadio';
 import { HStack } from '@/components/ui/hstack';

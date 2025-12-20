@@ -1,5 +1,5 @@
 import type { ImageModalProps } from "@/types/components";
-import { Image } from "@/components/ui/image";
+import { Image } from 'expo-image';
 import { useTheme } from "@/contexts/ThemeContext";
 import { X } from "lucide-react-native";
 import React from "react";
@@ -49,7 +49,6 @@ export const ImageModal: React.FC<ImageModalProps> = ({
               alt={alt}
               style={styles.fullImage}
               resizeMode="contain"
-              size="full"
             />
           </View>
         </TouchableOpacity>

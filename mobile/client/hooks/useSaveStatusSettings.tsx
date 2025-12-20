@@ -1,4 +1,4 @@
-import { storageHelpers } from '@/components/helper/storage';
+import { storageHelpers } from '@/helper/storage';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { StatusStateData } from '@/types/components';
 import { useEffect } from 'react';
