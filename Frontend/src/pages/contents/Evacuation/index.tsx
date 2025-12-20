@@ -3,7 +3,7 @@ import EvacuationTable from '@/components/ui/table/EvacuationTable';
 import { usePanelStore } from '@/stores/panelStore';
 import { useEvacuationStore } from '@/stores/useEvacuationStore';
 import { EvacuationCenter } from '@/types/types';
-import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, useDisclosure } from '@heroui/react';
+import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react';
 import { List, Map as MapIcon, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -17,8 +17,7 @@ const index = () => {
   const [centerToDelete, setCenterToDelete] = useState<EvacuationCenter | null>(null);
 
   const navigate = useNavigate();
-  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onOpenChange: onDeleteOpenChange } = useDisclosure();
-  const { openEvacuationPanel, closePanel } = usePanelStore();
+  const { openEvacuationPanel, closePanel, openModal, onOpenModal, onCloseModal, selectedUser } = usePanelStore();
 
   // Use Zustand store for evacuation centers
   const { evacuationCenters, isLoading, fetchEvacuationCenters, deleteEvacuationCenter } = useEvacuationStore();
@@ -47,8 +46,9 @@ const index = () => {
     try {
       await deleteEvacuationCenter(centerId);
       // Close the modal
-      onDeleteOpenChange();
+      onCloseModal?.();
       setCenterToDelete(null);
+      closePanel(); // also close panel if open
     } catch (error) {
       console.error('Error deleting evacuation center:', error);
       alert('Failed to delete center.');
@@ -94,7 +94,7 @@ const index = () => {
           data={evacuationCenters}
           onDeleteRequest={center => {
             setCenterToDelete(center);
-            onDeleteOpen();
+            onOpenModal?.();
           }}
           onEditRequest={center => {
             openEvacuationPanel(center);
@@ -122,7 +122,7 @@ const index = () => {
       )}
 
       {/* Delete Modal */}
-      <Modal isOpen={isDeleteOpen} onOpenChange={onDeleteOpenChange}>
+      <Modal isOpen={openModal} onOpenChange={isOpen => !isOpen && onCloseModal?.()}>
         <ModalContent>
           {onClose => (
             <>
@@ -135,8 +135,10 @@ const index = () => {
                 <Button
                   color="primary"
                   onPress={() => {
-                    if (centerToDelete) {
-                      handleDeleteCenter(centerToDelete.id);
+                    const targetId =
+                      centerToDelete?.id || (selectedUser?.type === 'evacuation' ? selectedUser.data.id : null);
+                    if (targetId) {
+                      handleDeleteCenter(targetId);
                     }
                   }}
                   disabled={isLoading}

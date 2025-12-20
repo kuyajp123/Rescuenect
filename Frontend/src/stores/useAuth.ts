@@ -69,9 +69,25 @@ export const useAuth = create<AuthStore>()(
           if (response.data && response.data.user) {
             set({ userData: response.data.user });
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('❌ Failed to sync user data:', error);
-          // If 401/403, user might need to re-authenticate
+
+          const errorCode = error?.code || '';
+          const status = error?.response?.status;
+
+          // Check for Firebase Auth errors or Backend 401/403 indicating the user is no longer valid
+          if (
+            errorCode === 'auth/user-not-found' ||
+            errorCode === 'auth/user-token-expired' ||
+            errorCode === 'auth/invalid-user-token' ||
+            errorCode === 'auth/user-disabled' ||
+            status === 401 ||
+            status === 403
+          ) {
+            console.warn('Logging out due to invalid auth state/deleted user.');
+            await firebaseAuth.signOut();
+            set({ auth: null, userData: null });
+          }
         }
       },
     }),

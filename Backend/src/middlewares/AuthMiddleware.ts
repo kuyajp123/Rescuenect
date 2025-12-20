@@ -25,6 +25,19 @@ export class AuthMiddleware {
         return;
       }
 
+      // CRITICAL: Explicitly check if user exists in Firebase Auth
+      // verifyIdToken alone passes for deleted users until the 1-hour JWT expires
+      try {
+        await admin.auth().getUser(decodedToken.uid);
+      } catch (userError: any) {
+        if (userError.code === 'auth/user-not-found') {
+          console.warn(`❌ Rejected request for deleted user: ${decodedToken.uid}`);
+          res.status(401).json({ message: 'User account no longer exists' });
+          return;
+        }
+        throw userError; // Re-throw other errors to be caught below
+      }
+
       (req as any).user = decodedToken;
       next();
     } catch (error) {

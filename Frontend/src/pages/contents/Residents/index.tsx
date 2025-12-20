@@ -387,11 +387,9 @@ const Residents = () => {
       classNames={{
         wrapper: 'max-h-[582px]',
       }}
-      selectionMode="single"
       sortDescriptor={sortDescriptor}
       topContent={topContent}
       topContentPlacement="outside"
-      onSelectionChange={() => {}}
       onSortChange={setSortDescriptor}
     >
       <TableHeader columns={headerColumns}>

@@ -2,10 +2,11 @@ import { Map } from '@/components/ui/Map';
 import { types } from '@/config/constant';
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
+import { usePanelStore } from '@/stores/panelStore';
 import { useEvacuationStore } from '@/stores/useEvacuationStore';
 import { Button, Input, Select, SelectItem, Textarea } from '@heroui/react';
 import axios from 'axios';
-import { Pencil, Save, Upload, X } from 'lucide-react';
+import { Pencil, Save, Upload, X, Trash } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 export const EvacuationPanel = ({ data }: { data: any }) => {
@@ -15,6 +16,8 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const { onOpenModal } = usePanelStore();
 
   useEffect(() => {
     if (data?.type === 'evacuation' && data.data) {
@@ -168,9 +171,20 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
             </Button>
           ) : (
             <>
-              <Button size="sm" color="danger" variant="light" onPress={() => setIsEditing(false)}>
+              <Button size="sm" variant="light" onPress={() => setIsEditing(false)}>
                 Cancel
               </Button>
+              {onOpenModal && (
+                <Button
+                  size="sm"
+                  color="danger"
+                  variant="flat"
+                  endContent={<Trash size={16} />}
+                  onPress={() => onOpenModal()}
+                >
+                  Delete
+                </Button>
+              )}
               <Button
                 size="sm"
                 color="primary"
