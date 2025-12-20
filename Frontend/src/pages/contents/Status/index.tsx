@@ -250,6 +250,7 @@ const Status = () => {
                       photo: selectedItem.profileImage,
                       email: selectedItem.email,
                       barangay: resident?.barangay || '',
+                      createdAt: resident?.createdAt || '',
                     },
                   },
                 });

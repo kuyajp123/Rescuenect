@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { FlatList, StyleSheet } from 'react-native';
 import { GlassCard } from '../../components/card/GlassCard';
@@ -31,6 +32,8 @@ const generateSampleHourlyForecast = (): HourlyForecastItemProps[] => {
 };
 
 export const TwentyFourHourForecast = ({ hourlyData }: TwentyFourHourForecastProps) => {
+  const router = useRouter();
+
   // Map hourly data to forecast format or use sample data
   const forecastData =
     hourlyData && hourlyData.length > 0
@@ -69,12 +72,25 @@ export const TwentyFourHourForecast = ({ hourlyData }: TwentyFourHourForecastPro
             time: index === 0 ? 'Now' : displayTime,
             temperature: `${Math.round(item.temperature)}°C`,
             weatherCode: item.weatherCode,
+            originalItem: item,
           };
         })
       : generateSampleHourlyForecast();
 
-  const renderHourlyItem = ({ item }: { item: HourlyForecastItemProps }) => (
-    <HourlyForecastItem time={item.time} temperature={item.temperature} weatherCode={item.weatherCode} />
+  const renderHourlyItem = ({ item }: { item: any }) => (
+    <HourlyForecastItem
+      time={item.time}
+      temperature={item.temperature}
+      weatherCode={item.weatherCode}
+      onPress={() => {
+        if (item.originalItem) {
+          router.push({
+            pathname: '/Weather/HourlyDetails',
+            params: { data: JSON.stringify(item.originalItem) },
+          });
+        }
+      }}
+    />
   );
 
   return (

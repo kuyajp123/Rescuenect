@@ -10,7 +10,21 @@ const _layout = () => {
           headerShown: false,
           animation: 'none'
         }}
-        />
+      />
+      <Stack.Screen
+        name='DailyForecastDetails'
+        options={{
+          headerShown: false,
+          animation: 'none'
+        }}
+      />
+      <Stack.Screen
+        name='HourlyDetails'
+        options={{
+          headerShown: false,
+          animation: 'none'
+        }}
+      />
     </Stack>
   )
 }

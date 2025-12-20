@@ -17,17 +17,12 @@ export const evacuation = () => {
         const response = await axios.get<EvacuationCenter[]>(API_ROUTES.EVACUATION.GET_CENTERS);
 
         setEvacuationCenters(response.data);
-        console.log('centers: ', JSON.stringify(response.data, null, 2));
       } catch (error) {
         console.error('Error fetching evacuation centers:', error);
       }
     };
     fetchEvacuationCenters();
   }, []);
-
-  useEffect(() => {
-    console.log('evacuationCenters: ', JSON.stringify(evacuationCenters, null, 2));
-  }, [evacuationCenters]);
 
   return (
     <Body

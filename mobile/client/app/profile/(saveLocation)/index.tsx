@@ -1,10 +1,6 @@
 import { getAddress } from '@/API/getAddress';
 import { Button } from '@/components/components/button/Button';
 import Modal from '@/components/components/Modal';
-import { cleanAddress } from '@/helper/commonHelpers';
-import { storageHelpers } from '@/helper/storage';
-import { useAuth } from '@/store/useAuth';
-import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { Fab } from '@/components/ui/fab';
 import { HStack } from '@/components/ui/hstack';
@@ -17,6 +13,10 @@ import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { cleanAddress } from '@/helper/commonHelpers';
+import { storageHelpers } from '@/helper/storage';
+import { useAuth } from '@/store/useAuth';
+import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import { EvacuationCenter } from '@/types/components';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useFocusEffect } from '@react-navigation/native';
@@ -102,7 +102,7 @@ const SaveLocationScreen = () => {
   const [mode, setMode] = useState<'list' | 'form'>('list');
 
   // Snap points
-  const snapPoints = useMemo(() => ['25%', '50%', '90%'], []);
+  const snapPoints = useMemo(() => ['30%', '60%', '90%'], []);
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -241,6 +241,9 @@ const SaveLocationScreen = () => {
     [mode, authUser, errMessage]
   );
 
+  // Track sheet index
+  const [sheetIndex, setSheetIndex] = useState(0);
+
   // Handle hardware back
   useFocusEffect(
     useCallback(() => {
@@ -249,14 +252,16 @@ const SaveLocationScreen = () => {
           handleBackToList();
           return true;
         }
-        // If in list mode but sheet is expanded, maybe snap to bottom?
-        // or just let it go back
+        if (sheetIndex > 0) {
+          bottomSheetRef.current?.snapToIndex(0);
+          return true;
+        }
         return false;
       };
 
       const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => subscription.remove();
-    }, [mode])
+    }, [mode, sheetIndex])
   );
 
   const handleSaveLocation = async () => {
@@ -376,6 +381,7 @@ const SaveLocationScreen = () => {
         keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"
         enablePanDownToClose={false}
+        onChange={setSheetIndex}
         backgroundStyle={{
           backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
         }}

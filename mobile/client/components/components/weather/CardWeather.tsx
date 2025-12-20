@@ -1,16 +1,14 @@
-import index from '@/components/components/weather/index';
+import { Divider } from '@/components/ui/divider';
+import { Text } from '@/components/ui/text';
+import { useTheme } from '@/contexts/ThemeContext';
 import { GetDate, GetTime } from '@/helper/DateAndTime';
 import { getImageBackground, getWeatherCondition, getWeatherIcons } from '@/helper/WeatherLogic';
 import { useUserData } from '@/store/useBackendResponse';
 import { useWeatherStore } from '@/store/useWeatherStore';
-import { Divider } from '@/components/ui/divider';
-import { Text } from '@/components/ui/text';
-import { useTheme } from '@/contexts/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ImageBackground, StyleSheet, TouchableOpacity, View } from 'react-native';
-const { PartlyCloudyDay } = index;
 
 export const CardWeather = () => {
   const weatherData = useWeatherStore(state => state.weather);

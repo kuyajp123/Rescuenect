@@ -1,13 +1,13 @@
 import { IconButton } from '@/components/components/button/Button';
 import { GlassCard } from '@/components/components/card/GlassCard';
-import { getImageBackground, getWeatherCondition } from '@/helper/WeatherLogic';
-import { useUserData } from '@/store/useBackendResponse';
-import { useNotificationStore } from '@/store/useNotificationStore';
-import { useWeatherStore } from '@/store/useWeatherStore';
 import { Divider } from '@/components/ui/divider';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { getImageBackground, getWeatherCondition } from '@/helper/WeatherLogic';
+import { useUserData } from '@/store/useBackendResponse';
+import { useNotificationStore } from '@/store/useNotificationStore';
+import { useWeatherStore } from '@/store/useWeatherStore';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, TriangleAlert } from 'lucide-react-native';
@@ -238,6 +238,12 @@ export const MainPage = () => {
                             date={displayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                             weatherCode={dailyItem.weatherCodeMax}
                             temperature={`${Math.round(dailyItem.temperatureMax)}°C`}
+                            onPress={() => {
+                              router.push({
+                                pathname: '/Weather/DailyForecastDetails',
+                                params: { data: JSON.stringify(dailyItem) },
+                              });
+                            }}
                           />
                           {index < Math.min(weatherData.daily.length, 5) - 1 && (
                             <Divider style={{ marginVertical: 10, backgroundColor: Colors.icons.dark }} />

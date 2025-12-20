@@ -14,7 +14,7 @@ import {
   DropdownTrigger,
   Image,
 } from '@heroui/react';
-import { CheckCircle, EllipsisVertical, Info, MapPin, Phone, UserRound } from 'lucide-react';
+import { CheckCircle, EllipsisVertical, MapPin, Phone, UserRound } from 'lucide-react';
 
 export const StatusCard = ({
   style,
@@ -102,9 +102,6 @@ export const StatusCard = ({
                 >
                   <DropdownItem key="resolved" startContent={<CheckCircle size={20} />} textValue="Resolved">
                     Resolved
-                  </DropdownItem>
-                  <DropdownItem key="details" startContent={<Info size={20} />} textValue="View Details">
-                    View Details
                   </DropdownItem>
                   <DropdownItem key="profile" startContent={<UserRound size={20} />} textValue="View Profile">
                     View Profile

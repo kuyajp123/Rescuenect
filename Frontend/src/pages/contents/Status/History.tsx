@@ -264,6 +264,7 @@ export const StatusHistory = () => {
               photo: residentDetail?.photo || '',
               email: residentDetail?.email || '',
               barangay: residentDetail?.barangay || '',
+              createdAt: residentDetail?.createdAt || '',
             },
           },
         });

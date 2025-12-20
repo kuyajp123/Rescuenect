@@ -1,17 +1,17 @@
 import { HoveredButton } from '@/components/components/button/Button';
 import DetailsCard from '@/components/components/card/DetailsCard';
-import { storageHelpers } from '@/helper/storage';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { Colors } from '@/constants/Colors';
 import { useMap } from '@/contexts/MapContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { storageHelpers } from '@/helper/storage';
 import { EvacuationCenter } from '@/types/components';
 import MapboxGL, { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
 import type { FeatureCollection } from 'geojson';
 import { ChevronLeft, MapIcon } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { BackHandler, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '../text';
 
 // Get color based on earthquake severity
@@ -141,9 +141,23 @@ export const MapView: React.FC<MapViewProps> = ({
         console.error('Error loading map style:', error);
       }
     };
-
     loadMapStyle();
   }, []);
+
+  // Handle hardware back press
+  useEffect(() => {
+    const handleBackPress = () => {
+      if (selectedMarker) {
+        setSelectedMarker(null);
+        return true; // Prevent default behavior (navigation back)
+      }
+      return false; // Allow default behavior
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+
+    return () => backHandler.remove();
+  }, [selectedMarker]);
 
   const toggleMapStyles = useCallback(() => {
     setShowMapStyles(prev => !prev);
