@@ -29,7 +29,7 @@ export const UrlLocation = () => {
 };
 
 // Helper function to convert various date formats to Date object
-const convertToDate = (dateValue: any): Date | null => {
+export const convertToDate = (dateValue: any): Date | null => {
   if (!dateValue) return null;
 
   if (dateValue instanceof Date) return dateValue;
@@ -42,6 +42,11 @@ const convertToDate = (dateValue: any): Date | null => {
   // Handle Firestore Timestamp object format { seconds: number, nanoseconds: number }
   if (dateValue?.seconds && typeof dateValue.seconds === 'number') {
     return new Date(dateValue.seconds * 1000);
+  }
+
+  // Handle Firestore Timestamp object format with underscores { _seconds: number, _nanoseconds: number }
+  if (dateValue?._seconds && typeof dateValue?._seconds === 'number') {
+    return new Date(dateValue._seconds * 1000);
   }
 
   // Handle string dates

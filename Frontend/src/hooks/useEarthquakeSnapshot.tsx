@@ -1,4 +1,5 @@
 import { db } from '@/lib/firebaseConfig';
+import { useAuth } from '@/stores/useAuth';
 import { useEarthquakeStore } from '@/stores/useEarthquakeStore';
 import { ProcessedEarthquake } from '@/types/types';
 import {
@@ -14,11 +15,14 @@ import {
 import { useEffect } from 'react';
 
 export const useEarthquakeSnapshot = () => {
+  const { auth } = useAuth();
   const setEarthquakes = useEarthquakeStore(state => state.setEarthquakes);
   const setLoading = useEarthquakeStore(state => state.setLoading);
   const setError = useEarthquakeStore(state => state.setError);
 
   useEffect(() => {
+    if (!auth) return;
+
     setLoading(true);
 
     // Try with orderBy first, fall back to simple collection query if index doesn't exist
@@ -63,5 +67,5 @@ export const useEarthquakeSnapshot = () => {
     );
 
     return () => unsubscribe();
-  }, [setEarthquakes, setLoading, setError]);
+  }, [setEarthquakes, setLoading, setError, auth]);
 };

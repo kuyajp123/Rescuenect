@@ -10,8 +10,8 @@ const Add = () => {
   };
 
   return (
-    <div className="w-full h-full grid grid-cols-2 gap-4">
-      <div className="h-full">
+    <div className="w-full h-full flex flex-col md:grid md:grid-cols-2 gap-4 overflow-y-auto md:overflow-hidden">
+      <div className="h-[45vh] md:h-full min-h-[300px]">
         <Map
           data={
             mapClickPosition ? [{ uid: 'clicked-point', lat: mapClickPosition.lat, lng: mapClickPosition.lng }] : []
@@ -23,7 +23,7 @@ const Add = () => {
           overlayClassName="custom-map-overlay"
         />
       </div>
-      <div className="h-full">
+      <div className="h-auto md:h-full">
         <EvacuationCenterForm coordinates={mapClickPosition} />
       </div>
     </div>

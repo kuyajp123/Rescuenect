@@ -3,21 +3,22 @@ import { StatusCard } from '@/components/ui/card/StatusCard';
 import { Map } from '@/components/ui/Map';
 import { StatusList } from '@/components/ui/status';
 import { API_ENDPOINTS } from '@/config/endPoints';
+import { useResidentsStore } from '@/hooks/useFetchResidents';
 import { auth } from '@/lib/firebaseConfig';
 import { useStatusStore } from '@/stores/useStatusStore';
 import { MapMarkerData } from '@/types/types';
 import {
-    Button,
-    Drawer,
-    DrawerBody,
-    DrawerContent,
-    DrawerFooter,
-    DrawerHeader,
-    Form,
-    Select,
-    SelectItem,
-    Textarea,
-    useDisclosure,
+  Button,
+  Drawer,
+  DrawerBody,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  Form,
+  Select,
+  SelectItem,
+  Textarea,
+  useDisclosure,
 } from '@heroui/react';
 import axios from 'axios';
 import { useState } from 'react';
@@ -34,6 +35,7 @@ const Status = () => {
   const [selectedStatuses, setSelectedStatuses] = useState(new Set(['all']));
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const statusData = useStatusStore(state => state.statusData);
+  const residents = useResidentsStore(state => state.residents);
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
   const [resolvedLoading, setResolvedLoading] = useState(false);
   const navigate = useNavigate();
@@ -236,7 +238,22 @@ const Status = () => {
                 onOpen();
               }}
               onViewDetails={() => {}}
-              onViewProfile={() => {}}
+              onViewProfile={() => {
+                const resident = residents.find(r => r.uid === selectedItem.uid || r.id === selectedItem.uid);
+                navigate('/status/resident-profile', {
+                  state: {
+                    resident: {
+                      id: selectedItem.uid,
+                      firstName: resident?.firstName || '',
+                      lastName: resident?.lastName || '',
+                      phoneNumber: resident?.phoneNumber || '',
+                      photo: selectedItem.profileImage,
+                      email: selectedItem.email,
+                      barangay: resident?.barangay || '',
+                    },
+                  },
+                });
+              }}
             />
           ) : (
             <div className="text-center flex h-full items-center justify-center">

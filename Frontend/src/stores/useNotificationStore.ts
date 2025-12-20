@@ -14,6 +14,8 @@ interface NotificationStore {
   removeNotification: (id: string) => void;
   markAsRead: (id: string, userId: string) => void;
   markAsHidden: (id: string, userId: string) => void;
+  markAllAsRead: (userId: string) => void;
+  markAllAsHidden: (userId: string) => void;
   clearAll: () => void;
 
   // state
@@ -90,6 +92,30 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
   clearAll: () => {
     set({ notifications: [] });
+  },
+
+  markAllAsRead: userId => {
+    set(state => ({
+      notifications: state.notifications.map(notif => {
+        const readBy = notif.readBy || [];
+        if (!readBy.includes(userId)) {
+          return { ...notif, readBy: [...readBy, userId] };
+        }
+        return notif;
+      }),
+    }));
+  },
+
+  markAllAsHidden: userId => {
+    set(state => ({
+      notifications: state.notifications.map(notif => {
+        const hiddenBy = notif.hiddenBy || [];
+        if (!hiddenBy.includes(userId)) {
+          return { ...notif, hiddenBy: [...hiddenBy, userId] };
+        }
+        return notif;
+      }),
+    }));
   },
 
   getUnreadCount: userId => {

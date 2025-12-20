@@ -137,6 +137,7 @@ export const UnifiedStatusCard = ({ data, mode = 'residentProfile', onViewDetail
                   zoom={15}
                   attribution=""
                   markerType="status"
+                  maxBounds={null as any}
                 />
               </div>
             )}

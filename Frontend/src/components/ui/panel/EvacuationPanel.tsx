@@ -125,16 +125,16 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
           data={[
             {
               uid: data.data.id,
-              lat: isEditing ? formData.lat : (data.data.coordinates?.lat ?? 0),
-              lng: isEditing ? formData.lng : (data.data.coordinates?.lng ?? 0),
+              lat: Number(isEditing ? formData.lat : data.data.coordinates?.lat || data.data.lat || 0),
+              lng: Number(isEditing ? formData.lng : data.data.coordinates?.lng || data.data.lng || 0),
             },
           ]}
           center={
             isEditing
-              ? [formData.lat, formData.lng]
+              ? [Number(formData.lat), Number(formData.lng)]
               : data.data.coordinates
-                ? [data.data.coordinates.lat, data.data.coordinates.lng]
-                : [14.2965, 120.7925]
+                ? [Number(data.data.coordinates.lat), Number(data.data.coordinates.lng)]
+                : [Number(data.data.lat || 14.2965), Number(data.data.lng || 120.7925)]
           }
           hasMapStyleSelector={false}
           zoomControl={isEditing} // Enable controls when editing

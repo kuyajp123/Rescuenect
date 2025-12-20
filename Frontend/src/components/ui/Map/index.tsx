@@ -117,7 +117,13 @@ const MapController = ({ data, center, zoom }: MapControllerProps) => {
     if (data.length > 0) {
       // Find first marker with valid coordinates
       const firstMarker = data.find(
-        item => item.lat !== null && item.lng !== null && typeof item.lat === 'number' && typeof item.lng === 'number'
+        item =>
+          item.lat !== null &&
+          item.lng !== null &&
+          typeof item.lat === 'number' &&
+          !isNaN(item.lat) &&
+          typeof item.lng === 'number' &&
+          !isNaN(item.lng)
       );
 
       if (firstMarker && firstMarker.lat !== null && firstMarker.lng !== null) {
@@ -365,6 +371,18 @@ export const Map = ({
     displayMapStyleSelector = 'hidden';
   }
 
+  // Resize handler to fix map rendering in side panels
+  const MapResizeHandler = () => {
+    const map = useMap();
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        map.invalidateSize();
+      }, 400);
+      return () => clearTimeout(timer);
+    }, [map]);
+    return null;
+  };
+
   return (
     <MapContainer
       center={center}
@@ -383,6 +401,7 @@ export const Map = ({
       maxBounds={maxBounds}
       maxBoundsViscosity={1.0} // prevents moving outside bounds
     >
+      <MapResizeHandler />
       {onMapClick && <MapClickHandler />}
       {/* Use DynamicTileLayer for style switching */}
       <DynamicTileLayer url={mapTileUrl} attribution={attribution} />
@@ -535,22 +554,24 @@ export const Map = ({
           })}
 
       {/* Render earthquake markers */}
-      {earthquakeData?.map(item => (
-        <Marker
-          position={[item.lat, item.lng]}
-          icon={createCircleMarker(item)}
-          key={`eq-${item.uid}`}
-          eventHandlers={{
-            click: () => onMarkerClick?.(item),
-          }}
-        >
-          <Popup className="custom-popup">{getPopupRenderer(item)}</Popup>
-        </Marker>
-      ))}
+      {earthquakeData
+        ?.filter(item => item.lat !== null && item.lng !== null && !isNaN(item.lat) && !isNaN(item.lng))
+        .map(item => (
+          <Marker
+            position={[item.lat, item.lng]}
+            icon={createCircleMarker(item)}
+            key={`eq-${item.uid}`}
+            eventHandlers={{
+              click: () => onMarkerClick?.(item),
+            }}
+          >
+            <Popup className="custom-popup">{getPopupRenderer(item)}</Popup>
+          </Marker>
+        ))}
 
       {/* Render status markers */}
       {statusData
-        ?.filter(item => item.lat !== null && item.lng !== null)
+        ?.filter(item => item.lat !== null && item.lng !== null && !isNaN(item.lat!) && !isNaN(item.lng!))
         ?.map(item => (
           <Marker
             position={[item.lat!, item.lng!]}
@@ -574,18 +595,20 @@ export const Map = ({
         ))}
 
       {/* Legacy support for single data array */}
-      {data?.map(item => (
-        <Marker
-          position={[item.lat, item.lng]}
-          icon={getMarkerIcon(item)}
-          key={item.uid}
-          eventHandlers={{
-            click: () => onMarkerClick?.(item),
-          }}
-        >
-          <Popup className="custom-popup">{getPopupRenderer(item)}</Popup>
-        </Marker>
-      ))}
+      {data
+        ?.filter(item => item.lat !== null && item.lng !== null && !isNaN(item.lat) && !isNaN(item.lng))
+        .map(item => (
+          <Marker
+            position={[item.lat, item.lng]}
+            icon={getMarkerIcon(item)}
+            key={item.uid}
+            eventHandlers={{
+              click: () => onMarkerClick?.(item),
+            }}
+          >
+            <Popup className="custom-popup">{getPopupRenderer(item)}</Popup>
+          </Marker>
+        ))}
     </MapContainer>
   );
 };

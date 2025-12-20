@@ -108,22 +108,43 @@ export class UnifiedController {
 
   static async markAllNotificationsAsRead(req: Request, res: Response): Promise<void> {
     try {
-      const { uid, notificationId } = req.body;
-      if (!uid || !notificationId) {
-        res.status(400).json({ message: 'User ID and Notification IDs are required' });
+      const { uid, notificationIds } = req.body;
+      if (!uid || !notificationIds || !Array.isArray(notificationIds)) {
+        res.status(400).json({ message: 'User ID and Notification IDs array are required' });
         return;
       }
-      for (const notif of notificationId) {
-        await UnifiedModel.markNotificationAsRead(notif.notificationId, uid);
-      }
+
+      await UnifiedModel.markAllNotificationsAsRead(uid, notificationIds);
       res.status(200).json({ message: 'All notifications marked as read' });
     } catch (error) {
-      console.error('❌ Failed to get resident statuses:', {
+      console.error('❌ Failed to mark all as read:', {
         error: error instanceof Error ? error.message : error,
         stack: error instanceof Error ? error.stack : undefined,
       });
       res.status(500).json({
-        message: 'Failed to get resident statuses',
+        message: 'Failed to mark all as read',
+        error: typeof error === 'string' ? error : (error as Error).message,
+      });
+    }
+  }
+
+  static async markAllNotificationsAsHidden(req: Request, res: Response): Promise<void> {
+    try {
+      const { uid, notificationIds } = req.body;
+      if (!uid || !notificationIds || !Array.isArray(notificationIds)) {
+        res.status(400).json({ message: 'User ID and Notification IDs array are required' });
+        return;
+      }
+
+      await UnifiedModel.markAllNotificationsAsHidden(uid, notificationIds);
+      res.status(200).json({ message: 'All notifications marked as hidden' });
+    } catch (error) {
+      console.error('❌ Failed to mark all as hidden:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      res.status(500).json({
+        message: 'Failed to mark all as hidden',
         error: typeof error === 'string' ? error : (error as Error).message,
       });
     }

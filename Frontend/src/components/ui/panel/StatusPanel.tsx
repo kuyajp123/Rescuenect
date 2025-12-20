@@ -80,23 +80,26 @@ export const StatusPanel = ({ data }: { data: any }) => {
               zoom={15}
               attribution=""
               markerType="status"
+              maxBounds={null as any}
             />
           ) : data?.type === 'residentProfile' &&
             data.data &&
             data.data.lat &&
-            data.data.lng &&
-            data.data.shareLocation ? (
+            data.data.lng ? (
             <Map
               key={`map-residentProfile-${data.data.id || data.data.parentId}`}
               data={[
                 {
                   uid: data.data.id || data.data.parentId,
-                  lat: data.data.lat,
-                  lng: data.data.lng,
+                  lat: Number(data.data.lat),
+                  lng: Number(data.data.lng),
                   condition: data.data.condition,
                 },
               ]}
-              center={[data.data.lat, data.data.lng]}
+              center={[
+                !isNaN(Number(data.data.lat)) ? Number(data.data.lat) : 14.2965,
+                !isNaN(Number(data.data.lng)) ? Number(data.data.lng) : 120.7925,
+              ]}
               hasMapStyleSelector={false}
               zoomControl={false}
               dragging={false}
@@ -104,23 +107,26 @@ export const StatusPanel = ({ data }: { data: any }) => {
               zoom={15}
               attribution=""
               markerType="status"
+              maxBounds={null as any}
             />
           ) : data?.type === 'statusHistory' &&
             data.data &&
             data.data.lat &&
-            data.data.lng &&
-            data.data.shareLocation ? (
+            data.data.lng ? (
             <Map
               key={`map-statusHistory-${data.data.id || data.data.versionId}`}
               data={[
                 {
                   uid: data.data.id || data.data.versionId,
-                  lat: data.data.lat,
-                  lng: data.data.lng,
+                  lat: Number(data.data.lat),
+                  lng: Number(data.data.lng),
                   condition: data.data.condition,
                 },
               ]}
-              center={[data.data.lat, data.data.lng]}
+              center={[
+                !isNaN(Number(data.data.lat)) ? Number(data.data.lat) : 14.2965,
+                !isNaN(Number(data.data.lng)) ? Number(data.data.lng) : 120.7925,
+              ]}
               hasMapStyleSelector={false}
               zoomControl={false}
               dragging={false}
@@ -128,6 +134,7 @@ export const StatusPanel = ({ data }: { data: any }) => {
               zoom={15}
               attribution=""
               markerType="status"
+              maxBounds={null as any}
             />
           ) : (
             <Map
@@ -141,6 +148,7 @@ export const StatusPanel = ({ data }: { data: any }) => {
               zoom={13}
               attribution=""
               markerType="default"
+              maxBounds={null as any}
             />
           )}
         </div>

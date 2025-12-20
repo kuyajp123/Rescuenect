@@ -42,7 +42,8 @@ export const Notification = () => {
     );
   }
 
-  const { notifications, isLoading, error, markAsRead, markAsHidden, getUnreadCount } = useNotificationStore();
+  const { notifications, isLoading, error, markAsRead, markAsHidden, getUnreadCount, markAllAsRead, markAllAsHidden } =
+    useNotificationStore();
 
   // Get unread count
   const unreadCount = useMemo(() => getUnreadCount(uid), [notifications, getUnreadCount]);
@@ -166,6 +167,44 @@ export const Notification = () => {
     }
   };
 
+  // Handle mark all as read
+  const handleMarkAllAsRead = async () => {
+    try {
+      const idToken = await getIdToken();
+      const unreadIds = notifications.filter(n => !n.readBy?.includes(uid)).map(n => n.id);
+
+      if (unreadIds.length === 0) return;
+
+      await axios.post(
+        API_ENDPOINTS.NOTIFICATION.MARK_ALL_AS_READ,
+        { uid, notificationIds: unreadIds },
+        { headers: { Authorization: `Bearer ${idToken}` } }
+      );
+      markAllAsRead(uid);
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    }
+  };
+
+  // Handle delete all notifications (mark as hidden)
+  const handleDeleteAllNotifications = async () => {
+    try {
+      const idToken = await getIdToken();
+      const visibleIds = notifications.filter(n => !n.hiddenBy?.includes(uid)).map(n => n.id);
+
+      if (visibleIds.length === 0) return;
+
+      await axios.post(
+        API_ENDPOINTS.NOTIFICATION.MARK_ALL_AS_HIDDEN,
+        { uid, notificationIds: visibleIds },
+        { headers: { Authorization: `Bearer ${idToken}` } }
+      );
+      markAllAsHidden(uid);
+    } catch (error) {
+      console.error('Error deleting all notifications:', error);
+    }
+  };
+
   if (error) {
     return (
       <Card className="w-full border border-default-100" shadow="none">
@@ -195,6 +234,37 @@ export const Notification = () => {
               <p className="text-sm text-default-500 mt-1">All caught up!</p>
             </div>
           )}
+        </div>
+        <div>
+          {notifications.length > 0 ? (
+            <Dropdown>
+              <DropdownTrigger>
+                <SecondaryButton className="rounded-full border-none" isIconOnly size="sm">
+                  <EllipsisVertical size={16} />
+                </SecondaryButton>
+              </DropdownTrigger>
+              <DropdownMenu aria-label="Notification actions">
+                {unreadCount > 0 ? (
+                  <DropdownItem
+                    key="read"
+                    onPress={() => {
+                      handleMarkAllAsRead();
+                    }}
+                  >
+                    Mark all as Read
+                  </DropdownItem>
+                ) : null}
+                <DropdownItem
+                  key="delete"
+                  onPress={() => {
+                    handleDeleteAllNotifications();
+                  }}
+                >
+                  Delete all Notifications
+                </DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
+          ) : null}
         </div>
       </div>
 

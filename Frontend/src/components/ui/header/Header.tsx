@@ -5,15 +5,15 @@ import { useAuth } from '@/stores/useAuth';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import { Avatar } from '@heroui/avatar';
 import {
-  BreadcrumbItem,
-  Breadcrumbs,
-  Button,
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownSection,
-  DropdownTrigger,
-  User,
+    BreadcrumbItem,
+    Breadcrumbs,
+    Button,
+    Dropdown,
+    DropdownItem,
+    DropdownMenu,
+    DropdownSection,
+    DropdownTrigger,
+    User,
 } from '@heroui/react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Bell, LogOut, PanelLeftClose, PanelLeftOpen, Settings, UserRound } from 'lucide-react';
@@ -95,6 +95,10 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
           break;
         case '/profile':
           label = 'Profile';
+          break;
+        case '/status/resident-profile':
+        case '/status/history/resident-profile':
+          label = 'Resident Profile';
           break;
         case '/notification':
           label = 'Notification';

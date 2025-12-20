@@ -9,6 +9,7 @@ import {
   Earthquake,
   Evacuation,
   HistoryVersions,
+  HourlyDetails,
   Notification,
   NotificationDetails,
   Residents,
@@ -17,7 +18,6 @@ import {
   Status,
   StatusHistory,
   Weather,
-  HourlyDetails,
 } from '@/pages/contents';
 import { AddressForm, AdminInfo, Login, Welcome } from './pages/auth';
 import Settings from './pages/contents/Settings';
@@ -36,7 +36,9 @@ const Router = () => {
       >
         <Route path="/" element={<Dashboard />} />
         <Route path="/status" element={<Status />} />
+        <Route path="/status/resident-profile" element={<ResidentsProfile />} />
         <Route path="/status/history" element={<StatusHistory />} />
+        <Route path="/status/history/resident-profile" element={<ResidentsProfile />} />
         <Route path="/status/history/versions" element={<HistoryVersions />} />
         <Route path="/status/history/save-as-pdf" element={<SaveAsPDF />} />
         <Route path="/weather" element={<Weather />} />

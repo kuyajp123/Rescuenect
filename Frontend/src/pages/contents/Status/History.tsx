@@ -1,4 +1,5 @@
-import { formatTimeSince } from '@/helper/commonHelpers';
+import { convertToDate, formatTimeSince } from '@/helper/commonHelpers';
+import { useResidentsStore } from '@/hooks/useFetchResidents';
 import { useStatusHistory } from '@/hooks/useStatusHistory';
 import { usePanelStore, type PanelSelection } from '@/stores/panelStore';
 import { useStatusStore } from '@/stores/useStatusStore';
@@ -122,6 +123,7 @@ export const conditionsOptions = [
 ];
 
 type StatusUser = {
+  uid: string;
   id: string;
   vid: string;
   email: string;
@@ -144,6 +146,7 @@ type StatusUser = {
 
 export const StatusHistory = () => {
   const statusData = useStatusStore(state => state.statusData);
+  const residents = useResidentsStore(state => state.residents);
   const setParentId = useVersionHistoryStore(state => state.setParentId);
   const setUid = useVersionHistoryStore(state => state.setUid);
   const navigate = useNavigate();
@@ -250,13 +253,20 @@ export const StatusHistory = () => {
         navigate('/status/history/versions');
         break;
       case 'user':
-        // View user profile with all their parent statuses
-        console.log('View Profile for:', user.firstName, user.lastName, {
-          uid: user.id,
-          profileImage: user.profileImage,
+        const residentDetail = residents.find(r => r.uid === user.uid || r.id === user.uid || r.id === user.id);
+        navigate('/status/history/resident-profile', {
+          state: {
+            resident: {
+              id: user.uid || user.id,
+              firstName: residentDetail?.firstName || '',
+              lastName: residentDetail?.lastName || '',
+              phoneNumber: residentDetail?.phoneNumber || '',
+              photo: residentDetail?.photo || '',
+              email: residentDetail?.email || '',
+              barangay: residentDetail?.barangay || '',
+            },
+          },
         });
-        // TODO: Open user profile modal
-        // await handleViewUserProfile(user);
         break;
     }
   };
@@ -300,9 +310,12 @@ export const StatusHistory = () => {
           </div>
         );
       case 'createdAt':
+        const date = convertToDate(cellValue);
         return (
           <div className="flex flex-col">
-            <p className="text-bold text-sm">{formatTimeSince(cellValue)}</p>
+            <p className="text-bold text-sm" title={date?.toLocaleString()}>
+              {formatTimeSince(cellValue)}
+            </p>
           </div>
         );
       case 'actions':
@@ -360,17 +373,8 @@ export const StatusHistory = () => {
       const endDate = dateRange.end;
 
       filteredUsers = filteredUsers.filter(user => {
-        const getTimestamp = (dateValue: any): number => {
-          if (!dateValue) return 0;
-          if (typeof dateValue === 'number') return dateValue;
-          if (typeof dateValue === 'string') return new Date(dateValue).getTime();
-          if (dateValue?.seconds) return dateValue.seconds * 1000;
-          if (dateValue?.toDate) return dateValue.toDate().getTime();
-          if (dateValue instanceof Date) return dateValue.getTime();
-          return 0;
-        };
-
-        const createdAtTimestamp = getTimestamp(user.createdAt);
+        const createdAtDate = convertToDate(user.createdAt);
+        const createdAtTimestamp = createdAtDate ? createdAtDate.getTime() : 0;
         const startTimestamp = startDate.getTime();
         const endTimestamp = endDate.getTime() + (24 * 60 * 60 * 1000 - 1); // Include end of day
 
@@ -389,19 +393,10 @@ export const StatusHistory = () => {
 
       // Special handling for createdAt - convert Firestore timestamps to comparable numbers
       if (sortDescriptor.column === 'createdAt') {
-        const getTimestamp = (dateValue: any): number => {
-          if (!dateValue) return 0;
-          if (typeof dateValue === 'number') return dateValue;
-          if (typeof dateValue === 'string') return new Date(dateValue).getTime();
-          // Handle Firestore timestamp objects
-          if (dateValue?.seconds) return dateValue.seconds * 1000;
-          if (dateValue?.toDate) return dateValue.toDate().getTime();
-          if (dateValue instanceof Date) return dateValue.getTime();
-          return 0;
-        };
-
-        const firstTimestamp = getTimestamp(first);
-        const secondTimestamp = getTimestamp(second);
+        const firstDate = convertToDate(first);
+        const secondDate = convertToDate(second);
+        const firstTimestamp = firstDate ? firstDate.getTime() : 0;
+        const secondTimestamp = secondDate ? secondDate.getTime() : 0;
         const cmp = firstTimestamp < secondTimestamp ? -1 : firstTimestamp > secondTimestamp ? 1 : 0;
 
         return sortDescriptor.direction === 'descending' ? cmp * -1 : cmp;
