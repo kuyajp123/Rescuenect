@@ -18,7 +18,7 @@ const allowedOrigins = [process.env.FRONTEND_URL, process.env.MOBILE_APP_URL];
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         callback(null, false);
