@@ -32,6 +32,7 @@ type ModalProps = {
   textAlign?: 'left' | 'center' | 'right';
   primaryButtonAction?: 'primary' | 'secondary' | 'success' | 'error' | 'warning';
   primaryButtonVariant?: 'solid' | 'outline' | 'link';
+  children?: React.ReactNode; // Added children prop
 };
 
 const index = ({
@@ -51,6 +52,7 @@ const index = ({
   textAlign,
   primaryButtonAction = 'primary',
   primaryButtonVariant = 'link',
+  children,
 }: ModalProps) => {
   const { isDark } = useTheme();
 
@@ -66,6 +68,7 @@ const index = ({
         </ModalHeader>
         <ModalBody style={{ maxHeight: 500 }}>
           {renderImage && renderImage()}
+          {children}
           {items && items.length > 0 && (
             <ScrollView>
               {items.map((item, index) => (

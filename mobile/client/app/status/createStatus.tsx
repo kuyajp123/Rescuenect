@@ -4,25 +4,6 @@ import { ImageModal } from '@/components/components/image-modal/ImageModal';
 import Map, { CustomButton, NumberInputField, RadioField, TextInputField } from '@/components/components/Map';
 import Modal from '@/components/components/Modal';
 import StatusOnboarding from '@/components/components/onboarding/StatusOnboarding';
-import {
-  cleanAddress,
-  formatContactNumber,
-  formatName,
-  formatTimeSince,
-  getCurrentPositionOnce,
-  isValidContactNumber,
-  normalizeCategory,
-} from '@/helper/commonHelpers';
-import { GetDate, GetTime } from '@/helper/DateAndTime';
-import { storageHelpers } from '@/helper/storage';
-import { useAuth } from '@/store/useAuth';
-import { useCoords } from '@/store/useCoords';
-import { useGetAddress } from '@/store/useGetAddress';
-import { useImagePickerStore } from '@/store/useImagePicker';
-import { useMapSettingsStore } from '@/store/useMapSettings';
-import { useNetwork } from '@/store/useNetwork';
-import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
-import { useStatusFormStore } from '@/store/useStatusForm';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { ButtonRadio } from '@/components/ui/CustomRadio';
 import { HStack } from '@/components/ui/hstack';
@@ -36,7 +17,26 @@ import { Colors } from '@/constants/Colors';
 import { categories, formFields } from '@/constants/variables';
 import { useMap } from '@/contexts/MapContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import {
+  cleanAddress,
+  formatContactNumber,
+  formatName,
+  formatTimeSince,
+  getCurrentPositionOnce,
+  isValidContactNumber,
+  normalizeCategory,
+} from '@/helper/commonHelpers';
+import { GetDate, GetTime } from '@/helper/DateAndTime';
+import { storageHelpers } from '@/helper/storage';
 import { navigateToStatusSettings } from '@/routes/route';
+import { useAuth } from '@/store/useAuth';
+import { useCoords } from '@/store/useCoords';
+import { useGetAddress } from '@/store/useGetAddress';
+import { useImagePickerStore } from '@/store/useImagePicker';
+import { useMapSettingsStore } from '@/store/useMapSettings';
+import { useNetwork } from '@/store/useNetwork';
+import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
+import { useStatusFormStore } from '@/store/useStatusForm';
 import { AddressState, Category, StatusFormErrors, StatusStateData } from '@/types/components';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
@@ -1482,7 +1482,19 @@ export const createStatus = () => {
             toggleModal('savedLocation', false);
             router.push('profile/(saveLocation)' as any);
           }}
-        />
+        >
+          {savedLocations.length === 0 && (
+            <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 50, gap: 10 }}>
+              <StateImage type="noChanges" style={{ width: 250, height: 250 }} />
+              <Text size="lg" style={{ fontWeight: 'bold' }}>
+                No Saved Locations
+              </Text>
+              <Text size="sm" style={{ textAlign: 'center', color: 'gray' }}>
+                You haven't saved any locations yet.
+              </Text>
+            </View>
+          )}
+        </Modal>
         <Modal
           modalVisible={modals.deleteConfirm}
           onClose={() => toggleModal('deleteConfirm', false)}

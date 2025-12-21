@@ -32,24 +32,15 @@ export const ImageModal: React.FC<ImageModalProps> = ({
     >
       <View style={styles.modalOverlay}>
         {/* Background touchable to close */}
-        <TouchableOpacity
-          style={styles.backgroundTouchable}
-          activeOpacity={1}
-          onPress={onClose}
-        >
+        <TouchableOpacity style={styles.backgroundTouchable} activeOpacity={1} onPress={onClose}>
           <View style={styles.modalContainer}>
             {/* Close button */}
             <TouchableOpacity style={[styles.closeButton]} onPress={onClose}>
-              <X size={24} color={"#FFFFFF"} />
+              <X size={24} color={'#FFFFFF'} />
             </TouchableOpacity>
 
             {/* Full size image */}
-            <Image
-              source={{ uri: imageUri }}
-              alt={alt}
-              style={styles.fullImage}
-              resizeMode="contain"
-            />
+            <Image source={{ uri: imageUri }} alt={alt} style={styles.fullImage} contentFit="contain" />
           </View>
         </TouchableOpacity>
       </View>

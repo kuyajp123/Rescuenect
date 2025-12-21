@@ -238,12 +238,37 @@ export const MapView: React.FC<MapViewProps> = ({
         {/* Register your icon asset here */}
         <Images
           images={{
-            pin: require('@/assets/images/marker/marker-icon-blue.png'), // <-- use a PNG image instead of SVG
+            pin: require('@/assets/images/marker/marker-icon-blue.png'),
+            'marker-school': require('@/assets/images/marker/evacuation-center-marker/marker-school.png'),
+            'marker-barangay-hall': require('@/assets/images/marker/evacuation-center-marker/marker-barangay-hall.png'),
+            'marker-gymnasium': require('@/assets/images/marker/evacuation-center-marker/marker-gymnasium.png'),
+            'marker-church': require('@/assets/images/marker/evacuation-center-marker/marker-church.png'),
+            'marker-government-building': require('@/assets/images/marker/evacuation-center-marker/marker-government-building.png'),
+            'marker-private-facility': require('@/assets/images/marker/evacuation-center-marker/marker-private-facility.png'),
+            'marker-vacant-building': require('@/assets/images/marker/evacuation-center-marker/marker-vacant-building.png'),
+            'marker-covered-court': require('@/assets/images/marker/evacuation-center-marker/marker-covered-court.png'),
             earthquakeRadius: earthquakeData
               ? getEarthquakeRadiusImage(earthquakeData.severity)
               : require('@/assets/images/marker/radius/moderate.png'),
           }}
         />
+
+        {show3DBuildings && (
+          <MapboxGL.VectorSource id="buildingSource" url="mapbox://mapbox.mapbox-streets-v8">
+            <MapboxGL.FillExtrusionLayer
+              id="3d-buildings"
+              sourceLayerID="building"
+              minZoomLevel={11}
+              maxZoomLevel={20}
+              style={{
+                fillExtrusionColor: '#aaa',
+                fillExtrusionHeight: ['get', 'height'],
+                fillExtrusionBase: ['get', 'min_height'],
+                fillExtrusionOpacity: 0.6,
+              }}
+            />
+          </MapboxGL.VectorSource>
+        )}
 
         {/* Marker source */}
         {evacuationCentersGeoJson && (
@@ -266,30 +291,53 @@ export const MapView: React.FC<MapViewProps> = ({
             <SymbolLayer
               id="marker-layer"
               style={{
-                iconImage: 'pin', // matches the key from <Images>
-                iconSize: 1, // adjust size here
+                iconImage: [
+                  'match',
+                  ['downcase', ['to-string', ['get', 'type']]],
+                  'school',
+                  'marker-school',
+                  'barangay hall',
+                  'marker-barangay-hall',
+                  'gymnasium',
+                  'marker-gymnasium',
+                  'church',
+                  'marker-church',
+                  'government building',
+                  'marker-government-building',
+                  'private facility',
+                  'marker-private-facility',
+                  'vacant building',
+                  'marker-vacant-building',
+                  'covered court',
+                  'marker-covered-court',
+                  'pin', // default
+                ],
+                iconSize: [
+                  'match',
+                  ['downcase', ['to-string', ['get', 'type']]],
+                  'school',
+                  0.1,
+                  'barangay hall',
+                  0.1,
+                  'gymnasium',
+                  0.1,
+                  'church',
+                  0.1,
+                  'government building',
+                  0.1,
+                  'private facility',
+                  0.1,
+                  'vacant building',
+                  0.1,
+                  'covered court',
+                  0.1,
+                  1,
+                ],
                 iconAllowOverlap: true,
                 iconIgnorePlacement: true,
               }}
             />
           </ShapeSource>
-        )}
-
-        {show3DBuildings && (
-          <MapboxGL.VectorSource id="buildingSource" url="mapbox://mapbox.mapbox-streets-v8">
-            <MapboxGL.FillExtrusionLayer
-              id="3d-buildings"
-              sourceLayerID="building"
-              minZoomLevel={11}
-              maxZoomLevel={20}
-              style={{
-                fillExtrusionColor: '#aaa',
-                fillExtrusionHeight: ['get', 'height'],
-                fillExtrusionBase: ['get', 'min_height'],
-                fillExtrusionOpacity: 0.6,
-              }}
-            />
-          </MapboxGL.VectorSource>
         )}
 
         {coords && (
