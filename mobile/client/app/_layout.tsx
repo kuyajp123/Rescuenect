@@ -30,13 +30,19 @@ import { useFonts } from 'expo-font';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { Bell } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { BackHandler, StyleSheet, View } from 'react-native';
+import { BackHandler, LogBox, StyleSheet, View } from 'react-native';
 import { SheetProvider } from 'react-native-actions-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import '../global.css';
 
 MapboxGL.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_API_TOKEN!);
+
+// Suppress legacy warnings from dependencies
+LogBox.ignoreLogs([
+  '`new NativeEventEmitter()` was called with a non-null argument without the required `addListener` method.',
+  '`new NativeEventEmitter()` was called with a non-null argument without the required `removeListeners` method.',
+]);
 
 function RootLayoutNav() {
   const { isDark, isLoading: themeLoading } = useTheme();

@@ -13,7 +13,10 @@
       }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_BACKEND_URL": "https://rescuenect-backend.onrender.com"
+      }
     },
     "production": {
       "autoIncrement": true,

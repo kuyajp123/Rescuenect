@@ -36,6 +36,7 @@ const limiter = rateLimit({
   message: 'Too many requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: req => req.path.startsWith('/health'), // Skip rate limiting for health checks
 });
 
 app.use(compression());
