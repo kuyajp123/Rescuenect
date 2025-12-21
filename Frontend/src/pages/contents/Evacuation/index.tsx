@@ -116,6 +116,7 @@ const index = () => {
                 lat: center.coordinates!.lat,
                 lng: center.coordinates!.lng,
                 ...center,
+                type: center.type,
               }))}
           />
         </div>

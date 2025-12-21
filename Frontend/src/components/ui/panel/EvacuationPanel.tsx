@@ -130,6 +130,7 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
               uid: data.data.id,
               lat: Number(isEditing ? formData.lat : data.data.coordinates?.lat || data.data.lat || 0),
               lng: Number(isEditing ? formData.lng : data.data.coordinates?.lng || data.data.lng || 0),
+              type: data.data.type,
             },
           ]}
           center={

@@ -116,7 +116,7 @@ export interface DailyWeather {
   sunsetTime: string;
   moonriseTime: string;
   moonsetTime: string;
-  
+
   // Averages
   temperatureAvg: number;
   temperatureApparentAvg: number;
@@ -161,10 +161,10 @@ export interface DailyWeather {
 
   // Accumulations/Sums
   rainAccumulationSum: number;
-  rainAccumulationAvg: number; 
+  rainAccumulationAvg: number;
   rainAccumulationMax: number;
   rainAccumulationMin: number;
-  
+
   sleetAccumulationLweSum: number;
   snowAccumulationLweSum: number;
   iceAccumulationLweSum: number;
@@ -183,7 +183,7 @@ export interface DailyWeather {
   cloudCeilingAvg: number;
   cloudCeilingMax: number;
   cloudCeilingMin: number;
-  
+
   // ... maps to the exhaustive JSON list provided
   dewPointMax: number;
   dewPointMin: number;
@@ -298,6 +298,16 @@ export interface MapMarkerData {
   // Earthquake-specific fields
   severity?: 'micro' | 'minor' | 'light' | 'moderate' | 'strong' | 'major' | 'great';
   magnitude?: number;
+  type?:
+    | 'school'
+    | 'barangay hall'
+    | 'gymnasium'
+    | 'church'
+    | 'government building'
+    | 'private facility'
+    | 'vacant building'
+    | 'covered court'
+    | 'other';
 }
 
 // Define props for the Map component

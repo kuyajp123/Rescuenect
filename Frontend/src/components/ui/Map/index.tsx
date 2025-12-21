@@ -290,6 +290,49 @@ export const Map = ({
     });
   };
 
+  // Custom icons for facilities
+  const getFacilityIcon = (type: string | undefined) => {
+    if (!type) return defaultIcon;
+
+    const normalizedType = type.toLowerCase();
+    let iconUrl = '';
+
+    switch (normalizedType) {
+      case 'school':
+        iconUrl = '/images/markers/evacuation-center-markers/marker-school.png';
+        break;
+      case 'barangay hall':
+        iconUrl = '/images/markers/evacuation-center-markers/marker-barangay-hall.png';
+        break;
+      case 'gymnasium':
+        iconUrl = '/images/markers/evacuation-center-markers/marker-gymnasium.png';
+        break;
+      case 'church':
+        iconUrl = '/images/markers/evacuation-center-markers/marker-church.png';
+        break;
+      case 'government building':
+        iconUrl = '/images/markers/evacuation-center-markers/marker-government-building.png';
+        break;
+      case 'private facility':
+        iconUrl = '/images/markers/evacuation-center-markers/marker-private-facility.png';
+        break;
+      case 'vacant building':
+        iconUrl = '/images/markers/evacuation-center-markers/marker-vacant-building.png';
+        break;
+      case 'covered court':
+        iconUrl = '/images/markers/evacuation-center-markers/marker-covered-court.png';
+        break;
+      default:
+        return defaultIcon;
+    }
+
+    return new L.Icon({
+      iconUrl,
+      iconSize: [75, 40],
+      popupAnchor: [0, -20],
+    });
+  };
+
   const getMarkerIcon = (item: MapMarkerData) => {
     if (markerType === 'mixed') {
       // Auto-detect marker type based on data properties
@@ -299,6 +342,9 @@ export const Map = ({
       } else if (item.condition) {
         // Has status data - use status marker
         return renderMarkerIcon(item);
+      } else if (item.type) {
+        // Has facility type - use facility icon
+        return getFacilityIcon(item.type);
       } else {
         // Fallback to default
         return defaultIcon;
@@ -308,6 +354,10 @@ export const Map = ({
     } else if (markerType === 'earthquake' || markerType === 'circle') {
       return createCircleMarker(item);
     } else {
+      // For default markerType, try to use facility icon if type exists
+      if (item.type) {
+        return getFacilityIcon(item.type);
+      }
       return defaultIcon;
     }
   };
