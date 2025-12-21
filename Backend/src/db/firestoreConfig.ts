@@ -25,6 +25,9 @@ const MAX_RETRY_ATTEMPTS = 3;
 /**
  * Initialize Firebase Admin SDK with enhanced error handling and token refresh support
  */
+// Initialize Firebase
+const app = initializeFirebase();
+
 function initializeFirebase(): admin.app.App {
   try {
     if (admin.apps.length > 0) {
@@ -38,39 +41,20 @@ function initializeFirebase(): admin.app.App {
 
     const app = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      // Explicitly set project ID to prevent authentication issues
       projectId: serviceAccount.project_id,
     });
 
     console.log('✅ Firebase Admin SDK initialized successfully');
     console.log(`📋 Project ID: ${serviceAccount.project_id}`);
 
-    initializationAttempts = 0;
     return app;
   } catch (error) {
-    initializationAttempts++;
-    console.error(
-      `❌ Failed to initialize Firebase Admin SDK (Attempt ${initializationAttempts}/${MAX_RETRY_ATTEMPTS}):`,
-      error
-    );
-
-    if (initializationAttempts < MAX_RETRY_ATTEMPTS) {
-      console.log(`🔄 Retrying initialization in 2 seconds...`);
-      return new Promise(resolve => {
-        setTimeout(() => resolve(initializeFirebase()), 2000);
-      }) as any;
-    }
-
-    throw new Error(
-      `Firebase initialization failed after ${MAX_RETRY_ATTEMPTS} attempts: ${
-        error instanceof Error ? error.message : error
-      }`
-    );
+    console.error('❌ Failed to initialize Firebase Admin SDK:', error);
+    // Throwing here will crash the server on startup, which is preferable to hanging
+    // Render will restart the service automatically
+    throw error;
   }
 }
-
-// Initialize Firebase
-const app = initializeFirebase();
 
 // Get Firestore instance with settings
 export const db = admin.firestore();
