@@ -17,6 +17,13 @@
   "description": "",
   "dependencies": {
     "@supabase/supabase-js": "^2.76.1",
+    "@types/compression": "^1.8.1",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/lodash": "^4.17.20",
+    "@types/luxon": "^3.7.1",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^22.13.10",
     "axios": "^1.11.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
@@ -30,22 +37,15 @@
     "lodash": "^4.17.21",
     "luxon": "^3.7.1",
     "multer": "^2.0.2",
-    "node-cron": "^4.2.1"
+    "node-cron": "^4.2.1",
+    "tsc-alias": "^1.8.16",
+    "typescript": "^5.8.2"
   },
   "devDependencies": {
-    "@types/compression": "^1.8.1",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^5.0.0",
-    "@types/lodash": "^4.17.20",
-    "@types/luxon": "^3.7.1",
-    "@types/multer": "^2.0.0",
-    "@types/node": "^22.13.10",
     "concurrently": "^9.1.2",
     "supabase": "^2.51.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
-    "tsc-alias": "^1.8.16",
-    "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.8.2"
+    "tsconfig-paths": "^4.2.0"
   }
 }
