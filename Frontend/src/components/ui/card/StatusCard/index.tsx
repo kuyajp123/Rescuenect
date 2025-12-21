@@ -41,7 +41,7 @@ export const StatusCard = ({
 
   return (
     <Card
-      className={`max-w-[500px] max-h-[580px] dark:border dark:border-gray-700 ${className}`}
+      className={`max-w-[500px] max-h-[565px] dark:border dark:border-gray-700 ${className}`}
       key={uid}
       style={style}
     >

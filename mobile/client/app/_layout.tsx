@@ -1,12 +1,6 @@
 import '@/components/components/ActionSheet/sheets';
 import { HeaderBackButton, IconButton } from '@/components/components/button/Button';
-import { storageHelpers } from '@/helper/storage';
-import { useAuth } from '@/store/useAuth';
-import { useUserData } from '@/store/useBackendResponse';
-import { useNotificationStore } from '@/store/useNotificationStore';
-import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
-import { useStatusFormStore } from '@/store/useStatusForm';
-import { useWeatherStore } from '@/store/useWeatherStore';
+import Modal from '@/components/components/Modal';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
@@ -15,6 +9,7 @@ import { FontSizeProvider, useFontSize } from '@/contexts/FontSizeContext';
 import { HighContrastProvider } from '@/contexts/HighContrastContext';
 import MapContext from '@/contexts/MapContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
+import { storageHelpers } from '@/helper/storage';
 import { useIdToken } from '@/hooks/useIdToken';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useNotificationSubscriber } from '@/hooks/useNotificationSubscriber';
@@ -23,13 +18,19 @@ import { useStatusFetchBackgroundData } from '@/hooks/useStatusFetchBackgroundDa
 import { useCurrentStatuses } from '@/hooks/useStatusSubscriber';
 import { subscribeToWeatherData } from '@/hooks/useWeatherData';
 import { FCMTokenService } from '@/services/fcmTokenService';
+import { useAuth } from '@/store/useAuth';
+import { useUserData } from '@/store/useBackendResponse';
+import { useNotificationStore } from '@/store/useNotificationStore';
+import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
+import { useStatusFormStore } from '@/store/useStatusForm';
+import { useWeatherStore } from '@/store/useWeatherStore';
 import MapboxGL from '@rnmapbox/maps';
 import axios from 'axios';
 import { useFonts } from 'expo-font';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { Bell } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { BackHandler, StyleSheet, View } from 'react-native';
 import { SheetProvider } from 'react-native-actions-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
@@ -41,9 +42,11 @@ function RootLayoutNav() {
   const { isDark, isLoading: themeLoading } = useTheme();
   const { isLoading: fontLoading } = useFontSize();
   const router = useRouter();
+  const pathname = usePathname();
   const [isReady, setIsReady] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const unreadCount = useNotificationStore(state => state.unreadCount);
+  const [exitModalVisible, setExitModalVisible] = useState(false);
 
   const handleBack = () => {
     router.back();
@@ -101,6 +104,24 @@ function RootLayoutNav() {
 
     return () => clearTimeout(timer);
   }, [loaded, themeLoading, fontLoading, isMounted]);
+
+  // Handle hardware back button for exit confirmation
+  useEffect(() => {
+    const handleHardwareBackPress = () => {
+      // List of routes where back button should trigger exit modal
+      const rootRoutes = ['/', '/(tabs)', '/index'];
+
+      if (rootRoutes.includes(pathname) || pathname === '/') {
+        setExitModalVisible(true);
+        return true; // Prevent default behavior
+      }
+      return false; // Let default behavior happen (pop stack)
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleHardwareBackPress);
+
+    return () => backHandler.remove();
+  }, [pathname]);
 
   if (!isMounted || !isReady || themeLoading || fontLoading) {
     return null;
@@ -262,6 +283,21 @@ function RootLayoutNav() {
         />
         <Stack.Screen name="+not-found" />
       </Stack>
+
+      {/* Exit Confirmation Modal */}
+      <Modal
+        modalVisible={exitModalVisible}
+        onClose={() => setExitModalVisible(false)}
+        primaryText="Exit App"
+        secondaryText="Are you sure you want to exit Rescuenect?"
+        primaryButtonText="Exit"
+        secondaryButtonText="Cancel"
+        primaryButtonOnPress={() => BackHandler.exitApp()}
+        secondaryButtonOnPress={() => setExitModalVisible(false)}
+        primaryButtonAction="error"
+        primaryButtonVariant="solid"
+        iconOnPress={() => setExitModalVisible(false)}
+      />
     </GluestackUIProvider>
   );
 }

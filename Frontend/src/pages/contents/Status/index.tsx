@@ -185,7 +185,7 @@ const Status = () => {
           overlayClassName="custom-map-overlay"
         />
       </div>
-      <div className="h-fit lg:h-full overflow-y-auto">
+      <div className="h-full lg:h-full overflow-y-auto">
         <div className="flex flex-col justify-between">
           <StatusList safe={safeCount} evacuated={evacuatedCount} affected={affectedCount} missing={missingCount} />
           <div className="mb-4 mt-6 flex flex-col sm:flex-row gap-3 sm:gap-5 items-center">

@@ -463,7 +463,7 @@ export const StatusHistory = () => {
   const topContent = useMemo(() => {
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex justify-between gap-3 items-end">
+        <div className="flex justify-between gap-3 items-center">
           <Input
             isClearable
             className="w-full sm:max-w-[44%]"
@@ -473,7 +473,7 @@ export const StatusHistory = () => {
             onClear={() => onClear()}
             onValueChange={onSearchChange}
           />
-          <div className="flex w-full justify-end gap-3">
+          <div className="flex w-full justify-end gap-3 items-center">
             {/* Date Range Filter */}
             <div className="relative w-full max-w-xs">
               <DateRangePicker
@@ -638,9 +638,9 @@ export const StatusHistory = () => {
   }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
 
   return (
-    <div className="w-full">
+    <div className="w-full h-fit">
       <div className="flex">
-        <p className="text-3xl font-bold mb-5 mr-auto">Status History</p>
+        <p className="text-3xl font-bold mb-3 mr-auto">Status History</p>
         <Button
           startContent={<FileText size={20} color="#FFFFFF" />}
           color="primary"

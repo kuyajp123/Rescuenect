@@ -1,6 +1,6 @@
-import { Image } from 'expo-image';
 import { Text } from '@/components/ui/text';
 import { useTheme } from '@/contexts/ThemeContext';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -57,7 +57,7 @@ export const AdvancedCarousel = () => {
     >
       {/* Image Section */}
       <View style={styles.imageContainer}>
-        <Image source={{ uri: item.image }} style={styles.carouselImage} alt={item.title} />
+        <Image source={{ uri: item.image }} style={styles.carouselImage} alt={item.title} contentFit="cover" />
 
         {/* Overlay gradient effect */}
         <View style={styles.imageOverlay} />
@@ -179,7 +179,6 @@ const styles = StyleSheet.create({
   carouselImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover', // This ensures the image fills the space properly
   },
   imageOverlay: {
     position: 'absolute',

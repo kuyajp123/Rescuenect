@@ -67,7 +67,7 @@ export default function EvacuationTable({ data, onDeleteRequest, onEditRequest }
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set([]));
   const [visibleColumns, setVisibleColumns] = React.useState<Selection>(new Set(INITIAL_VISIBLE_COLUMNS));
   const [statusFilter, setStatusFilter] = React.useState<Selection>('all');
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: 'status',
     direction: 'ascending',
@@ -336,6 +336,7 @@ export default function EvacuationTable({ data, onDeleteRequest, onEditRequest }
           <label className="flex items-center text-default-400 text-small">
             Rows per page:
             <select
+              defaultValue="10"
               className="bg-transparent outline-solid outline-transparent text-default-400 text-small"
               onChange={onRowsPerPageChange}
             >
