@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "concurrently \"npm run start-backend\" \"npm run start-frontend\"",
+    "start": "node dist/src/server.js",
+    "build": "tsc && tsc-alias",
+    "dev": "concurrently \"npm run start-backend\" \"npm run start-frontend\"",
     "start-backend": "ts-node-dev -r tsconfig-paths/register src/server.ts",
     "start-frontend": "cd .. && cd frontend && npm run dev",
-    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
+    "dev-backend": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -20,8 +22,10 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.2.1",
     "firebase-admin": "^13.4.0",
     "google-auth-library": "^10.4.2",
+    "helmet": "^8.1.0",
     "install": "^0.13.0",
     "lodash": "^4.17.21",
     "luxon": "^3.7.1",
@@ -40,6 +44,7 @@
     "supabase": "^2.51.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
+    "tsc-alias": "^1.8.16",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.8.2"
   }

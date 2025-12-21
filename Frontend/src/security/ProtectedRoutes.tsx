@@ -1,4 +1,4 @@
-// components/ProtectedRoute.tsx
+import { Loading } from '@/components/ui/LazyLoading/Loading';
 import { useAuth } from '@/stores/useAuth';
 import { Navigate, useLocation } from 'react-router-dom';
 
@@ -13,16 +13,9 @@ export default function ProtectedRoute({ children }: Props) {
   const isVerifying = useAuth(state => state.isVerifying);
   const location = useLocation();
 
-  // Show loading spinner while Firebase OR backend is verifying
+  // Show branded loading spinner while Firebase OR backend is verifying
   if (isLoading || isVerifying) {
-    return (
-      <div className="flex items-center justify-center min-h-screen dark:bg-bg-dark">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 dark:border-white"></div>
-        <p className="mt-4 text-gray-600 dark:text-gray-300 ml-4">
-          {isVerifying ? 'Verifying account...' : 'Loading...'}
-        </p>
-      </div>
-    );
+    return <Loading />;
   }
 
   // 1. Not authenticated -> Login

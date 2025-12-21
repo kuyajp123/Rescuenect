@@ -161,6 +161,8 @@ export const createStatus = () => {
     savedLocation: false,
   });
 
+  const [submitError, setSubmitError] = useState({ title: 'An error occurred.', message: '' });
+
   const toggleModal = (name: keyof typeof modals, value: boolean) => {
     setModals(prev => ({ ...prev, [name]: value }));
   };
@@ -762,8 +764,13 @@ export const createStatus = () => {
       setOneTimeLocationCoords(null);
       toggleModal('submitSuccess', true);
       showAlert();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting form:', error);
+
+      const title = error.response?.data?.error || 'Submission Failed';
+      const message = error.response?.data?.message || error.message || 'An unexpected error occurred.';
+
+      setSubmitError({ title, message });
       toggleModal('submitFailure', true);
       setSubmitStatusLoading(false);
     } finally {
@@ -1450,8 +1457,8 @@ export const createStatus = () => {
           secondaryButtonText="Cancel"
           secondaryButtonOnPress={() => toggleModal('submitFailure', false)}
           renderImage={() => renderImageState('submitFailure')}
-          primaryText="An error occurred."
-          secondaryText="Would you like to send the details you entered through your messaging app instead?"
+          primaryText={submitError.title}
+          secondaryText={`${submitError.message}\n\nWould you like to send the details you entered through your messaging app instead?`}
         />
         <Modal
           modalVisible={modals.savedLocation}

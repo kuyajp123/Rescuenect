@@ -1,9 +1,23 @@
 import dotenv from 'dotenv';
 import * as admin from 'firebase-admin';
-import serviceAccount from '../../lively-metrics-453114-q3-firebase-adminsdk-fbsvc-dba3bff89c.json';
 
 // Load environment variables
 dotenv.config();
+
+let serviceAccount: any;
+try {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+    serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64').toString('utf-8'));
+  } else {
+    // Fallback to local file for development
+    // Using require to avoid TypeScript build errors if file is missing in prod
+    serviceAccount = require('../../lively-metrics-453114-q3-firebase-adminsdk-fbsvc-dba3bff89c.json');
+  }
+} catch (error) {
+  console.warn(
+    '⚠️ Could not load Firebase Service Account. Ensure FIREBASE_SERVICE_ACCOUNT_BASE64 is set in production or the JSON file exists locally.'
+  );
+}
 
 let initializationAttempts = 0;
 const MAX_RETRY_ATTEMPTS = 3;
@@ -18,8 +32,12 @@ function initializeFirebase(): admin.app.App {
       return admin.app();
     }
 
+    if (!serviceAccount) {
+      throw new Error('Firebase Service Account credentials are missing.');
+    }
+
     const app = admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+      credential: admin.credential.cert(serviceAccount),
       // Explicitly set project ID to prevent authentication issues
       projectId: serviceAccount.project_id,
     });

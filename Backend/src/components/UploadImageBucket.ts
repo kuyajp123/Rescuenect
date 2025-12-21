@@ -18,16 +18,25 @@ export async function ensureBucketExists(BUCKET_NAME: string) {
       const { data: createData, error: createError } = await supabase.storage.createBucket(BUCKET_NAME, {
         public: true, // Make bucket public for easy URL access
         allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
-        fileSizeLimit: 5242880, // 5MB limit
+        fileSizeLimit: 52428800, // 50MB limit
       });
 
       if (createError) {
         console.error('❌ Error creating bucket:', createError);
         throw new Error(`Failed to create bucket: ${createError.message}`);
       }
-
     } else {
-      // console.log('✅ Bucket already exists:', this.BUCKET_NAME);
+      // Update existing bucket limit
+      // console.log('✅ Updating existing bucket limit:', BUCKET_NAME);
+      const { error: updateError } = await supabase.storage.updateBucket(BUCKET_NAME, {
+        public: true,
+        allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+        fileSizeLimit: 52428800, // 50MB limit
+      });
+
+      if (updateError) {
+        console.warn('⚠️ Failed to update existing bucket limit:', updateError);
+      }
     }
   } catch (error) {
     console.error('❌ Error in ensureBucketExists:', error);
