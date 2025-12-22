@@ -1,7 +1,7 @@
-import { storageHelpers } from '@/helper/storage';
-import { useNotificationStore } from '@/store/useNotificationStore';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { storageHelpers } from '@/helper/storage';
 import { db } from '@/lib/firebaseConfig';
+import { useNotificationStore } from '@/store/useNotificationStore';
 import type { BaseNotification } from '@/types/notification';
 import { collection, doc, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
@@ -54,66 +54,72 @@ export const useNotificationSubscriber = ({
 
   // Global Notifications Subscription
   useEffect(() => {
-    const notificationQuery = query(
-      collection(db, 'notifications'),
-      orderBy('timestamp', 'desc'),
-      limit(maxNotifications)
-    );
+    let unsubscribe = () => {};
+    try {
+      const notificationQuery = query(
+        collection(db, 'notifications'),
+        orderBy('timestamp', 'desc'),
+        limit(maxNotifications)
+      );
 
-    const unsubscribe = onSnapshot(
-      notificationQuery,
-      snapshot => {
-        try {
-          const allNotifications: BaseNotification[] = [];
+      unsubscribe = onSnapshot(
+        notificationQuery,
+        snapshot => {
+          try {
+            const allNotifications: BaseNotification[] = [];
 
-          snapshot.forEach(doc => {
-            const data = doc.data() as BaseNotification;
-            const notification: BaseNotification = {
-              ...data,
-              id: doc.id,
-            };
+            snapshot.forEach(doc => {
+              const data = doc.data() as BaseNotification;
+              const notification: BaseNotification = {
+                ...data,
+                id: doc.id,
+              };
 
-            // Filter logic:
-            if (notification.type === 'earthquake') {
-              allNotifications.push(notification);
-            } else if (notification.type === 'weather') {
-              if (!userLocation) {
+              // Filter logic:
+              if (notification.type === 'earthquake') {
                 allNotifications.push(notification);
-              } else {
-                const isRelevant =
-                  notification.location === userLocation ||
-                  notification.location === 'central_naic' ||
-                  notification.barangays?.includes(userLocation) ||
-                  false;
-
-                if (isRelevant) {
+              } else if (notification.type === 'weather') {
+                if (!userLocation) {
                   allNotifications.push(notification);
+                } else {
+                  const isRelevant =
+                    notification.location === userLocation ||
+                    notification.location === 'central_naic' ||
+                    notification.barangays?.includes(userLocation) ||
+                    false;
+
+                  if (isRelevant) {
+                    allNotifications.push(notification);
+                  }
                 }
+              } else {
+                allNotifications.push(notification);
               }
-            } else {
-              allNotifications.push(notification);
-            }
-          });
+            });
 
-          // Filter out notifications hidden by current user
-          const visibleNotifications = userId
-            ? allNotifications.filter(notif => !notif.hiddenBy?.includes(userId))
-            : allNotifications;
+            // Filter out notifications hidden by current user
+            const visibleNotifications = userId
+              ? allNotifications.filter(notif => !notif.hiddenBy?.includes(userId))
+              : allNotifications;
 
-          setGlobalNotifications(visibleNotifications);
-          setIsLoading(false);
-        } catch (err) {
-          console.error('❌ Error processing global notifications:', err);
-          setError(err instanceof Error ? err.message : 'Failed to load notifications');
+            setGlobalNotifications(visibleNotifications);
+            setIsLoading(false);
+          } catch (err) {
+            console.error('❌ Error processing global notifications:', err);
+            setError(err instanceof Error ? err.message : 'Failed to load notifications');
+            setIsLoading(false);
+          }
+        },
+        err => {
+          console.error('❌ Global notification listener error:', err);
+          setError(err.message);
           setIsLoading(false);
         }
-      },
-      err => {
-        console.error('❌ Global notification listener error:', err);
-        setError(err.message);
-        setIsLoading(false);
-      }
-    );
+      );
+    } catch (error) {
+      console.error('❌ Error setting up global notification listener:', error);
+      setIsLoading(false);
+    }
 
     return () => unsubscribe();
   }, [userLocation, userId, maxNotifications]);
@@ -125,46 +131,51 @@ export const useNotificationSubscriber = ({
       return;
     }
 
-    const unsubscribe = onSnapshot(
-      doc(db, 'users', userId),
-      docSnapshot => {
-        try {
-          if (docSnapshot.exists()) {
-            const data = docSnapshot.data();
-            const notifications = data?.notifications || [];
+    let unsubscribe = () => {};
+    try {
+      unsubscribe = onSnapshot(
+        doc(db, 'users', userId),
+        docSnapshot => {
+          try {
+            if (docSnapshot.exists()) {
+              const data = docSnapshot.data();
+              const notifications = data?.notifications || [];
 
-            const mappedNotifications: BaseNotification[] = notifications.map((n: any, index: number) => ({
-              id: n.id || `user-notif-${index}-${n.timestamp}`,
-              type: n.type || 'system',
-              title: n.title,
-              message: n.body,
-              timestamp: n.timestamp,
-              createdAt: new Date(n.timestamp).toISOString(),
-              location: 'status update',
-              audience: 'users',
-              sentTo: 1,
-              data: {
-                statusId: n.statusId,
-                type: n.type,
-              },
-              // If the stored notification says 'read: true', we verify it by checking if userId is in readBy for consistency,
-              // or just artificially construct readBy. BaseNotification expects readBy string[].
-              readBy: n.read ? [userId] : [],
-              hiddenBy: [], // User specific ones are likely not hidden via this mechanism yet
-            }));
+              const mappedNotifications: BaseNotification[] = notifications.map((n: any, index: number) => ({
+                id: n.id || `user-notif-${index}-${n.timestamp}`,
+                type: n.type || 'system',
+                title: n.title,
+                message: n.body,
+                timestamp: n.timestamp,
+                createdAt: new Date(n.timestamp).toISOString(),
+                location: 'status update',
+                audience: 'users',
+                sentTo: 1,
+                data: {
+                  statusId: n.statusId,
+                  type: n.type,
+                },
+                // If the stored notification says 'read: true', we verify it by checking if userId is in readBy for consistency,
+                // or just artificially construct readBy. BaseNotification expects readBy string[].
+                readBy: n.read ? [userId] : [],
+                hiddenBy: [], // User specific ones are likely not hidden via this mechanism yet
+              }));
 
-            setUserNotifications(mappedNotifications);
-          } else {
-            setUserNotifications([]);
+              setUserNotifications(mappedNotifications);
+            } else {
+              setUserNotifications([]);
+            }
+          } catch (err) {
+            console.error('❌ Error processing user notifications:', err);
           }
-        } catch (err) {
-          console.error('❌ Error processing user notifications:', err);
+        },
+        err => {
+          console.error('❌ User notification listener error:', err);
         }
-      },
-      err => {
-        console.error('❌ User notification listener error:', err);
-      }
-    );
+      );
+    } catch (error) {
+      console.error('❌ Error setting up user notification listener:', error);
+    }
 
     return () => unsubscribe();
   }, [userId]);

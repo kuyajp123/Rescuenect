@@ -5,6 +5,7 @@ import { getMessaging } from '@react-native-firebase/messaging';
 import { FirebaseApp, getApp, getApps, initializeApp } from 'firebase/app';
 import { Auth, getAuth, getReactNativePersistence, initializeAuth } from 'firebase/auth';
 import { Firestore, getFirestore } from 'firebase/firestore';
+import { Alert } from 'react-native';
 
 const fcmApp = fcmGetApp();
 const messaging = getMessaging(fcmApp);
@@ -18,10 +19,21 @@ try {
     firebaseConfig = JSON.parse(firebaseConfigStr);
   } else {
     // Fallback: Check for individual variables if the single object isn't found
-    console.warn('⚠️ EXPO_PUBLIC_FIREBASE_CONFIG not found, checking for individual keys...');
+    console.warn('⚠️ EXPO_PUBLIC_FIREBASE_CONFIG not found, setting dummy config to prevent crash...');
+    Alert.alert('Configuration Error', 'EXPO_PUBLIC_FIREBASE_CONFIG is missing. Falling back to dummy config.');
+    firebaseConfig = {
+      apiKey: 'MISSING_API_KEY',
+      authDomain: 'MISSING_AUTH_DOMAIN',
+      projectId: 'MISSING_PROJECT_ID',
+      storageBucket: 'MISSING_STORAGE_BUCKET',
+      messagingSenderId: '000000000000',
+      appId: 'MISSING_APP_ID',
+      measurementId: 'MISSING_MEASUREMENT_ID',
+    };
   }
 } catch (error) {
   console.error('❌ Failed to parse EXPO_PUBLIC_FIREBASE_CONFIG:', error);
+  Alert.alert('Configuration Error', 'Failed to parse EXPO_PUBLIC_FIREBASE_CONFIG. Check JSON format.');
   // Do NOT throw here, as it crashes the app immediately on launch.
   // Instead, set a potentially broken config so at least the app UI can load and we can debug.
   firebaseConfig = {

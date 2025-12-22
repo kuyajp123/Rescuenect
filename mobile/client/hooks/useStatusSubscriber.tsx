@@ -1,5 +1,5 @@
-import { useStatusStore } from '@/store/useCurrentStatusStore';
 import { db } from '@/lib/firebaseConfig';
+import { useStatusStore } from '@/store/useCurrentStatusStore';
 import { StatusData } from '@/types/components';
 import {
   collectionGroup,
@@ -23,30 +23,38 @@ export const useCurrentStatuses = () => {
   useEffect(() => {
     setLoading(true);
 
-    const statusQuery = query(
-      collectionGroup(db, 'statuses'),
-      where('statusType', '==', 'current'),
-      orderBy('createdAt', 'desc')
-    );
+    let unsubscribe = () => {};
 
-    const unsubscribe = onSnapshot(
-      statusQuery,
-      (snapshot: QuerySnapshot<DocumentData>) => {
-        const currentStatuses = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as unknown as StatusData[];
+    try {
+      const statusQuery = query(
+        collectionGroup(db, 'statuses'),
+        where('statusType', '==', 'current'),
+        orderBy('createdAt', 'desc')
+      );
 
-        setStatuses(currentStatuses);
-        setLoading(false);
-        setError(null);
-      },
-      (err: FirestoreError) => {
-        console.error('Error fetching statuses:', err);
-        setError(err.message);
-        setLoading(false);
-      }
-    );
+      unsubscribe = onSnapshot(
+        statusQuery,
+        (snapshot: QuerySnapshot<DocumentData>) => {
+          const currentStatuses = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as unknown as StatusData[];
+
+          setStatuses(currentStatuses);
+          setLoading(false);
+          setError(null);
+        },
+        (err: FirestoreError) => {
+          console.error('Error fetching statuses:', err);
+          setError(err.message);
+          setLoading(false);
+        }
+      );
+    } catch (error: any) {
+      console.error('❌ Error setting up status listener:', error);
+      setError(error.message);
+      setLoading(false);
+    }
 
     return () => unsubscribe();
   }, []);
