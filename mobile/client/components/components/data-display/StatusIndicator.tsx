@@ -59,8 +59,8 @@ export const StatusIndicator = ({ userStatus, loggedInUser }: StatusIndicatorPro
                         alt={`${userStatus.firstName} ${userStatus.lastName}`}
                       />
                       <AvatarFallbackText>
-                        {userStatus.firstName.charAt(0)}
-                        {userStatus.lastName.charAt(0)}
+                        {userStatus.firstName?.charAt(0)}
+                        {userStatus.lastName?.charAt(0)}
                       </AvatarFallbackText>
                     </Avatar>
                   )}

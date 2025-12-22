@@ -7,21 +7,39 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { storageHelpers } from '@/helper/storage';
+
 export const evacuation = () => {
   const insets = useSafeAreaInsets();
   const [evacuationCenters, setEvacuationCenters] = useState<EvacuationCenter[] | null>(null);
 
   useEffect(() => {
-    const fetchEvacuationCenters = async () => {
+    const loadData = async () => {
+      // 1. Load from cache first
+      try {
+        const cached = await storageHelpers.getData<EvacuationCenter[]>(STORAGE_KEYS.EVACUATION_CENTERS);
+        if (cached) {
+          setEvacuationCenters(cached);
+        }
+      } catch (e) {
+        console.error('Error loading cached evacuation centers', e);
+      }
+
+      // 2. Fetch fresh data
       try {
         const response = await axios.get<EvacuationCenter[]>(API_ROUTES.EVACUATION.GET_CENTERS);
-
-        setEvacuationCenters(response.data);
+        if (response.data) {
+          setEvacuationCenters(response.data);
+          // 3. Update cache
+          await storageHelpers.setData(STORAGE_KEYS.EVACUATION_CENTERS, response.data);
+        }
       } catch (error) {
         console.error('Error fetching evacuation centers:', error);
       }
     };
-    fetchEvacuationCenters();
+
+    loadData();
   }, []);
 
   return (

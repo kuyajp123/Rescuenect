@@ -21,7 +21,8 @@ export const CardWeather = () => {
   const linerColorLight = ['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.2)'] as const;
   const linerColorDark = ['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.6)'] as const;
 
-  const WeatherIcon = getWeatherIcons(weatherData?.realtime[0].weatherCode || 10000);
+  const currentRealtime = weatherData?.realtime?.[0];
+  const WeatherIcon = getWeatherIcons(currentRealtime?.weatherCode || 10000);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -56,7 +57,7 @@ export const CardWeather = () => {
             <View>
               <WeatherIcon width={75} height={60} />
               <Text size="3xl" bold style={styles.temperatureText}>
-                {weatherData?.realtime[0].temperature ? Math.round(Number(weatherData.realtime[0].temperature)) : '--'}
+                {currentRealtime?.temperature ? Math.round(Number(currentRealtime.temperature)) : '--'}
                 °C
               </Text>
             </View>
@@ -74,7 +75,7 @@ export const CardWeather = () => {
 
               <View style={styles.locationContainer}>
                 <Text size="2xs" style={styles.locationText}>
-                  {userData.barangay} • {getWeatherCondition(Number(weatherData?.realtime[0].temperature))}
+                  {userData.barangay} • {getWeatherCondition(Number(currentRealtime?.temperature))}
                 </Text>
               </View>
             </View>

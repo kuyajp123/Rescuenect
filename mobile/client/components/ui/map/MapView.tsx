@@ -129,6 +129,8 @@ export const MapView: React.FC<MapViewProps> = ({
   const [showMapStyles, setShowMapStyles] = useState(false);
   const [mapStyleState, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
   const [selectedMarker, setSelectedMarker] = useState<EvacuationCenter | null>(null);
+  const [isStyleLoaded, setIsStyleLoaded] = useState(false);
+  const [areMarkersReady, setAreMarkersReady] = useState(false);
 
   useEffect(() => {
     const loadMapStyle = async () => {
@@ -143,6 +145,20 @@ export const MapView: React.FC<MapViewProps> = ({
     };
     loadMapStyle();
   }, []);
+
+  // Sequential loading: Wait for style -> Wait for Images -> Show Markers
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (isStyleLoaded) {
+      // Give the Images component time to register native assets before adding the ShapeSource
+      timeout = setTimeout(() => {
+        setAreMarkersReady(true);
+      }, 500);
+    } else {
+      setAreMarkersReady(false);
+    }
+    return () => clearTimeout(timeout);
+  }, [isStyleLoaded]);
 
   // Handle hardware back press
   useEffect(() => {
@@ -166,6 +182,10 @@ export const MapView: React.FC<MapViewProps> = ({
   const handleStyleChange = useCallback(
     async (style: MapboxGL.StyleURL.Street | MapboxGL.StyleURL.Dark | MapboxGL.StyleURL.SatelliteStreet) => {
       try {
+        if (mapStyleState === style) return;
+
+        setIsStyleLoaded(false); // Unmount layers before style change
+
         if (setMapStyle) {
           setMapStyle(style);
         }
@@ -177,7 +197,7 @@ export const MapView: React.FC<MapViewProps> = ({
         console.error('Error saving map style:', error);
       }
     },
-    []
+    [mapStyleState]
   );
 
   // Convert EvacuationCenterFormData[] to GeoJSON FeatureCollection
@@ -219,6 +239,7 @@ export const MapView: React.FC<MapViewProps> = ({
         compassViewPosition={1}
         compassViewMargins={{ x: 20, y: 20 }}
         onPress={handleMapPress}
+        onDidFinishLoadingStyle={() => setIsStyleLoaded(true)}
       >
         <MapboxGL.Camera
           zoomLevel={zoomLevel}
@@ -235,170 +256,174 @@ export const MapView: React.FC<MapViewProps> = ({
           followZoomLevel={16}
         />
 
-        {/* Register your icon asset here */}
-        <Images
-          images={{
-            pin: require('@/assets/images/marker/marker-icon-blue.png'),
-            'marker-school': require('@/assets/images/marker/evacuation-center-marker/marker-school.png'),
-            'marker-barangay-hall': require('@/assets/images/marker/evacuation-center-marker/marker-barangay-hall.png'),
-            'marker-gymnasium': require('@/assets/images/marker/evacuation-center-marker/marker-gymnasium.png'),
-            'marker-church': require('@/assets/images/marker/evacuation-center-marker/marker-church.png'),
-            'marker-government-building': require('@/assets/images/marker/evacuation-center-marker/marker-government-building.png'),
-            'marker-private-facility': require('@/assets/images/marker/evacuation-center-marker/marker-private-facility.png'),
-            'marker-vacant-building': require('@/assets/images/marker/evacuation-center-marker/marker-vacant-building.png'),
-            'marker-covered-court': require('@/assets/images/marker/evacuation-center-marker/marker-covered-court.png'),
-            earthquakeRadius: earthquakeData
-              ? getEarthquakeRadiusImage(earthquakeData.severity)
-              : require('@/assets/images/marker/radius/moderate.png'),
-          }}
-        />
-
-        {show3DBuildings && (
-          <MapboxGL.VectorSource id="buildingSource" url="mapbox://mapbox.mapbox-streets-v8">
-            <MapboxGL.FillExtrusionLayer
-              id="3d-buildings"
-              sourceLayerID="building"
-              minZoomLevel={11}
-              maxZoomLevel={20}
-              style={{
-                fillExtrusionColor: '#aaa',
-                fillExtrusionHeight: ['get', 'height'],
-                fillExtrusionBase: ['get', 'min_height'],
-                fillExtrusionOpacity: 0.6,
-              }}
-            />
-          </MapboxGL.VectorSource>
-        )}
-
-        {/* Marker source */}
-        {evacuationCentersGeoJson && (
-          <ShapeSource
-            id="marker-source"
-            shape={evacuationCentersGeoJson}
-            onPress={e => {
-              const feature = e.features[0]; // clicked marker feature
-              const markerId = feature.id as string;
-
-              if (onMarkerPress) {
-                onMarkerPress(markerId);
-              } else {
-                setSelectedMarker(
-                  evacuationCentersGeoJson?.features.find(f => f.id === feature.id)?.properties as EvacuationCenter
-                );
-              }
-            }}
-          >
-            <SymbolLayer
-              id="marker-layer"
-              style={{
-                iconImage: [
-                  'match',
-                  ['downcase', ['to-string', ['get', 'type']]],
-                  'school',
-                  'marker-school',
-                  'barangay hall',
-                  'marker-barangay-hall',
-                  'gymnasium',
-                  'marker-gymnasium',
-                  'church',
-                  'marker-church',
-                  'government building',
-                  'marker-government-building',
-                  'private facility',
-                  'marker-private-facility',
-                  'vacant building',
-                  'marker-vacant-building',
-                  'covered court',
-                  'marker-covered-court',
-                  'pin', // default
-                ],
-                iconSize: [
-                  'match',
-                  ['downcase', ['to-string', ['get', 'type']]],
-                  'school',
-                  0.1,
-                  'barangay hall',
-                  0.1,
-                  'gymnasium',
-                  0.1,
-                  'church',
-                  0.1,
-                  'government building',
-                  0.1,
-                  'private facility',
-                  0.1,
-                  'vacant building',
-                  0.1,
-                  'covered court',
-                  0.1,
-                  1,
-                ],
-                iconAllowOverlap: true,
-                iconIgnorePlacement: true,
-              }}
-            />
-          </ShapeSource>
-        )}
-
-        {coords && (
-          <MapboxGL.PointAnnotation
-            key={`tap-marker-${coords ? 'green' : 'blue'}-${coords.lat}-${coords.lng}`}
-            id={`tap-marker-${coords ? 'green' : 'blue'}-${coords.lat}-${coords.lng}`}
-            coordinate={[coords.lng, coords.lat]}
-          >
-            <View style={[styles.tapMarker, { backgroundColor: Colors.brand.dark }]} />
-          </MapboxGL.PointAnnotation>
-        )}
-
-        {/* Earthquake radius using PNG image overlay */}
-        {earthquakeData && (
+        {isStyleLoaded && (
           <>
-            {/* Earthquake radius image using ShapeSource for better positioning */}
-            <ShapeSource
-              id="earthquake-radius-source"
-              shape={{
-                type: 'FeatureCollection',
-                features: [
-                  {
-                    type: 'Feature',
-                    geometry: {
-                      type: 'Point',
-                      coordinates: [earthquakeData.coordinates.longitude, earthquakeData.coordinates.latitude],
-                    },
-                    properties: {},
-                  },
-                ],
+            {/* Register your icon asset here */}
+            <Images
+              images={{
+                pin: require('@/assets/images/marker/marker-icon-blue.png'),
+                'marker-school': require('@/assets/images/marker/evacuation-center-marker/marker-school.png'),
+                'marker-barangay-hall': require('@/assets/images/marker/evacuation-center-marker/marker-barangay-hall.png'),
+                'marker-gymnasium': require('@/assets/images/marker/evacuation-center-marker/marker-gymnasium.png'),
+                'marker-church': require('@/assets/images/marker/evacuation-center-marker/marker-church.png'),
+                'marker-government-building': require('@/assets/images/marker/evacuation-center-marker/marker-government-building.png'),
+                'marker-private-facility': require('@/assets/images/marker/evacuation-center-marker/marker-private-facility.png'),
+                'marker-vacant-building': require('@/assets/images/marker/evacuation-center-marker/marker-vacant-building.png'),
+                'marker-covered-court': require('@/assets/images/marker/evacuation-center-marker/marker-covered-court.png'),
+                earthquakeRadius: earthquakeData
+                  ? getEarthquakeRadiusImage(earthquakeData.severity)
+                  : require('@/assets/images/marker/radius/moderate.png'),
               }}
-            >
-              <SymbolLayer
-                id="earthquake-radius-layer"
-                style={{
-                  iconImage: 'earthquakeRadius',
-                  iconSize: 0.2, // Adjust size as needed
-                  iconAllowOverlap: true,
-                  iconIgnorePlacement: true,
-                  iconOpacity: 0.4,
-                }}
-              />
-            </ShapeSource>
+            />
 
-            {/* Earthquake epicenter marker */}
-            <MapboxGL.PointAnnotation
-              id="earthquake-epicenter"
-              coordinate={[earthquakeData.coordinates.longitude, earthquakeData.coordinates.latitude]}
-            >
-              <View
-                style={[
-                  styles.tapMarker,
-                  {
-                    backgroundColor: getEarthquakeSeverityColor(earthquakeData.severity),
-                    width: 16,
-                    height: 16,
-                    borderWidth: 3,
-                  },
-                ]}
-              />
-            </MapboxGL.PointAnnotation>
+            {show3DBuildings && (
+              <MapboxGL.VectorSource id="buildingSource" url="mapbox://mapbox.mapbox-streets-v8">
+                <MapboxGL.FillExtrusionLayer
+                  id="3d-buildings"
+                  sourceLayerID="building"
+                  minZoomLevel={11}
+                  maxZoomLevel={20}
+                  style={{
+                    fillExtrusionColor: '#aaa',
+                    fillExtrusionHeight: ['get', 'height'],
+                    fillExtrusionBase: ['get', 'min_height'],
+                    fillExtrusionOpacity: 0.6,
+                  }}
+                />
+              </MapboxGL.VectorSource>
+            )}
+
+            {/* Marker source - Only render when images are ready to prevent race condition */}
+            {evacuationCentersGeoJson && areMarkersReady && (
+              <ShapeSource
+                id="marker-source"
+                shape={evacuationCentersGeoJson}
+                onPress={e => {
+                  const feature = e.features[0]; // clicked marker feature
+                  const markerId = feature.id as string;
+
+                  if (onMarkerPress) {
+                    onMarkerPress(markerId);
+                  } else {
+                    setSelectedMarker(
+                      evacuationCentersGeoJson?.features.find(f => f.id === feature.id)?.properties as EvacuationCenter
+                    );
+                  }
+                }}
+              >
+                <SymbolLayer
+                  id="marker-layer"
+                  style={{
+                    iconImage: [
+                      'match',
+                      ['downcase', ['to-string', ['get', 'type']]],
+                      'school',
+                      'marker-school',
+                      'barangay hall',
+                      'marker-barangay-hall',
+                      'gymnasium',
+                      'marker-gymnasium',
+                      'church',
+                      'marker-church',
+                      'government building',
+                      'marker-government-building',
+                      'private facility',
+                      'marker-private-facility',
+                      'vacant building',
+                      'marker-vacant-building',
+                      'covered court',
+                      'marker-covered-court',
+                      'pin', // default
+                    ],
+                    iconSize: [
+                      'match',
+                      ['downcase', ['to-string', ['get', 'type']]],
+                      'school',
+                      0.1,
+                      'barangay hall',
+                      0.1,
+                      'gymnasium',
+                      0.1,
+                      'church',
+                      0.1,
+                      'government building',
+                      0.1,
+                      'private facility',
+                      0.1,
+                      'vacant building',
+                      0.1,
+                      'covered court',
+                      0.1,
+                      1,
+                    ],
+                    iconAllowOverlap: true,
+                    iconIgnorePlacement: true,
+                  }}
+                />
+              </ShapeSource>
+            )}
+
+            {coords && (
+              <MapboxGL.PointAnnotation
+                key={`tap-marker-${coords ? 'green' : 'blue'}-${coords.lat}-${coords.lng}`}
+                id={`tap-marker-${coords ? 'green' : 'blue'}-${coords.lat}-${coords.lng}`}
+                coordinate={[coords.lng, coords.lat]}
+              >
+                <View style={[styles.tapMarker, { backgroundColor: Colors.brand.dark }]} />
+              </MapboxGL.PointAnnotation>
+            )}
+
+            {/* Earthquake radius using PNG image overlay */}
+            {earthquakeData && (
+              <>
+                {/* Earthquake radius image using ShapeSource for better positioning */}
+                <ShapeSource
+                  id="earthquake-radius-source"
+                  shape={{
+                    type: 'FeatureCollection',
+                    features: [
+                      {
+                        type: 'Feature',
+                        geometry: {
+                          type: 'Point',
+                          coordinates: [earthquakeData.coordinates.longitude, earthquakeData.coordinates.latitude],
+                        },
+                        properties: {},
+                      },
+                    ],
+                  }}
+                >
+                  <SymbolLayer
+                    id="earthquake-radius-layer"
+                    style={{
+                      iconImage: 'earthquakeRadius',
+                      iconSize: 0.2, // Adjust size as needed
+                      iconAllowOverlap: true,
+                      iconIgnorePlacement: true,
+                      iconOpacity: 0.4,
+                    }}
+                  />
+                </ShapeSource>
+
+                {/* Earthquake epicenter marker */}
+                <MapboxGL.PointAnnotation
+                  id="earthquake-epicenter"
+                  coordinate={[earthquakeData.coordinates.longitude, earthquakeData.coordinates.latitude]}
+                >
+                  <View
+                    style={[
+                      styles.tapMarker,
+                      {
+                        backgroundColor: getEarthquakeSeverityColor(earthquakeData.severity),
+                        width: 16,
+                        height: 16,
+                        borderWidth: 3,
+                      },
+                    ]}
+                  />
+                </MapboxGL.PointAnnotation>
+              </>
+            )}
           </>
         )}
       </MapboxGL.MapView>

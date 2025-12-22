@@ -78,14 +78,14 @@ export const MainPage = () => {
             </IconButton>
           </View>
 
-          {weatherData?.realtime ? (
+          {weatherData?.realtime && weatherData.realtime.length > 0 ? (
             <View style={styles.weatherInfo}>
               <Text size="6xl" style={styles.temperatureText}>
-                {weatherData?.realtime[0].temperature ? Math.round(Number(weatherData.realtime[0].temperature)) : '--'}
+                {weatherData.realtime[0]?.temperature ? Math.round(Number(weatherData.realtime[0].temperature)) : '--'}
                 °C
               </Text>
               <Text size="sm" style={styles.locationText}>
-                Brgy {userData.barangay} • {getWeatherCondition(weatherData.realtime[0].weatherCode)}
+                Brgy {userData.barangay} • {getWeatherCondition(weatherData.realtime[0]?.weatherCode)}
               </Text>
             </View>
           ) : (
@@ -123,19 +123,21 @@ export const MainPage = () => {
               </View>
             )}
 
-            {weatherData?.realtime ? (
+            {weatherData?.realtime && weatherData.realtime.length > 0 ? (
               <>
                 <View style={styles.cardRow}>
                   <GlassCard
                     title="Feels Like"
-                    value={`${Math.round(weatherData.realtime[0].temperatureApparent)}°C`}
+                    value={`${Math.round(weatherData.realtime[0]?.temperatureApparent ?? 0)}°C`}
                     size="small"
                     style={styles.weatherCard}
                   />
                   <GlassCard
                     title="UV Index"
                     value={
-                      weatherData.realtime[0].uvIndex !== undefined ? weatherData.realtime[0].uvIndex.toString() : 'N/A'
+                      weatherData.realtime[0]?.uvIndex !== undefined
+                        ? weatherData.realtime[0].uvIndex.toString()
+                        : 'N/A'
                     }
                     size="small"
                     style={styles.weatherCard}
@@ -145,13 +147,13 @@ export const MainPage = () => {
                 <View style={styles.cardRow}>
                   <GlassCard
                     title="Humidity"
-                    value={`${weatherData.realtime[0].humidity}%`}
+                    value={`${weatherData.realtime[0]?.humidity ?? 0}%`}
                     size="small"
                     style={styles.weatherCard}
                   />
                   <GlassCard
                     title="Cloud Cover"
-                    value={`${weatherData.realtime[0].cloudCover}%`}
+                    value={`${weatherData.realtime[0]?.cloudCover ?? 0}%`}
                     size="small"
                     style={styles.weatherCard}
                   />
@@ -160,13 +162,13 @@ export const MainPage = () => {
                 <View style={styles.cardRow}>
                   <GlassCard
                     title="Chance of Rain"
-                    value={`${weatherData.realtime[0].precipitationProbability}%`}
+                    value={`${weatherData.realtime[0]?.precipitationProbability ?? 0}%`}
                     size="small"
                     style={styles.weatherCard}
                   />
                   <GlassCard
                     title="Rain Intensity"
-                    value={`${weatherData.realtime[0].rainIntensity} mm/h`}
+                    value={`${weatherData.realtime[0]?.rainIntensity ?? 0} mm/h`}
                     size="small"
                     style={styles.weatherCard}
                   />
@@ -175,13 +177,13 @@ export const MainPage = () => {
                 <View style={styles.cardRow}>
                   <GlassCard
                     title="Visibility"
-                    value={`${weatherData.realtime[0].visibility} km`}
+                    value={`${weatherData.realtime[0]?.visibility ?? 0} km`}
                     size="small"
                     style={styles.weatherCard}
                   />
                   <GlassCard
                     title="Wind Speed"
-                    value={`${weatherData.realtime[0].windSpeed} m/s`}
+                    value={`${weatherData.realtime[0]?.windSpeed ?? 0} m/s`}
                     size="small"
                     style={styles.weatherCard}
                   />

@@ -1,6 +1,7 @@
 import '@/components/components/ActionSheet/sheets';
 import { HeaderBackButton, IconButton } from '@/components/components/button/Button';
 import Modal from '@/components/components/Modal';
+import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { ServerWakeUpScreen } from '@/components/ui/loading/ServerWakeUpScreen';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
@@ -319,7 +320,7 @@ function RootLayoutNav() {
   );
 }
 
-export default function RootLayout() {
+function LayoutContent() {
   useNetworkStatus();
   const authUser = useAuth(state => state.authUser);
   const { idToken } = useIdToken();
@@ -433,6 +434,14 @@ export default function RootLayout() {
         </FontSizeProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <GlobalErrorBoundary>
+      <LayoutContent />
+    </GlobalErrorBoundary>
   );
 }
 

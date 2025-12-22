@@ -5,7 +5,7 @@ import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { EvacuationCenter } from '@/types/components';
 import { Image } from 'expo-image';
-import { House, MapPin, Phone, UsersRound, X } from 'lucide-react-native';
+import { House, ImageOff, MapPin, Phone, UsersRound, X } from 'lucide-react-native';
 import React from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
@@ -42,7 +42,8 @@ const DetailsCard: React.FC<DetailsCardProps> = ({ selectedMarker, isDark, onClo
   return (
     <Card style={[styles.detailBox, { backgroundColor: isDark ? Colors.background.dark : Colors.background.light }]}>
       {/* Images Carousel at top */}
-      {data.length > 0 && (
+      {/* Images Carousel at top */}
+      {data.length > 0 ? (
         <View style={styles.carouselContainer}>
           <Carousel
             loop={false}
@@ -72,6 +73,19 @@ const DetailsCard: React.FC<DetailsCardProps> = ({ selectedMarker, isDark, onClo
               ))}
             </View>
           )}
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.carouselContainer,
+            styles.noImageContainer,
+            { backgroundColor: isDark ? Colors.muted.dark.background : Colors.muted.light.background },
+          ]}
+        >
+          <ImageOff size={48} color={isDark ? Colors.icons.dark : Colors.icons.light} opacity={0.5} />
+          <Text size="sm" style={[styles.noImageText, { color: isDark ? Colors.text.dark : Colors.text.light }]}>
+            No image available
+          </Text>
         </View>
       )}
 
@@ -306,5 +320,16 @@ const styles = StyleSheet.create({
   detailLabel: {
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  noImageContainer: {
+    height: 220,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  noImageText: {
+    opacity: 0.6,
   },
 });
