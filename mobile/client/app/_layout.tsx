@@ -2,6 +2,7 @@ import '@/components/components/ActionSheet/sheets';
 import { HeaderBackButton, IconButton } from '@/components/components/button/Button';
 import Modal from '@/components/components/Modal';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
+import { ServerWakeUpScreen } from '@/components/ui/loading/ServerWakeUpScreen';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
@@ -53,6 +54,7 @@ function RootLayoutNav() {
   const [isMounted, setIsMounted] = useState(false);
   const unreadCount = useNotificationStore(state => state.unreadCount);
   const [exitModalVisible, setExitModalVisible] = useState(false);
+  const [isServerReady, setIsServerReady] = useState(false);
 
   const handleBack = () => {
     router.back();
@@ -131,6 +133,15 @@ function RootLayoutNav() {
 
   if (!isMounted || !isReady || themeLoading || fontLoading) {
     return null;
+  }
+
+  // Show Wake-Up Screen if server is not ready yet
+  if (!isServerReady) {
+    return (
+      <GluestackUIProvider mode={isDark ? 'dark' : 'light'}>
+        <ServerWakeUpScreen onServerReady={() => setIsServerReady(true)} />
+      </GluestackUIProvider>
+    );
   }
 
   return (

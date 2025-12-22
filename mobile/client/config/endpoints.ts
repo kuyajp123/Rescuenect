@@ -9,6 +9,9 @@ export const API_ROUTES = {
   AUTH: {
     SIGNIN: `${BASE_URL}/mobile/auth/signin`,
   },
+  SYSTEM: {
+    HEALTH: `${BASE_URL}/health`,
+  },
   STATUS: {
     SAVE_STATUS: `${BASE_URL}/mobile/status/createStatus`,
     GET_STATUS: (statusId: string) => `${BASE_URL}/mobile/status/getStatus/${statusId}`,
