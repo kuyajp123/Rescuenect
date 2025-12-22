@@ -40,30 +40,26 @@ export const StatusCard = ({
   const parsedCategory = parseCategory(category);
 
   return (
-    <Card
-      className={`max-w-[500px] max-h-[565px] dark:border dark:border-gray-700 ${className}`}
-      key={uid}
-      style={style}
-    >
+    <Card className={`max-w-125 max-h-141.25 dark:border dark:border-gray-700 ${className}`} key={uid} style={style}>
       <CardHeader className="flex-row flex-1 items-start justify-between w-full">
         <div className="flex max-w-[80%] gap-5">
           <Avatar radius="full" size="md" src={profileImage} />
           <div className="flex w-full flex-col gap-1 items-start justify-center min-w-0 flex-1">
-            <h4 className="text-small leading-none break-words word-break w-full overflow-wrap-anywhere">
+            <h4 className="text-small leading-none wrap-break-word word-break w-full overflow-wrap-anywhere">
               {firstName} {lastName}
             </h4>
-            <h5 className="text-small tracking-tight opacity-70 break-words word-break w-full overflow-wrap-anywhere">
+            <h5 className="text-small tracking-tight opacity-70 wrap-break-word word-break w-full overflow-wrap-anywhere">
               {formatTimeSince(createdAt)}
             </h5>
-            <h5 className="text-small break-words word-break max-h-24 overflow-y-auto tracking-tight w-full overflow-wrap-anywhere">
+            <h5 className="text-small wrap-break-word word-break max-h-24 overflow-y-auto tracking-tight w-full overflow-wrap-anywhere">
               <MapPin size={14} className="inline mb-1 mr-1 opacity-70" />
               {location}
             </h5>
-            <h5 className="text-small break-words word-break max-h-24 overflow-y-auto tracking-tight w-full overflow-wrap-anywhere">
+            <h5 className="text-small wrap-break-word word-break max-h-24 overflow-y-auto tracking-tight w-full overflow-wrap-anywhere">
               <Phone size={14} className="inline mb-1 mr-1 opacity-70" />
               {phoneNumber}
             </h5>
-            <h5 className="text-small break-words word-break max-h-24 overflow-y-auto tracking-tight w-full overflow-wrap-anywhere">
+            <h5 className="text-small wrap-break-word word-break max-h-24 overflow-y-auto tracking-tight w-full overflow-wrap-anywhere">
               <UserRound size={14} className="inline mb-1 mr-1 opacity-70" />
               {people}
             </h5>
@@ -150,7 +146,7 @@ export const StatusCard = ({
               )}
             </div>
           )}
-          <p className="text-wrap break-words max-h-24 overflow-y-auto">{note}</p>
+          <p className="text-wrap wrap-break-word max-h-24 overflow-y-auto">{note}</p>
         </div>
         {image && image.trim() !== '' && <Image alt="HeroUI hero Image" src={image} className="mt-4" />}
       </CardBody>
@@ -158,8 +154,8 @@ export const StatusCard = ({
         <div className="flex gap-2 min-w-0 justify-end flex-1 opacity-70">
           {vid && (
             <>
-              <p className="text-xs flex-shrink-0">VID:</p>
-              <p className="text-xs break-words word-break overflow-wrap-anywhere">{vid}</p>
+              <p className="text-xs shrink-0">VID:</p>
+              <p className="text-xs wrap-break-word word-break overflow-wrap-anywhere">{vid}</p>
             </>
           )}
         </div>

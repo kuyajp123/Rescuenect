@@ -59,7 +59,7 @@ export const StatusPanel = ({ data }: { data: any }) => {
 
   return (
     <div className="flex flex-col gap-4 h-full overflow-hidden">
-      <div className="shrink-0 h-[250px] relative">
+      <div className="shrink-0 h-62.5 relative">
         <div className="h-full rounded-lg overflow-hidden">
           {data?.type === 'status' && data.data ? (
             <Map
@@ -82,10 +82,7 @@ export const StatusPanel = ({ data }: { data: any }) => {
               markerType="status"
               maxBounds={null as any}
             />
-          ) : data?.type === 'residentProfile' &&
-            data.data &&
-            data.data.lat &&
-            data.data.lng ? (
+          ) : data?.type === 'residentProfile' && data.data && data.data.lat && data.data.lng ? (
             <Map
               key={`map-residentProfile-${data.data.id || data.data.parentId}`}
               data={[
@@ -109,10 +106,7 @@ export const StatusPanel = ({ data }: { data: any }) => {
               markerType="status"
               maxBounds={null as any}
             />
-          ) : data?.type === 'statusHistory' &&
-            data.data &&
-            data.data.lat &&
-            data.data.lng ? (
+          ) : data?.type === 'statusHistory' && data.data && data.data.lat && data.data.lng ? (
             <Map
               key={`map-statusHistory-${data.data.id || data.data.versionId}`}
               data={[
@@ -158,7 +152,7 @@ export const StatusPanel = ({ data }: { data: any }) => {
       <div className="flex-1 overflow-y-auto min-h-0">
         {data?.type === 'status' && data.data ? (
           <StatusCard
-            className="h-fit max-h-[500px]"
+            className="h-fit max-h-125"
             uid={data.data.id}
             profileImage={data.data.profileImage}
             firstName={data.data.firstName}
@@ -289,7 +283,9 @@ export const StatusPanel = ({ data }: { data: any }) => {
                   {data.data.resolvedNote && (
                     <div className="flex flex-col gap-1 text-xs">
                       <span className="text-gray-500">Resolved Note:</span>
-                      <span className="font-semibold break-words whitespace-pre-wrap">{data.data.resolvedNote}</span>
+                      <span className="font-semibold wrap-break-word whitespace-pre-wrap">
+                        {data.data.resolvedNote}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -416,7 +412,9 @@ export const StatusPanel = ({ data }: { data: any }) => {
                   {data.data.resolvedNote && (
                     <div className="flex flex-col gap-1 text-xs">
                       <span className="text-gray-500">Resolved Note:</span>
-                      <span className="font-semibold break-words whitespace-pre-wrap">{data.data.resolvedNote}</span>
+                      <span className="font-semibold wrap-break-word whitespace-pre-wrap">
+                        {data.data.resolvedNote}
+                      </span>
                     </div>
                   )}
                 </div>

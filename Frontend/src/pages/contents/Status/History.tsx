@@ -288,7 +288,7 @@ export const StatusHistory = () => {
         );
       case 'location':
         return (
-          <div className="flex flex-col max-w-[200px]">
+          <div className="flex flex-col max-w-50">
             <p className="text-bold text-sm capitalize flex-wrap" title={cellValue as string}>
               {String(cellValue)}
             </p>

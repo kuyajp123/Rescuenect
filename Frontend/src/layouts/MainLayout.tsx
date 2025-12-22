@@ -34,7 +34,7 @@ const MainLayout = () => {
 
       {/* Main content area */}
       <div className={`flex flex-col h-full w-full md:mx-4 ${sidebarOpen ? 'lg:ml-5' : 'lg:ml-16'}`}>
-        <div className="flex-shrink-0 ">
+        <div className="shrink-0 ">
           <Header isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
         </div>
         <div className="flex-1 flex justify-between overflow-auto py-4 relative">
@@ -49,7 +49,7 @@ const MainLayout = () => {
             fixed right-0 top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-900 shadow-xl z-30
             border-l border-gray-200 dark:border-gray-700
             transition-transform duration-300 ease-in-out
-            w-full sm:w-[450px] lg:w-[30%]
+            w-full sm:w-112.5 lg:w-[30%]
             ${isPanelOpen ? 'translate-x-0' : 'translate-x-full'}
           `}
           >

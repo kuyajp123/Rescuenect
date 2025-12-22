@@ -283,7 +283,7 @@ const Earthquake = () => {
         </div>
         <div className=" h-120">
           <div className="w-full flex flex-row justify-end">
-            <h3 className="text-lg font-semibold text-left flex-grow px-3 py-1">
+            <h3 className="text-lg font-semibold text-left grow px-3 py-1">
               {selectedItem ? (selectedItemType === 'earthquake' ? 'Earthquake Details' : 'Status Details') : ''}
             </h3>
             {selectedItem && (

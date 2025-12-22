@@ -9,7 +9,7 @@ import { cert, getApps, initializeApp, type ServiceAccount } from 'firebase-admi
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import _ from 'lodash';
 import type { EarthquakeNotificationData, NotificationType, WeatherNotificationData } from './notification-schema.ts';
-import { EarthquakeData } from './types';
+import type { EarthquakeData } from './types.ts';
 
 // barangayMap['barangay name']
 export const barangayMap: Record<string, string> = {

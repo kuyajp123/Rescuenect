@@ -13,7 +13,7 @@ export const Loading = () => {
         </div>
 
         <div className="flex flex-col items-center gap-1">
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 tracking-tight">
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-linear-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 tracking-tight">
             Rescuenect
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 font-medium tracking-wide text-center">

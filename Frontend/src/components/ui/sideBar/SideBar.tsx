@@ -59,7 +59,7 @@ const SideBar = ({ isOpen }: SideBarProps) => {
         <div className="h-full flex flex-col">
           {/* Logo */}
           <div
-            className={`flex items-center mt-4 mb-8 text-xl font-semibold text-primary dark:text-white flex-shrink-0 transition-all duration-300 cursor-pointer ${
+            className={`flex items-center mt-4 mb-8 text-xl font-semibold text-primary dark:text-white shrink-0 transition-all duration-300 cursor-pointer ${
               isExpanded ? 'p-4 pl-10' : 'justify-center p-4'
             }`}
             style={{ minHeight: '40px' }}
@@ -91,7 +91,7 @@ const SideBar = ({ isOpen }: SideBarProps) => {
                 >
                   <Icon
                     size={20}
-                    className={`flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+                    className={`shrink-0 transition-transform duration-200 group-hover:scale-110 ${
                       isActive(item.path) ? 'text-[#0EA5E9]' : 'text-gray-600 dark:text-gray-400'
                     }`}
                   />

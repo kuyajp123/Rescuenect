@@ -114,7 +114,7 @@ const ResidentsProfile = () => {
         <Card className="mb-6">
           <CardBody className="p-6">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-4">
-              <Skeleton className="w-20 h-20 rounded-full flex-shrink-0" />
+              <Skeleton className="w-20 h-20 rounded-full shrink-0" />
               <div className="flex-1 w-full text-center md:text-left">
                 <Skeleton className="h-6 w-1/2 mb-4 mx-auto md:mx-0" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm justify-items-center md:justify-items-start">
@@ -145,26 +145,28 @@ const ResidentsProfile = () => {
       <Card className="mb-6">
         <CardBody className="p-6">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-4">
-            <Avatar src={resident?.photo} size="lg" className="w-24 h-24 md:w-20 md:h-20 flex-shrink-0" />
+            <Avatar src={resident?.photo} size="lg" className="w-24 h-24 md:w-20 md:h-20 shrink-0" />
             <div className="flex-1 w-full text-center md:text-left">
               <h1 className="text-2xl font-bold mb-2">
                 {resident?.firstName} {resident?.lastName}
               </h1>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm justify-items-center md:justify-items-start">
                 <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                  <Phone size={16} className="text-primary flex-shrink-0" />
+                  <Phone size={16} className="text-primary shrink-0" />
                   <span className="break-all">{resident?.phoneNumber}</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                  <MapPin size={16} className="text-primary flex-shrink-0" />
-                  <span className="break-words">{resident?.barangay ? `Brgy ${resident?.barangay}` : 'No barangay'}</span>
+                  <MapPin size={16} className="text-primary shrink-0" />
+                  <span className="wrap-break-word">
+                    {resident?.barangay ? `Brgy ${resident?.barangay}` : 'No barangay'}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                  <Calendar size={16} className="text-primary flex-shrink-0" />
+                  <Calendar size={16} className="text-primary shrink-0" />
                   <span>Registered: {resident?.createdAt ? formatDate(resident.createdAt) : 'Date here'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                  <UserRound size={16} className="text-primary flex-shrink-0" />
+                  <UserRound size={16} className="text-primary shrink-0" />
                   <span className="break-all">{resident?.email}</span>
                 </div>
               </div>

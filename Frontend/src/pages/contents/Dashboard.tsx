@@ -250,7 +250,7 @@ export const Dashboard = () => {
             </div>
           </CardHeader>
           <CardBody className="pt-4">
-            <div className="w-full h-[280px]">
+            <div className="w-full h-70">
               {activeIncidents > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
@@ -316,7 +316,7 @@ export const Dashboard = () => {
             </div>
           </CardHeader>
           <CardBody className="pt-4">
-            <div className="w-full h-[280px]">
+            <div className="w-full h-70">
               {categoryData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={categoryData}>
@@ -377,7 +377,7 @@ export const Dashboard = () => {
             </div>
           </CardHeader>
           <CardBody className="pt-4">
-            <div className="w-full h-[280px]">
+            <div className="w-full h-70">
               {earthquakeData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={earthquakeData}>
@@ -441,7 +441,7 @@ export const Dashboard = () => {
             </div>
           </CardHeader>
           <CardBody className="pt-4">
-            <div className="w-full h-[280px]">
+            <div className="w-full h-70">
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={WeekData} barGap={0}>
                   <defs>

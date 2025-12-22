@@ -47,12 +47,10 @@ const Settings = () => {
   };
 
   return (
-    <div className="w-full max-w-[800px] mx-auto p-6 space-y-6">
+    <div className="w-full max-w-200 mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-          Settings
-        </h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">Settings</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">Customize your Rescuenect experience</p>
       </div>
 
@@ -85,7 +83,7 @@ const Settings = () => {
               }}
             >
               <div className="w-full flex items-center gap-4">
-                <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30">
+                <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-linear-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30">
                   <Sun size={24} className="text-yellow-600 dark:text-yellow-400" />
                 </div>
                 <div className="flex flex-col flex-1">
@@ -108,7 +106,7 @@ const Settings = () => {
               }}
             >
               <div className="w-full flex items-center gap-4">
-                <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30">
+                <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-linear-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30">
                   <Moon size={24} className="text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <div className="flex flex-col flex-1">
@@ -165,7 +163,7 @@ const Settings = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-linear-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30">
                     <Sun size={20} className="text-blue-600 dark:text-blue-400" />
                   </div>
                   <div className="flex flex-col flex-1">
@@ -194,7 +192,7 @@ const Settings = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-slate-100 to-gray-100 dark:from-slate-900/30 dark:to-gray-900/30">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-linear-to-br from-slate-100 to-gray-100 dark:from-slate-900/30 dark:to-gray-900/30">
                     <Moon size={20} className="text-slate-600 dark:text-slate-400" />
                   </div>
                   <div className="flex flex-col flex-1">

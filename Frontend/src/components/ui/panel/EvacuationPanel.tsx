@@ -122,7 +122,7 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
   return (
     <div className="flex flex-col h-full overflow-auto gap-4">
       {/* Map Section */}
-      <div className="h-[250px] relative rounded-lg overflow-hidden shrink-0">
+      <div className="h-62.5 relative rounded-lg overflow-hidden shrink-0">
         <Map
           key={`map-evacuation-${data.data.id}-${isEditing ? 'edit' : 'view'}`}
           data={[
@@ -150,7 +150,7 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
           attribution={''}
         />
         {isEditing && (
-          <div className="absolute top-2 right-2 z-[9999] bg-white/90 dark:bg-black/90 dark:text-white p-2 rounded text-xs shadow">
+          <div className="absolute top-2 right-2 z-9999 bg-white/90 dark:bg-black/90 dark:text-white p-2 rounded text-xs shadow">
             Click map to set location
           </div>
         )}
@@ -274,7 +274,7 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {/* Existing */}
                 {existingImages.map((url, index) => (
-                  <div key={`existing-${index}`} className="relative group flex-shrink-0 w-80 h-60">
+                  <div key={`existing-${index}`} className="relative group shrink-0 w-80 h-60">
                     <img src={url} alt="Existing" className="w-full h-full object-cover rounded-lg border shadow-sm" />
                     <button
                       onClick={() => removeExistingImage(url)}
@@ -286,7 +286,7 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
                 ))}
                 {/* New */}
                 {newImages.map((file, index) => (
-                  <div key={`new-${index}`} className="relative group flex-shrink-0 w-80 h-60">
+                  <div key={`new-${index}`} className="relative group shrink-0 w-80 h-60">
                     <img
                       src={URL.createObjectURL(file)}
                       alt="New"
@@ -302,7 +302,7 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
                 ))}
                 {/* Upload Button */}
                 {existingImages.length + newImages.length < 3 && (
-                  <label className="flex-shrink-0 w-80 h-60 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:border-primary cursor-pointer transition-colors bg-gray-50 dark:bg-gray-800">
+                  <label className="shrink-0 w-80 h-60 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:border-primary cursor-pointer transition-colors bg-gray-50 dark:bg-gray-800">
                     <Upload size={32} className="text-gray-400" />
                     <span className="text-sm mt-2 text-gray-500">Add Image</span>
                     <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageChange} />
