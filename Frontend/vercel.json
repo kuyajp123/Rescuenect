@@ -28,7 +28,7 @@
   ],
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!assets/|images/|font/|.*\\..*).*)",
       "destination": "/index.html"
     }
   ]
