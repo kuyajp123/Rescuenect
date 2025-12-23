@@ -25,5 +25,11 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/((?!assets/|images/|font/|.*\\..*).*)",
+      "destination": "/index.html"
+    }
   ]
 }
