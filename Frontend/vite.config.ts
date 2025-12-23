@@ -4,13 +4,13 @@ import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
-
 // Load environment variables
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   return {
     plugins: [react(), tailwindcss(), tsconfigPaths()],
+    publicDir: 'public',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
