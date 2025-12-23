@@ -5,17 +5,14 @@ import { API_ENDPOINTS } from '@/config/endPoints';
 import { useAuth, UserData } from '@/stores/useAuth';
 import { Card, CardBody } from '@heroui/react';
 import axios from 'axios';
-import { useState } from 'react';
 
 export default function UserProfiles() {
   const userData = useAuth(state => state.userData);
   const auth = useAuth(state => state.auth);
   const updateUserData = useAuth(state => state.updateUserData);
-  const [error, setError] = useState('');
 
   const handleUpdateProfile = async (data: Partial<UserData>) => {
     if (!auth) return;
-    setError('');
 
     try {
       const idToken = await auth.getIdToken();
