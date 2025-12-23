@@ -1,5 +1,5 @@
-import { Suspense, lazy } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Suspense, lazy, useEffect } from 'react';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import { Loading } from './components/ui/LazyLoading/Loading';
 import { AuthLayout, MainLayout, Onboarding } from './layouts';
 import ProtectedRoute from './security/ProtectedRoutes';
@@ -38,6 +38,26 @@ const Welcome = lazy(() => import('./pages/auth/Welcome'));
 const AdminProfile = lazy(() => import('./pages/profiile/AdminProfile'));
 
 const Router = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    const path = location.pathname;
+
+    if (path === '/' || path === '') {
+      document.title = 'Rescuenect';
+    } else {
+      const segments = path.split('/').filter(Boolean);
+      if (segments.length > 0) {
+        const lastSegment = segments[segments.length - 1];
+        // Capitalize and replace hyphens
+        const formatted = lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1).replace(/-/g, ' ');
+        document.title = `Rescuenect - ${formatted}`;
+      } else {
+        document.title = 'Rescuenect';
+      }
+    }
+  }, [location]);
+
   return (
     <Suspense fallback={<Loading />}>
       <Routes>
