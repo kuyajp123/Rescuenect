@@ -1,14 +1,6 @@
-import {
-  Activity,
-  Cloud,
-  HousePlus,
-  LayoutDashboard,
-  MapPin,
-  UsersRound
-} from 'lucide-react';
+import { Activity, Cloud, HousePlus, LayoutDashboard, MapPin, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import Logo from '../../../../images/logo/Logo.svg';
 
 interface SideBarProps {
   isOpen: boolean;
@@ -44,7 +36,6 @@ const SideBar = ({ isOpen }: SideBarProps) => {
     <>
       {/* Toggle button */}
 
-
       {/* Mobile overlay */}
       {isExpanded && !isOpen && <div className="fixed inset-0 z-20 lg:hidden" onClick={() => setIsHovered(false)} />}
 
@@ -65,7 +56,7 @@ const SideBar = ({ isOpen }: SideBarProps) => {
             style={{ minHeight: '40px' }}
             onClick={() => navigate('/')}
           >
-            <img src={Logo} alt="Rescuenect Logo" className="w-6 h-6" />
+            <img src="/images/logo/logo.svg" alt="Rescuenect Logo" className="w-6 h-6" />
             <span
               className={`ml-2 transition-opacity duration-300 ${
                 isExpanded ? 'opacity-100' : 'opacity-0 lg:opacity-0'
