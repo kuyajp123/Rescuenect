@@ -9,17 +9,19 @@ import { Notification } from './Notification';
 import { NotificationDetails } from './Notification/NotificationDetails';
 import Residents from './Residents/index';
 import ResidentsProfile from './Residents/ResidentsProfile';
-import SaveAsPDF from './Status/SaveAsPDF';
-import Weather from './Weather/Weather';
+import SaveAsPDF from './Status/saveAsPDF';
 import DailyForecastDetails from './Weather/DailyForecastDetails';
 import HourlyDetails from './Weather/HourlyDetails';
+import Weather from './Weather/Weather';
 
 export {
   AddNewCenter,
+  DailyForecastDetails,
   Dashboard,
   Earthquake,
   Evacuation,
   HistoryVersions,
+  HourlyDetails,
   Notification,
   NotificationDetails,
   Residents,
@@ -28,6 +30,4 @@ export {
   Status,
   StatusHistory,
   Weather,
-  DailyForecastDetails,
-  HourlyDetails,
 };

@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 const AdminInfo = () => {
   const navigate = useNavigate();
   const { barangay, address } = useOnboardingStore();
-  const userData = useAuth(state => state.userData);
+  // const userData = useAuth(state => state.userData);
   const updateUserData = useAuth(state => state.updateUserData);
   const auth = useAuth(state => state.auth);
 
