@@ -1,10 +1,10 @@
+import evacuatedIcon from '@/assets/leaflet/marker-icon-blue.png';
+import safeIcon from '@/assets/leaflet/marker-icon-green.png';
+import affectedIcon from '@/assets/leaflet/marker-icon-orange.png';
+import missingIcon from '@/assets/leaflet/marker-icon-red.png';
 import { useMapStyleStore } from '@/stores/useMapStyleStore';
 import { MapMarkerData, MapProps, StatusData } from '@/types/types';
 import L from 'leaflet';
-import evacuatedIcon from 'leaflet/dist/images/marker-icon-blue.png';
-import safeIcon from 'leaflet/dist/images/marker-icon-green.png';
-import affectedIcon from 'leaflet/dist/images/marker-icon-orange.png';
-import missingIcon from 'leaflet/dist/images/marker-icon-red.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import 'leaflet/dist/leaflet.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
