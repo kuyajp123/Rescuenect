@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import Logo from '../../../../Public/images/logo/logo.svg';
+import Logo from '../../../../images/logo/Logo.svg';
 
 interface SideBarProps {
   isOpen: boolean;
