@@ -90,13 +90,15 @@ export class UnifiedWeatherProcessor {
       weatherData as unknown as WeatherData,
       config.includeNormalConditions
     );
-    
+
     // Filter to only CRITICAL and WARNING (unless normal conditions are explicitly included)
     const filteredNotifications = config.includeNormalConditions
       ? notifications
       : notifications.filter(n => n.level === 'CRITICAL' || n.level === 'WARNING');
 
     if (filteredNotifications.length === 0) {
+      console.log(`ℹ️ No significant weather conditions met for ${location}`);
+      console.log('🔍 Debug Data:', JSON.stringify(weatherData, null, 2));
       return;
     }
 

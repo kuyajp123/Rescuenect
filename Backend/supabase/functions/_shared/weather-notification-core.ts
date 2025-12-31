@@ -718,12 +718,12 @@ export class WeatherNotificationSystem {
   private isTropicalWeather(data: WeatherData): boolean {
     return (
       data.temperature >= 22 &&
-      data.temperature <= 30 && // Tropical temperature range
-      data.humidity > 85 &&
-      data.humidity <= 95 && // High but normal tropical humidity
+      data.temperature <= 34 && // Extended tropical temperature range (was 30)
+      data.humidity > 70 && // Lowered minimum humidity threshold (was 85)
+      data.humidity <= 98 && // High tropical humidity
       data.rainIntensity <= 0.5 && // No significant precipitation
-      data.windSpeed <= 12 && // Gentle conditions
-      data.cloudCover <= 60 // Clear to partly cloudy
+      data.windSpeed <= 15 && // Gentle to moderate breeze
+      data.cloudCover <= 85 // Clear to mostly cloudy
     );
   }
 
