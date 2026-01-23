@@ -1,6 +1,6 @@
 import GridShape from '@/components/ui/grid/GridShape';
 import { ThemeSwitcher } from '@/hooks/ThemeSwitcher';
-import { Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 
 const AuthLayout = () => {
   return (
@@ -23,7 +23,18 @@ const AuthLayout = () => {
           </div>
         </div>
         <Outlet />
-        <div className="fixed z-50 hidden bottom-6 right-6 sm:block">
+        <div className="fixed z-50 bottom-6 left-6 right-6 hidden sm:flex items-center justify-between">
+          {/* Legal Links on the left */}
+          <div className="flex space-x-5">
+            <Link className="text-white hover:text-gray-200" to="/terms-and-condition" target="_blank" rel="noopener noreferrer">
+              Terms & Conditions
+            </Link>
+            <Link className="text-white hover:text-gray-200" to="/privacy-policy" target="_blank" rel="noopener noreferrer">
+              Privacy Policy
+            </Link>
+          </div>
+
+          {/* Theme Switcher on the right */}
           <ThemeSwitcher />
         </div>
       </div>

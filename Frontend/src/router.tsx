@@ -25,6 +25,10 @@ const Status = lazy(() => import('@/pages/contents/Status'));
 const StatusHistory = lazy(() =>
   import('@/pages/contents/Status/History').then(module => ({ default: module.StatusHistory }))
 );
+
+import TermsAndCondition from './components/ui/legalTerms/TermsAndCondition';
+import PrivacyPolicy from './components/ui/legalTerms/PrivacyPolicy';
+
 const Weather = lazy(() => import('@/pages/contents/Weather/Weather'));
 const Settings = lazy(() => import('./pages/contents/Settings'));
 
@@ -106,6 +110,9 @@ const Router = () => {
         <Route element={<AuthLayout />}>
           <Route path="/auth/login" element={<Login />} />
         </Route>
+
+        <Route path="/terms-and-condition" element={<TermsAndCondition />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       </Routes>
     </Suspense>
   );

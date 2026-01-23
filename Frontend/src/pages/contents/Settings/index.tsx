@@ -1,8 +1,9 @@
 import { useMapStyleStore } from '@/stores/useMapStyleStore';
 import { Card, CardBody, CardHeader, Divider, Radio, RadioGroup } from '@heroui/react';
 import { useTheme } from '@heroui/use-theme';
-import { Map, Moon, Sun } from 'lucide-react';
+import { ChevronRight, FileText, Map, Moon, Scale, Shield, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const STORAGE_KEY = 'rescuenect_map_style';
 
@@ -47,7 +48,7 @@ const Settings = () => {
   };
 
   return (
-    <div className="w-full max-w-200 mx-auto p-6 space-y-6">
+    <div className="w-full max-w-200 mx-auto space-y-6">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">Settings</h1>
@@ -210,6 +211,57 @@ const Settings = () => {
               <span>Map style will be applied to all maps throughout the application</span>
             </p>
           </div>
+        </CardBody>
+      </Card>
+
+      {/* Legal Settings Card */}
+      <Card className="shadow-lg border border-gray-200 dark:border-gray-700">
+        <CardHeader className="flex gap-3 pb-3">
+          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+            <Scale size={20} className="text-primary" />
+          </div>
+          <div className="flex flex-col">
+            <p className="text-lg font-semibold">Legal</p>
+            <p className="text-small text-default-500">Review our policies and terms</p>
+          </div>
+        </CardHeader>
+        <Divider />
+        <CardBody className="gap-2 py-6">
+          <Link
+            to="/terms-and-condition"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between p-4 rounded-lg bg-content1 hover:bg-content2 transition-all cursor-pointer group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-default-100 group-hover:bg-default-200 transition-colors">
+                <FileText size={20} className="text-default-600" />
+              </div>
+              <div className="flex flex-col">
+                <p className="text-base font-semibold">Terms and Conditions</p>
+                <p className="text-tiny text-default-500">Read our terms of service</p>
+              </div>
+            </div>
+            <ChevronRight size={20} className="text-default-400 group-hover:text-primary transition-colors" />
+          </Link>
+
+          <Link
+            to="/privacy-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between p-4 rounded-lg bg-content1 hover:bg-content2 transition-all cursor-pointer group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-default-100 group-hover:bg-default-200 transition-colors">
+                <Shield size={20} className="text-default-600" />
+              </div>
+              <div className="flex flex-col">
+                <p className="text-base font-semibold">Privacy Policy</p>
+                <p className="text-tiny text-default-500">Read our privacy policy</p>
+              </div>
+            </div>
+            <ChevronRight size={20} className="text-default-400 group-hover:text-primary transition-colors" />
+          </Link>
         </CardBody>
       </Card>
     </div>
