@@ -1,13 +1,13 @@
 import { HoveredButton, IconButton } from '@/components/components/button/Button';
-import { formatToCapitalized } from '@/helper/commonHelpers';
-import { useAuth } from '@/store/useAuth';
-import { useUserData } from '@/store/useBackendResponse';
-import { useNotificationStore } from '@/store/useNotificationStore';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { formatToCapitalized } from '@/helper/commonHelpers';
+import { useAuth } from '@/store/useAuth';
+import { useUserData } from '@/store/useBackendResponse';
+import { useNotificationStore } from '@/store/useNotificationStore';
 import type { BaseNotification } from '@/types/notification';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
@@ -201,10 +201,7 @@ const index = () => {
       return;
     }
 
-    let notificationToBeUpdated: any[] = [];
-    unreadNotifications.forEach(notif => {
-      notificationToBeUpdated.push({ notificationId: notif.id });
-    });
+    const notificationToBeUpdated = unreadNotifications.map(notif => notif.id);
 
     Alert.alert(
       'Mark All as Read',
@@ -235,7 +232,7 @@ const index = () => {
                 API_ROUTES.NOTIFICATION.MARK_ALL_AS_READ,
                 {
                   uid: authUser.uid,
-                  notificationId: notificationToBeUpdated,
+                  notificationIds: notificationToBeUpdated,
                 },
                 {
                   headers: { Authorization: `Bearer ${idToken}` },
@@ -290,8 +287,8 @@ const index = () => {
                     notification.type === 'earthquake'
                       ? Colors.semantic.error
                       : notification.type === 'weather'
-                      ? Colors.semantic.info
-                      : Colors.brand.dark,
+                        ? Colors.semantic.info
+                        : Colors.brand.dark,
                   opacity: deletingId === notification.id ? 0.5 : 1,
                 },
               ]}
@@ -330,8 +327,8 @@ const index = () => {
                     {notification.type === 'weather'
                       ? formatToCapitalized(userData?.barangay)
                       : notification.type === 'earthquake'
-                      ? (notification.data as { place?: string })?.place
-                      : notification.location?.replace('_', ' ').toUpperCase()}
+                        ? (notification.data as { place?: string })?.place
+                        : notification.location?.replace('_', ' ').toUpperCase()}
                   </Text>
                   <Text size="xs" emphasis="light">
                     {formatTime(notification.timestamp)}

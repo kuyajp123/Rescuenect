@@ -1,20 +1,15 @@
 import Logo from '@/assets/images/logo/logoVerti.svg';
 import { PrimaryButton } from '@/components/components/button/Button';
-import {
-  convertToE164Format,
-  formatContactNumber,
-  formatName,
-  isValidContactNumber,
-} from '@/helper/commonHelpers';
-import { storageHelpers } from '@/helper/storage';
-import { useAuth } from '@/store/useAuth';
-import { useUserData } from '@/store/useBackendResponse';
 import { Input, InputField } from '@/components/ui/input';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
+import { convertToE164Format, formatContactNumber, formatName, isValidContactNumber } from '@/helper/commonHelpers';
+import { storageHelpers } from '@/helper/storage';
 import { useIdToken } from '@/hooks/useIdToken';
+import { useAuth } from '@/store/useAuth';
+import { useUserData } from '@/store/useBackendResponse';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -162,12 +157,15 @@ const nameAndContactForm = () => {
         await storageHelpers.setField(STORAGE_KEYS.USER, 'phoneNumber', contactNumber);
         await storageHelpers.setField(STORAGE_KEYS.USER, 'e164PhoneNumber', e164ContactNumber);
 
+        const getBarangay = await storageHelpers.getField(STORAGE_KEYS.USER, 'barangay');
+
         setUserData({
           userData: {
             ...userData,
             firstName: firstName.trim(),
             lastName: lastName.trim(),
             phoneNumber: contactNumber,
+            barangay: getBarangay,
           },
         });
 

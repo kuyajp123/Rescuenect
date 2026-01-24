@@ -9,6 +9,7 @@ import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { User, loggedInUser } from '@/types/components';
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
+import { useUserData } from '@/store/useBackendResponse';
 
 export const HomeScreen = React.memo(() => {
   const [userData, setUserData] = useState<loggedInUser | null>(null);
@@ -16,6 +17,7 @@ export const HomeScreen = React.memo(() => {
   const userAuth = useAuth(state => state.authUser);
   const formData = useStatusFormStore(state => state.formData);
   const userPhotoURL = userAuth?.photoURL || '';
+  const userDataBackend = useUserData(state => state.userData);
 
   useEffect(() => {
     const getUser = async () => {
@@ -25,9 +27,9 @@ export const HomeScreen = React.memo(() => {
     };
 
     getUser().then(res => {
-      setUserData({ photoURL: userPhotoURL, ...res });
+      setUserData({ photoURL: userPhotoURL, ...res, ...userDataBackend });
     });
-  }, [userPhotoURL]);
+  }, [userPhotoURL, userDataBackend]);
 
   useEffect(() => {
     // Clear userStatus immediately if formData is null (user logged out or no status)
