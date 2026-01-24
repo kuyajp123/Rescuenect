@@ -1,3 +1,3 @@
-import { storageHelpers } from '@/components/helper/storage';
+import { storageHelpers } from './storage';
 
 export { storageHelpers };

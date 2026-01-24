@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { BaseNotification } from '../../types/notification';
+import type { BaseNotification } from '@/types/notification';
 
 interface NotificationStore {
   notifications: BaseNotification[];

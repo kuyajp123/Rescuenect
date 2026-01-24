@@ -41,8 +41,8 @@ tmp/
 Thumbs.db
 
 # native
-android
-ios
+android/
+ios/
 
 vscode/
 !google-services.json
