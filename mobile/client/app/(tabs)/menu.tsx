@@ -3,18 +3,19 @@ import { Button, HoveredButton } from '@/components/components/button/Button';
 import GoogleButton from '@/components/components/button/GoogleButton';
 import NavigationButton from '@/components/components/button/NavigationButton';
 import { Card } from '@/components/components/card/Card';
-import { useAuth } from '@/store/useAuth';
-import { useUserData } from '@/store/useBackendResponse';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { ColorCombinations, Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/store/useAuth';
+import { useUserData } from '@/store/useBackendResponse';
 import { useRouter } from 'expo-router';
 import {
   BadgeInfo,
   BadgeQuestionMark,
   ChevronRight,
+  FileText,
   LogOut,
   Moon,
   ReceiptText,
@@ -121,8 +122,29 @@ export const MenuScreen = () => {
           />
           <NavigationButton
             label="Terms and Condition"
-            onPress={() => {}}
+            onPress={() =>
+              router.push({
+                pathname: '/auth/legal',
+                params: {
+                  url: 'https://rescuenect.vercel.app/terms-and-condition',
+                  title: 'Terms and Conditions',
+                },
+              })
+            }
             iconLeft={<ReceiptText size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
+          />
+          <NavigationButton
+            label="Privacy Policy"
+            onPress={() =>
+              router.push({
+                pathname: '/auth/legal',
+                params: {
+                  url: 'https://rescuenect.vercel.app/privacy-policy',
+                  title: 'Privacy Policy',
+                },
+              })
+            }
+            iconLeft={<FileText size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
           />
           <NavigationButton
             label="About us"

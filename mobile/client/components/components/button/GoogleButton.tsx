@@ -4,10 +4,18 @@ import { useLoading } from '@/hooks/useLoading';
 import React from 'react';
 import { GoogleButtonComponent } from './Button';
 
-const GoogleButton = () => {
+type GoogleButtonProps = {
+  onValidate?: () => boolean;
+};
+
+const GoogleButton = ({ onValidate }: GoogleButtonProps) => {
   const { isLoading, setIsLoading } = useLoading();
 
   const handleSignIn = async () => {
+    if (onValidate && !onValidate()) {
+      return;
+    }
+
     try {
       await handleGoogleSignIn(setIsLoading);
     } catch (error) {
