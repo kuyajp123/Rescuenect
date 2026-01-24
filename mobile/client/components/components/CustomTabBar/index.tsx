@@ -70,8 +70,8 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
           options.tabBarLabel !== undefined
             ? options.tabBarLabel
             : options.title !== undefined
-            ? options.title
-            : route.name;
+              ? options.title
+              : route.name;
 
         const isFocused = state.index === index;
 
@@ -94,7 +94,13 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
 
         // Get the appropriate icon
         const getIcon = () => {
-          const color = isFocused ? Colors.brand.light : isDark ? Colors.text.dark : Colors.text.light;
+          const color = isFocused
+            ? isDark
+              ? Colors.brand.dark
+              : Colors.brand.light
+            : isDark
+              ? Colors.text.dark
+              : Colors.text.light;
           const size = 20;
 
           switch (route.name) {
@@ -155,7 +161,13 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
               style={[
                 styles.tabLabel,
                 {
-                  color: isFocused ? Colors.brand.light : isDark ? Colors.text.dark : Colors.text.light,
+                  color: isFocused
+                    ? isDark
+                      ? Colors.brand.dark
+                      : Colors.brand.light
+                    : isDark
+                      ? Colors.text.dark
+                      : Colors.text.light,
                 },
               ]}
             >

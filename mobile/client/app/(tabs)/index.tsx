@@ -1,15 +1,16 @@
 import { AdvancedCarousel } from '@/components/components/carousel/AdvancedCarousel';
 import StatusIndicator from '@/components/components/data-display/StatusIndicator';
+import QuickActions from '@/components/components/home/QuickActions';
 import { CardWeather } from '@/components/components/weather/CardWeather';
-import { storageHelpers } from '@/helper/storage';
-import { useAuth } from '@/store/useAuth';
-import { useStatusFormStore } from '@/store/useStatusForm';
 import { Body } from '@/components/ui/layout/Body';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { storageHelpers } from '@/helper/storage';
+import { useAuth } from '@/store/useAuth';
+import { useUserData } from '@/store/useBackendResponse';
+import { useStatusFormStore } from '@/store/useStatusForm';
 import { User, loggedInUser } from '@/types/components';
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
-import { useUserData } from '@/store/useBackendResponse';
 
 export const HomeScreen = React.memo(() => {
   const [userData, setUserData] = useState<loggedInUser | null>(null);
@@ -50,6 +51,8 @@ export const HomeScreen = React.memo(() => {
     <Body gap={20}>
       <StatusIndicator userStatus={userStatus as User | undefined} loggedInUser={userData || undefined} />
       <CardWeather />
+
+      <QuickActions />
 
       <View style={{ marginTop: 20 }}>
         <AdvancedCarousel />

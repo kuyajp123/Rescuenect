@@ -19,11 +19,18 @@ const community = () => {
 
       <CommunityStatus />
 
-      <Button onPress={() => router.push('/evacuation')}>
-        <Text style={{ color: '#ffffff' }} bold>
-          View Evacuation Center
+      <View style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <Text size="xs" style={{ textAlign: 'justify' }}>
+          This evacuation center serves as a safe place for community members during emergencies and disasters.
+          Residents can check if the center is open, how many people it can still accommodate, and what basic facilities
+          are available, helping families make informed evacuation decisions.
         </Text>
-      </Button>
+        <Button onPress={() => router.push('/evacuation')}>
+          <Text style={{ color: '#ffffff' }} bold>
+            View Evacuation Center
+          </Text>
+        </Button>
+      </View>
     </Body>
   );
 };

@@ -7,7 +7,7 @@ export const Colors = {
   // Brand Colors
   brand: {
     light: '#0ea5e9',
-    dark: '#2563eb',
+    dark: '#3B82F6',
   },
 
   // Semantic Colors

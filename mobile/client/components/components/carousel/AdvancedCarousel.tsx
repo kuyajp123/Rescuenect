@@ -14,8 +14,7 @@ const carouselData = [
     id: 1,
     title: 'Emergency Alert System',
     subtitle: 'Stay informed with real-time alerts',
-    image:
-      'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80',
+    image: require('@/assets/images/bancaan/barangay.png'),
     description: 'Get instant notifications about emergencies in your area and stay prepared.',
     action: '/notification',
   },
@@ -23,8 +22,7 @@ const carouselData = [
     id: 2,
     title: 'Community Support',
     subtitle: 'Connect with your neighbors',
-    image:
-      'https://images.unsplash.com/photo-1521791136064-7986c2920216?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2069&q=80',
+    image: require('@/assets/images/bancaan/bangka.png'),
     description: 'Join the community network and help each other during emergencies.',
     action: '/community',
   },
@@ -32,8 +30,7 @@ const carouselData = [
     id: 3,
     title: 'Resource Center',
     subtitle: 'Find help and resources',
-    image:
-      'https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
+    image: require('@/assets/images/bancaan/evacuation.png'),
     description: 'Access emergency resources, shelters, and important contact information.',
     action: '/details',
   },
@@ -50,14 +47,14 @@ export const AdvancedCarousel = () => {
   };
 
   const renderCarouselItem = ({ item, index }: { item: (typeof carouselData)[0]; index: number }) => (
-    <TouchableOpacity
-      onPress={() => handlePress(item)}
+    <View
+      // onPress={() => handlePress(item)}
       style={[styles.carouselItem, { backgroundColor: isDark ? '#2A2A2A' : '#FFFFFF' }]}
-      activeOpacity={0.8}
+      // activeOpacity={0.8}
     >
       {/* Image Section */}
       <View style={styles.imageContainer}>
-        <Image source={{ uri: item.image }} style={styles.carouselImage} alt={item.title} contentFit="cover" />
+        <Image source={item.image} style={styles.carouselImage} alt={item.title} contentFit="cover" />
 
         {/* Overlay gradient effect */}
         <View style={styles.imageOverlay} />
@@ -75,7 +72,7 @@ export const AdvancedCarousel = () => {
       <View style={styles.contentContainer}>
         <Text style={[styles.itemDescription, { color: isDark ? '#FFFFFF' : '#333333' }]}>{item.description}</Text>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 
   const renderPaginationDots = () => (
