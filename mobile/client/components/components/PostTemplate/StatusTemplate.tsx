@@ -12,7 +12,6 @@ import { Image } from 'expo-image';
 import {
   CircleCheck,
   CircleQuestionMark,
-  Ellipsis,
   Info,
   MapPin,
   Phone,
@@ -108,7 +107,6 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
       <VStack space="sm">
         {/* Header with menu icon */}
         <Box style={styles.header}>
-          <Ellipsis color={dynamicStyles.ellipsisIcon.color} size={24} />
         </Box>
 
         {/* Main content row */}

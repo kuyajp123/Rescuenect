@@ -5,11 +5,12 @@ import { Colors } from '@/constants/Colors';
 import { useMap } from '@/contexts/MapContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { storageHelpers } from '@/helper/storage';
+import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import { EvacuationCenter } from '@/types/components';
 import MapboxGL, { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
 import type { FeatureCollection } from 'geojson';
-import { ChevronLeft, MapIcon } from 'lucide-react-native';
+import { Bookmark, ChevronLeft, MapIcon } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { BackHandler, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '../text';
@@ -72,6 +73,14 @@ interface EarthquakeData {
   };
 }
 
+type saveLocationData = {
+  id: string;
+  label: string;
+  location: string;
+  lat: number;
+  lng: number;
+};
+
 interface MapViewProps {
   coords?: { lat: number; lng: number };
   data?: EvacuationCenter[];
@@ -95,6 +104,7 @@ interface MapViewProps {
   hasAnimation?: boolean;
   show3DBuildings?: boolean;
   onMarkerPress?: (markerId: string) => void;
+  savedLocations?: saveLocationData[];
 }
 
 export const MapView: React.FC<MapViewProps> = ({
@@ -122,15 +132,20 @@ export const MapView: React.FC<MapViewProps> = ({
   hasAnimation = true,
   show3DBuildings = true,
   onMarkerPress,
+  savedLocations,
 }) => {
   const router = useRouter();
   const { isDark } = useTheme();
   const { setMapStyle } = useMap();
+  const savedLocationsFromStore = useSavedLocationsStore(state => state.savedLocations);
+  const savedLocationsList = savedLocations ?? savedLocationsFromStore;
   const [showMapStyles, setShowMapStyles] = useState(false);
   const [mapStyleState, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
   const [selectedMarker, setSelectedMarker] = useState<EvacuationCenter | null>(null);
   const [isStyleLoaded, setIsStyleLoaded] = useState(false);
   const [areMarkersReady, setAreMarkersReady] = useState(false);
+  const [isMapReady, setIsMapReady] = useState(false);
+  const [showSavedLocations, setShowSavedLocations] = useState(false);
 
   useEffect(() => {
     const loadMapStyle = async () => {
@@ -149,7 +164,7 @@ export const MapView: React.FC<MapViewProps> = ({
   // Sequential loading: Wait for style -> Wait for Images -> Show Markers
   useEffect(() => {
     let timeout: NodeJS.Timeout;
-    if (isStyleLoaded) {
+    if (isStyleLoaded && isMapReady) {
       // Give the Images component time to register native assets before adding the ShapeSource
       timeout = setTimeout(() => {
         setAreMarkersReady(true);
@@ -158,7 +173,13 @@ export const MapView: React.FC<MapViewProps> = ({
       setAreMarkersReady(false);
     }
     return () => clearTimeout(timeout);
-  }, [isStyleLoaded]);
+  }, [isStyleLoaded, isMapReady]);
+
+  useEffect(() => {
+    if (savedLocationsList.length === 0) {
+      setShowSavedLocations(false);
+    }
+  }, [savedLocationsList.length]);
 
   // Handle hardware back press
   useEffect(() => {
@@ -178,6 +199,11 @@ export const MapView: React.FC<MapViewProps> = ({
   const toggleMapStyles = useCallback(() => {
     setShowMapStyles(prev => !prev);
   }, []);
+
+  const toggleSavedLocations = useCallback(() => {
+    if (savedLocationsList.length === 0) return;
+    setShowSavedLocations(prev => !prev);
+  }, [savedLocationsList.length]);
 
   const handleStyleChange = useCallback(
     async (style: MapboxGL.StyleURL.Street | MapboxGL.StyleURL.Dark | MapboxGL.StyleURL.SatelliteStreet) => {
@@ -239,6 +265,8 @@ export const MapView: React.FC<MapViewProps> = ({
         compassViewPosition={1}
         compassViewMargins={{ x: 20, y: 20 }}
         onPress={handleMapPress}
+        onDidFinishLoadingMap={() => setIsMapReady(true)}
+        onDidFailLoadingMap={() => setIsMapReady(false)}
         onDidFinishLoadingStyle={() => setIsStyleLoaded(true)}
       >
         <MapboxGL.Camera
@@ -256,7 +284,7 @@ export const MapView: React.FC<MapViewProps> = ({
           followZoomLevel={16}
         />
 
-        {isStyleLoaded && (
+        {isStyleLoaded && isMapReady && (
           <>
             {/* Register your icon asset here */}
             <Images
@@ -270,6 +298,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 'marker-private-facility': require('@/assets/images/marker/evacuation-center-marker/marker-private-facility.png'),
                 'marker-vacant-building': require('@/assets/images/marker/evacuation-center-marker/marker-vacant-building.png'),
                 'marker-covered-court': require('@/assets/images/marker/evacuation-center-marker/marker-covered-court.png'),
+                'others-marker': require('@/assets/images/marker/evacuation-center-marker/others-marker.png'),
                 earthquakeRadius: earthquakeData
                   ? getEarthquakeRadiusImage(earthquakeData.severity)
                   : require('@/assets/images/marker/radius/moderate.png'),
@@ -333,6 +362,10 @@ export const MapView: React.FC<MapViewProps> = ({
                       'marker-vacant-building',
                       'covered court',
                       'marker-covered-court',
+                      'others-marker',
+                      'others-marker',
+                      'other',
+                      'others-marker',
                       'pin', // default
                     ],
                     iconSize: [
@@ -354,6 +387,10 @@ export const MapView: React.FC<MapViewProps> = ({
                       0.1,
                       'covered court',
                       0.1,
+                      'others-marker',
+                      0.1,
+                      'other',
+                      0.1,
                       1,
                     ],
                     iconAllowOverlap: true,
@@ -372,6 +409,17 @@ export const MapView: React.FC<MapViewProps> = ({
                 <View style={[styles.tapMarker, { backgroundColor: Colors.brand.dark }]} />
               </MapboxGL.PointAnnotation>
             )}
+
+            {showSavedLocations &&
+              savedLocationsList.map(location => (
+                <MapboxGL.PointAnnotation
+                  key={`saved-location-marker-${location.id}`}
+                  id={`saved-location-marker-${location.id}`}
+                  coordinate={[location.lng, location.lat]}
+                >
+                  <View style={styles.savedLocationMarker} />
+                </MapboxGL.PointAnnotation>
+              ))}
 
             {/* Earthquake radius using PNG image overlay */}
             {earthquakeData && (
@@ -448,6 +496,24 @@ export const MapView: React.FC<MapViewProps> = ({
               style={[styles.mapStyleButton, { backgroundColor: isDark ? Colors.border.dark : Colors.border.light }]}
             >
               <MapIcon size={24} color={isDark ? Colors.border.light : Colors.border.dark} />
+            </HoveredButton>
+          )}
+
+          {savedLocationsList.length > 0 && (
+            <HoveredButton
+              onPress={toggleSavedLocations}
+              style={[
+                styles.savedLocationsButton,
+                {
+                  backgroundColor: showSavedLocations
+                    ? Colors.brand.light
+                    : isDark
+                      ? Colors.border.dark
+                      : Colors.border.light,
+                },
+              ]}
+            >
+              <Bookmark size={24} color={isDark ? Colors.border.light : Colors.border.dark} />
             </HoveredButton>
           )}
 
@@ -531,6 +597,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  savedLocationMarker: {
+    width: 16,
+    height: 16,
+    borderRadius: 16,
+    backgroundColor: Colors.brand.dark,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   toggleButton: {
     position: 'absolute',
     top: 25,
@@ -547,6 +623,19 @@ const styles = StyleSheet.create({
   mapStyleButton: {
     position: 'absolute',
     top: 80,
+    right: 20,
+    padding: 12,
+    alignSelf: 'flex-start',
+    borderRadius: 24,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 4,
+  },
+  savedLocationsButton: {
+    position: 'absolute',
+    top: 135,
     right: 20,
     padding: 12,
     alignSelf: 'flex-start',

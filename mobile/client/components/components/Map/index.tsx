@@ -1,16 +1,16 @@
-import { useCoords } from '@/store/useCoords';
-import { useGetAddress } from '@/store/useGetAddress';
-import { useMapSettingsStore } from '@/store/useMapSettings';
-import { useStatusFormStore } from '@/store/useStatusForm';
 import { HStack } from '@/components/ui/hstack';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
 import { Colors } from '@/constants/Colors';
 import { useMap } from '@/contexts/MapContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useCoords } from '@/store/useCoords';
+import { useGetAddress } from '@/store/useGetAddress';
+import { useMapSettingsStore } from '@/store/useMapSettings';
+import { useStatusFormStore } from '@/store/useStatusForm';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useFocusEffect } from 'expo-router';
-import { Bookmark, Ellipsis, Navigation, Settings, X } from 'lucide-react-native';
+import { Bookmark, Ellipsis, HelpCircle, Info, Navigation, Settings, X } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
@@ -89,6 +89,7 @@ interface HeaderActionWithData {
     onPress?: () => void;
   };
   rightAction?: {
+    text?: string;
     icon?: React.ReactNode;
     onPress?: () => void;
   };
@@ -328,8 +329,14 @@ const Map = ({
                 </Text>
               )}
             </VStack>
-            <IconButton style={styles.button} onPress={handleLocationClear}>
-              <X size={24} color={Colors.semantic.error} />
+            <IconButton
+              style={[
+                styles.button,
+                { backgroundColor: isDark ? Colors.muted.dark.background : Colors.muted.light.background },
+              ]}
+              onPress={handleLocationClear}
+            >
+              <X size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
             </IconButton>
           </HStack>
 
@@ -356,7 +363,7 @@ const Map = ({
             <Button
               width="fit"
               style={{ width: 'auto' }}
-              action={'error'}
+              action="secondary"
               onPress={handleClearOneTimeLocation || (() => {})}
             >
               <Text>Stop</Text>
@@ -384,8 +391,14 @@ const Map = ({
               </Text>
             )}
           </VStack>
-          <IconButton style={styles.button} onPress={handleLocationClear}>
-            <X size={24} color={Colors.semantic.error} />
+          <IconButton
+            style={[
+              styles.button,
+              { backgroundColor: isDark ? Colors.muted.dark.background : Colors.muted.light.background },
+            ]}
+            onPress={handleLocationClear}
+          >
+            <X size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
           </IconButton>
         </HStack>
       );
@@ -416,7 +429,7 @@ const Map = ({
           <Button
             width="fit"
             style={{ width: 'auto' }}
-            action={'error'}
+            action="secondary"
             onPress={handleClearOneTimeLocation || (() => {})}
           >
             <Text>Stop</Text>
@@ -517,7 +530,7 @@ const Map = ({
                     {headerActions.headerActionWithData.leftAction && (
                       <IconButton onPress={headerActions.headerActionWithData.leftAction.onPress || (() => {})}>
                         {headerActions.headerActionWithData.leftAction.icon || (
-                          <Settings color={isDark ? Colors.icons.dark : Colors.icons.light} />
+                          <HelpCircle color={isDark ? Colors.icons.dark : Colors.icons.light} />
                         )}
                       </IconButton>
                     )}
@@ -538,11 +551,21 @@ const Map = ({
 
                     {/* Right Action (optional) */}
                     {headerActions.headerActionWithData.rightAction && (
-                      <IconButton onPress={headerActions.headerActionWithData.rightAction.onPress || (() => {})}>
+                      <Button
+                        onPress={headerActions.headerActionWithData.rightAction.onPress || (() => {})}
+                        width="fit"
+                        action="error"
+                        size="md"
+                      >
                         {headerActions.headerActionWithData.rightAction.icon || (
                           <Ellipsis color={isDark ? Colors.icons.dark : Colors.icons.light} />
                         )}
-                      </IconButton>
+                        {headerActions.headerActionWithData.rightAction.text && (
+                          <Text size="xs" style={{ marginLeft: 8, color: Colors.text.dark }}>
+                            {headerActions.headerActionWithData.rightAction.text}
+                          </Text>
+                        )}
+                      </Button>
                     )}
                   </HStack>
                 ) : headerActions.headerActionNoData ? (
@@ -575,7 +598,6 @@ const Map = ({
                       {title}
                     </Text>
                   )}
-
                 {/* Text Input Fields */}
                 {textInputFields.map(field => (
                   <VStack key={field.key} style={{ marginBottom: 12 }}>
@@ -607,7 +629,6 @@ const Map = ({
                     />
                   </VStack>
                 ))}
-
                 {/* Number Input Fields */}
                 {numberInputFields.map(field => (
                   <VStack key={field.key} style={{ marginBottom: 12 }}>
@@ -648,7 +669,6 @@ const Map = ({
                     )}
                   </VStack>
                 ))}
-
                 {/* Radio Fields */}
                 {radioFields.map(field => (
                   <VStack key={field.key} style={{ marginBottom: 12 }}>
@@ -668,8 +688,8 @@ const Map = ({
                                     field.selectedValue === option.value
                                       ? Colors.brand.light
                                       : isDark
-                                      ? Colors.border.dark
-                                      : Colors.border.light,
+                                        ? Colors.border.dark
+                                        : Colors.border.light,
                                 },
                               ]}
                               onTouchEnd={() => field.onSelect(option.value)}
@@ -690,14 +710,18 @@ const Map = ({
                     </View>
                   </VStack>
                 ))}
-
                 {/* Custom Components */}
                 {customComponents.map((component, index) => (
                   <View key={`custom-${index}`} style={{ marginVertical: 10 }}>
                     {component}
                   </View>
                 ))}
-
+                <HStack key="info-banner" style={styles.infoContainer}>
+                  <Info size={20} color={Colors.icons.light} />
+                  <Text size="2xs" emphasis="light" style={styles.infoText}>
+                    All information entered here will remain visible to the admin for detailed status tracking.
+                  </Text>
+                </HStack>
                 {/* Toggle Fields */}
                 {toggleFields.map(field => (
                   <View key={field.key} style={styles.toggleContainer}>
@@ -705,7 +729,6 @@ const Map = ({
                     <ToggleButton isEnabled={field.isEnabled} onToggle={field.onToggle} />
                   </View>
                 ))}
-
                 <Text
                   style={{
                     color: Colors.semantic.error,
@@ -715,14 +738,12 @@ const Map = ({
                 >
                   {errMessage}
                 </Text>
-
                 {/* Primary Action Button */}
                 {primaryButton && (
                   <Button onPress={primaryButton.onPress} style={[{ marginTop: 20 }, primaryButton.style]}>
                     <RNText style={styles.submitText}>{primaryButton.label}</RNText>
                   </Button>
                 )}
-
                 {secondaryButton && (
                   <Button onPress={secondaryButton.onPress} style={{ marginTop: 20 }} action="secondary">
                     <RNText style={styles.submitText}>{secondaryButton.label}</RNText>
@@ -782,10 +803,8 @@ const styles = StyleSheet.create({
     width: '85%',
   },
   button: {
-    borderWidth: 1,
-    borderColor: Colors.icons.light,
-    width: 50,
-    height: 50,
+    width: 40,
+    height: 40,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -887,5 +906,16 @@ const styles = StyleSheet.create({
   submitText: {
     color: 'white',
     fontWeight: '600',
+  },
+  infoContainer: {
+    marginTop: 12,
+    borderRadius: 8,
+    gap: 8,
+    display: 'flex',
+    alignItems: 'center',
+  },
+  infoText: {
+    flex: 1,
+    flexShrink: 1,
   },
 });

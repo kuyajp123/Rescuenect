@@ -1,11 +1,10 @@
 import { PrimaryButton } from '@/components/components/button/Button';
-import { useStatusStore } from '@/store/useCurrentStatusStore';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
-import { ColorCombinations, Colors } from '@/constants/Colors';
+import { ColorCombinations } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useStatusStore } from '@/store/useCurrentStatusStore';
 import { useRouter } from 'expo-router';
-import { ChevronRight } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -16,24 +15,27 @@ const StatusCard = ({
   label,
   colorClass,
   onPress,
+  isDark,
 }: {
   status: string;
   count: number;
   label: string;
   colorClass: string;
   onPress: () => void;
+  isDark: boolean;
 }) => {
-  const { isDark } = useTheme();
-
   return (
-    <TouchableOpacity style={styles.statusCard} activeOpacity={1} onPress={onPress}>
+    <TouchableOpacity
+      style={[styles.statusCard, isDark ? styles.statusCardDark : styles.statusCardLight]}
+      activeOpacity={0.8}
+      onPress={onPress}
+    >
       <View style={styles.statusHeader}>
         <View style={styles.statusDot} className={colorClass} />
         <Text>{label}</Text>
       </View>
       <View style={styles.statusContent}>
         <Text size="xl">{count}</Text>
-        <ChevronRight color={isDark ? Colors.icons.light : Colors.icons.dark} />
       </View>
       <View>
         <Text emphasis="light" size="2xs">
@@ -70,18 +72,16 @@ export const CommunityStatus = () => {
                 count={statusCounts.safe}
                 label="Safe"
                 colorClass="bg-safe-500"
-                onPress={() => {
-                  router.push('post/status' as any);
-                }}
+                onPress={() => {}}
+                isDark={isDark}
               />
               <StatusCard
                 status="affected"
                 count={statusCounts.affected}
                 label="Affected"
                 colorClass="bg-affected-500"
-                onPress={() => {
-                  router.push('post/status' as any);
-                }}
+                onPress={() => {}}
+                isDark={isDark}
               />
             </View>
 
@@ -91,18 +91,16 @@ export const CommunityStatus = () => {
                 count={statusCounts.evacuated}
                 label="Evacuated"
                 colorClass="bg-evacuated-500"
-                onPress={() => {
-                  router.push('post/status' as any);
-                }}
+                onPress={() => {}}
+                isDark={isDark}
               />
               <StatusCard
                 status="missing"
                 count={statusCounts.missing}
                 label="Missing"
                 colorClass="bg-missing-500"
-                onPress={() => {
-                  router.push('post/status' as any);
-                }}
+                onPress={() => {}}
+                isDark={isDark}
               />
             </View>
           </View>
@@ -122,30 +120,42 @@ const styles = StyleSheet.create({
     padding: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 5,
+    alignItems: 'stretch',
+    gap: 10,
     marginBottom: 20,
     borderRadius: 10,
   },
   leftColumn: {
-    width: '45%',
+    flex: 1,
     flexDirection: 'column',
-    alignItems: 'center',
+    alignItems: 'stretch',
     gap: 10,
   },
   rightColumn: {
-    width: '45%',
+    flex: 1,
     flexDirection: 'column',
-    alignItems: 'center',
+    alignItems: 'stretch',
     gap: 10,
   },
   statusCard: {
-    padding: 10,
+    width: '100%',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  statusCardLight: {
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
+  },
+  statusCardDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   statusHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+    marginBottom: 6,
   },
   statusDot: {
     height: 10,
@@ -156,7 +166,7 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     marginTop: 2,
   },
 });

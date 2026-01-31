@@ -1,4 +1,5 @@
 import { getAddress } from '@/API/getAddress';
+import { Button } from '@/components/components/button/Button';
 import CustomImagePicker from '@/components/components/CustomImagePicker';
 import { ImageModal } from '@/components/components/image-modal/ImageModal';
 import Map, { CustomButton, NumberInputField, RadioField, TextInputField } from '@/components/components/Map';
@@ -6,7 +7,6 @@ import Modal from '@/components/components/Modal';
 import StatusOnboarding from '@/components/components/onboarding/StatusOnboarding';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { ButtonRadio } from '@/components/ui/CustomRadio';
-import { HStack } from '@/components/ui/hstack';
 import Body from '@/components/ui/layout/Body';
 import { LoadingOverlay } from '@/components/ui/loading/LoadingOverlay';
 import StateImage from '@/components/ui/StateImage/StateImage';
@@ -43,7 +43,7 @@ import axios from 'axios';
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
 import { isEqual } from 'lodash';
-import { Bookmark, Ellipsis, HelpCircle, Info, Navigation, Settings, SquarePen, Trash } from 'lucide-react-native';
+import { Bookmark, HelpCircle, Navigation, SquarePen, Trash } from 'lucide-react-native';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -1082,29 +1082,29 @@ export const createStatus = () => {
             {coords
               ? addressCoords?.formatted || 'Location:'
               : oneTimeLocationCoords
-              ? addressGPS?.formatted || 'GPS Location:'
-              : 'Selected Location:'}
+                ? addressGPS?.formatted || 'GPS Location:'
+                : 'Selected Location:'}
           </Text>
           <Text>
             {coords
               ? `Lat: ${Number(coords[1]).toFixed(6)}, Lng: ${Number(coords[0]).toFixed(6)}`
               : oneTimeLocationCoords
-              ? `Lat: ${Number(oneTimeLocationCoords[1]).toFixed(6)}, Lng: ${Number(oneTimeLocationCoords[0]).toFixed(
-                  6
-                )}`
-              : 'No location selected'}
+                ? `Lat: ${Number(oneTimeLocationCoords[1]).toFixed(6)}, Lng: ${Number(oneTimeLocationCoords[0]).toFixed(
+                    6
+                  )}`
+                : 'No location selected'}
           </Text>
         </View>
       )
     ),
 
-    // Info banner
-    <HStack key="info-banner" style={styles.infoContainer}>
-      <Info size={20} color={Colors.icons.light} />
-      <Text size="2xs" emphasis="light">
-        All information entered here will remain visible to the admin for detailed status tracking.
-      </Text>
-    </HStack>,
+    <View>
+      <Button variant="link" width="fit" onPress={() => navigateToStatusSettings()}>
+        <Text size="xs" emphasis="bold">
+          See other Settings
+        </Text>
+      </Button>
+    </View>,
   ].filter(Boolean);
 
   const renderImageState = (imageType: string) => {
@@ -1295,78 +1295,30 @@ export const createStatus = () => {
   };
 
   const headerActions = useMemo(() => {
-    return formData
-      ? {
-          headerActionWithData: {
-            createdAt: formatTimeSince(formData.createdAt),
-            rightAction: {
-              icon: <Ellipsis size={24} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-              onPress: () => {
-                const sheet = require('react-native-actions-sheet').SheetManager;
-                sheet.show('status-more-action', {
-                  payload: {
-                    items: [
-                      {
-                        id: 'guide',
-                        name: 'Show Guide',
-                        icon: <HelpCircle size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-                        onPress: () => {
-                          setTimeout(() => {
-                            setShowOnboarding(true);
-                          }, 500);
-                          sheet.hide('status-more-action');
-                        },
-                      },
-                      {
-                        id: 'settings',
-                        name: 'Settings',
-                        icon: <Settings size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-                        onPress: navigateToStatusSettings,
-                      },
-                      {
-                        id: 'delete',
-                        name: 'Delete',
-                        icon: <Trash size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-                        onPress: deleteModalConfirm,
-                      },
-                    ],
-                  },
-                });
-              },
-            },
+    const helpAction = {
+      icon: <HelpCircle size={24} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+      onPress: () => {
+        setShowOnboarding(true);
+      },
+    };
+
+    if (!formData) {
+      return { headerActionNoData: helpAction };
+    }
+
+    return {
+      headerActionWithData: {
+        createdAt: formatTimeSince(formData.createdAt),
+        leftAction: helpAction,
+        rightAction: {
+          text: 'Delete Status',
+          icon: <Trash size={20} color={Colors.text.dark} />,
+          onPress: () => {
+            deleteModalConfirm();
           },
-        }
-      : {
-          headerActionNoData: {
-            icon: <Ellipsis size={24} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-            onPress: () => {
-              const sheet = require('react-native-actions-sheet').SheetManager;
-              sheet.show('status-ellipsis-action', {
-                payload: {
-                  items: [
-                    {
-                      id: 'guide',
-                      name: 'Show Guide',
-                      icon: <HelpCircle size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-                      onPress: () => {
-                        setTimeout(() => {
-                          setShowOnboarding(true);
-                        }, 500);
-                        sheet.hide('status-ellipsis-action');
-                      },
-                    },
-                    {
-                      id: 'settings',
-                      name: 'Settings',
-                      icon: <Settings size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-                      onPress: navigateToStatusSettings,
-                    },
-                  ],
-                },
-              });
-            },
-          },
-        };
+        },
+      },
+    };
   }, [formData, isDark]);
 
   return (
@@ -1576,13 +1528,6 @@ const styles = StyleSheet.create({
     height: 200,
     resizeMode: 'cover',
     borderRadius: 8,
-  },
-  infoContainer: {
-    marginTop: 12,
-    borderRadius: 8,
-    gap: 8,
-    display: 'flex',
-    alignItems: 'center',
   },
   textInput: {
     borderWidth: 1,

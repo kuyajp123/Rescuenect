@@ -9,10 +9,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { storageHelpers } from '@/helper/storage';
+import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 
 export const evacuation = () => {
   const insets = useSafeAreaInsets();
   const [evacuationCenters, setEvacuationCenters] = useState<EvacuationCenter[] | null>(null);
+  const savedLocations = useSavedLocationsStore(state => state.savedLocations);
 
   useEffect(() => {
     const loadData = async () => {
@@ -52,7 +54,12 @@ export const evacuation = () => {
         },
       ]}
     >
-      <MapView showButtons={true} showStyleSelector={true} data={evacuationCenters ?? undefined} />
+      <MapView
+        showButtons={true}
+        showStyleSelector={true}
+        data={evacuationCenters ?? undefined}
+        savedLocations={savedLocations}
+      />
     </Body>
   );
 };
