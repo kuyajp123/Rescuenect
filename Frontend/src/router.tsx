@@ -20,7 +20,7 @@ const NotificationDetails = lazy(() =>
 );
 const Residents = lazy(() => import('@/pages/contents/Residents'));
 const ResidentsProfile = lazy(() => import('@/pages/contents/Residents/ResidentsProfile'));
-const SaveAsPDF = lazy(() => import('@/pages/contents/Status/SaveAsPDF'));
+const SaveAsPDF = lazy(() => import('@/pages/contents/Status/saveAsPDF'));
 const Status = lazy(() => import('@/pages/contents/Status'));
 const StatusHistory = lazy(() =>
   import('@/pages/contents/Status/History').then(module => ({ default: module.StatusHistory }))
