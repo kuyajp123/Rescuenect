@@ -9,7 +9,7 @@ import { Notification } from './Notification';
 import { NotificationDetails } from './Notification/NotificationDetails';
 import Residents from './Residents/index';
 import ResidentsProfile from './Residents/ResidentsProfile';
-import SaveAsPDF from './Status/saveAsPDF';
+import SaveAsPDF from './Status/SaveAsPDF';
 import DailyForecastDetails from './Weather/DailyForecastDetails';
 import HourlyDetails from './Weather/HourlyDetails';
 import Weather from './Weather/Weather';
