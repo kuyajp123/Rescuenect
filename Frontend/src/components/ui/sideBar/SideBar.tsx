@@ -1,4 +1,4 @@
-import { Activity, Cloud, HousePlus, LayoutDashboard, MapPin, UsersRound } from 'lucide-react';
+import { Activity, Cloud, HousePlus, LayoutDashboard, MapPin, UsersRound, Megaphone } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -29,7 +29,7 @@ const SideBar = ({ isOpen }: SideBarProps) => {
     { path: '/earthquake', icon: Activity, label: 'Earthquake' },
     { path: '/residents', icon: UsersRound, label: 'Residents' },
     { path: '/evacuation', icon: HousePlus, label: 'Evacuation' },
-    // { path: '/add_event', icon: CalendarPlus, label: 'Add Event' },
+    { path: '/announcement', icon: Megaphone, label: 'Announcement' },
   ];
 
   return (

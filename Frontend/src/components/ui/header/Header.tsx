@@ -5,15 +5,15 @@ import { useAuth } from '@/stores/useAuth';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import { Avatar } from '@heroui/avatar';
 import {
-    BreadcrumbItem,
-    Breadcrumbs,
-    Button,
-    Dropdown,
-    DropdownItem,
-    DropdownMenu,
-    DropdownSection,
-    DropdownTrigger,
-    User,
+  BreadcrumbItem,
+  Breadcrumbs,
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownSection,
+  DropdownTrigger,
+  User,
 } from '@heroui/react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Bell, LogOut, PanelLeftClose, PanelLeftOpen, Settings, UserRound } from 'lucide-react';
@@ -103,14 +103,17 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
         case '/notification':
           label = 'Notification';
           break;
+        case '/announcement/create-announcement':
+          label = 'Create Announcement';
+          break;
         default:
           // specific handling for weather detail pages final segment
           if (currentPath.startsWith('/weather/details/')) {
-             label = 'Daily Forecast Details';
+            label = 'Daily Forecast Details';
           } else if (currentPath.startsWith('/weather/hourly/')) {
-             label = 'Hourly Forecast Details';
+            label = 'Hourly Forecast Details';
           } else {
-             label = segment.charAt(0).toUpperCase() + segment.slice(1);
+            label = segment.charAt(0).toUpperCase() + segment.slice(1);
           }
       }
 

@@ -680,3 +680,17 @@ export interface StatusDataCard {
   deletedAt?: { _seconds: number; _nanoseconds: number };
   retentionUntil: { _seconds: number; _nanoseconds: number };
 }
+
+export interface AnnouncementDataCard {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  thumbnail?: string;
+  category: 'general' | 'event' | 'update' | 'maintenance' | 'alert' | 'emergency' | 'other';
+  barangays?: string[];
+  createdAt: { _seconds?: number; _nanoseconds?: number; seconds?: number; nanoseconds?: number };
+}
+
+export type UnifiedStatusCardMode = 'residentProfile' | 'versionHistory' | 'announcement';
+export type UnifiedStatusCardData = StatusDataCard | AnnouncementDataCard;

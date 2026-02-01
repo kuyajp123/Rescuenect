@@ -20,14 +20,16 @@ const NotificationDetails = lazy(() =>
 );
 const Residents = lazy(() => import('@/pages/contents/Residents'));
 const ResidentsProfile = lazy(() => import('@/pages/contents/Residents/ResidentsProfile'));
-const SaveAsPDF = lazy(() => import('@/pages/contents/Status/saveAsPDF'));
+const SaveAsPDF = lazy(() => import('@/pages/contents/Status/SaveAsPDF'));
 const Status = lazy(() => import('@/pages/contents/Status'));
 const StatusHistory = lazy(() =>
   import('@/pages/contents/Status/History').then(module => ({ default: module.StatusHistory }))
 );
+const Announcement = lazy(() => import('@/pages/contents/announcement/index'));
+const AddAnnouncement = lazy(() => import('@/pages/contents/announcement/add-announcement'));
 
-import TermsAndCondition from './components/ui/legalTerms/TermsAndCondition';
 import PrivacyPolicy from './components/ui/legalTerms/PrivacyPolicy';
+import TermsAndCondition from './components/ui/legalTerms/TermsAndCondition';
 
 const Weather = lazy(() => import('@/pages/contents/Weather/Weather'));
 const Settings = lazy(() => import('./pages/contents/Settings'));
@@ -39,7 +41,7 @@ const Login = lazy(() => import('./pages/auth/Login'));
 const Welcome = lazy(() => import('./pages/auth/Welcome'));
 
 // Lazy load profile pages
-const AdminProfile = lazy(() => import('./pages/profiile/AdminProfile'));
+const AdminProfile = lazy(() => import('./pages/profile/AdminProfile'));
 
 const Router = () => {
   const location = useLocation();
@@ -91,6 +93,8 @@ const Router = () => {
           <Route path="/notification" element={<Notification />} />
           <Route path="/notification/details" element={<NotificationDetails />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/announcement" element={<Announcement />} />
+          <Route path="/announcement/create-announcement" element={<AddAnnouncement />} />
         </Route>
 
         {/* Onboarding layout */}
