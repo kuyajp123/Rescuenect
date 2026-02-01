@@ -24,7 +24,6 @@ import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import { Tiptap, useEditor, useEditorState } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import axios from 'axios';
 import DOMPurify from 'dompurify';
 import {
   AlignCenter,
@@ -262,22 +261,22 @@ const AddAnnouncement = () => {
 
     if (!user) return;
 
-    try {
-      const token = await user?.getIdToken();
-      const response = await axios.post('/api/announcements', payload, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    // try {
+    //   const token = await user?.getIdToken();
+    //   const response = await axios.post('/api/announcements', payload, {
+    //     headers: {
+    //       'Content-Type': 'multipart/form-data',
+    //       Authorization: `Bearer ${token}`,
+    //     },
+    //   });
 
-      console.log('Announcement published successfully:', response.data);
-      if (response.status === 201) {
-        localStorage.removeItem('announcementDraft');
-      }
-    } catch (error) {
-      console.error('Error publishing announcement:', error);
-    }
+    //   console.log('Announcement published successfully:', response.data);
+    //   if (response.status === 201) {
+    //     localStorage.removeItem('announcementDraft');
+    //   }
+    // } catch (error) {
+    //   console.error('Error publishing announcement:', error);
+    // }
   };
 
   useEffect(() => {
@@ -768,7 +767,7 @@ const AddAnnouncement = () => {
                   variant="solid"
                   color="primary"
                   onPress={() => {
-                    // handlePublish();
+                    handlePublish();
                     onClose();
                   }}
                 >
