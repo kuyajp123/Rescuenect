@@ -1,0 +1,59 @@
+import { ensureBucketExists } from '@/components/UploadImageBucket';
+import { supabase } from '@/lib/supabase';
+
+export class AnnouncementThumbnailUploadService {
+  private static readonly BUCKET_NAME = 'announcement-thumbnails';
+
+  static async uploadAnnouncementThumbnail(
+    file: Express.Multer.File,
+    userId: string,
+    announcementId: string
+  ): Promise<string> {
+    try {
+      await ensureBucketExists(this.BUCKET_NAME);
+
+      const fileExtension = file.originalname.split('.').pop() || 'jpg';
+      const filePath = `${userId}/${announcementId}.${fileExtension}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(this.BUCKET_NAME)
+        .upload(filePath, file.buffer, {
+          contentType: file.mimetype,
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error('❌ Supabase upload error:', uploadError);
+
+        if (uploadError.message?.includes('Bucket not found')) {
+          console.log('🔁 Bucket not found, creating and retrying...');
+          await ensureBucketExists(this.BUCKET_NAME);
+
+          const { error: retryError } = await supabase.storage
+            .from(this.BUCKET_NAME)
+            .upload(filePath, file.buffer, {
+              contentType: file.mimetype,
+              upsert: true,
+            });
+
+          if (retryError) {
+            throw new Error(`Failed to upload thumbnail after retry: ${retryError.message}`);
+          }
+        } else {
+          throw new Error(`Failed to upload thumbnail: ${uploadError.message}`);
+        }
+      }
+
+      const { data: urlData } = supabase.storage.from(this.BUCKET_NAME).getPublicUrl(filePath);
+      if (!urlData?.publicUrl) {
+        throw new Error('Failed to get public URL from Supabase');
+      }
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('❌ Error in uploadAnnouncementThumbnail:', error);
+      throw error;
+    }
+  }
+}
+

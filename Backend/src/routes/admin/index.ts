@@ -4,6 +4,7 @@ import configRoutes from './configRoutes';
 import evacuationRoutes from './evacuationRoutes';
 import residentsRoutes from './residentsRoutes';
 import statusRoutes from './statusRoutes';
+import announcementRoutes from './announcementRoutes';
 
 const adminRouter = express.Router();
 
@@ -16,5 +17,7 @@ adminRouter.use('/config', configRoutes);
 adminRouter.use('/evacuation', evacuationRoutes);
 
 adminRouter.use('/residents', residentsRoutes);
+
+adminRouter.use('/announcement', announcementRoutes);
 
 export default adminRouter;

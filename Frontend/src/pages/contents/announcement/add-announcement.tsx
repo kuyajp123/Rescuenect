@@ -1,4 +1,5 @@
 import { barangays } from '@/config/constant';
+import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
 import {
   Button,
@@ -24,6 +25,7 @@ import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import { Tiptap, useEditor, useEditorState } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import axios from 'axios';
 import DOMPurify from 'dompurify';
 import {
   AlignCenter,
@@ -155,6 +157,7 @@ const AddAnnouncement = () => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [thumbnailDataUrl, setThumbnailDataUrl] = useState('');
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<Selection>(new Set(['general']));
   const [selectedBarangays, setSelectedBarangays] = useState<Selection>(new Set());
   const user = auth.currentUser;
@@ -227,7 +230,12 @@ const AddAnnouncement = () => {
 
   const handleThumbnailFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      setThumbnailFile(null);
+      setThumbnailDataUrl('');
+      return;
+    }
+    setThumbnailFile(file);
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
@@ -242,6 +250,7 @@ const AddAnnouncement = () => {
     setSelectedCategory(new Set(['general']));
     setSelectedBarangays(new Set());
     setThumbnailDataUrl('');
+    setThumbnailFile(null);
     editor?.commands.setContent(initialContent);
   };
 
@@ -251,32 +260,36 @@ const AddAnnouncement = () => {
       content: sanitizedHtml,
       category: selectedCategoryKey,
       barangays: selectedBarangayValues,
-      thumbnail: thumbnailDataUrl,
     };
   };
 
   const handlePublish = async () => {
-    const payload = buildAnnouncementPayload();
-    console.log('Publishing announcement with payload:', payload);
-
     if (!user) return;
 
-    // try {
-    //   const token = await user?.getIdToken();
-    //   const response = await axios.post('/api/announcements', payload, {
-    //     headers: {
-    //       'Content-Type': 'multipart/form-data',
-    //       Authorization: `Bearer ${token}`,
-    //     },
-    //   });
+    try {
+      const token = await user.getIdToken();
+      const payload = buildAnnouncementPayload();
+      const formData = new FormData();
+      formData.append('content', payload.content);
+      formData.append('category', payload.category);
+      formData.append('barangays', JSON.stringify(payload.barangays));
+      if (thumbnailFile) {
+        formData.append('thumbnail', thumbnailFile);
+      }
 
-    //   console.log('Announcement published successfully:', response.data);
-    //   if (response.status === 201) {
-    //     localStorage.removeItem('announcementDraft');
-    //   }
-    // } catch (error) {
-    //   console.error('Error publishing announcement:', error);
-    // }
+      const response = await axios.post(API_ENDPOINTS.ANNOUNCEMENT.CREATE_ANNOUNCEMENT, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log('Announcement published successfully:', response.data);
+      if (response.status === 201) {
+        localStorage.removeItem('announcementDraft');
+      }
+    } catch (error) {
+      console.error('Error publishing announcement:', error);
+    }
   };
 
   useEffect(() => {
@@ -603,7 +616,7 @@ const AddAnnouncement = () => {
         <CardBody className="pt-0">
           <Tiptap instance={editor}>
             <Tiptap.Loading>
-              <div className="min-h-[320px] rounded-xl border border-default-200 bg-content1 px-4 py-3 text-sm text-default-500">
+              <div className="min-h-80 rounded-xl border border-default-200 bg-content1 px-4 py-3 text-sm text-default-500">
                 Loading editor...
               </div>
             </Tiptap.Loading>
