@@ -1,7 +1,7 @@
 import { AnnouncementModel } from '@/models/admin/AnnouncementModel';
 import createDOMPurify, { type WindowLike } from 'dompurify';
-import { JSDOM } from 'jsdom';
 import { Request, Response } from 'express';
+import { JSDOM } from 'jsdom';
 
 const window = new JSDOM('').window as unknown as WindowLike;
 const DOMPurify = createDOMPurify(window);
@@ -25,7 +25,7 @@ const ALLOWED_TAGS = [
   'pre',
   'img',
 ];
-const ALLOWED_ATTR = ['href', 'target', 'rel', 'src', 'alt', 'title'];
+const ALLOWED_ATTR = ['href', 'target', 'rel', 'src', 'alt', 'title', 'style'];
 const MAX_CONTENT_LENGTH = 100_000;
 const MAX_TEXT_LENGTH = 500;
 
@@ -37,6 +37,17 @@ const sanitizeText = (value: unknown, maxLength: number) => {
   return sanitized.slice(0, maxLength);
 };
 
+DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
+  if (data.attrName === 'style') {
+    const match = data.attrValue?.match(/text-align\s*:\s*(left|right|center|justify)/i);
+    if (match) {
+      data.attrValue = `text-align: ${match[1].toLowerCase()}`;
+    } else {
+      data.keepAttr = false;
+    }
+  }
+});
+
 const sanitizeHtmlContent = (value: unknown) => {
   if (typeof value !== 'string') return '';
   const trimmed = value.trim();
@@ -47,7 +58,7 @@ const sanitizeHtmlContent = (value: unknown) => {
     ALLOWED_ATTR,
     ALLOW_DATA_ATTR: false,
     FORBID_TAGS: ['style', 'script', 'iframe', 'object', 'embed', 'link', 'meta'],
-    FORBID_ATTR: ['style', 'onerror', 'onload', 'onclick'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick'],
   });
 
   return sanitized.slice(0, MAX_CONTENT_LENGTH);
@@ -123,6 +134,34 @@ export class AnnouncementController {
       });
       res.status(500).json({
         message: 'Failed to create announcement',
+        error: typeof error === 'string' ? error : (error as Error).message,
+      });
+    }
+  }
+
+  static async deleteAnnouncement(req: Request, res: Response): Promise<void> {
+    const userId = (req as any).user?.uid as string | undefined;
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const announcementId = req.params.id;
+    if (!announcementId) {
+      res.status(400).json({ message: 'Announcement ID is required' });
+      return;
+    }
+
+    try {
+      const success = await AnnouncementModel.deleteAnnouncement(announcementId);
+      res.status(200).json({ message: 'Announcement deleted' });
+    } catch (error) {
+      console.error('❌ Failed to delete announcement:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      res.status(500).json({
+        message: 'Failed to delete announcement',
         error: typeof error === 'string' ? error : (error as Error).message,
       });
     }

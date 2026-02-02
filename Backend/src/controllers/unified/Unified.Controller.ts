@@ -149,4 +149,45 @@ export class UnifiedController {
       });
     }
   }
+
+  static async getAllAnnouncements(_req: Request, res: Response): Promise<void> {
+    try {
+      const announcements = await UnifiedModel.getAllAnnouncements();
+      res.status(200).json(announcements);
+    } catch (error) {
+      console.error('❌ Failed to get all announcements:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      res.status(500).json({
+        message: 'Failed to get announcements',
+        error: typeof error === 'string' ? error : (error as Error).message,
+      });
+    }
+  }
+
+  static async getAnnouncementDetails(req: Request, res: Response): Promise<void> {
+    try {
+      const announcementId = req.query.id as string;
+      if (!announcementId) {
+        res.status(400).json({ message: 'Announcement ID is required' });
+        return;
+      }
+      const announcement = await UnifiedModel.getAnnouncementById(announcementId);
+      if (!announcement) {
+        res.status(404).json({ message: 'Announcement not found' });
+        return;
+      }
+      res.status(200).json(announcement);
+    } catch (error) {
+      console.error('❌ Failed to get announcement details:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      res.status(500).json({
+        message: 'Failed to get announcement details',
+        error: typeof error === 'string' ? error : (error as Error).message,
+      });
+    }
+  }
 }

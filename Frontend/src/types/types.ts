@@ -685,10 +685,11 @@ export interface AnnouncementDataCard {
   id: string;
   title: string;
   subtitle: string;
-  description: string;
+  content: string;
   thumbnail?: string;
   category: 'general' | 'event' | 'update' | 'maintenance' | 'alert' | 'emergency' | 'other';
   barangays?: string[];
+  createdBy?: string;
   createdAt: { _seconds?: number; _nanoseconds?: number; seconds?: number; nanoseconds?: number };
 }
 

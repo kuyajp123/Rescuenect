@@ -69,6 +69,9 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
       if (currentPath === '/weather/details' || currentPath === '/weather/hourly') {
         return;
       }
+      if (currentPath === '/announcement/details') {
+        return;
+      }
 
       let label = '';
       switch (currentPath) {
@@ -112,6 +115,8 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
             label = 'Daily Forecast Details';
           } else if (currentPath.startsWith('/weather/hourly/')) {
             label = 'Hourly Forecast Details';
+          } else if (currentPath.startsWith('/announcement/details/')) {
+            label = (location.state as { title?: string } | null)?.title ?? 'Announcement';
           } else {
             label = segment.charAt(0).toUpperCase() + segment.slice(1);
           }

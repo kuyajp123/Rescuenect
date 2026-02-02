@@ -55,5 +55,29 @@ export class AnnouncementThumbnailUploadService {
       throw error;
     }
   }
-}
 
+  static async deleteAnnouncementThumbnail(thumbnailUrl: string): Promise<void> { 
+    try {
+      if (!thumbnailUrl || thumbnailUrl.trim() === '') {
+        return;
+      }
+
+      const url = new URL(thumbnailUrl);
+      const pathSegments = url.pathname.split('/');
+      const bucketIndex = pathSegments.findIndex(segment => segment === this.BUCKET_NAME);
+      if (bucketIndex === -1) {
+        throw new Error('Invalid thumbnail URL');
+      }
+
+      const filePath = pathSegments.slice(bucketIndex + 1).join('/');
+      const decodedPath = decodeURIComponent(filePath);
+
+      const { error } = await supabase.storage.from(this.BUCKET_NAME).remove([decodedPath]);
+      if (error) {
+        console.error('❌ Error deleting announcement thumbnail:', error);
+      }
+    } catch (error) {
+      console.error('❌ Error in deleteAnnouncementThumbnail:', error);
+    }
+  }
+}

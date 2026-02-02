@@ -145,6 +145,31 @@ const announcementCategories = [
   { key: 'other', label: 'Other' },
 ];
 
+const sanitizeAnnouncementHtml = (html: string) =>
+  DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      'p',
+      'br',
+      'strong',
+      'em',
+      'u',
+      's',
+      'a',
+      'ul',
+      'ol',
+      'li',
+      'blockquote',
+      'h1',
+      'h2',
+      'code',
+      'pre',
+      'img',
+    ],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'title', 'style'],
+    FORBID_TAGS: ['style', 'script', 'iframe', 'object', 'embed', 'link', 'meta'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick'],
+  });
+
 const serializeSelection = (selection: Selection): string[] => {
   if (selection === 'all') {
     return ['all'];
@@ -223,7 +248,7 @@ const AddAnnouncement = () => {
 
   const sanitizedContent = useEditorState({
     editor,
-    selector: ({ editor }) => DOMPurify.sanitize(editor?.getHTML() ?? ''),
+    selector: ({ editor }) => sanitizeAnnouncementHtml(editor?.getHTML() ?? ''),
   });
 
   // Use sanitizedContentRef.current when sending to the backend.
@@ -286,7 +311,7 @@ const AddAnnouncement = () => {
   };
 
   const buildAnnouncementPayload = () => {
-    const sanitizedHtml = DOMPurify.sanitize(editor?.getHTML() ?? '');
+    const sanitizedHtml = sanitizeAnnouncementHtml(editor?.getHTML() ?? '');
     return {
       title: title.trim(),
       subtitle: subtitle.trim(),

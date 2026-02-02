@@ -62,12 +62,7 @@ export class UnifiedModel {
   public static async getResidentStatuses(uid: string) {
     try {
       // Get all statuses for this user
-      const snapshot = await db
-        .collection('status')
-        .doc(uid)
-        .collection('statuses')
-        .orderBy('createdAt', 'desc')
-        .get();
+      const snapshot = await db.collection('status').doc(uid).collection('statuses').orderBy('createdAt', 'desc').get();
 
       if (snapshot.empty) {
         return [];
@@ -129,6 +124,35 @@ export class UnifiedModel {
       return;
     } catch (error) {
       console.error('❌ Error in UnifiedModel.markAllNotificationsAsHidden:', error);
+      throw error;
+    }
+  }
+
+  static async getAllAnnouncements(): Promise<FirebaseFirestore.DocumentData[]> {
+    try {
+      const snapshot = await db.collection('announcements').orderBy('createdAt', 'desc').get();
+      const announcements: FirebaseFirestore.DocumentData[] = [];
+      snapshot.forEach(doc => {
+        announcements.push({ id: doc.id, ...doc.data() });
+      });
+      return announcements;
+    } catch (error) {
+      console.error('❌ Error in AnnouncementModel.getAllAnnouncements:', error);
+      throw error;
+    }
+  }
+
+  static async getAnnouncementById(announcementId: string): Promise<FirebaseFirestore.DocumentData | null> {
+    try {
+      const docRef = db.collection('announcements').doc(announcementId);
+      const docSnap = await docRef.get();
+      if (docSnap.exists) {
+        return { id: docSnap.id, ...docSnap.data() };
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Error in AnnouncementModel.getAnnouncementById:', error);
       throw error;
     }
   }

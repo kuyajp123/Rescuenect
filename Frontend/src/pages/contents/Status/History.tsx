@@ -62,8 +62,6 @@ interface FirebaseStatusData {
 }
 
 export const columns = [
-  // { uid: 'no', name: 'NO' },
-  { uid: 'no', name: 'NO' },
   { uid: 'name', name: 'NAME' },
   { uid: 'location', name: 'LOCATION' },
   { uid: 'condition', name: 'CONDITION' },
@@ -76,7 +74,6 @@ export const columns = [
 export const users = [
   {
     id: '1',
-    no: '1',
     email: 'john.doe@example.com',
     profileImage: 'https://i.pravatar.cc/150?u=a042581f4e29026024d',
     firstName: 'John',
@@ -389,6 +386,14 @@ export const StatusHistory = () => {
   // Sort BEFORE pagination (fix: was sorting after pagination which only sorted current page)
   const sortedItems = React.useMemo(() => {
     return [...filteredItems].sort((a: StatusUser, b: StatusUser) => {
+      if (sortDescriptor.column === 'name') {
+        const firstName = `${a.firstName ?? ''} ${a.lastName ?? ''}`.trim().toLowerCase();
+        const secondName = `${b.firstName ?? ''} ${b.lastName ?? ''}`.trim().toLowerCase();
+        const cmp = firstName < secondName ? -1 : firstName > secondName ? 1 : 0;
+
+        return sortDescriptor.direction === 'descending' ? cmp * -1 : cmp;
+      }
+
       let first = a[sortDescriptor.column as keyof StatusUser];
       let second = b[sortDescriptor.column as keyof StatusUser];
 

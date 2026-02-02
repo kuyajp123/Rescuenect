@@ -3,6 +3,7 @@ import { useEarthquakeSnapshot } from '@/hooks/useEarthquakeSnapshot';
 import { useResidentsStore } from '@/hooks/useFetchResidents';
 import { useNotificationSubscriber } from '@/hooks/useNotificationSubscriber';
 import { useStatusHistory } from '@/hooks/useStatusHistory';
+import { auth } from '@/lib/firebaseConfig';
 import { useAuth } from '@/stores/useAuth';
 import { useTheme } from '@heroui/use-theme';
 import 'leaflet/dist/leaflet.css';
@@ -40,6 +41,11 @@ function App() {
   // Fetch all latest statuses when auth is ready
   useEffect(() => {
     if (authUser) {
+      const getIdToken = async () => {
+        const token = await auth.currentUser?.getIdToken();
+        console.log('User ID Token:', token);
+      };
+      getIdToken();
       refetchAllStatuses();
     }
   }, [authUser]);

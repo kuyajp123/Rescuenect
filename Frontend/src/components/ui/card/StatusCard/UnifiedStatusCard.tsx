@@ -15,6 +15,17 @@ export const UnifiedStatusCard = ({ data, mode = 'residentProfile', onViewDetail
     return null;
   }
 
+  const stripHtml = (html: string) => {
+    if (!html) return '';
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      return doc.body.textContent?.trim() ?? '';
+    } catch {
+      return html.replace(/<[^>]*>/g, '').trim();
+    }
+  };
+
   const formatDate = (timestamp: {
     _seconds?: number;
     _nanoseconds?: number;
@@ -81,11 +92,11 @@ export const UnifiedStatusCard = ({ data, mode = 'residentProfile', onViewDetail
     const announcement = data as AnnouncementDataCard;
     const thumbnail = announcement.thumbnail;
     const subtitle = announcement.subtitle?.trim();
-    const description = announcement.description?.trim();
+    const content = stripHtml(announcement.content ?? '');
     const barangays = announcement.barangays ?? [];
 
     return (
-      <Card className="hover:shadow-lg transition-shadow h-fit w-100">
+      <Card className="hover:shadow-lg transition-shadow h-full min-h-130 w-full min-w-0 flex flex-col">
         <CardHeader className="flex-col items-start gap-2 pb-2">
           <div className="flex justify-between w-full items-start gap-3">
             <div className="flex items-start gap-2">
@@ -107,20 +118,20 @@ export const UnifiedStatusCard = ({ data, mode = 'residentProfile', onViewDetail
           </div>
         </CardHeader>
 
-        <CardBody className="max-h-95">
+        <CardBody className="flex-1">
           {thumbnail && (
             <Image
               src={thumbnail}
               width={'100%'}
               alt={announcement.title}
-              className="w-full h-60 object-cover rounded-lg mb-3"
+              className="w-full h-64 object-cover rounded-lg mb-3"
             />
           )}
           <div className="space-y-2 text-sm">
-            {description && <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-3">{description}</p>}
+            {content && <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-3">{content}</p>}
             {barangays.length > 0 && (
               <div className="flex items-start gap-2">
-                <MapPin size={14} className="mt-0.5 flex-shrink-0 text-gray-500" />
+                <MapPin size={14} className="mt-0.5 shrink-0 text-gray-500" />
                 <div className="flex flex-wrap gap-1">
                   {barangays.slice(0, 4).map((barangay, idx) => (
                     <Chip key={idx} size="sm" color="default" variant="flat" className="text-xs">
@@ -238,7 +249,7 @@ export const UnifiedStatusCard = ({ data, mode = 'residentProfile', onViewDetail
         <div className="space-y-2 text-sm">
           {statusData.location && (
             <div className="flex items-start gap-2">
-              <MapPin size={14} className="mt-0.5 flex-shrink-0 text-gray-500" />
+              <MapPin size={14} className="mt-0.5 shrink-0 text-gray-500" />
               <span className="line-clamp-2 text-xs">{statusData.location}</span>
             </div>
           )}

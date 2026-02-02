@@ -35,4 +35,26 @@ export class AnnouncementModel {
       throw error;
     }
   }
+
+  public static async deleteAnnouncement(announcementId: string): Promise<void> { 
+    try {
+      const docRef = this.pathRef().doc(announcementId);
+      const doc = await docRef.get();
+      if (!doc.exists) {
+        throw new Error('Announcement not found');
+      }
+
+      const data = doc.data();
+      const thumbnailUrl = data?.thumbnail as string | undefined;
+
+      if (thumbnailUrl) {
+        await AnnouncementThumbnailUploadService.deleteAnnouncementThumbnail(thumbnailUrl);
+      }
+
+      await docRef.delete();
+    } catch (error) {
+      console.error('❌ Error in AnnouncementModel.deleteAnnouncement:', error);
+      throw error;
+    }
+  }
 }

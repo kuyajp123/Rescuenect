@@ -27,6 +27,7 @@ const StatusHistory = lazy(() =>
 );
 const Announcement = lazy(() => import('@/pages/contents/announcement/index'));
 const AddAnnouncement = lazy(() => import('@/pages/contents/announcement/add-announcement'));
+const AnnouncementDetails = lazy(() => import('@/pages/contents/announcement/announcement-details'));
 
 import PrivacyPolicy from './components/ui/legalTerms/PrivacyPolicy';
 import TermsAndCondition from './components/ui/legalTerms/TermsAndCondition';
@@ -95,6 +96,7 @@ const Router = () => {
           <Route path="/settings" element={<Settings />} />
           <Route path="/announcement" element={<Announcement />} />
           <Route path="/announcement/create-announcement" element={<AddAnnouncement />} />
+          <Route path="/announcement/details/:id" element={<AnnouncementDetails />} />
         </Route>
 
         {/* Onboarding layout */}

@@ -8,6 +8,10 @@ unifiedRoutes.get('/getCenters', UnifiedController.getCenters);
 
 unifiedRoutes.get('/getNotificationDetails', UnifiedController.getNotificationDetails);
 
+unifiedRoutes.get('/announcements', UnifiedController.getAllAnnouncements);
+
+unifiedRoutes.get('/announcementDetails', UnifiedController.getAnnouncementDetails);
+
 // protected routes in the following
 
 unifiedRoutes.use(AuthMiddleware.verifyToken);
