@@ -11,7 +11,7 @@ const Add = () => {
 
   return (
     <div className="w-full h-full flex flex-col md:grid md:grid-cols-2 gap-4 overflow-y-auto md:overflow-hidden">
-      <div className="h-[45vh] md:h-full min-h-[300px]">
+      <div className="h-[45vh] md:h-full min-h-75">
         <Map
           data={
             mapClickPosition ? [{ uid: 'clicked-point', lat: mapClickPosition.lat, lng: mapClickPosition.lng }] : []

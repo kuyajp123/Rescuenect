@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@floating-ui/dom": "^1.6.13",
     "@heroui/autocomplete": "^2.3.25",
     "@heroui/avatar": "^2.2.19",
     "@heroui/divider": "^2.2.16",
@@ -24,10 +25,10 @@
     "@react-stately/data": "^3.14.1",
     "@react-types/shared": "^3.26.0",
     "@supabase/supabase-js": "^2.86.0",
+    "@tiptap/extension-placeholder": "^3.18.0",
     "@tiptap/pm": "^3.18.0",
     "@tiptap/react": "^3.18.0",
     "@tiptap/starter-kit": "^3.18.0",
-    "@floating-ui/dom": "^1.6.13",
     "axios": "^1.11.0",
     "date-fns": "^4.1.0",
     "dompurify": "^3.3.1",

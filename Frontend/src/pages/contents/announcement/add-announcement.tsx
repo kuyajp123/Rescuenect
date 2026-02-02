@@ -22,6 +22,7 @@ import {
 } from '@heroui/react';
 import { Extension, Node, mergeAttributes } from '@tiptap/core';
 import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import { Tiptap, useEditor, useEditorState } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -50,6 +51,7 @@ import {
   Undo2,
 } from 'lucide-react';
 import { useEffect, useRef, useState, type ChangeEvent, type ComponentProps } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -151,20 +153,36 @@ const serializeSelection = (selection: Selection): string[] => {
 };
 
 const AddAnnouncement = () => {
-  const initialContent = '<p>Write your announcement here...</p>';
+  const initialContent = '';
   const richTextClass =
     'text-sm leading-relaxed text-foreground [&_p]:my-2 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:text-xl [&_h2]:font-semibold [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1 [&_blockquote]:my-3 [&_blockquote]:border-l-4 [&_blockquote]:border-default-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-default-600 dark:[&_blockquote]:border-default-500 dark:[&_blockquote]:text-default-400 [&_code]:rounded [&_code]:bg-default-100 [&_code]:px-1 [&_pre]:my-3 [&_pre]:rounded-lg [&_pre]:bg-default-100 [&_pre]:p-3 [&_pre]:text-xs [&_pre]:leading-relaxed dark:[&_code]:bg-default-50 dark:[&_pre]:bg-default-50';
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [subtitle, setSubtitle] = useState('');
   const [thumbnailDataUrl, setThumbnailDataUrl] = useState('');
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<Selection>(new Set(['general']));
   const [selectedBarangays, setSelectedBarangays] = useState<Selection>(new Set());
+  const [errors, setErrors] = useState({
+    title: '',
+    subtitle: '',
+    category: '',
+    barangays: '',
+    thumbnail: '',
+    content: '',
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const user = auth.currentUser;
+  const navigate = useNavigate();
 
   const editor = useEditor({
     extensions: [
       StarterKit,
+      Placeholder.configure({
+        placeholder: 'Write your announcement here...',
+      }),
       Underline,
       Link.configure({
         openOnClick: false,
@@ -177,7 +195,7 @@ const AddAnnouncement = () => {
     content: initialContent,
     editorProps: {
       attributes: {
-        class: `min-h-[320px] w-full rounded-xl border border-default-200 bg-content1 px-4 py-3 focus:outline-none ${richTextClass}`,
+        class: `tiptap min-h-[320px] w-full rounded-xl border border-default-200 bg-content1 px-4 py-3 focus:outline-none ${richTextClass}`,
       },
     },
   });
@@ -216,7 +234,7 @@ const AddAnnouncement = () => {
   }, [sanitizedContent]);
 
   const previewText = editor?.getText().trim() ?? '';
-  const isPreviewEmpty = previewText.length === 0 || previewText === 'Write your announcement here...';
+  const isPreviewEmpty = previewText.length === 0;
   const thumbnailPreview = thumbnailDataUrl;
   const selectedCategoryKey = serializeSelection(selectedCategory)[0] ?? 'general';
   const selectedCategoryLabel =
@@ -233,9 +251,11 @@ const AddAnnouncement = () => {
     if (!file) {
       setThumbnailFile(null);
       setThumbnailDataUrl('');
+      setErrors(prev => ({ ...prev, thumbnail: 'Thumbnail is required.' }));
       return;
     }
     setThumbnailFile(file);
+    setErrors(prev => ({ ...prev, thumbnail: '' }));
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
@@ -251,25 +271,66 @@ const AddAnnouncement = () => {
     setSelectedBarangays(new Set());
     setThumbnailDataUrl('');
     setThumbnailFile(null);
+    setTitle('');
+    setSubtitle('');
+    setErrors({
+      title: '',
+      subtitle: '',
+      category: '',
+      barangays: '',
+      thumbnail: '',
+      content: '',
+    });
+    setSaveError('');
     editor?.commands.setContent(initialContent);
   };
 
   const buildAnnouncementPayload = () => {
     const sanitizedHtml = DOMPurify.sanitize(editor?.getHTML() ?? '');
     return {
+      title: title.trim(),
+      subtitle: subtitle.trim(),
       content: sanitizedHtml,
       category: selectedCategoryKey,
       barangays: selectedBarangayValues,
     };
   };
 
-  const handlePublish = async () => {
-    if (!user) return;
+  const handlePublish = async (): Promise<boolean> => {
+    if (!user) return false;
 
     try {
+      if (isSaving) return false;
+      const nextErrors = {
+        title: title.trim() ? '' : 'Please add a clear title.',
+        subtitle: subtitle.trim() ? '' : 'Please add a short subtitle.',
+        category: selectedCategoryKey ? '' : 'Please choose a category.',
+        barangays: selectedBarangayValues.length > 0 ? '' : 'Select at least one barangay.',
+        thumbnail: thumbnailFile ? '' : 'Please upload a thumbnail image.',
+        content: isPreviewEmpty ? 'Please add announcement content.' : '',
+      };
+
+      if (Object.values(nextErrors).some(Boolean)) {
+        setErrors(nextErrors);
+        return false;
+      }
+
+      setErrors({
+        title: '',
+        subtitle: '',
+        category: '',
+        barangays: '',
+        thumbnail: '',
+        content: '',
+      });
+      setSaveError('');
+      setIsSaving(true);
+
       const token = await user.getIdToken();
       const payload = buildAnnouncementPayload();
       const formData = new FormData();
+      formData.append('title', payload.title);
+      formData.append('subtitle', payload.subtitle);
       formData.append('content', payload.content);
       formData.append('category', payload.category);
       formData.append('barangays', JSON.stringify(payload.barangays));
@@ -286,9 +347,32 @@ const AddAnnouncement = () => {
       console.log('Announcement published successfully:', response.data);
       if (response.status === 201) {
         localStorage.removeItem('announcementDraft');
+        setSelectedCategory(new Set(['general']));
+        setSelectedBarangays(new Set());
+        setThumbnailDataUrl('');
+        setThumbnailFile(null);
+        setTitle('');
+        setSubtitle('');
+        setErrors({
+          title: '',
+          subtitle: '',
+          category: '',
+          barangays: '',
+          thumbnail: '',
+          content: '',
+        });
+        setSaveError('');
+        editor?.commands.setContent(initialContent);
+        return true;
       }
+      setSaveError('We could not save your announcement. Please try again.');
+      return false;
     } catch (error) {
       console.error('Error publishing announcement:', error);
+      setSaveError('We could not save your announcement. Please try again.');
+      return false;
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -301,12 +385,20 @@ const AddAnnouncement = () => {
     }
     try {
       const draft = JSON.parse(savedDraft) as {
+        title?: string;
+        subtitle?: string;
         content?: string;
         category?: string;
         barangays?: string[];
         thumbnail?: string;
       };
 
+      if (draft.title) {
+        setTitle(draft.title);
+      }
+      if (draft.subtitle) {
+        setSubtitle(draft.subtitle);
+      }
       if (draft.content) {
         editor.commands.setContent(draft.content);
       }
@@ -330,13 +422,35 @@ const AddAnnouncement = () => {
     if (!draftLoadedRef.current) return;
     const [categoryKey] = serializeSelection(selectedCategory);
     const draftPayload = {
+      title,
+      subtitle,
       content: sanitizedContent,
       category: categoryKey || 'general',
       barangays: serializeSelection(selectedBarangays),
       thumbnail: thumbnailDataUrl,
     };
     localStorage.setItem('announcementDraft', JSON.stringify(draftPayload));
-  }, [sanitizedContent, selectedCategory, selectedBarangays, thumbnailDataUrl]);
+  }, [title, subtitle, sanitizedContent, selectedCategory, selectedBarangays, thumbnailDataUrl]);
+
+  useEffect(() => {
+    if (!title.trim() && errors.title) return;
+    if (title.trim() && errors.title) {
+      setErrors(prev => ({ ...prev, title: '' }));
+    }
+  }, [title, errors.title]);
+
+  useEffect(() => {
+    if (!subtitle.trim() && errors.subtitle) return;
+    if (subtitle.trim() && errors.subtitle) {
+      setErrors(prev => ({ ...prev, subtitle: '' }));
+    }
+  }, [subtitle, errors.subtitle]);
+
+  useEffect(() => {
+    if (!isPreviewEmpty && errors.content) {
+      setErrors(prev => ({ ...prev, content: '' }));
+    }
+  }, [isPreviewEmpty, errors.content]);
 
   const handleAddImage = () => {
     if (!editor) return;
@@ -703,6 +817,8 @@ const AddAnnouncement = () => {
                       size="lg"
                       variant="bordered"
                       onChange={handleThumbnailFileChange}
+                      isInvalid={Boolean(errors.thumbnail)}
+                      errorMessage={errors.thumbnail}
                     />
                     <Select
                       className="lg:col-span-3"
@@ -712,8 +828,13 @@ const AddAnnouncement = () => {
                       variant="bordered"
                       disallowEmptySelection
                       selectedKeys={selectedCategory}
-                      onSelectionChange={setSelectedCategory}
+                      onSelectionChange={keys => {
+                        setSelectedCategory(keys);
+                        setErrors(prev => ({ ...prev, category: '' }));
+                      }}
                       items={announcementCategories}
+                      isInvalid={Boolean(errors.category)}
+                      errorMessage={errors.category}
                     >
                       {item => <SelectItem key={item.key}>{item.label}</SelectItem>}
                     </Select>
@@ -725,15 +846,26 @@ const AddAnnouncement = () => {
                       variant="bordered"
                       selectionMode="multiple"
                       selectedKeys={selectedBarangays}
-                      onSelectionChange={setSelectedBarangays}
+                      onSelectionChange={keys => {
+                        setSelectedBarangays(keys);
+                        setErrors(prev => ({ ...prev, barangays: '' }));
+                      }}
                       items={barangays}
                       placeholder="Select barangays"
+                      isInvalid={Boolean(errors.barangays)}
                     >
                       {item => <SelectItem key={item.value}>{item.label}</SelectItem>}
                     </Select>
+                    <p className="text-sm text-danger min-h-5 lg:col-span-5">{errors.barangays}</p>
                   </div>
 
                   <div className="space-y-4">
+                    {(title.trim() || subtitle.trim()) && (
+                      <div className="space-y-1">
+                        {title.trim() && <p className="text-xl font-semibold">{title.trim()}</p>}
+                        {subtitle.trim() && <p className="text-sm text-default-500">{subtitle.trim()}</p>}
+                      </div>
+                    )}
                     <div className="flex flex-wrap items-center gap-2">
                       <Chip color="primary" variant="flat">
                         {selectedCategoryLabel}
@@ -759,6 +891,42 @@ const AddAnnouncement = () => {
                         No thumbnail selected.
                       </div>
                     )}
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+                      <Input
+                        className="lg:col-span-6"
+                        label="Title"
+                        labelPlacement="outside"
+                        size="lg"
+                        variant="bordered"
+                        value={title}
+                        onValueChange={value => {
+                          setTitle(value);
+                          if (errors.title) {
+                            setErrors(prev => ({ ...prev, title: '' }));
+                          }
+                        }}
+                        placeholder="Announcement title"
+                        isInvalid={Boolean(errors.title)}
+                        errorMessage={errors.title}
+                      />
+                      <Input
+                        className="lg:col-span-6"
+                        label="Subtitle"
+                        labelPlacement="outside"
+                        size="lg"
+                        variant="bordered"
+                        value={subtitle}
+                        onValueChange={value => {
+                          setSubtitle(value);
+                          if (errors.subtitle) {
+                            setErrors(prev => ({ ...prev, subtitle: '' }));
+                          }
+                        }}
+                        placeholder="Announcement subtitle"
+                        isInvalid={Boolean(errors.subtitle)}
+                        errorMessage={errors.subtitle}
+                      />
+                    </div>
                     {isPreviewEmpty ? (
                       <div className="rounded-xl border border-dashed border-default-200 bg-content1 px-4 py-10 text-center text-default-500">
                         Start writing to see a live preview of your announcement.
@@ -769,19 +937,26 @@ const AddAnnouncement = () => {
                         dangerouslySetInnerHTML={{ __html: sanitizedContent }}
                       />
                     )}
+                    {errors.content && <p className="text-sm text-danger">{errors.content}</p>}
                   </div>
                 </div>
               </ModalBody>
               <ModalFooter>
+                {saveError && <p className="text-sm text-danger">{saveError}</p>}
                 <Button variant="flat" onPress={onClose}>
                   Close
                 </Button>
                 <Button
                   variant="solid"
                   color="primary"
-                  onPress={() => {
-                    handlePublish();
-                    onClose();
+                  isDisabled={isSaving}
+                  isLoading={isSaving}
+                  onPress={async () => {
+                    const ok = await handlePublish();
+                    if (ok) {
+                      onClose();
+                      navigate('/announcement');
+                    }
                   }}
                 >
                   Publish
