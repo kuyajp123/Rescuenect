@@ -1,10 +1,11 @@
 import { barangays } from '@/config/constant';
+import { sortBarangays } from '@/helper/commonHelpers';
 import { useOnboardingStore } from '@/stores/useOnboardingStore';
 import { Button } from '@heroui/button';
 import { Input } from '@heroui/input';
 import { Select, SelectItem } from '@heroui/select';
 import { ArrowRight } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const AddressForm = () => {
@@ -14,6 +15,7 @@ const AddressForm = () => {
   const [barangay, setBarangay] = useState<string>(initialBarangay);
   const [address, setAddress] = useState<string>(initialAddress);
   const [error, setError] = useState('');
+  const sortedBarangays = useMemo(() => sortBarangays(barangays), []);
 
   const handleNext = () => {
     if (!barangay || !address) {
@@ -40,7 +42,7 @@ const AddressForm = () => {
             onChange={e => setBarangay(e.target.value)}
             errorMessage={!barangay && error ? 'Required' : ''}
             className="w-full"
-            items={barangays}
+            items={sortedBarangays}
           >
             {item => <SelectItem key={item.value}>{item.label}</SelectItem>}
           </Select>

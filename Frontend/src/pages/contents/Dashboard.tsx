@@ -146,7 +146,7 @@ export const Dashboard = () => {
         iconColor: 'text-blue-600 dark:text-blue-400',
       },
       {
-        title: 'Active Incidents',
+        title: 'Active Status',
         value: activeIncidents.toString(),
         change: activeIncidents > 0 ? `${activeIncidents} active` : 'No incidents',
         trend: activeIncidents > 0 ? ('up' as const) : ('neutral' as const),
@@ -179,16 +179,24 @@ export const Dashboard = () => {
     return `${(percent * 100).toFixed(0)}%`;
   };
 
+  const formatTooltipLabel = (label?: string) => {
+    if (!label) return label;
+    if (label === 'safe') return 'Status';
+    return label;
+  };
+
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
+      const headerLabel = formatTooltipLabel(payload[0].payload.category || payload[0].payload.name || payload[0].name);
       return (
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 shadow-lg">
-          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            {payload[0].payload.name || payload[0].name}
-          </p>
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{headerLabel}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} className="text-xs text-gray-600 dark:text-gray-400">
-              {entry.name}:{' '}
+              {entry.name === 'count' && entry.payload?.category
+                ? entry.payload.category
+                : formatTooltipLabel(entry.name)}
+              :{' '}
               <span className="font-semibold" style={{ color: entry.color }}>
                 {entry.value}
               </span>

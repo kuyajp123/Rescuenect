@@ -811,7 +811,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginTop: 8,
     minWidth: 170,
-    maxHeight: 300,
+    maxHeight: 450,
     elevation: 5,
     shadowColor: '#000',
     shadowOpacity: 0.15,
@@ -831,14 +831,14 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   legendIcon: {
-    width: 30,
-    height: 30,
+    width: 40,
+    height: 40,
     resizeMode: 'contain',
   },
   otherLegendIcon: {
     marginHorizontal: 5,
-    width: 20,
-    height: 20,
+    width: 30,
+    height: 30,
     resizeMode: 'contain',
   },
 });

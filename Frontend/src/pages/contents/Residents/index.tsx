@@ -1,3 +1,4 @@
+import { sortBarangays } from '@/helper/commonHelpers';
 import { useResidentsStore, type ResidentTypes } from '@/hooks/useFetchResidents';
 import type { Selection, SortDescriptor } from '@heroui/react';
 import { ChevronDown, EllipsisVertical, Search } from 'lucide-react';
@@ -69,6 +70,10 @@ const barangayOptions = [
   { name: 'Palangue 2 & 3', uid: 'palangue 2 & 3' },
 ];
 
+const SORTED_BARANGAY_OPTIONS = sortBarangays(barangayOptions);
+const BARANGAY_KEYS = SORTED_BARANGAY_OPTIONS.map(option => option.uid);
+const TOGGLE_ALL_BARANGAYS_KEY = '__toggle_all_barangays__';
+
 const INITIAL_VISIBLE_COLUMNS = ['name', 'email', 'phoneNumber', 'barangay', 'actions'];
 
 interface FirestoreTimestamp {
@@ -88,6 +93,28 @@ const Residents = () => {
     column: 'name',
     direction: 'ascending',
   });
+  const selectedBarangayCount =
+    statusFilter === 'all' ? BARANGAY_KEYS.length : Array.from(statusFilter).length;
+  const isAllBarangaysSelected = selectedBarangayCount === BARANGAY_KEYS.length;
+  const selectedBarangayKeys = React.useMemo(
+    () => (statusFilter === 'all' ? new Set(BARANGAY_KEYS) : statusFilter),
+    [statusFilter]
+  );
+  const barangayMenuItems = React.useMemo(
+    () => [
+      {
+        key: TOGGLE_ALL_BARANGAYS_KEY,
+        label: isAllBarangaysSelected ? 'Unselect All' : 'Select All',
+        isToggle: true,
+      },
+      ...SORTED_BARANGAY_OPTIONS.map(option => ({
+        key: option.uid,
+        label: capitalize(option.name),
+        isToggle: false,
+      })),
+    ],
+    [isAllBarangaysSelected]
+  );
 
   const navigate = useNavigate();
 
@@ -269,6 +296,33 @@ const Residents = () => {
     setPage(1);
   }, []);
 
+  const toggleBarangaySelection = React.useCallback(() => {
+    setStatusFilter(prevSelection => {
+      const prevCount =
+        prevSelection === 'all' ? BARANGAY_KEYS.length : Array.from(prevSelection).length;
+      if (prevCount === BARANGAY_KEYS.length) {
+        return new Set();
+      }
+      return new Set(BARANGAY_KEYS);
+    });
+  }, [setStatusFilter]);
+
+  const handleBarangaySelectionChange = React.useCallback(
+    (keys: Selection) => {
+      if (keys === 'all') {
+        setStatusFilter(keys);
+        return;
+      }
+      const selection = new Set(keys);
+      if (selection.has(TOGGLE_ALL_BARANGAYS_KEY)) {
+        toggleBarangaySelection();
+        return;
+      }
+      setStatusFilter(selection);
+    },
+    [setStatusFilter, toggleBarangaySelection]
+  );
+
   const topContent = React.useMemo(() => {
     return (
       <div className="flex flex-col gap-4">
@@ -287,22 +341,28 @@ const Residents = () => {
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button endContent={<ChevronDown size={20} />} variant="flat">
-                  Status
+                  Barangays
                 </Button>
               </DropdownTrigger>
               <DropdownMenu
-                disallowEmptySelection
+                disallowEmptySelection={false}
                 aria-label="Table Columns"
                 closeOnSelect={false}
-                selectedKeys={statusFilter}
+                className="max-h-150 overflow-auto"
+                items={barangayMenuItems}
+                selectedKeys={selectedBarangayKeys}
                 selectionMode="multiple"
-                onSelectionChange={setStatusFilter}
+                onSelectionChange={handleBarangaySelectionChange}
               >
-                {barangayOptions.map(status => (
-                  <DropdownItem key={status.uid} className="capitalize">
-                    {capitalize(status.name)}
+                {(item: { key: string; label: string; isToggle: boolean }) => (
+                  <DropdownItem
+                    key={item.key}
+                    className={item.isToggle ? undefined : 'capitalize'}
+                    onPress={item.isToggle ? toggleBarangaySelection : undefined}
+                  >
+                    {item.label}
                   </DropdownItem>
-                ))}
+                )}
               </DropdownMenu>
             </Dropdown>
             <Dropdown>
@@ -346,7 +406,19 @@ const Residents = () => {
         </div>
       </div>
     );
-  }, [filterValue, statusFilter, visibleColumns, onSearchChange, onRowsPerPageChange, hasSearchFilter]);
+  }, [
+    filterValue,
+    statusFilter,
+    visibleColumns,
+    onSearchChange,
+    onRowsPerPageChange,
+    hasSearchFilter,
+    handleBarangaySelectionChange,
+    toggleBarangaySelection,
+    isAllBarangaysSelected,
+    selectedBarangayKeys,
+    barangayMenuItems,
+  ]);
 
   const bottomContent = React.useMemo(() => {
     return (

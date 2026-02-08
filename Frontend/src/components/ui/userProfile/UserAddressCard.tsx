@@ -1,8 +1,9 @@
 import Label from '@/components/ui/forms/Label';
 import { barangays } from '@/config/constant';
+import { sortBarangays } from '@/helper/commonHelpers';
 import { UserData } from '@/stores/useAuth';
 import { Button, Input, Select, SelectItem } from '@heroui/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 interface UserAddressCardProps {
   userData: UserData | null;
@@ -16,6 +17,7 @@ export default function UserAddressCard({ userData, onUpdate }: UserAddressCardP
     address: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const sortedBarangays = useMemo(() => sortBarangays(barangays), []);
 
   useEffect(() => {
     if (userData) {
@@ -48,7 +50,8 @@ export default function UserAddressCard({ userData, onUpdate }: UserAddressCardP
     }
   };
 
-  const selectedBarangayLabel = barangays.find(b => b.value === userData?.barangay)?.label || userData?.barangay || '-';
+  const selectedBarangayLabel =
+    sortedBarangays.find(b => b.value === userData?.barangay)?.label || userData?.barangay || '-';
 
   return (
     <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
@@ -70,7 +73,7 @@ export default function UserAddressCard({ userData, onUpdate }: UserAddressCardP
             ) : (
               <Button
                 onPress={() => setIsEditing(true)}
-                className="flex items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
+                className="flex items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/3 dark:hover:text-gray-200"
               >
                 <svg
                   className="fill-current"
@@ -101,7 +104,7 @@ export default function UserAddressCard({ userData, onUpdate }: UserAddressCardP
                   selectedKeys={formData.barangay ? [formData.barangay] : []}
                   onChange={e => setFormData(prev => ({ ...prev, barangay: e.target.value }))}
                   variant="bordered"
-                  items={barangays}
+                  items={sortedBarangays}
                   aria-label="Select Barangay"
                   label="Barangay"
                   labelPlacement="outside"

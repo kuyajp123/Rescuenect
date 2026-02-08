@@ -71,10 +71,8 @@ export const requestLocationPermission = async (): Promise<boolean> => {
 // Get current position once
 export const getCurrentPositionOnce = async (): Promise<[number, number] | null> => {
   try {
-    console.log('Requesting location permission...');
     const hasPermission = await requestLocationPermission();
     if (!hasPermission) {
-      console.warn('Location permission not granted');
       Alert.alert('Permission Required', 'Please enable location in your settings to use this feature.', [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Open Settings', onPress: () => Linking.openSettings() },
@@ -82,13 +80,11 @@ export const getCurrentPositionOnce = async (): Promise<[number, number] | null>
       return null;
     }
 
-    console.log('Getting current position...');
     const currentLocation = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.High,
     });
 
     const coords: [number, number] = [currentLocation.coords.longitude, currentLocation.coords.latitude];
-    console.log('Current position obtained:', coords);
     return coords;
   } catch (error) {
     console.error('Error getting current location:', error);

@@ -214,6 +214,15 @@ export const parseCategory = (category: Category[] | string): Category[] => {
   }
 };
 
+// Sort barangay lists by label or name without mutating the original array
+export const sortBarangays = <T extends { label?: string; name?: string }>(items: readonly T[]): T[] => {
+  return [...items].sort((a, b) => {
+    const labelA = String(a.label ?? a.name ?? '');
+    const labelB = String(b.label ?? b.name ?? '');
+    return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
+  });
+};
+
 // Format contact number with dashes and limit to 11 digits
 export const formatContactNumber = (text: string): string => {
   const numericOnly = text.replace(/\D/g, '');

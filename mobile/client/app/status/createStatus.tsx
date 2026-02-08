@@ -45,7 +45,7 @@ import { useRouter } from 'expo-router';
 import { isEqual } from 'lodash';
 import { Bookmark, HelpCircle, Navigation, SquarePen, Trash } from 'lucide-react-native';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Animated, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export const createStatus = () => {
@@ -97,11 +97,13 @@ export const createStatus = () => {
   const setAddressGPS = useGetAddress(state => state.setAddressGPS);
   const setAddressCoordsLoading = useGetAddress(state => state.setAddressCoordsLoading);
   const setAddressGPSLoading = useGetAddress(state => state.setAddressGPSLoading);
+  const [getCurrentPositionLoading, setGetCurrentPositionLoading] = useState(false);
 
   // settings states
   const setFollowUserLocation = useCoords(state => state.setFollowUserLocation);
   const [selectedCoords, setSelectedCoords] = useState<[number, number]>(coords ? [coords[0], coords[1]] : [0, 0]);
   const [hasUserTappedMap, setHasUserTappedMap] = useState(false); // Track if user has tapped on map
+  const [bottomSheetAnimationTrigger, setBottomSheetAnimationTrigger] = useState(0);
   const [isManualSelection, setIsManualSelection] = useState(false); // Track if user is making manual ButtonRadio selection
   const isFormDataLoadingRef = useRef(false); // Track if we're loading formData coordinates
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null); // For debouncing coords address calls
@@ -162,6 +164,10 @@ export const createStatus = () => {
   });
 
   const [submitError, setSubmitError] = useState({ title: 'An error occurred.', message: '' });
+
+  const triggerBottomSheetAnimation = useCallback(() => {
+    setBottomSheetAnimationTrigger(prev => prev + 1);
+  }, []);
 
   const toggleModal = (name: keyof typeof modals, value: boolean) => {
     setModals(prev => ({ ...prev, [name]: value }));
@@ -318,9 +324,9 @@ export const createStatus = () => {
 
       if (latDiff > distanceThreshold || lngDiff > distanceThreshold) {
         // User tapped a new location on map
+        setHasUserTappedMap(true);
         if (authUser) {
           setAddressCoordsLoading(true);
-          setHasUserTappedMap(true);
         }
         setActiveStatusCoords(false);
         setSelectedCoords(coords); // Tapped location becomes default
@@ -869,8 +875,13 @@ export const createStatus = () => {
     {
       key: 'location-services',
       label: 'Turn on location',
-      icon: <Navigation size={16} color={'white'} />,
+      icon: getCurrentPositionLoading ? (
+        <ActivityIndicator size="small" color="white" />
+      ) : (
+        <Navigation size={16} color={'white'} />
+      ),
       onPress: async () => {
+        setGetCurrentPositionLoading(true);
         if (authUser) {
           setAddressGPSLoading(true);
         }
@@ -879,6 +890,7 @@ export const createStatus = () => {
           if (currentCoords) {
             setOneTimeLocationCoords(currentCoords);
             setFollowUserLocation(true);
+            triggerBottomSheetAnimation();
           } else {
             console.warn('Failed to get current location');
             setAddressGPSLoading(false);
@@ -886,6 +898,8 @@ export const createStatus = () => {
         } catch (error) {
           setAddressGPSLoading(false);
           console.error('Error getting current location:', error);
+        } finally {
+          setGetCurrentPositionLoading(false);
         }
       },
     },
@@ -1346,6 +1360,7 @@ export const createStatus = () => {
           headerActions={headerActions}
           stopTracking={handleStopTracking}
           animateOnMapTap={hasUserTappedMap}
+          animateOnActionTrigger={bottomSheetAnimationTrigger}
           {...(hasChanges() && {
             primaryButton: {
               label: 'Update',
@@ -1434,6 +1449,7 @@ export const createStatus = () => {
               setCameraCenter([loc.lng, loc.lat]);
               setActiveStatusCoords(false);
               setHasUserTappedMap(false);
+              triggerBottomSheetAnimation();
               toggleModal('savedLocation', false);
             },
           }))}

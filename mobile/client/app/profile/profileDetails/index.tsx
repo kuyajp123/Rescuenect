@@ -1,8 +1,4 @@
 import { IconButton } from '@/components/components/button/Button';
-import { formatBarangayLabel, formatContactNumber, sortByLabel } from '@/helper/commonHelpers';
-import { storageHelpers } from '@/helper/storage';
-import { useAuth } from '@/store/useAuth';
-import { useUserData } from '@/store/useBackendResponse';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { Divider } from '@/components/ui/divider';
@@ -16,7 +12,11 @@ import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { barangays } from '@/constants/variables';
 import { useTheme } from '@/contexts/ThemeContext';
+import { formatBarangayLabel, formatContactNumber, sortByLabel } from '@/helper/commonHelpers';
+import { storageHelpers } from '@/helper/storage';
 import { auth } from '@/lib/firebaseConfig';
+import { useAuth } from '@/store/useAuth';
+import { useUserData } from '@/store/useBackendResponse';
 import axios from 'axios';
 import { Calendar, ChevronDown, Mail, MapPin, Phone, Trash2, X } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
@@ -347,12 +347,17 @@ const ProfileDetails = () => {
             <Pressable
               onPress={handleSave}
               disabled={isLoading}
-              style={[styles.saveButton, { backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light, opacity: isLoading ? 0.7 : 1 }]}
+              style={[
+                styles.saveButton,
+                { backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light, opacity: isLoading ? 0.7 : 1 },
+              ]}
             >
               {isLoading ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text size='sm' style={{ color: 'white', fontWeight: 'bold' }}>Save Changes</Text>
+                <Text size="sm" style={{ color: 'white', fontWeight: 'bold' }}>
+                  Save Changes
+                </Text>
               )}
             </Pressable>
           )}

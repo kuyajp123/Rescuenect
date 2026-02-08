@@ -1,5 +1,6 @@
 import { barangays } from '@/config/constant';
 import { API_ENDPOINTS } from '@/config/endPoints';
+import { sortBarangays } from '@/helper/commonHelpers';
 import { auth } from '@/lib/firebaseConfig';
 import { AnnouncementDataCard } from '@/types/types';
 import {
@@ -178,6 +179,10 @@ const serializeSelection = (selection: Selection): string[] => {
   return Array.from(selection).map(String);
 };
 
+const formatAnnouncementHeading = (value: string) => {
+  return value.replace(/\w\S*/g, word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+};
+
 type AddAnnouncementProps = {
   mode?: 'create' | 'edit';
   announcementId?: string;
@@ -303,8 +308,8 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
   useEffect(() => {
     if (!isEditMode || !editor || !initialAnnouncement || editPrefillRef.current) return;
 
-    setTitle(initialAnnouncement.title ?? '');
-    setSubtitle(initialAnnouncement.subtitle ?? '');
+    setTitle(formatAnnouncementHeading(initialAnnouncement.title ?? ''));
+    setSubtitle(formatAnnouncementHeading(initialAnnouncement.subtitle ?? ''));
     setSelectedCategory(new Set([initialAnnouncement.category ?? 'general']));
     setSelectedBarangays(new Set(initialAnnouncement.barangays ?? []));
     setThumbnailDataUrl(initialAnnouncement.thumbnail ?? '');
@@ -330,8 +335,9 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
   const selectedCategoryLabel =
     announcementCategories.find(category => category.key === selectedCategoryKey)?.label ?? 'General';
   const selectedBarangayValues = serializeSelection(selectedBarangays);
+  const sortedBarangays = sortBarangays(barangays);
   const selectedBarangayLabels = selectedBarangayValues.map(
-    value => barangays.find(barangay => barangay.value === value)?.label ?? value
+    value => sortedBarangays.find(barangay => barangay.value === value)?.label ?? value
   );
 
   const draftKey = isEditMode && announcementId ? `announcementDraft:${announcementId}` : 'announcementDraft';
@@ -366,8 +372,8 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
       setSelectedBarangays(new Set(initialAnnouncement.barangays ?? []));
       setThumbnailDataUrl(initialAnnouncement.thumbnail ?? '');
       setThumbnailFile(null);
-      setTitle(initialAnnouncement.title ?? '');
-      setSubtitle(initialAnnouncement.subtitle ?? '');
+      setTitle(formatAnnouncementHeading(initialAnnouncement.title ?? ''));
+      setSubtitle(formatAnnouncementHeading(initialAnnouncement.subtitle ?? ''));
       setErrors({
         title: '',
         subtitle: '',
@@ -403,8 +409,8 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
   const buildAnnouncementPayload = () => {
     const sanitizedHtml = sanitizeAnnouncementHtml(editor?.getHTML() ?? '');
     return {
-      title: title.trim(),
-      subtitle: subtitle.trim(),
+      title: formatAnnouncementHeading(title.trim()),
+      subtitle: formatAnnouncementHeading(subtitle.trim()),
       content: sanitizedHtml,
       category: selectedCategoryKey,
       barangays: selectedBarangayValues,
@@ -536,10 +542,10 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
       };
 
       if (draft.title) {
-        setTitle(draft.title);
+        setTitle(formatAnnouncementHeading(draft.title));
       }
       if (draft.subtitle) {
-        setSubtitle(draft.subtitle);
+        setSubtitle(formatAnnouncementHeading(draft.subtitle));
       }
       if (draft.content) {
         editor.commands.setContent(draft.content);
@@ -1008,7 +1014,7 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
                         setSelectedBarangays(keys);
                         setErrors(prev => ({ ...prev, barangays: '' }));
                       }}
-                      items={barangays}
+                      items={sortedBarangays}
                       placeholder="Select barangays"
                       isInvalid={Boolean(errors.barangays)}
                     >
@@ -1020,8 +1026,10 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
                   <div className="space-y-4">
                     {(title.trim() || subtitle.trim()) && (
                       <div className="space-y-1">
-                        {title.trim() && <p className="text-xl font-semibold">{title.trim()}</p>}
-                        {subtitle.trim() && <p className="text-sm text-default-500">{subtitle.trim()}</p>}
+                        {title.trim() && <p className="text-xl font-semibold">{formatAnnouncementHeading(title.trim())}</p>}
+                        {subtitle.trim() && (
+                          <p className="text-sm text-default-500">{formatAnnouncementHeading(subtitle.trim())}</p>
+                        )}
                       </div>
                     )}
                     <div className="flex flex-wrap items-center gap-2">
@@ -1058,7 +1066,7 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
                         variant="bordered"
                         value={title}
                         onValueChange={value => {
-                          setTitle(value);
+                          setTitle(formatAnnouncementHeading(value));
                           if (errors.title) {
                             setErrors(prev => ({ ...prev, title: '' }));
                           }
@@ -1075,7 +1083,7 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
                         variant="bordered"
                         value={subtitle}
                         onValueChange={value => {
-                          setSubtitle(value);
+                          setSubtitle(formatAnnouncementHeading(value));
                           if (errors.subtitle) {
                             setErrors(prev => ({ ...prev, subtitle: '' }));
                           }

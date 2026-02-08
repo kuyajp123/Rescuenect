@@ -18,6 +18,7 @@ export default function UserInfoCard({ userData, onUpdate }: UserInfoCardProps) 
     bio: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (userData) {
@@ -38,7 +39,14 @@ export default function UserInfoCard({ userData, onUpdate }: UserInfoCardProps) 
   };
 
   const handleSave = async () => {
+    const digitsOnly = formData.phone.replace(/\D/g, '');
+    if (digitsOnly && !/^09\d{9}$/.test(digitsOnly)) {
+      setError('Contact number must start with 09 and be 11 digits');
+      return;
+    }
+
     setIsLoading(true);
+    setError('');
     try {
       await onUpdate(formData);
       setIsEditing(false);
@@ -51,6 +59,7 @@ export default function UserInfoCard({ userData, onUpdate }: UserInfoCardProps) 
 
   const handleCancel = () => {
     setIsEditing(false);
+    setError('');
     // Reset form data to current props
     if (userData) {
       setFormData({
@@ -177,6 +186,7 @@ export default function UserInfoCard({ userData, onUpdate }: UserInfoCardProps) 
               )}
             </div>
           </div>
+          {isEditing && error && <p className="text-red-500 text-sm text-center mt-3">{error}</p>}
         </div>
       </div>
     </div>

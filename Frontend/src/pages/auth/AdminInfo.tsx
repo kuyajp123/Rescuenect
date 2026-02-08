@@ -44,6 +44,11 @@ const AdminInfo = () => {
       setError('Please fill required fields');
       return;
     }
+    const digitsOnly = phone.replace(/\D/g, '');
+    if (!/^09\d{9}$/.test(digitsOnly)) {
+      setError('Contact number must start with 09 and be 11 digits');
+      return;
+    }
 
     setIsLoading(true);
     setError('');
@@ -115,7 +120,7 @@ const AdminInfo = () => {
           <div className="flex gap-4">
             <Input
               label="First Name"
-              placeholder="John"
+              placeholder="Juan"
               value={firstName}
               onValueChange={setFirstName}
               isRequired
@@ -123,7 +128,7 @@ const AdminInfo = () => {
             />
             <Input
               label="Last Name"
-              placeholder="Doe"
+              placeholder="Dela Cruz"
               value={lastName}
               onValueChange={setLastName}
               isRequired

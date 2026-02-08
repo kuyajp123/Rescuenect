@@ -15,6 +15,7 @@ node_modules/
 # Ignore environment files
 .env
 .env.*
+.env.production
 
 # Ignore build outputs
 dist/

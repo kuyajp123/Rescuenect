@@ -152,6 +152,7 @@ export interface MapNewProps {
   snapPoints?: string[];
   onLocationClear?: () => void;
   animateOnMapTap?: boolean;
+  animateOnActionTrigger?: number;
 }
 
 const Map = ({
@@ -188,6 +189,7 @@ const Map = ({
   onLocationClear,
   errMessage = '',
   animateOnMapTap = false,
+  animateOnActionTrigger = 0,
 }: MapNewProps) => {
   const { setHasButtons } = useMapSettingsStore();
   const { mapContainer } = useMap();
@@ -203,6 +205,7 @@ const Map = ({
   const bottomSheetIndexRef = useRef(0);
   const hasAnimatedMapTapRef = useRef(false);
   const mapTapAnimationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastActionAnimationRef = useRef(0);
 
   // Single variable that handles all snap point logic
   let memoizedSnapPoints;
@@ -244,11 +247,11 @@ const Map = ({
       clearTimeout(mapTapAnimationTimeoutRef.current);
     }
 
-    bottomSheetRef.current?.snapToPosition('20%');
+    bottomSheetRef.current?.snapToPosition('20%', { duration: 260 });
     mapTapAnimationTimeoutRef.current = setTimeout(() => {
-      bottomSheetRef.current?.snapToIndex(0);
+      bottomSheetRef.current?.snapToIndex(0, { duration: 320 });
       mapTapAnimationTimeoutRef.current = null;
-    }, 450);
+    }, 380);
   }, []);
 
   // Compute values on each render
@@ -285,6 +288,30 @@ const Map = ({
     hasAnimatedMapTapRef.current = true;
     runMapTapBounce();
   }, [animateOnMapTap, bottomSheetEnabled, coords, runMapTapBounce]);
+
+  useEffect(() => {
+    const hasValidCoords = coords && coords.length >= 2 && coords[0] !== null && coords[1] !== null;
+    const hasValidOneTimeCoords =
+      oneTimeLocationCoords &&
+      oneTimeLocationCoords.length >= 2 &&
+      oneTimeLocationCoords[0] !== null &&
+      oneTimeLocationCoords[1] !== null;
+
+    if (animateOnActionTrigger <= lastActionAnimationRef.current) {
+      return;
+    }
+
+    if (!bottomSheetEnabled || bottomSheetIndexRef.current !== 0) {
+      return;
+    }
+
+    if (!hasValidCoords && !hasValidOneTimeCoords) {
+      return;
+    }
+
+    runMapTapBounce();
+    lastActionAnimationRef.current = animateOnActionTrigger;
+  }, [animateOnActionTrigger, bottomSheetEnabled, coords, oneTimeLocationCoords, runMapTapBounce]);
 
   useEffect(() => {
     return () => {
