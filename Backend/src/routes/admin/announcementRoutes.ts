@@ -9,6 +9,8 @@ announcementRoutes.use(AuthMiddleware.verifyToken);
 
 announcementRoutes.post('/createAnnouncement', upload.single('thumbnail'), AnnouncementController.addAnnouncement);
 
+announcementRoutes.put('/updateAnnouncement/:id', upload.single('thumbnail'), AnnouncementController.updateAnnouncement);
+
 announcementRoutes.delete('/deleteAnnouncement/:id', AnnouncementController.deleteAnnouncement);
 
 export default announcementRoutes;

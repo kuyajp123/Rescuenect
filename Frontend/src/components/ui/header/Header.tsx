@@ -72,6 +72,9 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
       if (currentPath === '/announcement/details') {
         return;
       }
+      if (currentPath === '/announcement/edit') {
+        return;
+      }
 
       let label = '';
       switch (currentPath) {
@@ -109,6 +112,9 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
         case '/announcement/create-announcement':
           label = 'Create Announcement';
           break;
+        case '/announcement/edit':
+          label = 'Edit Announcement';
+          break;
         default:
           // specific handling for weather detail pages final segment
           if (currentPath.startsWith('/weather/details/')) {
@@ -117,6 +123,8 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
             label = 'Hourly Forecast Details';
           } else if (currentPath.startsWith('/announcement/details/')) {
             label = (location.state as { title?: string } | null)?.title ?? 'Announcement';
+          } else if (currentPath.startsWith('/announcement/edit/')) {
+            label = 'Edit Announcement';
           } else {
             label = segment.charAt(0).toUpperCase() + segment.slice(1);
           }

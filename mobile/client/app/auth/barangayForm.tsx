@@ -24,9 +24,10 @@ import { getToken as getFcmToken } from '@react-native-firebase/messaging';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { ChevronDown, X } from 'lucide-react-native';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { barangays } from '@/constants/variables';
+import { formatBarangayLabel, sortByLabel } from '@/helper/commonHelpers';
 
 const barangayForm = () => {
   const router = useRouter();
@@ -41,6 +42,14 @@ const barangayForm = () => {
   const userData = useUserData(state => state.userData);
 
   const { getToken } = useIdToken();
+  const sortedBarangays = useMemo(() => sortByLabel(barangays), []);
+  const selectedBarangayLabel = useMemo(() => {
+    if (!selectedBarangay) {
+      return '';
+    }
+    const match = sortedBarangays.find(item => item.value === selectedBarangay);
+    return match?.label ?? formatBarangayLabel(selectedBarangay);
+  }, [selectedBarangay, sortedBarangays]);
 
   const handleBarangaySelect = (barangay: any) => {
     setSelectedBarangay(barangay.value);
@@ -151,7 +160,7 @@ const barangayForm = () => {
           ]}
           onPress={() => setModalVisible(true)}
         >
-          <Text size="sm">{selectedBarangay || 'Select your barangay'}</Text>
+          <Text size="sm">{selectedBarangay ? selectedBarangayLabel : 'Select your Barangay'}</Text>
           <ChevronDown size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
         </Pressable>
         <Modal
@@ -178,9 +187,9 @@ const barangayForm = () => {
             <ModalBody>
               <View style={styles.barangayList}>
                 <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-                  {barangays.map((barangay, index) => (
+                  {sortedBarangays.map(barangay => (
                     <Pressable
-                      key={index}
+                      key={barangay.value}
                       style={[
                         styles.barangayItem,
                         {

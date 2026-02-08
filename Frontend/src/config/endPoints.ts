@@ -38,5 +38,6 @@ export const API_ENDPOINTS = {
     GET_ALL_ANNOUNCEMENTS: `${BACKEND_URL}/unified/announcements`,
     GET_ANNOUNCEMENT_DETAILS: `${BACKEND_URL}/unified/announcementDetails`,
     DELETE_ANNOUNCEMENT: `${BACKEND_URL}/admin/announcement/deleteAnnouncement`,
+    UPDATE_ANNOUNCEMENT: `${BACKEND_URL}/admin/announcement/updateAnnouncement`,
   }
 };

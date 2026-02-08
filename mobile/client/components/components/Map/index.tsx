@@ -10,7 +10,7 @@ import { useMapSettingsStore } from '@/store/useMapSettings';
 import { useStatusFormStore } from '@/store/useStatusForm';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useFocusEffect } from 'expo-router';
-import { Bookmark, Ellipsis, HelpCircle, Info, Navigation, Settings, X } from 'lucide-react-native';
+import { Bookmark, ChevronUp, Ellipsis, HelpCircle, Info, Navigation, Settings, X } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
@@ -151,6 +151,7 @@ export interface MapNewProps {
   // Additional props
   snapPoints?: string[];
   onLocationClear?: () => void;
+  animateOnMapTap?: boolean;
 }
 
 const Map = ({
@@ -186,6 +187,7 @@ const Map = ({
   snapPoints = ['14%', '90%'],
   onLocationClear,
   errMessage = '',
+  animateOnMapTap = false,
 }: MapNewProps) => {
   const { setHasButtons } = useMapSettingsStore();
   const { mapContainer } = useMap();
@@ -199,6 +201,8 @@ const Map = ({
 
   const bottomSheetRef = useRef<BottomSheet>(null);
   const bottomSheetIndexRef = useRef(0);
+  const hasAnimatedMapTapRef = useRef(false);
+  const mapTapAnimationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Single variable that handles all snap point logic
   let memoizedSnapPoints;
@@ -235,6 +239,18 @@ const Map = ({
     }
   }, [coords, oneTimeLocationCoords]);
 
+  const runMapTapBounce = useCallback(() => {
+    if (mapTapAnimationTimeoutRef.current) {
+      clearTimeout(mapTapAnimationTimeoutRef.current);
+    }
+
+    bottomSheetRef.current?.snapToPosition('20%');
+    mapTapAnimationTimeoutRef.current = setTimeout(() => {
+      bottomSheetRef.current?.snapToIndex(0);
+      mapTapAnimationTimeoutRef.current = null;
+    }, 450);
+  }, []);
+
   // Compute values on each render
   const textValueColor = isDark ? Colors.text.dark : Colors.text.light;
 
@@ -253,6 +269,31 @@ const Map = ({
       setBottomSheetEnabled(false);
     }
   }, [coords, oneTimeLocationCoords]);
+
+  useEffect(() => {
+    const hasValidCoords = coords && coords.length >= 2 && coords[0] !== null && coords[1] !== null;
+
+    if (!animateOnMapTap || hasAnimatedMapTapRef.current || !hasValidCoords || !bottomSheetEnabled) {
+      return;
+    }
+
+    if (bottomSheetIndexRef.current !== 0) {
+      hasAnimatedMapTapRef.current = true;
+      return;
+    }
+
+    hasAnimatedMapTapRef.current = true;
+    runMapTapBounce();
+  }, [animateOnMapTap, bottomSheetEnabled, coords, runMapTapBounce]);
+
+  useEffect(() => {
+    return () => {
+      if (mapTapAnimationTimeoutRef.current) {
+        clearTimeout(mapTapAnimationTimeoutRef.current);
+        mapTapAnimationTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // Handle Android back button
   useFocusEffect(
@@ -489,19 +530,11 @@ const Map = ({
               oneTimeLocationCoords.length >= 2 &&
               oneTimeLocationCoords[0] !== null &&
               oneTimeLocationCoords[1] !== null;
+            const shouldShowHandle = hasValidCoords || hasValidOneTimeCoords;
 
             return (
               <View style={styles.handleContainer}>
-                {(hasValidCoords || hasValidOneTimeCoords) && (
-                  <View
-                    style={[
-                      styles.defaultHandle,
-                      {
-                        backgroundColor: isDark ? Colors.border.light : Colors.border.dark,
-                      },
-                    ]}
-                  />
-                )}
+                {shouldShowHandle && <ChevronUp size={24} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
               </View>
             );
           }}
@@ -678,7 +711,11 @@ const Map = ({
                     </HStack>
                     <View style={styles.radioGroup}>
                       {field.options.map(option => (
-                        <View key={option.value} style={styles.radioItem}>
+                        <View
+                          key={option.value}
+                          style={styles.radioItem}
+                          onTouchEnd={() => field.onSelect(option.value)}
+                        >
                           <View style={styles.radioOption}>
                             <View
                               style={[
@@ -692,7 +729,6 @@ const Map = ({
                                         : Colors.border.light,
                                 },
                               ]}
-                              onTouchEnd={() => field.onSelect(option.value)}
                             >
                               {field.selectedValue === option.value && (
                                 <View style={[styles.radioInner, { backgroundColor: Colors.brand.light }]} />
@@ -768,6 +804,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
+    gap: 4,
   },
   defaultHandle: {
     width: 30,

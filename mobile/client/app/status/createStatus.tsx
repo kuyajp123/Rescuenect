@@ -1345,6 +1345,7 @@ export const createStatus = () => {
           quickActionButtons={quickActionButtons}
           headerActions={headerActions}
           stopTracking={handleStopTracking}
+          animateOnMapTap={hasUserTappedMap}
           {...(hasChanges() && {
             primaryButton: {
               label: 'Update',

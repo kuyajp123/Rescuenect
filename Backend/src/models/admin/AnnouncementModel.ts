@@ -36,6 +36,45 @@ export class AnnouncementModel {
     }
   }
 
+  public static async updateAnnouncement(
+    announcementId: string,
+    data: Record<string, unknown>,
+    file: Express.Multer.File | undefined,
+    userId: string
+  ): Promise<void> {
+    try {
+      const docRef = this.pathRef().doc(announcementId);
+      const doc = await docRef.get();
+      if (!doc.exists) {
+        throw new Error('Announcement not found');
+      }
+
+      const updatePayload: Record<string, unknown> = {
+        ...data,
+        updatedAt: FieldValue.serverTimestamp(),
+        updatedBy: userId,
+      };
+
+      if (file) {
+        const existingThumbnail = doc.data()?.thumbnail as string | undefined;
+        if (existingThumbnail) {
+          await AnnouncementThumbnailUploadService.deleteAnnouncementThumbnail(existingThumbnail);
+        }
+        const thumbnailUrl = await AnnouncementThumbnailUploadService.uploadAnnouncementThumbnail(
+          file,
+          userId,
+          announcementId
+        );
+        updatePayload.thumbnail = thumbnailUrl;
+      }
+
+      await docRef.update(updatePayload);
+    } catch (error) {
+      console.error('âŒ Error in AnnouncementModel.updateAnnouncement:', error);
+      throw error;
+    }
+  }
+
   public static async deleteAnnouncement(announcementId: string): Promise<void> { 
     try {
       const docRef = this.pathRef().doc(announcementId);

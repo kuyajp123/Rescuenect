@@ -57,6 +57,7 @@ export const evacuation = () => {
       <MapView
         showButtons={true}
         showStyleSelector={true}
+        showEvacuationLegend={true}
         data={evacuationCenters ?? undefined}
         savedLocations={savedLocations}
       />

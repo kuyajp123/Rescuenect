@@ -6,13 +6,13 @@ import { useMap } from '@/contexts/MapContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { storageHelpers } from '@/helper/storage';
 import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
-import { EvacuationCenter } from '@/types/components';
+import { CenterType, EvacuationCenter } from '@/types/components';
 import MapboxGL, { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
 import type { FeatureCollection } from 'geojson';
-import { Bookmark, ChevronLeft, MapIcon } from 'lucide-react-native';
+import { Bookmark, ChevronLeft, List, MapIcon } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { BackHandler, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { BackHandler, Image, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '../text';
 
 // Get color based on earthquake severity
@@ -89,6 +89,7 @@ interface MapViewProps {
   onPress?: (coords: [number, number]) => void;
   showButtons?: boolean;
   showStyleSelector?: boolean;
+  showEvacuationLegend?: boolean;
   interactive?: boolean;
   pitchEnabled?: boolean;
   compassEnabled?: boolean;
@@ -107,6 +108,50 @@ interface MapViewProps {
   savedLocations?: saveLocationData[];
 }
 
+const EVACUATION_CENTER_LEGEND: { type: CenterType; label: string; icon: number }[] = [
+  {
+    type: 'school',
+    label: 'School',
+    icon: require('@/assets/images/marker/evacuation-center-marker/marker-school.png'),
+  },
+  {
+    type: 'barangay hall',
+    label: 'Barangay Hall',
+    icon: require('@/assets/images/marker/evacuation-center-marker/marker-barangay-hall.png'),
+  },
+  {
+    type: 'gymnasium',
+    label: 'Gymnasium',
+    icon: require('@/assets/images/marker/evacuation-center-marker/marker-gymnasium.png'),
+  },
+  {
+    type: 'church',
+    label: 'Church',
+    icon: require('@/assets/images/marker/evacuation-center-marker/marker-church.png'),
+  },
+  {
+    type: 'government building',
+    label: 'Government Building',
+    icon: require('@/assets/images/marker/evacuation-center-marker/marker-government-building.png'),
+  },
+  {
+    type: 'private facility',
+    label: 'Private Facility',
+    icon: require('@/assets/images/marker/evacuation-center-marker/marker-private-facility.png'),
+  },
+  {
+    type: 'vacant building',
+    label: 'Vacant Building',
+    icon: require('@/assets/images/marker/evacuation-center-marker/marker-vacant-building.png'),
+  },
+  {
+    type: 'covered court',
+    label: 'Covered Court',
+    icon: require('@/assets/images/marker/evacuation-center-marker/marker-covered-court.png'),
+  },
+  { type: 'other', label: 'Other', icon: require('@/assets/images/marker/evacuation-center-marker/others-marker.png') },
+];
+
 export const MapView: React.FC<MapViewProps> = ({
   coords,
   data,
@@ -119,6 +164,7 @@ export const MapView: React.FC<MapViewProps> = ({
   zoomEnabled = true,
   showButtons = true,
   showStyleSelector = true,
+  showEvacuationLegend = false,
   interactive = true,
   centerCoordinate = [120.750674, 14.31808],
   maxBounds = [
@@ -146,6 +192,7 @@ export const MapView: React.FC<MapViewProps> = ({
   const [areMarkersReady, setAreMarkersReady] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
   const [showSavedLocations, setShowSavedLocations] = useState(false);
+  const [isLegendOpen, setIsLegendOpen] = useState(false);
 
   useEffect(() => {
     const loadMapStyle = async () => {
@@ -204,6 +251,10 @@ export const MapView: React.FC<MapViewProps> = ({
     if (savedLocationsList.length === 0) return;
     setShowSavedLocations(prev => !prev);
   }, [savedLocationsList.length]);
+
+  const toggleLegend = useCallback(() => {
+    setIsLegendOpen(prev => !prev);
+  }, []);
 
   const handleStyleChange = useCallback(
     async (style: MapboxGL.StyleURL.Street | MapboxGL.StyleURL.Dark | MapboxGL.StyleURL.SatelliteStreet) => {
@@ -338,6 +389,7 @@ export const MapView: React.FC<MapViewProps> = ({
                       evacuationCentersGeoJson?.features.find(f => f.id === feature.id)?.properties as EvacuationCenter
                     );
                   }
+                  setIsLegendOpen(false);
                 }}
               >
                 <SymbolLayer
@@ -478,7 +530,55 @@ export const MapView: React.FC<MapViewProps> = ({
 
       {/* Simple detail view */}
       {selectedMarker && (
-        <DetailsCard selectedMarker={selectedMarker} isDark={isDark} onClose={() => setSelectedMarker(null)} />
+        <View style={styles.detailsOverlay} pointerEvents="box-none">
+          <Pressable style={styles.detailsBackdrop} onPress={() => setSelectedMarker(null)} />
+          <DetailsCard selectedMarker={selectedMarker} isDark={isDark} onClose={() => setSelectedMarker(null)} />
+        </View>
+      )}
+
+      {showEvacuationLegend && (
+        <View pointerEvents="box-none" style={styles.legendWrapper}>
+          <HoveredButton
+            onPress={toggleLegend}
+            style={[styles.legendToggle, { backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light }]}
+          >
+            <List size={16} color={'#fff'} />
+            <Text size="sm" style={{ color: '#fff' }}>
+              Legend
+            </Text>
+          </HoveredButton>
+
+          {isLegendOpen && (
+            <View
+              style={[
+                styles.legendContainer,
+                {
+                  backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+                  borderColor: isDark ? Colors.border.dark : Colors.border.light,
+                },
+              ]}
+            >
+              <Text size="xs" bold style={{ marginBottom: 6 }}>
+                Evacuation Centers
+              </Text>
+              <ScrollView
+                style={styles.legendScroll}
+                contentContainerStyle={styles.legendContent}
+                showsVerticalScrollIndicator={false}
+              >
+                {EVACUATION_CENTER_LEGEND.map(item => (
+                  <View key={item.type} style={styles.legendRow}>
+                    <Image
+                      source={item.icon}
+                      style={item.type === 'other' ? styles.otherLegendIcon : styles.legendIcon}
+                    />
+                    <Text size="sm">{item.label}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+        </View>
       )}
 
       {showButtons && (
@@ -669,5 +769,76 @@ const styles = StyleSheet.create({
   mapStyleText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  detailsOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 60,
+  },
+  detailsBackdrop: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+  legendWrapper: {
+    position: 'absolute',
+    left: 16,
+    bottom: 16,
+    alignItems: 'flex-start',
+  },
+  legendToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 3,
+  },
+  legendContainer: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginTop: 8,
+    minWidth: 170,
+    maxHeight: 300,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 3,
+  },
+  legendScroll: {
+    maxHeight: 900,
+  },
+  legendContent: {
+    gap: 6,
+    paddingBottom: 2,
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendIcon: {
+    width: 30,
+    height: 30,
+    resizeMode: 'contain',
+  },
+  otherLegendIcon: {
+    marginHorizontal: 5,
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
   },
 });

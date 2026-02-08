@@ -1,5 +1,5 @@
 import { IconButton } from '@/components/components/button/Button';
-import { formatContactNumber } from '@/helper/commonHelpers';
+import { formatBarangayLabel, formatContactNumber, sortByLabel } from '@/helper/commonHelpers';
 import { storageHelpers } from '@/helper/storage';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
@@ -19,7 +19,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { auth } from '@/lib/firebaseConfig';
 import axios from 'axios';
 import { Calendar, ChevronDown, Mail, MapPin, Phone, Trash2, X } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 // Moved InfoItem outside to prevent re-renders losing focus
@@ -36,6 +36,7 @@ const InfoItem = ({
   formData,
   onPressBarangay,
   onChangeText,
+  barangayLabel,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -49,6 +50,7 @@ const InfoItem = ({
   formData: any;
   onPressBarangay: () => void;
   onChangeText: (text: string) => void;
+  barangayLabel?: string;
 }) => (
   <View
     style={[
@@ -83,7 +85,7 @@ const InfoItem = ({
               <Pressable onPress={onPressBarangay}>
                 <HStack style={{ alignItems: 'center', justifyContent: 'space-between' }}>
                   <Text size="md" bold style={{ borderBottomColor: isDark ? Colors.brand.dark : Colors.brand.light }}>
-                    {formData.barangay || 'Select Barangay'}
+                    {barangayLabel || formData.barangay || 'Select Barangay'}
                   </Text>
                   <ChevronDown size={16} color={isDark ? Colors.text.dark : Colors.text.light} />
                 </HStack>
@@ -138,6 +140,14 @@ const ProfileDetails = () => {
     phoneNumber: userData.phoneNumber,
     barangay: userData.barangay,
   });
+  const sortedBarangays = useMemo(() => sortByLabel(barangays), []);
+  const selectedBarangayLabel = useMemo(() => {
+    if (!formData.barangay) {
+      return '';
+    }
+    const match = sortedBarangays.find(item => item.value === formData.barangay);
+    return match?.label ?? formatBarangayLabel(formData.barangay);
+  }, [formData.barangay, sortedBarangays]);
 
   // Format date
   const formatDate = (dateString?: string | number) => {
@@ -388,7 +398,7 @@ const ProfileDetails = () => {
             isFirst
             icon={<MapPin size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
             label="Barangay"
-            value={formData.barangay}
+            value={selectedBarangayLabel || formData.barangay}
             fieldKey="barangay"
             editable={true}
             isEditing={isEditing}
@@ -396,6 +406,7 @@ const ProfileDetails = () => {
             formData={formData}
             onPressBarangay={() => setModalVisible(true)}
             onChangeText={() => {}} // Not used for barangay since it's a modal
+            barangayLabel={selectedBarangayLabel}
           />
           <InfoItem
             isLast
@@ -439,9 +450,9 @@ const ProfileDetails = () => {
           <ModalBody>
             <View style={styles.barangayList}>
               <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-                {barangays.map((barangay, index) => (
+                {sortedBarangays.map(barangay => (
                   <Pressable
-                    key={index}
+                    key={barangay.value}
                     style={[
                       styles.barangayItem,
                       {

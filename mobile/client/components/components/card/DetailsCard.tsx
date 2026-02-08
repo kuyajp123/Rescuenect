@@ -41,8 +41,6 @@ const DetailsCard: React.FC<DetailsCardProps> = ({ selectedMarker, isDark, onClo
 
   return (
     <Card style={[styles.detailBox, { backgroundColor: isDark ? Colors.background.dark : Colors.background.light }]}>
-      {/* Images Carousel at top */}
-      {/* Images Carousel at top */}
       {data.length > 0 ? (
         <View style={styles.carouselContainer}>
           <Carousel
@@ -225,6 +223,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     borderRadius: 20,
+    zIndex: 50,
     elevation: 8,
     shadowColor: '#000',
     shadowOpacity: 0.25,

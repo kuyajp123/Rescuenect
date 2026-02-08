@@ -139,6 +139,64 @@ export class AnnouncementController {
     }
   }
 
+  static async updateAnnouncement(req: Request, res: Response): Promise<void> {
+    const userId = (req as any).user?.uid as string | undefined;
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const announcementId = req.params.id;
+    if (!announcementId) {
+      res.status(400).json({ message: 'Announcement ID is required' });
+      return;
+    }
+
+    try {
+      const rawCategory = sanitizeText(req.body.category, 50).toLowerCase();
+      const category = ALLOWED_CATEGORIES.has(rawCategory) ? rawCategory : '';
+      const content = sanitizeHtmlContent(req.body.content);
+      const barangays = parseBarangays(req.body.barangays);
+
+      const title = sanitizeText(req.body.title, MAX_TEXT_LENGTH);
+      const subtitle = sanitizeText(req.body.subtitle, MAX_TEXT_LENGTH);
+      const description = sanitizeText(req.body.description, MAX_TEXT_LENGTH);
+
+      if (!category) {
+        res.status(400).json({ message: 'Invalid or missing category' });
+        return;
+      }
+
+      if (!content) {
+        res.status(400).json({ message: 'Content is required' });
+        return;
+      }
+
+      const payload: Record<string, unknown> = {
+        title,
+        subtitle,
+        description,
+        content,
+        category,
+        barangays,
+      };
+
+      const file = req.file as Express.Multer.File | undefined;
+      await AnnouncementModel.updateAnnouncement(announcementId, payload, file, userId);
+
+      res.status(200).json({ message: 'Announcement updated', id: announcementId });
+    } catch (error) {
+      console.error('âŒ Failed to update announcement:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      res.status(500).json({
+        message: 'Failed to update announcement',
+        error: typeof error === 'string' ? error : (error as Error).message,
+      });
+    }
+  }
+
   static async deleteAnnouncement(req: Request, res: Response): Promise<void> {
     const userId = (req as any).user?.uid as string | undefined;
     if (!userId) {

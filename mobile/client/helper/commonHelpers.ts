@@ -233,3 +233,29 @@ export const formatToCapitalized = (text: string): string => {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 };
+
+// Capitalize barangay labels for display while preserving stored values
+export const formatBarangayLabel = (value: string): string => {
+  if (!value) {
+    return '';
+  }
+
+  return value
+    .split(' ')
+    .map(word =>
+      word
+        .split('-')
+        .map(part => {
+          if (!part) return '';
+          if (part === '&' || /^\d/.test(part)) return part;
+          return `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`;
+        })
+        .join('-')
+    )
+    .join(' ');
+};
+
+// Sort by `label` field alphabetically (case-insensitive)
+export const sortByLabel = <T extends { label: string }>(items: T[]): T[] => {
+  return [...items].sort((a, b) => a.label.localeCompare(b.label, 'en', { sensitivity: 'base' }));
+};

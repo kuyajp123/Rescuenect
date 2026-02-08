@@ -278,6 +278,8 @@ type CenterTypes = {
     | 'other';
 };
 
+export type CenterType = CenterTypes['type'];
+
 export interface Coordinates {
   lat: number;
   lng: number;

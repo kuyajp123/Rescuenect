@@ -162,7 +162,11 @@ const AnnouncementDetails = () => {
               {formatDate(announcement.createdAt)}
             </div>
             <div className="flex flex-row gap-3">
-              <Button startContent={<Edit size={16} />} variant="flat">
+              <Button
+                startContent={<Edit size={16} />}
+                variant="flat"
+                onPress={() => navigate(`/announcement/edit/${id}`)}
+              >
                 Edit
               </Button>
               <Button
@@ -186,11 +190,13 @@ const AnnouncementDetails = () => {
 
         <CardBody className="space-y-5">
           {announcement.thumbnail && (
-            <Image
-              src={announcement.thumbnail}
-              alt={announcement.title}
-              className="w-full max-h-105 object-cover rounded-xl border border-default-200"
-            />
+            <div className='w-full flex justify-center'>
+              <Image
+                src={announcement.thumbnail}
+                alt={announcement.title}
+                className="w-full max-h-105 object-cover rounded-xl border border-default-200"
+              />
+            </div>
           )}
 
           {announcement.barangays && announcement.barangays.length > 0 && (
@@ -218,9 +224,7 @@ const AnnouncementDetails = () => {
           {onClose => (
             <>
               <ModalHeader className="flex flex-col gap-1">Delete announcement?</ModalHeader>
-              <ModalBody>
-                This action cannot be undone. The announcement and its thumbnail will be removed.
-              </ModalBody>
+              <ModalBody>This action cannot be undone. The announcement and its thumbnail will be removed.</ModalBody>
               <ModalFooter>
                 <Button variant="flat" onPress={onClose} isDisabled={isDeleting}>
                   Cancel

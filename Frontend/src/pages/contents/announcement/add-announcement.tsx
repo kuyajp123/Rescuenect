@@ -1,6 +1,7 @@
 import { barangays } from '@/config/constant';
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
+import { AnnouncementDataCard } from '@/types/types';
 import {
   Button,
   Card,
@@ -177,8 +178,14 @@ const serializeSelection = (selection: Selection): string[] => {
   return Array.from(selection).map(String);
 };
 
-const AddAnnouncement = () => {
+type AddAnnouncementProps = {
+  mode?: 'create' | 'edit';
+  announcementId?: string;
+};
+
+const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementProps) => {
   const initialContent = '';
+  const isEditMode = mode === 'edit';
   const richTextClass =
     'text-sm leading-relaxed text-foreground [&_p]:my-2 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:text-xl [&_h2]:font-semibold [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1 [&_blockquote]:my-3 [&_blockquote]:border-l-4 [&_blockquote]:border-default-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-default-600 dark:[&_blockquote]:border-default-500 dark:[&_blockquote]:text-default-400 [&_code]:rounded [&_code]:bg-default-100 [&_code]:px-1 [&_pre]:my-3 [&_pre]:rounded-lg [&_pre]:bg-default-100 [&_pre]:p-3 [&_pre]:text-xs [&_pre]:leading-relaxed dark:[&_code]:bg-default-50 dark:[&_pre]:bg-default-50';
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -199,8 +206,16 @@ const AddAnnouncement = () => {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [initialAnnouncement, setInitialAnnouncement] = useState<AnnouncementDataCard | null>(null);
+  const [isLoadingAnnouncement, setIsLoadingAnnouncement] = useState(isEditMode);
+  const [loadError, setLoadError] = useState('');
   const user = auth.currentUser;
   const navigate = useNavigate();
+  const pageTitle = isEditMode ? 'Edit Announcement' : 'Add Announcement';
+  const pageSubtitle = isEditMode
+    ? 'Update the announcement details and save your changes.'
+    : 'Compose your announcement with rich formatting.';
+  const primaryActionLabel = isEditMode ? 'Save Changes' : 'Publish';
 
   const editor = useEditor({
     extensions: [
@@ -258,6 +273,56 @@ const AddAnnouncement = () => {
     sanitizedContentRef.current = sanitizedContent;
   }, [sanitizedContent]);
 
+  useEffect(() => {
+    if (!isEditMode) return;
+    if (!announcementId) {
+      setLoadError('Announcement ID is missing.');
+      setIsLoadingAnnouncement(false);
+      return;
+    }
+
+    const fetchAnnouncement = async () => {
+      try {
+        setIsLoadingAnnouncement(true);
+        setLoadError('');
+        const response = await axios.get(API_ENDPOINTS.ANNOUNCEMENT.GET_ANNOUNCEMENT_DETAILS, {
+          params: { id: announcementId },
+        });
+        setInitialAnnouncement(response.data as AnnouncementDataCard);
+      } catch (error) {
+        console.error('Failed to load announcement details:', error);
+        setLoadError('We could not load this announcement. Please try again.');
+      } finally {
+        setIsLoadingAnnouncement(false);
+      }
+    };
+
+    fetchAnnouncement();
+  }, [isEditMode, announcementId]);
+
+  useEffect(() => {
+    if (!isEditMode || !editor || !initialAnnouncement || editPrefillRef.current) return;
+
+    setTitle(initialAnnouncement.title ?? '');
+    setSubtitle(initialAnnouncement.subtitle ?? '');
+    setSelectedCategory(new Set([initialAnnouncement.category ?? 'general']));
+    setSelectedBarangays(new Set(initialAnnouncement.barangays ?? []));
+    setThumbnailDataUrl(initialAnnouncement.thumbnail ?? '');
+    setThumbnailFile(null);
+    setErrors({
+      title: '',
+      subtitle: '',
+      category: '',
+      barangays: '',
+      thumbnail: '',
+      content: '',
+    });
+    setSaveError('');
+    editor.commands.setContent(initialAnnouncement.content ?? initialContent);
+
+    editPrefillRef.current = true;
+  }, [isEditMode, editor, initialAnnouncement, initialContent]);
+
   const previewText = editor?.getText().trim() ?? '';
   const isPreviewEmpty = previewText.length === 0;
   const thumbnailPreview = thumbnailDataUrl;
@@ -269,14 +334,18 @@ const AddAnnouncement = () => {
     value => barangays.find(barangay => barangay.value === value)?.label ?? value
   );
 
+  const draftKey = isEditMode && announcementId ? `announcementDraft:${announcementId}` : 'announcementDraft';
   const draftLoadedRef = useRef(false);
+  const editPrefillRef = useRef(false);
 
   const handleThumbnailFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
-      setThumbnailFile(null);
-      setThumbnailDataUrl('');
-      setErrors(prev => ({ ...prev, thumbnail: 'Thumbnail is required.' }));
+      if (!isEditMode) {
+        setThumbnailFile(null);
+        setThumbnailDataUrl('');
+        setErrors(prev => ({ ...prev, thumbnail: 'Thumbnail is required.' }));
+      }
       return;
     }
     setThumbnailFile(file);
@@ -291,7 +360,28 @@ const AddAnnouncement = () => {
   };
 
   const handleResetDraft = () => {
-    localStorage.removeItem('announcementDraft');
+    if (isEditMode) {
+      if (!initialAnnouncement) return;
+      setSelectedCategory(new Set([initialAnnouncement.category ?? 'general']));
+      setSelectedBarangays(new Set(initialAnnouncement.barangays ?? []));
+      setThumbnailDataUrl(initialAnnouncement.thumbnail ?? '');
+      setThumbnailFile(null);
+      setTitle(initialAnnouncement.title ?? '');
+      setSubtitle(initialAnnouncement.subtitle ?? '');
+      setErrors({
+        title: '',
+        subtitle: '',
+        category: '',
+        barangays: '',
+        thumbnail: '',
+        content: '',
+      });
+      setSaveError('');
+      editor?.commands.setContent(initialAnnouncement.content ?? initialContent);
+      return;
+    }
+
+    localStorage.removeItem(draftKey);
     setSelectedCategory(new Set(['general']));
     setSelectedBarangays(new Set());
     setThumbnailDataUrl('');
@@ -323,15 +413,20 @@ const AddAnnouncement = () => {
 
   const handlePublish = async (): Promise<boolean> => {
     if (!user) return false;
+    if (isEditMode && !announcementId) {
+      setSaveError('Announcement ID is missing.');
+      return false;
+    }
 
     try {
       if (isSaving) return false;
+      const hasThumbnail = Boolean(thumbnailFile || thumbnailDataUrl);
       const nextErrors = {
         title: title.trim() ? '' : 'Please add a clear title.',
         subtitle: subtitle.trim() ? '' : 'Please add a short subtitle.',
         category: selectedCategoryKey ? '' : 'Please choose a category.',
         barangays: selectedBarangayValues.length > 0 ? '' : 'Select at least one barangay.',
-        thumbnail: thumbnailFile ? '' : 'Please upload a thumbnail image.',
+        thumbnail: hasThumbnail ? '' : 'Please upload a thumbnail image.',
         content: isPreviewEmpty ? 'Please add announcement content.' : '',
       };
 
@@ -363,6 +458,27 @@ const AddAnnouncement = () => {
         formData.append('thumbnail', thumbnailFile);
       }
 
+      if (isEditMode) {
+        const response = await axios.put(
+          `${API_ENDPOINTS.ANNOUNCEMENT.UPDATE_ANNOUNCEMENT}/${announcementId}`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.status === 200) {
+          localStorage.removeItem(draftKey);
+          setSaveError('');
+          return true;
+        }
+
+        setSaveError('We could not update your announcement. Please try again.');
+        return false;
+      }
+
       const response = await axios.post(API_ENDPOINTS.ANNOUNCEMENT.CREATE_ANNOUNCEMENT, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -371,7 +487,7 @@ const AddAnnouncement = () => {
 
       console.log('Announcement published successfully:', response.data);
       if (response.status === 201) {
-        localStorage.removeItem('announcementDraft');
+        localStorage.removeItem(draftKey);
         setSelectedCategory(new Set(['general']));
         setSelectedBarangays(new Set());
         setThumbnailDataUrl('');
@@ -394,7 +510,7 @@ const AddAnnouncement = () => {
       return false;
     } catch (error) {
       console.error('Error publishing announcement:', error);
-      setSaveError('We could not save your announcement. Please try again.');
+      setSaveError(isEditMode ? 'We could not update your announcement. Please try again.' : 'We could not save your announcement. Please try again.');
       return false;
     } finally {
       setIsSaving(false);
@@ -402,8 +518,9 @@ const AddAnnouncement = () => {
   };
 
   useEffect(() => {
+    if (isEditMode) return;
     if (!editor || draftLoadedRef.current) return;
-    const savedDraft = localStorage.getItem('announcementDraft');
+    const savedDraft = localStorage.getItem(draftKey);
     if (!savedDraft) {
       draftLoadedRef.current = true;
       return;
@@ -444,6 +561,7 @@ const AddAnnouncement = () => {
   }, [editor]);
 
   useEffect(() => {
+    if (isEditMode) return;
     if (!draftLoadedRef.current) return;
     const [categoryKey] = serializeSelection(selectedCategory);
     const draftPayload = {
@@ -454,7 +572,7 @@ const AddAnnouncement = () => {
       barangays: serializeSelection(selectedBarangays),
       thumbnail: thumbnailDataUrl,
     };
-    localStorage.setItem('announcementDraft', JSON.stringify(draftPayload));
+    localStorage.setItem(draftKey, JSON.stringify(draftPayload));
   }, [title, subtitle, sanitizedContent, selectedCategory, selectedBarangays, thumbnailDataUrl]);
 
   useEffect(() => {
@@ -500,11 +618,26 @@ const AddAnnouncement = () => {
     editor.chain().focus().extendMarkRange('link').setLink({ href: url.trim(), target: '_blank' }).run();
   };
 
+  if (isEditMode && isLoadingAnnouncement) {
+    return <div className="w-full h-full flex items-center justify-center text-default-500">Loading announcement...</div>;
+  }
+
+  if (isEditMode && loadError) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-center">
+        <p className="text-sm text-danger">{loadError}</p>
+        <Button variant="flat" onPress={() => navigate('/announcement')}>
+          Go back
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full h-full flex flex-col gap-6">
       <div>
-        <p className="text-3xl font-bold">Add Announcement</p>
-        <p className="text-sm text-default-500">Compose your announcement with rich formatting.</p>
+        <p className="text-3xl font-bold">{pageTitle}</p>
+        <p className="text-sm text-default-500">{pageSubtitle}</p>
       </div>
 
       <Card className="w-full">
@@ -980,11 +1113,11 @@ const AddAnnouncement = () => {
                     const ok = await handlePublish();
                     if (ok) {
                       onClose();
-                      navigate('/announcement');
+                      navigate(isEditMode && announcementId ? `/announcement/details/${announcementId}` : '/announcement');
                     }
                   }}
                 >
-                  Publish
+                  {primaryActionLabel}
                 </Button>
               </ModalFooter>
             </>
