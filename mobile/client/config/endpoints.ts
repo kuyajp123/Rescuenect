@@ -45,4 +45,9 @@ export const API_ROUTES = {
     MARK_AS_HIDDEN: `${BASE_URL}/unified/markNotificationAsHidden`,
     MARK_AS_DELETED: `${BASE_URL}/mobile/data/markNotificationAsDeleted`,
   },
+  ANNOUNCEMENT: {
+    GET_ANNOUNCEMENTS: `${BASE_URL}/unified/announcements`,
+    GET_ANNOUNCEMENT_DETAILS: (announcementId: string) =>
+      `${BASE_URL}/unified/announcementDetails?id=${encodeURIComponent(announcementId)}`,
+  }
 };

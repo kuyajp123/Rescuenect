@@ -296,7 +296,19 @@ export interface EvacuationCenterFormData {
 }
 
 export interface EvacuationCenter extends EvacuationCenterFormData {
-  id: string,
+  id: string;
   createdAt: FirebaseFirestore.Timestamp | string;
   images?: string[]; // Array of image URLs
+}
+
+export interface AnnouncementDataCard {
+  id: string;
+  title: string;
+  subtitle: string;
+  content: string;
+  thumbnail?: string;
+  category: 'general' | 'event' | 'update' | 'maintenance' | 'alert' | 'emergency' | 'other';
+  barangays?: string[];
+  createdBy?: string;
+  createdAt: { _seconds?: number; _nanoseconds?: number; seconds?: number; nanoseconds?: number };
 }

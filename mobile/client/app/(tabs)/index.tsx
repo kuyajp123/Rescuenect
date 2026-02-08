@@ -1,3 +1,4 @@
+import Announcement from '@/components/components/AnnouncementList/Announcement';
 import { AdvancedCarousel } from '@/components/components/carousel/AdvancedCarousel';
 import StatusIndicator from '@/components/components/data-display/StatusIndicator';
 import QuickActions from '@/components/components/home/QuickActions';
@@ -53,6 +54,8 @@ export const HomeScreen = React.memo(() => {
       <CardWeather />
 
       <QuickActions />
+
+      <Announcement />
 
       <View style={{ marginTop: 20 }}>
         <AdvancedCarousel />

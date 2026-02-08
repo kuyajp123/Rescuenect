@@ -1,6 +1,6 @@
 import type { ProcessedEarthquake, USGSEarthquake } from './types.ts';
 
-// Philippines center coordinates for distance calculation
+// NAIC_CENTER center coordinates for distance calculation
 const NAIC_CENTER = { lat: 14.2919325, lng: 120.7752839 };
 
 /**
@@ -11,7 +11,7 @@ export async function fetchUSGSEarthquakes(): Promise<USGSEarthquake[]> {
     format: 'geojson',
     latitude: NAIC_CENTER.lat.toString(),
     longitude: NAIC_CENTER.lng.toString(),
-    maxradiuskm: '70', // 70km radius around Philippines center
+    maxradiuskm: '70', // 70km radius around Naic center
     minmagnitude: '1.5', // Only get earthquakes above 1.5 magnitude
     orderby: 'time',
     limit: '50', // Limit to 50 most recent
@@ -44,7 +44,7 @@ export function processEarthquakeData(earthquake: USGSEarthquake): ProcessedEart
   const priority = determinePriority(magnitude);
   const depth = Math.abs(earthquake.geometry.coordinates[2]); // Ensure positive depth
 
-  // Calculate distance from Philippines center
+  // Calculate distance from Naic center
   const distanceFromCenter = calculateDistance(
     NAIC_CENTER.lat,
     NAIC_CENTER.lng,
