@@ -1,10 +1,10 @@
 import { HoveredButton } from '@/components/components/button/Button';
-import { storageHelpers } from '@/helper/storage';
-import { useCoords } from '@/store/useCoords';
-import { useMapSettingsStore } from '@/store/useMapSettings';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { storageHelpers } from '@/helper/storage';
+import { useCoords } from '@/store/useCoords';
+import { useMapSettingsStore } from '@/store/useMapSettings';
 import MapboxGL from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, MapIcon } from 'lucide-react-native';
@@ -32,6 +32,7 @@ const MapContext = createContext<MapContextType | undefined>(undefined);
 
 export const MapProvider = ({ children }: MapProviderProps) => {
   const mapRef = useRef<MapboxGL.MapView | null>(null);
+  const cameraRef = useRef<any>(null);
   const [isMapReady, setIsMapReady] = useState(false);
 
   const coords = useCoords(state => state.coords);
@@ -46,7 +47,25 @@ export const MapProvider = ({ children }: MapProviderProps) => {
   const hasButtons = useMapSettingsStore(state => state.hasButtons);
   const router = useRouter();
   const { isDark } = useTheme();
-  const [cameraCenter, setCameraCenter] = useState<[number, number]>([120.750674, 14.31808]);
+  const [cameraCenter, setCameraCenterState] = useState<[number, number]>([120.750674, 14.31808]);
+
+  const setCameraCenter = useCallback((coords: [number, number]) => {
+    setCameraCenterState(coords);
+
+    if (cameraRef.current?.setCamera) {
+      cameraRef.current.setCamera({
+        centerCoordinate: coords,
+        zoomLevel: 16,
+        animationDuration: 400,
+        animationMode: 'flyTo',
+      });
+      return;
+    }
+
+    if (cameraRef.current?.flyTo) {
+      cameraRef.current.flyTo(coords, 400);
+    }
+  }, []);
 
   // Load saved map style from storage
 
@@ -70,7 +89,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
     if (activeStatusCoords && coords && coords.length === 2) {
       setCameraCenter(coords);
     }
-  }, [coords, activeStatusCoords]);
+  }, [coords, activeStatusCoords, setCameraCenter]);
 
   const setMapStyle = useCallback(async (style: MapboxGL.StyleURL) => {
     try {
@@ -144,32 +163,36 @@ export const MapProvider = ({ children }: MapProviderProps) => {
         >
           {/* Add your default map children here */}
           <MapboxGL.Camera
+            ref={cameraRef}
             centerCoordinate={cameraCenter} // [lng, lat]
             animationDuration={300}
+            animationMode="flyTo"
             zoomLevel={16}
             minZoomLevel={15}
             maxZoomLevel={19}
             followUserLocation={followUserLocation}
             followZoomLevel={16}
             maxBounds={{
-              ne: [120.735, 14.305],
-              sw: [120.765, 14.33],
+              ne: [120.765, 14.33],
+              sw: [120.735, 14.305],
             }}
           />
-          <MapboxGL.VectorSource id="buildingSource" url="mapbox://mapbox.mapbox-streets-v8">
-            <MapboxGL.FillExtrusionLayer
-              id="3d-buildings"
-              sourceLayerID="building"
-              minZoomLevel={11}
-              maxZoomLevel={20}
-              style={{
-                fillExtrusionColor: '#aaa',
-                fillExtrusionHeight: ['get', 'height'],
-                fillExtrusionBase: ['get', 'min_height'],
-                fillExtrusionOpacity: 0.6,
-              }}
-            />
-          </MapboxGL.VectorSource>
+          {mapStyle !== MapboxGL.StyleURL.SatelliteStreet && (
+            <MapboxGL.VectorSource id="buildingSource" url="mapbox://mapbox.mapbox-streets-v8">
+              <MapboxGL.FillExtrusionLayer
+                id="3d-buildings"
+                sourceLayerID="building"
+                minZoomLevel={11}
+                maxZoomLevel={20}
+                style={{
+                  fillExtrusionColor: '#aaa',
+                  fillExtrusionHeight: ['get', 'height'],
+                  fillExtrusionBase: ['get', 'min_height'],
+                  fillExtrusionOpacity: 0.6,
+                }}
+              />
+            </MapboxGL.VectorSource>
+          )}
 
           {oneTimeLocationCoords && (
             <MapboxGL.PointAnnotation
@@ -217,11 +240,11 @@ export const MapProvider = ({ children }: MapProviderProps) => {
               style={[
                 styles.mapStyleButton,
                 {
-                  backgroundColor: isDark ? Colors.border.dark : Colors.border.light,
+                  backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light,
                 },
               ]}
             >
-              <MapIcon size={24} color={isDark ? Colors.border.light : Colors.border.dark} />
+              <MapIcon size={24} color={Colors.border.light} />
             </HoveredButton>
 
             {showMapStyles && (
@@ -272,6 +295,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
     handlePress,
     coords,
     oneTimeLocationCoords,
+    cameraCenter,
     mapStyle,
     showMapStyles,
     isDark,

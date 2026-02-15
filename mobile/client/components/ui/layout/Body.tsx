@@ -1,7 +1,7 @@
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
-import type { ComponentProps } from "react";
-import type { StyleProp, ViewStyle } from "react-native";
+import type { ComponentProps, Ref } from "react";
+import type { ScrollViewProps, StyleProp, ViewStyle } from "react-native";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "../text";
 import { VStack } from "../vstack";
@@ -12,11 +12,25 @@ type VStackProps = ComponentProps<typeof VStack>;
 interface ContainerProps extends VStackProps {
   style?: StyleProp<ViewStyle>;
   gap?: number | string;
+  scrollEnabled?: boolean;
+  onScroll?: ScrollViewProps["onScroll"];
+  onScrollBeginDrag?: ScrollViewProps["onScrollBeginDrag"];
+  onScrollEndDrag?: ScrollViewProps["onScrollEndDrag"];
+  scrollEventThrottle?: number;
+  contentContainerStyle?: StyleProp<ViewStyle>;
+  scrollRef?: Ref<ScrollView>;
 }
 
 export const Body = ({
   children,
   style,
+  scrollEnabled = true,
+  onScroll,
+  onScrollBeginDrag,
+  onScrollEndDrag,
+  scrollEventThrottle = 16,
+  contentContainerStyle,
+  scrollRef,
   ...props
 }: ContainerProps) => {
   const { isDark } = useTheme();
@@ -29,7 +43,32 @@ export const Body = ({
           <Text style={styles.statusText}>No Internet Connection</Text>
         </View>
       )}
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+      {scrollEnabled ? (
+        <ScrollView
+          ref={scrollRef}
+          onScroll={onScroll}
+          onScrollBeginDrag={onScrollBeginDrag}
+          onScrollEndDrag={onScrollEndDrag}
+          scrollEventThrottle={scrollEventThrottle}
+          contentContainerStyle={[{ flexGrow: 1 }, contentContainerStyle]}
+        >
+          <VStack
+            style={[
+              styles.container,
+              {
+                backgroundColor: isDark
+                  ? Colors.background.dark
+                  : Colors.background.light,
+                paddingTop: !isOnline ? 20 : 0, // Dynamic spacing based on status bar
+              },
+              style,
+            ]}
+            {...props}
+          >
+            {children}
+          </VStack>
+        </ScrollView>
+      ) : (
         <VStack
           style={[
             styles.container,
@@ -37,7 +76,7 @@ export const Body = ({
               backgroundColor: isDark
                 ? Colors.background.dark
                 : Colors.background.light,
-              paddingTop: !isOnline ? 20 : 0, // Dynamic spacing based on status bar
+              paddingTop: !isOnline ? 20 : 0,
             },
             style,
           ]}
@@ -45,7 +84,7 @@ export const Body = ({
         >
           {children}
         </VStack>
-      </ScrollView>
+      )}
     </View>
   );
 };

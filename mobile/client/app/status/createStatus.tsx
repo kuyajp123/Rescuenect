@@ -913,6 +913,7 @@ export const createStatus = () => {
       icon: <SquarePen size={16} color={'white'} />,
       onPress: () => {
         if (formData) {
+          setFollowUserLocation(false);
           setCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : null);
           setSelectedCoords(formData.lng && formData.lat ? [formData.lng, formData.lat] : [0, 0]);
           if (formData.lng && formData.lat) {
@@ -1320,20 +1321,25 @@ export const createStatus = () => {
       return { headerActionNoData: helpAction };
     }
 
+    const hasCurrentMarker =
+      coords && coords.length === 2 && coords[0] !== null && coords[1] !== null;
+
     return {
       headerActionWithData: {
         createdAt: formatTimeSince(formData.createdAt),
         leftAction: helpAction,
-        rightAction: {
-          text: 'Delete Status',
-          icon: <Trash size={20} color={Colors.text.dark} />,
-          onPress: () => {
-            deleteModalConfirm();
-          },
-        },
+        rightAction: hasCurrentMarker
+          ? {
+              text: 'Delete Status',
+              icon: <Trash size={20} color={Colors.text.dark} />,
+              onPress: () => {
+                deleteModalConfirm();
+              },
+            }
+          : undefined,
       },
     };
-  }, [formData, isDark]);
+  }, [formData, isDark, coords]);
 
   return (
     <>

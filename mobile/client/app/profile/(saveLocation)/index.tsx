@@ -97,12 +97,13 @@ const SaveLocationScreen = () => {
   });
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [isAwaitingInitialPick, setIsAwaitingInitialPick] = useState(false);
 
   // Mode state: 'list' or 'form'
   const [mode, setMode] = useState<'list' | 'form'>('list');
 
   // Snap points
-  const snapPoints = useMemo(() => ['30%', '60%', '90%'], []);
+  const snapPoints = useMemo(() => ['30%', '45%'], []);
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -132,7 +133,7 @@ const SaveLocationScreen = () => {
           current_population: 0,
           status: 'active',
           type: 'evacuation-center',
-        } as any)
+        }) as any
     );
   }, [savedLocations]);
 
@@ -145,10 +146,11 @@ const SaveLocationScreen = () => {
       setLocation(selectedLocation.location);
       setCoords({ lat: selectedLocation.lat, lng: selectedLocation.lng });
       setErrMessage({ label: '', location: '', message: '' });
+      setIsAwaitingInitialPick(false);
 
       // Switch to form mode
       setMode('form');
-      bottomSheetRef.current?.snapToIndex(1); // Snap to 50%
+      bottomSheetRef.current?.snapToIndex(1);
     }
   };
 
@@ -160,14 +162,15 @@ const SaveLocationScreen = () => {
     setErrMessage({ label: '', location: '', message: '' });
 
     setMode('form');
-    // Snap to 50% to allow seeing the map
-    bottomSheetRef.current?.snapToIndex(1);
+    setIsAwaitingInitialPick(true);
+    bottomSheetRef.current?.snapToIndex(0);
   };
 
   const handleBackToList = () => {
     setMode('list');
     setSelectedId(undefined);
     setCoords(null);
+    setIsAwaitingInitialPick(false);
     bottomSheetRef.current?.snapToIndex(0); // Snap to peek
     Keyboard.dismiss();
   };
@@ -211,6 +214,10 @@ const SaveLocationScreen = () => {
 
       const markerCoordinate: { lat: number; lng: number } = { lat: mapCoords[1], lng: mapCoords[0] };
       setCoords(markerCoordinate);
+      if (isAwaitingInitialPick) {
+        setIsAwaitingInitialPick(false);
+        bottomSheetRef.current?.snapToIndex(1);
+      }
 
       if (errMessage.location) {
         setErrMessage({ ...errMessage, location: '' });
@@ -439,67 +446,75 @@ const SaveLocationScreen = () => {
                 )}
               </HStack>
 
-              {/* Inputs */}
-              <VStack space="sm">
-                <Text size="sm" bold>
-                  Label
-                </Text>
-                <TextInput
-                  placeholder="e.g. Home, Office"
-                  value={label}
-                  onChangeText={setLabel}
-                  style={[
-                    styles.input,
-                    {
-                      color: isDark ? Colors.text.dark : Colors.text.light,
-                      borderColor: isDark ? Colors.border.dark : Colors.border.light,
-                    },
-                  ]}
-                />
-                {errMessage.label ? <Text style={styles.errorText}>{errMessage.label}</Text> : null}
-              </VStack>
+              {isAwaitingInitialPick ? (
+                <View style={{ paddingVertical: 12 }}>
+                  <Text emphasis="light">Choose location on map</Text>
+                </View>
+              ) : (
+                <>
+                  {/* Inputs */}
+                  <VStack space="sm">
+                    <Text size="sm" bold>
+                      Label
+                    </Text>
+                    <TextInput
+                      placeholder="e.g. Home, Office"
+                      value={label}
+                      onChangeText={setLabel}
+                      style={[
+                        styles.input,
+                        {
+                          color: isDark ? Colors.text.dark : Colors.text.light,
+                          borderColor: isDark ? Colors.border.dark : Colors.border.light,
+                        },
+                      ]}
+                    />
+                    {errMessage.label ? <Text style={styles.errorText}>{errMessage.label}</Text> : null}
+                  </VStack>
 
-              <VStack space="sm">
-                <Text size="sm" bold>
-                  Location
-                </Text>
-                <TextInput
-                  placeholder="Tap on map to select..."
-                  value={location}
-                  onChangeText={setLocation}
-                  multiline
-                  style={[
-                    styles.input,
-                    {
-                      color: isDark ? Colors.text.dark : Colors.text.light,
-                      borderColor: isDark ? Colors.border.dark : Colors.border.light,
-                      minHeight: 60,
-                    },
-                  ]}
-                />
-                {errMessage.location ? <Text style={styles.errorText}>{errMessage.location}</Text> : null}
-              </VStack>
+                  <VStack space="sm">
+                    <Text size="sm" bold>
+                      Location
+                    </Text>
+                    <TextInput
+                      placeholder="Tap on map to select..."
+                      value={location}
+                      onChangeText={setLocation}
+                      multiline
+                      style={[
+                        styles.input,
+                        {
+                          color: isDark ? Colors.text.dark : Colors.text.light,
+                          borderColor: isDark ? Colors.border.dark : Colors.border.light,
+                          minHeight: 60,
+                        },
+                      ]}
+                    />
+                    {errMessage.location ? <Text style={styles.errorText}>{errMessage.location}</Text> : null}
+                  </VStack>
 
-              {errMessage.message ? <Text style={styles.errorText}>{errMessage.message}</Text> : null}
+                  {errMessage.message ? <Text style={styles.errorText}>{errMessage.message}</Text> : null}
 
-              <Button onPress={handleSaveLocation} style={{ marginTop: 10 }}>
-                {loading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text style={{ color: 'white' }} bold>
-                    Save Location
-                  </Text>
-                )}
-              </Button>
+                  <Button onPress={handleSaveLocation} style={{ marginTop: 10 }}>
+                    {loading ? (
+                      <ActivityIndicator color="white" />
+                    ) : (
+                      <Text style={{ color: 'white' }} bold>
+                        Save Location
+                      </Text>
+                    )}
+                  </Button>
 
-              <VStack className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                <HStack className="gap-2 items-center">
-                  <LocateFixed size={16} color={Colors.brand.light} />
-                  <Text size="xs" style={{ color: Colors.brand.light }}>
-                    Tip: Tap anywhere on the map to set the pin.
-                  </Text>
-                </HStack>
-              </VStack>
+                  <VStack className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                    <HStack className="gap-2 items-center">
+                      <LocateFixed size={16} color={Colors.brand.light} />
+                      <Text size="xs" style={{ color: Colors.brand.light }}>
+                        Tip: Tap anywhere on the map to set the pin.
+                      </Text>
+                    </HStack>
+                  </VStack>
+                </>
+              )}
             </VStack>
           )}
         </BottomSheetScrollView>

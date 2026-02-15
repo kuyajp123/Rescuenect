@@ -74,7 +74,7 @@ export const ServerWakeUpScreen: React.FC<ServerWakeUpScreenProps> = ({ onServer
         <View style={styles.statusContainer}>
           <Text style={[styles.title, { color: isDark ? Colors.text.dark : Colors.text.light }]}>Rescuenect</Text>
           <Text style={[styles.subtitle, { color: isDark ? Colors.muted.dark.text : Colors.muted.light.text }]}>
-            Waking up server... This may take a moment.
+            Preparing data… please wait a moment.
           </Text>
           <ActivityIndicator size="large" color={Colors.brand.light} />
           {retryCount > 2 && (
@@ -97,7 +97,6 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 40,
   },
   logo: {
     width: 200,
@@ -111,6 +110,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     fontFamily: 'Poppins-Bold',
+    marginBottom: 40,
   },
   subtitle: {
     fontSize: 16,

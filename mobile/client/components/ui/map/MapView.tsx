@@ -356,7 +356,7 @@ export const MapView: React.FC<MapViewProps> = ({
               }}
             />
 
-            {show3DBuildings && (
+            {show3DBuildings && mapStyleState !== MapboxGL.StyleURL.SatelliteStreet && (
               <MapboxGL.VectorSource id="buildingSource" url="mapbox://mapbox.mapbox-streets-v8">
                 <MapboxGL.FillExtrusionLayer
                   id="3d-buildings"
@@ -593,9 +593,9 @@ export const MapView: React.FC<MapViewProps> = ({
           {showStyleSelector && (
             <HoveredButton
               onPress={toggleMapStyles}
-              style={[styles.mapStyleButton, { backgroundColor: isDark ? Colors.border.dark : Colors.border.light }]}
+              style={[styles.mapStyleButton, { backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light }]}
             >
-              <MapIcon size={24} color={isDark ? Colors.border.light : Colors.border.dark} />
+              <MapIcon size={24} color={Colors.border.light} />
             </HoveredButton>
           )}
 
@@ -608,12 +608,12 @@ export const MapView: React.FC<MapViewProps> = ({
                   backgroundColor: showSavedLocations
                     ? Colors.brand.light
                     : isDark
-                      ? Colors.border.dark
-                      : Colors.border.light,
+                      ? Colors.brand.dark
+                      : Colors.brand.light,
                 },
               ]}
             >
-              <Bookmark size={24} color={isDark ? Colors.border.light : Colors.border.dark} />
+              <Bookmark size={24} color={Colors.border.light} />
             </HoveredButton>
           )}
 

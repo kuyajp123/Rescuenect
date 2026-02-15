@@ -1,13 +1,18 @@
+import { HeaderBackButton } from '@/components/components/button/Button';
 import { Text } from '@/components/ui/text';
 import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { AnnouncementDataCard } from '@/types/components';
 import axios from 'axios';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
+
+const handleBack = () => {
+  router.back();
+};
 
 const formatAnnouncementDate = (createdAt: AnnouncementDataCard['createdAt']): string => {
   const seconds = createdAt?._seconds ?? createdAt?.seconds;
@@ -121,6 +126,7 @@ const AnnouncementsScreen = () => {
             backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
           },
           headerTintColor: isDark ? Colors.text.dark : Colors.text.light,
+          headerLeft: () => <HeaderBackButton router={handleBack} />,
         }}
       />
 

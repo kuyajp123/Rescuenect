@@ -21,6 +21,7 @@ import { useCurrentStatuses } from '@/hooks/useStatusSubscriber';
 import { subscribeToWeatherData } from '@/hooks/useWeatherData';
 import { FCMTokenService } from '@/services/fcmTokenService';
 import { useAuth } from '@/store/useAuth';
+import { useCoords } from '@/store/useCoords';
 import { useUserData } from '@/store/useBackendResponse';
 import { useNotificationStore } from '@/store/useNotificationStore';
 import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
@@ -325,6 +326,8 @@ function LayoutContent() {
   const authUser = useAuth(state => state.authUser);
   const { idToken } = useIdToken();
   const setFormData = useStatusFormStore(state => state.setFormData);
+  const setCoords = useCoords(state => state.setCoords);
+  const setActiveStatusCoords = useCoords(state => state.setActiveStatusCoords);
   const statusData = useStatusFetchBackgroundData(authUser ? authUser.uid : null, idToken);
   const userData = useUserData((state: any) => state.userData);
   const setUserData = useUserData((state: any) => state.setUserData);
@@ -375,6 +378,16 @@ function LayoutContent() {
 
     setFormData(formDataToSet);
   }, [statusData, authUser, setFormData]);
+
+  useEffect(() => {
+    if (statusData?.lat != null && statusData?.lng != null) {
+      setCoords([statusData.lng, statusData.lat]);
+      setActiveStatusCoords(true);
+    } else {
+      setCoords(null);
+      setActiveStatusCoords(false);
+    }
+  }, [statusData?.lat, statusData?.lng, setCoords, setActiveStatusCoords]);
 
   // FCM Token Management - Register on login, refresh, and cleanup on logout
   useEffect(() => {
