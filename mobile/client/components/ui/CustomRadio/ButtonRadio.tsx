@@ -69,14 +69,18 @@ export const ButtonRadio = ({
       size="xl"
       justify="start"
       variant={selected ? 'outline' : 'link'}
-      onPress={() => onSelect(value)}
+      onPress={() => {
+        if (!selected) {
+          onSelect(value);
+        }
+      }}
       style={style}
     >
       <View>
-        <Text size={sizeLabel} style={selected ? styles.TextColor : undefined}>
+        <Text size={sizeLabel} >
           {label}
         </Text>
-        <Text size={sizeSubLabel} style={selected ? styles.TextColor : undefined}>
+        <Text size={sizeSubLabel} >
           {formatSubLabel(subLabel)}
         </Text>
       </View>
@@ -84,11 +88,6 @@ export const ButtonRadio = ({
   );
 };
 
-const styles = StyleSheet.create({
-  TextColor: {
-    color: '#FFFFFF',
-  },
-});
 
 /*
 Usage Examples:

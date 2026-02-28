@@ -48,6 +48,11 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { ActivityIndicator, Animated, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+const areCoordsEqual = (a: [number, number] | null, b: [number, number] | null) => {
+  if (!a || !b) return false;
+  return Math.abs(a[0] - b[0]) < 0.000001 && Math.abs(a[1] - b[1]) < 0.000001;
+};
+
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
   const scaleValue = useRef(new Animated.Value(0)).current;
@@ -110,6 +115,9 @@ export const createStatus = () => {
   const [isGPSselection, setIsGPSselection] = useState(false); // Track if user has selected GPS option
   const debounceTimerRefGPS = useRef<NodeJS.Timeout | null>(null); // For debouncing GPS address calls
   const isSavedLocationSelectionRef = useRef(false); // Track if user selected a saved location
+  const lastFetchedCoordsRef = useRef<[number, number] | null>(null);
+  const lastFetchedGPSRef = useRef<[number, number] | null>(null);
+  const lastMapTapCoordsRef = useRef<[number, number] | null>(null);
 
   // Form related states
   const [submitStatusLoading, setSubmitStatusLoading] = useState(false);
@@ -316,7 +324,24 @@ export const createStatus = () => {
 
   // Track when user taps map (coords change significantly from last selected)
   useEffect(() => {
-    if (coords && !isManualSelection && !isFormDataLoadingRef.current && !isSavedLocationSelectionRef.current) {
+    if (!coords) {
+      lastMapTapCoordsRef.current = null;
+      if (isManualSelection) {
+        setIsManualSelection(false);
+      }
+      return;
+    }
+
+    if (areCoordsEqual(coords, lastMapTapCoordsRef.current)) {
+      if (isManualSelection) {
+        setIsManualSelection(false);
+      }
+      return;
+    }
+
+    lastMapTapCoordsRef.current = coords;
+
+    if (!isManualSelection && !isFormDataLoadingRef.current && !isSavedLocationSelectionRef.current) {
       // Check if this is a new map tap (coordinates changed significantly)
       const distanceThreshold = 0.001; // ~100 meters
       const latDiff = Math.abs(coords[1] - selectedCoords[1]);
@@ -353,19 +378,26 @@ export const createStatus = () => {
 
   // Handle GPS availability (secondary priority)
   useEffect(() => {
-    if (oneTimeLocationCoords) {
-      // If no user tap and no current selection, GPS can be default
-      if (!hasUserTappedMap && selectedCoords[0] === 0 && selectedCoords[1] === 0) {
-        setSelectedCoords(oneTimeLocationCoords);
-        setStatusForm(prev => ({
-          ...prev,
-          lng: oneTimeLocationCoords[0],
-          lat: oneTimeLocationCoords[1],
-        }));
-        console.log('GPS set as default location:', oneTimeLocationCoords);
-      }
+    if (!oneTimeLocationCoords) {
+      return;
     }
-  }, [oneTimeLocationCoords, hasUserTappedMap, selectedCoords]);
+
+    // Use GPS when explicitly selected, or when there's no existing selection yet
+    const shouldUseGps =
+      isGPSselection || (!hasUserTappedMap && selectedCoords[0] === 0 && selectedCoords[1] === 0);
+
+    if (!shouldUseGps) {
+      return;
+    }
+
+    setSelectedCoords(oneTimeLocationCoords);
+    setStatusForm(prev => ({
+      ...prev,
+      lng: oneTimeLocationCoords[0],
+      lat: oneTimeLocationCoords[1],
+    }));
+    console.log('GPS set as default location:', oneTimeLocationCoords);
+  }, [oneTimeLocationCoords, hasUserTappedMap, selectedCoords, isGPSselection]);
 
   // Update image when image picker store changes
   useEffect(() => {
@@ -414,6 +446,9 @@ export const createStatus = () => {
     if (isSavedLocationSelectionRef.current) {
       isSavedLocationSelectionRef.current = false;
       setAddressCoordsLoading(false);
+      if (coords) {
+        lastFetchedCoordsRef.current = coords;
+      }
       return;
     }
 
@@ -427,16 +462,15 @@ export const createStatus = () => {
       Math.abs(coords[1] - formData.lat) < 0.000001 &&
       Math.abs(coords[0] - formData.lng) < 0.000001
     ) {
-      setAddressCoords({
-        formatted: formData.location,
-        components: {},
-      });
+      if (!addressCoords || addressCoords.formatted !== formData.location) {
+        setAddressCoords({
+          formatted: formData.location,
+          components: {},
+        });
+      }
       setAddressCoordsLoading(false);
+      lastFetchedCoordsRef.current = coords;
       return;
-    }
-
-    if (authUser) {
-      setAddressCoordsLoading(true);
     }
 
     if (!coords) {
@@ -445,6 +479,8 @@ export const createStatus = () => {
         clearTimeout(debounceTimerRef.current);
         debounceTimerRef.current = null;
       }
+      lastFetchedCoordsRef.current = null;
+      setAddressCoordsLoading(false);
       return;
     }
 
@@ -452,6 +488,15 @@ export const createStatus = () => {
       // If offline, do not attempt to fetch address
       setAddressCoordsLoading(false);
       return;
+    }
+
+    if (addressCoords && areCoordsEqual(coords, lastFetchedCoordsRef.current)) {
+      setAddressCoordsLoading(false);
+      return;
+    }
+
+    if (authUser) {
+      setAddressCoordsLoading(true);
     }
 
     // Clear previous timer if it exists
@@ -477,15 +522,14 @@ export const createStatus = () => {
 
   // Debounced fetch address for GPS location
   useEffect(() => {
-    if (authUser) {
-      setAddressGPSLoading(true);
-    }
     if (!oneTimeLocationCoords) {
       // Clear any pending timer if GPS coords is null
       if (debounceTimerRefGPS.current) {
         clearTimeout(debounceTimerRefGPS.current);
         debounceTimerRefGPS.current = null;
       }
+      lastFetchedGPSRef.current = null;
+      setAddressGPSLoading(false);
       return;
     }
 
@@ -493,6 +537,15 @@ export const createStatus = () => {
       // If offline, do not attempt to fetch address
       setAddressGPSLoading(false);
       return;
+    }
+
+    if (addressGPS && areCoordsEqual(oneTimeLocationCoords, lastFetchedGPSRef.current)) {
+      setAddressGPSLoading(false);
+      return;
+    }
+
+    if (authUser) {
+      setAddressGPSLoading(true);
     }
 
     // Clear previous timer if it exists
@@ -890,6 +943,14 @@ export const createStatus = () => {
           if (currentCoords) {
             setOneTimeLocationCoords(currentCoords);
             setFollowUserLocation(true);
+            setIsGPSselection(true);
+            setIsManualSelection(true);
+            setSelectedCoords(currentCoords);
+            setStatusForm(prev => ({
+              ...prev,
+              lng: currentCoords[0],
+              lat: currentCoords[1],
+            }));
             triggerBottomSheetAnimation();
           } else {
             console.warn('Failed to get current location');
@@ -976,7 +1037,8 @@ export const createStatus = () => {
   const handleGPSLocationSelect = (value: string | [number, number]) => {
     if (Array.isArray(value) && value.length === 2) {
       setIsGPSselection(true);
-      setIsManualSelection(false);
+      setIsManualSelection(true);
+      setSelectedCoords(value as [number, number]);
 
       // Update the status form with selected coordinates
       setStatusForm(prev => ({
@@ -1235,11 +1297,13 @@ export const createStatus = () => {
           // This is the tapped location
           setAddressCoords(addressState);
           setAddressCoordsLoading(false);
+          lastFetchedCoordsRef.current = coords;
         }
         if (lat === oneTimeLocationCoords?.[1] && lng === oneTimeLocationCoords?.[0]) {
           // This is the GPS location
           setAddressGPS(addressState);
           setAddressGPSLoading(false);
+          lastFetchedGPSRef.current = oneTimeLocationCoords;
         }
       } else {
         setAddressCoordsLoading(false);
