@@ -44,8 +44,8 @@ export interface NumberInputField {
   key: string;
   label: string;
   placeholder: string;
-  value: number;
-  onChangeText: (value: number) => void;
+  value: string;
+  onChangeText: (value: string) => void;
   errorText?: string;
   onIncrement?: () => void;
   onDecrement?: () => void;
@@ -698,11 +698,8 @@ const Map = ({
                     </HStack>
                     <TextInput
                       placeholder={field.placeholder}
-                      value={field.value.toString()}
-                      onChangeText={text => {
-                        const num = parseInt(text) || field.min || 1;
-                        field.onChangeText(num);
-                      }}
+                      value={field.value}
+                      onChangeText={field.onChangeText}
                       onFocus={handleInputFocus}
                       keyboardType="numeric"
                       style={[

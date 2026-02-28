@@ -158,6 +158,7 @@ export const createStatus = () => {
     createdAt: undefined,
     expirationDuration: 24,
   });
+  const [peopleInput, setPeopleInput] = useState<string>('1');
 
   const [modals, setModals] = useState({
     noChanges: false,
@@ -263,6 +264,9 @@ export const createStatus = () => {
         ...prev,
         ...normalizedFormData,
       }));
+      if (typeof normalizedFormData.people === 'number') {
+        setPeopleInput(String(normalizedFormData.people));
+      }
 
       // Reset the flag after a short delay
       setTimeout(() => {
@@ -280,6 +284,7 @@ export const createStatus = () => {
       // Clear addresses
       setAddressCoords(null);
       setAddressGPS(null);
+      setPeopleInput('1');
     }
   }, [formData]);
 
@@ -396,7 +401,7 @@ export const createStatus = () => {
       lng: oneTimeLocationCoords[0],
       lat: oneTimeLocationCoords[1],
     }));
-    console.log('GPS set as default location:', oneTimeLocationCoords);
+
   }, [oneTimeLocationCoords, hasUserTappedMap, selectedCoords, isGPSselection]);
 
   // Update image when image picker store changes
@@ -654,6 +659,32 @@ export const createStatus = () => {
     }
   };
 
+  const handlePeopleInputChange = (text: string) => {
+    const sanitized = text.replace(/[^0-9]/g, '');
+    setPeopleInput(sanitized);
+
+    if (sanitized === '') {
+      setStatusForm(prev => ({
+        ...prev,
+        people: 0,
+      }));
+    } else {
+      const num = parseInt(sanitized, 10);
+      setStatusForm(prev => ({
+        ...prev,
+        people: Number.isNaN(num) ? 0 : num,
+      }));
+    }
+
+    if (formErrors.people) {
+      setFormErrors(prev => ({
+        ...prev,
+        people: undefined,
+        errMessage: '',
+      }));
+    }
+  };
+
   const handleCloseImageModal = () => {
     toggleModal('isImageModalVisible', false);
   };
@@ -881,20 +912,28 @@ export const createStatus = () => {
       key: 'people',
       label: 'Total people with you right now (count yourself too)',
       placeholder: 'Enter Value',
-      value: statusForm.people,
-      onChangeText: (value: number) => handleInputChange('people', value),
+      value: peopleInput,
+      onChangeText: handlePeopleInputChange,
       errorText: formErrors.people,
       min: 1,
       onIncrement: () => {
+        const current = parseInt(peopleInput, 10);
+        const base = Number.isNaN(current) ? 0 : current;
+        const next = base + 1;
+        setPeopleInput(String(next));
         setStatusForm(prev => ({
           ...prev,
-          people: Number(prev.people) + 1,
+          people: next,
         }));
       },
       onDecrement: () => {
+        const current = parseInt(peopleInput, 10);
+        const base = Number.isNaN(current) ? 0 : current;
+        const next = base > 1 ? base - 1 : 1;
+        setPeopleInput(String(next));
         setStatusForm(prev => ({
           ...prev,
-          people: Number(prev.people) > 1 ? Number(prev.people) - 1 : 1,
+          people: next,
         }));
       },
     },
@@ -992,6 +1031,9 @@ export const createStatus = () => {
             ...prev,
             ...normalizedFormData,
           }));
+          if (typeof normalizedFormData.people === 'number') {
+            setPeopleInput(String(normalizedFormData.people));
+          }
         }
       },
     });
