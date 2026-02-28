@@ -48,7 +48,6 @@ const Weather = () => {
                     windSpeed={data.realtime[0]?.windSpeed}
                     weatherCode={data.realtime[0]?.weatherCode}
                     cloudCover={data.realtime[0]?.cloudCover}
-
                     uvIndex={data.realtime[0]?.uvIndex}
                   />
                 ) : loading ? (
@@ -98,7 +97,7 @@ const Weather = () => {
 
             {/* 24 hour forecast */}
             <div className="flex flex-col h-full">
-              <GlassCard className="flex flex-col w-fit h-[400px] xl:h-[670px] p-4 overflow-y-auto">
+              <GlassCard className="flex flex-col w-fit h-100 xl:h-167.5 p-4 overflow-y-auto">
                 <div className="mb-4">
                   <p>
                     <b>24 Hour Forecast</b>
@@ -111,12 +110,21 @@ const Weather = () => {
                     <TableColumn>Condition</TableColumn>
                     <TableColumn>Temp</TableColumn>
                   </TableHeader>
-                  <TableBody items={hourlyData} emptyContent="Unable to load hourly data" loadingContent="Loading..." isLoading={loading}>
+                  <TableBody
+                    items={hourlyData}
+                    emptyContent="Unable to load hourly data"
+                    loadingContent="Loading..."
+                    isLoading={loading}
+                  >
                     {(item: any) => {
                       const now = new Date();
                       const hourlyDate = new Date(item.time);
                       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                      const forecastDay = new Date(hourlyDate.getFullYear(), hourlyDate.getMonth(), hourlyDate.getDate());
+                      const forecastDay = new Date(
+                        hourlyDate.getFullYear(),
+                        hourlyDate.getMonth(),
+                        hourlyDate.getDate()
+                      );
                       const diffInTime = forecastDay.getTime() - today.getTime();
                       const diffInDays = diffInTime / (1000 * 3600 * 24);
 
@@ -124,7 +132,7 @@ const Weather = () => {
                       if (diffInDays === 0) {
                         dayLabel = 'Today';
                       } else if (diffInDays === -1) {
-                          dayLabel = 'Yesterday';
+                        dayLabel = 'Yesterday';
                       } else if (diffInDays === 1) {
                         dayLabel = 'Tomorrow';
                       } else {
@@ -132,20 +140,22 @@ const Weather = () => {
                       }
 
                       return (
-                          <TableRow 
-                              key={item.id || item.time} 
-                              className="h-20 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                              onClick={() => navigate(`/weather/hourly/${item.id}`)}
-                          >
-                              <TableCell className="p-0 pr-4">
-                                  <span className="text-[12px] opacity-70">{dayLabel}</span>
-                                  <br />
-                                  {hourlyDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
-                              </TableCell>
-                              <TableCell className="px-4">{getWeatherIcons(item.weatherCode, item.time)({ height: 40, width: 50 })}</TableCell>
-                              <TableCell className="px-4">{getWeatherCondition(item.weatherCode)}</TableCell>
-                              <TableCell className="px-4">{Math.round(item.temperature)}°C</TableCell>
-                          </TableRow>
+                        <TableRow
+                          key={item.id || item.time}
+                          className="h-20 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                          onClick={() => navigate(`/weather/hourly/${item.id}`)}
+                        >
+                          <TableCell className="p-0 pr-4">
+                            <span className="text-[12px] opacity-70">{dayLabel}</span>
+                            <br />
+                            {hourlyDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                          </TableCell>
+                          <TableCell className="px-4">
+                            {getWeatherIcons(item.weatherCode, item.time)({ height: 40, width: 50 })}
+                          </TableCell>
+                          <TableCell className="px-4">{getWeatherCondition(item.weatherCode)}</TableCell>
+                          <TableCell className="px-4">{Math.round(item.temperature)}°C</TableCell>
+                        </TableRow>
                       );
                     }}
                   </TableBody>

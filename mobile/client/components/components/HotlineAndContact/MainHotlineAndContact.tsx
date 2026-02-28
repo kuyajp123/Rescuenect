@@ -5,18 +5,101 @@ import { useTheme } from '@/contexts/ThemeContext';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
-import { Copy, ExternalLink, Facebook, Flame, Globe, Mail, Phone, Shield, Smartphone, Zap } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import {
+  Clipboard as ClipboardIcon,
+  Copy,
+  ExternalLink,
+  Flame,
+  Globe,
+  Link2,
+  Mail,
+  Phone,
+  Shield,
+  Smartphone,
+  UserRound,
+  Zap,
+} from 'lucide-react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { doc, getDoc, getDocFromCache } from 'firebase/firestore';
+import { db } from '@/lib/firebaseConfig';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
+import { useAuth } from '@/store/useAuth';
+
+type ContactAction = 'call' | 'copy' | 'link' | 'display';
+type CategoryType = 'Emergency Hotline' | 'Contact Information';
+
+type ContactCategory = {
+  id: string;
+  name: string;
+  type: CategoryType;
+  description?: string | null;
+  order?: number;
+};
+
+type ContactItem = {
+  id: string;
+  categoryId: string;
+  name: string;
+  value: string;
+  action: ContactAction;
+  iconKey: keyof typeof ICON_MAP;
+  iconColor: string;
+  isActive: boolean;
+  order?: number;
+};
+
+const ICON_MAP = {
+  phone: Phone,
+  shield: Shield,
+  flame: Flame,
+  smartphone: Smartphone,
+  mail: Mail,
+  globe: Globe,
+  link: Link2,
+  clipboard: ClipboardIcon,
+  user: UserRound,
+};
+
+const isCategoryType = (value: unknown): value is CategoryType =>
+  value === 'Emergency Hotline' || value === 'Contact Information';
+
+const isContactAction = (value: unknown): value is ContactAction =>
+  value === 'call' || value === 'copy' || value === 'link' || value === 'display';
+
+const makeId = () => `id-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+const normalizeCategory = (category: any): ContactCategory => ({
+  id: typeof category?.id === 'string' ? category.id : makeId(),
+  name: typeof category?.name === 'string' && category.name.trim() ? category.name : 'Untitled Category',
+  type: isCategoryType(category?.type) ? category.type : 'Emergency Hotline',
+  description: typeof category?.description === 'string' ? category.description : '',
+  order: typeof category?.order === 'number' ? category.order : undefined,
+});
+
+const normalizeContact = (contact: any): ContactItem => ({
+  id: typeof contact?.id === 'string' ? contact.id : makeId(),
+  categoryId: typeof contact?.categoryId === 'string' ? contact.categoryId : '',
+  name: typeof contact?.name === 'string' ? contact.name : '',
+  value: typeof contact?.value === 'string' ? contact.value : '',
+  action: isContactAction(contact?.action) ? contact.action : 'display',
+  iconKey: (contact?.iconKey && contact.iconKey in ICON_MAP ? contact.iconKey : 'phone') as keyof typeof ICON_MAP,
+  iconColor: typeof contact?.iconColor === 'string' ? contact.iconColor : '#0ea5e9',
+  isActive: typeof contact?.isActive === 'boolean' ? contact.isActive : true,
+  order: typeof contact?.order === 'number' ? contact.order : undefined,
+});
 
 export const MainHotlineAndContact = () => {
   const { isDark } = useTheme();
   const [showAlertDialog, setShowAlertDialog] = useState(false);
   const scaleValue = useRef(new Animated.Value(0)).current;
-
-  const fbUrl = 'fb://facewebmodal/f?href=https://www.facebook.com/share/14xwTMd2Ht/';
-  const fallbackUrl = 'https://www.facebook.com/share/14xwTMd2Ht/';
+  const authUser = useAuth(state => state.authUser);
+  const authLoading = useAuth(state => state.isLoading);
+  const [categories, setCategories] = useState<ContactCategory[]>([]);
+  const [contacts, setContacts] = useState<ContactItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const lastUidRef = useRef<string | null>(null);
 
   const handleClose = () => {
     // Scale out animation
@@ -50,43 +133,123 @@ export const MainHotlineAndContact = () => {
     }
   }, [showAlertDialog]);
 
-  const OPDRRMO1 = '0917-858-8263';
-  const OPDRRMO2 = '0919-061-6584';
-  const PoliceNumber = '(046) 875- 4322';
-  const FireNumber = '(046) 471- 4777';
+  useEffect(() => {
+    if (authLoading) return;
+    const uid = authUser?.uid ?? null;
+    if (lastUidRef.current === uid) return;
+    lastUidRef.current = uid;
 
-  const handlePress = () => {
-    Linking.openURL(`tel:${OPDRRMO1}`);
-  };
+    if (!uid) {
+      setIsLoading(false);
+      setLoadError('Please sign in to view contacts.');
+      return;
+    }
 
-  const handlePress1 = () => {
-    Linking.openURL(`tel:${OPDRRMO2}`);
-  };
+    const docRef = doc(db, 'contacts', 'main');
 
-  const policeCopy = async () => {
-    await Clipboard.setStringAsync(PoliceNumber);
-    showAlert();
-  };
+    const applyContacts = (payload: any) => {
+      const nextCategories = Array.isArray(payload?.categories)
+        ? payload.categories.map(normalizeCategory)
+        : [];
+      const nextContacts = Array.isArray(payload?.contacts) ? payload.contacts.map(normalizeContact) : [];
 
-  const fireCopy = async () => {
-    await Clipboard.setStringAsync(FireNumber);
-    showAlert();
-  };
+      setCategories(nextCategories);
+      setContacts(nextContacts);
+      setIsLoading(false);
+      setLoadError(null);
+    };
 
-  const openFacebook = () => {
-    Linking.canOpenURL(fbUrl)
-      .then(supported => {
-        if (supported) {
-          return Linking.openURL(fbUrl);
-        } else {
-          return Linking.openURL(fallbackUrl);
+    const loadContacts = async () => {
+      let hasCache = false;
+
+      try {
+        const cached = await getDocFromCache(docRef);
+        if (cached.exists()) {
+          applyContacts(cached.data());
+          hasCache = true;
         }
-      })
-      .catch(err => console.error('An error occurred', err));
+      } catch (error) {
+        // Cache miss is expected for first load or after app restart.
+      }
+
+      try {
+        const serverDoc = await getDoc(docRef);
+        if (serverDoc.exists()) {
+          applyContacts(serverDoc.data());
+        } else if (!hasCache) {
+          setCategories([]);
+          setContacts([]);
+          setIsLoading(false);
+        }
+      } catch (error: any) {
+        console.error('Failed to load contacts:', error);
+        setLoadError(error?.message || 'Failed to load contacts');
+        if (!hasCache) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadContacts();
+  }, [authLoading, authUser]);
+
+  const sortedCategories = useMemo(() => {
+    return [...categories].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }, [categories]);
+
+  const activeContacts = useMemo(() => {
+    return contacts.filter(contact => contact.isActive);
+  }, [contacts]);
+
+  const contactsByCategory = useMemo(() => {
+    return activeContacts.reduce<Record<string, ContactItem[]>>((acc, contact) => {
+      if (!contact.categoryId) return acc;
+      if (!acc[contact.categoryId]) {
+        acc[contact.categoryId] = [];
+      }
+      acc[contact.categoryId].push(contact);
+      return acc;
+    }, {});
+  }, [activeContacts]);
+
+  const emergencyCategories = useMemo(
+    () => sortedCategories.filter(category => category.type === 'Emergency Hotline'),
+    [sortedCategories]
+  );
+
+  const infoCategories = useMemo(
+    () => sortedCategories.filter(category => category.type === 'Contact Information'),
+    [sortedCategories]
+  );
+
+  const emergencyHasContacts = useMemo(
+    () => emergencyCategories.some(category => (contactsByCategory[category.id]?.length ?? 0) > 0),
+    [emergencyCategories, contactsByCategory]
+  );
+
+  const infoHasContacts = useMemo(
+    () => infoCategories.some(category => (contactsByCategory[category.id]?.length ?? 0) > 0),
+    [infoCategories, contactsByCategory]
+  );
+
+  const sortedContactsForCategory = (categoryId: string) => {
+    const list = contactsByCategory[categoryId] ?? [];
+    return [...list].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   };
 
-  const openInAppBrowser = async () => {
-    const url = 'https://cavite.gov.ph/home/cities-and-municipalities/municipality-of-naic/';
+  const callNumber = (value: string) => {
+    if (!value) return;
+    Linking.openURL(`tel:${value}`);
+  };
+
+  const copyValue = async (value: string) => {
+    if (!value) return;
+    await Clipboard.setStringAsync(value);
+    showAlert();
+  };
+
+  const openInAppBrowser = async (url: string) => {
+    if (!url) return;
 
     try {
       await WebBrowser.openBrowserAsync(url, {
@@ -102,6 +265,99 @@ export const MainHotlineAndContact = () => {
       // fallback to default browser
       Linking.openURL(url);
     }
+  };
+
+  const handleContactAction = (contact: ContactItem) => {
+    switch (contact.action) {
+      case 'call':
+        callNumber(contact.value);
+        break;
+      case 'copy':
+        copyValue(contact.value);
+        break;
+      case 'link':
+        openInAppBrowser(contact.value);
+        break;
+      case 'display':
+      default:
+        break;
+    }
+  };
+
+  const renderContactCard = (contact: ContactItem) => {
+    const Icon = ICON_MAP[contact.iconKey] ?? Phone;
+    const actionLabel =
+      contact.action === 'call'
+        ? 'Call'
+        : contact.action === 'copy'
+        ? 'Copy'
+        : contact.action === 'link'
+        ? 'Open'
+        : '';
+
+    return (
+      <View
+        key={contact.id}
+        style={[
+          styles.contactCard,
+          styles.shadowCard,
+          {
+            backgroundColor: isDark ? '#1f2937' : 'white',
+            borderColor: isDark ? '#374151' : '#e5e7eb',
+          },
+        ]}
+      >
+        <View style={[styles.iconContainer, { backgroundColor: contact.iconColor }]}>
+          <Icon color="white" size={20} />
+        </View>
+        <View style={styles.contactContent}>
+          <Text bold size="sm" style={{ color: isDark ? '#ffffff' : '#111827' }}>
+            {contact.name}
+          </Text>
+          <Text size="xs" style={{ color: isDark ? '#d1d5db' : '#374151' }}>
+            {contact.value}
+          </Text>
+        </View>
+        {contact.action !== 'display' && (
+          <Pressable
+            style={[
+              styles.actionButton,
+              {
+                backgroundColor: isDark ? '#374151' : '#f3f4f6',
+                borderColor: isDark ? '#4b5563' : '#e5e7eb',
+              },
+            ]}
+            onPress={() => handleContactAction(contact)}
+          >
+            {contact.action === 'copy' && <Copy color={isDark ? '#e5e7eb' : '#374151'} size={16} />}
+            {contact.action === 'call' && <Phone color={isDark ? '#e5e7eb' : '#374151'} size={16} />}
+            {contact.action === 'link' && <ExternalLink color={isDark ? '#e5e7eb' : '#374151'} size={16} />}
+            <Text size="xs" style={[styles.actionText, { color: isDark ? '#e5e7eb' : '#374151' }]}>
+              {actionLabel}
+            </Text>
+          </Pressable>
+        )}
+      </View>
+    );
+  };
+
+  const renderCategoryBlock = (category: ContactCategory) => {
+    const list = sortedContactsForCategory(category.id);
+    if (list.length === 0) return null;
+
+    return (
+      <View key={category.id} style={styles.categoryBlock}>
+        <Text bold size="sm" style={{ color: isDark ? '#f3f4f6' : '#111827' }}>
+          {category.name}
+        </Text>
+        {!!category.description && (
+          <Text size="xs" style={{ color: isDark ? '#9ca3af' : '#6b7280', marginTop: 2 }}>
+            {category.description}
+          </Text>
+        )}
+        <View style={styles.categoryContacts}>{list.map(renderContactCard)}</View>
+      </View>
+    );
   };
 
   return (
@@ -150,6 +406,29 @@ export const MainHotlineAndContact = () => {
         </Text>
       </View>
 
+      {(isLoading || loadError) && (
+        <View
+          style={[
+            styles.noticeCard,
+            {
+              backgroundColor: isDark ? '#111827' : '#f9fafb',
+              borderColor: isDark ? '#374151' : '#e5e7eb',
+            },
+          ]}
+        >
+          {isLoading && (
+            <Text size="sm" style={{ color: isDark ? '#d1d5db' : '#374151' }}>
+              Loading contacts…
+            </Text>
+          )}
+          {loadError && (
+            <Text size="xs" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>
+              Showing cached contacts (if available). Check your internet connection.
+            </Text>
+          )}
+        </View>
+      )}
+
       {/* Emergency Hotlines Section */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -158,105 +437,23 @@ export const MainHotlineAndContact = () => {
             Emergency Hotlines
           </Text>
         </View>
-
-        {/* OPDRRMO Section */}
-        <View
-          style={[
-            styles.serviceCard,
-            styles.shadowCard,
-            {
-              backgroundColor: isDark ? '#1f2937' : 'white',
-              borderColor: isDark ? '#374151' : '#e5e7eb',
-            },
-          ]}
-        >
-          <View style={styles.serviceHeader}>
-            <View style={[styles.iconContainer, { backgroundColor: '#10b981' }]}>
-              <Smartphone color="white" size={20} />
-            </View>
-            <Text bold size="md" style={[styles.OPDRRMO, { color: isDark ? '#ffffff' : '#111827' }]}>
-              OPDRRMO (Emergency Response)
-            </Text>
-          </View>
-
-          <View style={styles.buttonContainer}>
-            <Pressable style={[styles.callButton, { backgroundColor: '#10b981' }]} onPress={handlePress}>
-              <Phone color="white" size={18} />
-              <Text style={styles.callButtonText}>{OPDRRMO1}</Text>
-            </Pressable>
-
-            <Pressable style={[styles.callButton, { backgroundColor: '#10b981' }]} onPress={handlePress1}>
-              <Phone color="white" size={18} />
-              <Text style={styles.callButtonText}>{OPDRRMO2}</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Police Department */}
-        <View
-          style={[
-            styles.serviceCard,
-            styles.shadowCard,
-            {
-              backgroundColor: isDark ? '#1f2937' : 'white',
-              borderColor: isDark ? '#374151' : '#e5e7eb',
-            },
-          ]}
-        >
-          <View style={styles.serviceHeader}>
-            <View style={[styles.iconContainer, { backgroundColor: '#3b82f6' }]}>
-              <Shield color="white" size={20} />
-            </View>
-            <Text bold size="md" style={{ color: isDark ? '#ffffff' : '#111827' }}>
-              Police Department
-            </Text>
-          </View>
-
-          <Pressable
-            style={[styles.copyContainer, { backgroundColor: isDark ? '#333B52' : '#E9EAEA' }]}
-            onPress={policeCopy}
+        {!emergencyHasContacts && !isLoading ? (
+          <View
+            style={[
+              styles.emptyState,
+              {
+                backgroundColor: isDark ? '#1f2937' : 'white',
+                borderColor: isDark ? '#374151' : '#e5e7eb',
+              },
+            ]}
           >
-            <Text size="sm" style={[styles.contactNumber, { color: isDark ? '#d1d5db' : '#374151' }]}>
-              {PoliceNumber}
-            </Text>
-            <View style={[styles.copyButton, { backgroundColor: isDark ? '#374151' : '#f3f4f6' }]}>
-              <Copy color={isDark ? '#9ca3af' : '#6b7280'} size={18} />
-            </View>
-          </Pressable>
-        </View>
-
-        {/* Fire Department */}
-        <View
-          style={[
-            styles.serviceCard,
-            styles.shadowCard,
-            {
-              backgroundColor: isDark ? '#1f2937' : 'white',
-              borderColor: isDark ? '#374151' : '#e5e7eb',
-            },
-          ]}
-        >
-          <View style={styles.serviceHeader}>
-            <View style={[styles.iconContainer, { backgroundColor: '#ef4444' }]}>
-              <Flame color="white" size={20} />
-            </View>
-            <Text bold size="md" style={{ color: isDark ? '#ffffff' : '#111827' }}>
-              Fire Department
+            <Text size="sm" style={{ color: isDark ? '#d1d5db' : '#374151' }}>
+              No emergency hotlines available.
             </Text>
           </View>
-
-          <Pressable
-            style={[styles.copyContainer, { backgroundColor: isDark ? '#333B52' : '#E9EAEA' }]}
-            onPress={fireCopy}
-          >
-            <Text size="sm" style={[styles.contactNumber, { color: isDark ? '#d1d5db' : '#374151' }]}>
-              {FireNumber}
-            </Text>
-            <View style={[styles.copyButton, { backgroundColor: isDark ? '#374151' : '#f3f4f6' }]}>
-              <Copy color={isDark ? '#9ca3af' : '#6b7280'} size={18} />
-            </View>
-          </Pressable>
-        </View>
+        ) : (
+          emergencyCategories.map(renderCategoryBlock)
+        )}
       </View>
 
       {/* Contacts Section */}
@@ -267,68 +464,23 @@ export const MainHotlineAndContact = () => {
             Contact Information
           </Text>
         </View>
-
-        {/* Email Contact */}
-        <View
-          style={[
-            styles.contactCard,
-            styles.shadowCard,
-            {
-              backgroundColor: isDark ? '#1f2937' : 'white',
-              borderColor: isDark ? '#374151' : '#e5e7eb',
-            },
-          ]}
-        >
-          <View style={[styles.iconContainer, { backgroundColor: '#8b5cf6' }]}>
-            <Mail color="white" size={20} />
-          </View>
-          <Text style={[styles.contactText, { color: isDark ? '#d1d5db' : '#374151' }]}>ask@cavite.gov.ph</Text>
-        </View>
-
-        {/* Social Media */}
-        <View
-          style={[
-            styles.contactCard,
-            styles.shadowCard,
-            {
-              backgroundColor: isDark ? '#1f2937' : 'white',
-              borderColor: isDark ? '#374151' : '#e5e7eb',
-            },
-          ]}
-        >
-          <View style={[styles.iconContainer, { backgroundColor: '#1877f2' }]}>
-            <Facebook color="white" size={20} />
-          </View>
-          <Text style={[styles.contactText, { color: isDark ? '#d1d5db' : '#374151' }]}>Follow us on </Text>
-          <Pressable onPress={openFacebook}>
-            <Text style={styles.linkText}>Facebook</Text>
-          </Pressable>
-        </View>
-
-        {/* Website */}
-        <View
-          style={[
-            styles.contactCard,
-            styles.shadowCard,
-            {
-              backgroundColor: isDark ? '#1f2937' : 'white',
-              borderColor: isDark ? '#374151' : '#e5e7eb',
-            },
-          ]}
-        >
-          <View style={[styles.iconContainer, { backgroundColor: '#059669' }]}>
-            <Globe color="white" size={20} />
-          </View>
-          <View style={styles.websiteContainer}>
-            <Text style={[styles.contactText, { color: isDark ? '#d1d5db' : '#374151' }]}>
-              Visit our Official Website
+        {!infoHasContacts && !isLoading ? (
+          <View
+            style={[
+              styles.emptyState,
+              {
+                backgroundColor: isDark ? '#1f2937' : 'white',
+                borderColor: isDark ? '#374151' : '#e5e7eb',
+              },
+            ]}
+          >
+            <Text size="sm" style={{ color: isDark ? '#d1d5db' : '#374151' }}>
+              No contact information available.
             </Text>
-            <Pressable style={styles.websiteButton} onPress={openInAppBrowser}>
-              <Text style={styles.websiteButtonText}>Open Website</Text>
-              <ExternalLink color="#059669" size={16} />
-            </Pressable>
           </View>
-        </View>
+        ) : (
+          infoCategories.map(renderCategoryBlock)
+        )}
       </View>
 
       {/* Disclaimer */}
@@ -415,6 +567,14 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'justify',
   },
+  noticeCard: {
+    marginTop: 8,
+    marginBottom: 10,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 4,
+  },
   section: {
     marginVertical: 20,
   },
@@ -488,35 +648,32 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 12,
   },
-  contactText: {
-    marginLeft: 12,
-    fontWeight: '500',
-    // flex: 1,
-  },
-  linkText: {
-    color: '#1877f2',
-    fontWeight: 'bold',
-    textDecorationLine: 'underline',
-  },
-  websiteContainer: {
-    marginLeft: 12,
+  contactContent: {
     flex: 1,
+    gap: 4,
   },
-  websiteButton: {
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: 'rgba(5, 150, 105, 0.1)',
-    borderRadius: 10,
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#059669',
   },
-  websiteButtonText: {
-    color: '#059669',
-    fontWeight: 'bold',
+  actionText: {
+    fontWeight: '600',
+  },
+  categoryBlock: {
+    marginBottom: 16,
+  },
+  categoryContacts: {
+    marginTop: 12,
+  },
+  emptyState: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
   },
   disclaimerCard: {
     padding: 16,

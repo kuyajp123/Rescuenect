@@ -39,5 +39,9 @@ export const API_ENDPOINTS = {
     GET_ANNOUNCEMENT_DETAILS: `${BACKEND_URL}/unified/announcementDetails`,
     DELETE_ANNOUNCEMENT: `${BACKEND_URL}/admin/announcement/deleteAnnouncement`,
     UPDATE_ANNOUNCEMENT: `${BACKEND_URL}/admin/announcement/updateAnnouncement`,
+  },
+  CONTACTS: {
+    GET_CONTACTS: `${BACKEND_URL}/admin/contacts/getContacts`,
+    CREATE_CONTACT: `${BACKEND_URL}/admin/contacts/addContact`,
   }
 };
