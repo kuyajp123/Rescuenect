@@ -19,12 +19,15 @@ import {
   UserRound,
   Zap,
 } from 'lucide-react-native';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { doc, getDoc, getDocFromCache } from 'firebase/firestore';
 import { db } from '@/lib/firebaseConfig';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { useAuth } from '@/store/useAuth';
+import { storageHelpers } from '@/helper/storage';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
+import * as Network from 'expo-network';
 
 type ContactAction = 'call' | 'copy' | 'link' | 'display';
 type CategoryType = 'Emergency Hotline' | 'Contact Information';
@@ -47,6 +50,12 @@ type ContactItem = {
   iconColor: string;
   isActive: boolean;
   order?: number;
+};
+
+type ContactsCachePayload = {
+  categories?: any[];
+  contacts?: any[];
+  cachedAt?: string;
 };
 
 const ICON_MAP = {
@@ -100,6 +109,86 @@ export const MainHotlineAndContact = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const lastUidRef = useRef<string | null>(null);
+  const lastOnlineRef = useRef<boolean | null>(null);
+  const docRef = useMemo(() => doc(db, 'contacts', 'main'), []);
+
+  const applyContacts = useCallback((payload: ContactsCachePayload | any) => {
+    const nextCategories = Array.isArray(payload?.categories)
+      ? payload.categories.map(normalizeCategory)
+      : [];
+    const nextContacts = Array.isArray(payload?.contacts) ? payload.contacts.map(normalizeContact) : [];
+
+    setCategories(nextCategories);
+    setContacts(nextContacts);
+    setIsLoading(false);
+    setLoadError(null);
+  }, []);
+
+  const persistCache = useCallback(async (payload: ContactsCachePayload | any) => {
+    const categories = Array.isArray(payload?.categories) ? payload.categories : [];
+    const contacts = Array.isArray(payload?.contacts) ? payload.contacts : [];
+
+    try {
+      await storageHelpers.setData(STORAGE_KEYS.CONTACTS_MAIN, {
+        categories,
+        contacts,
+        cachedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.warn('Failed to persist contacts cache:', error);
+    }
+  }, []);
+
+  const loadContacts = useCallback(
+    async (options?: { showLoading?: boolean }) => {
+      if (authLoading) return;
+      if (options?.showLoading) {
+        setIsLoading(true);
+      }
+
+      let hasCache = false;
+
+      try {
+        const localCache = await storageHelpers.getData<ContactsCachePayload>(STORAGE_KEYS.CONTACTS_MAIN);
+        if (localCache) {
+          applyContacts(localCache);
+          hasCache = true;
+        }
+      } catch (error) {
+        console.warn('Failed to load contacts from local cache:', error);
+      }
+
+      try {
+        const cached = await getDocFromCache(docRef);
+        if (cached.exists()) {
+          applyContacts(cached.data());
+          hasCache = true;
+        }
+      } catch (error) {
+        // Cache miss is expected for first load or after app restart.
+      }
+
+      try {
+        const serverDoc = await getDoc(docRef);
+        if (serverDoc.exists()) {
+          const data = serverDoc.data();
+          applyContacts(data);
+          persistCache(data);
+        } else if (!hasCache) {
+          setCategories([]);
+          setContacts([]);
+          setIsLoading(false);
+        }
+      } catch (error: any) {
+        console.error('Failed to load contacts:', error);
+        setLoadError(error?.message || 'Failed to load contacts');
+        if (!hasCache) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [authLoading, applyContacts, docRef, persistCache]
+  );
 
   const handleClose = () => {
     // Scale out animation
@@ -135,63 +224,26 @@ export const MainHotlineAndContact = () => {
 
   useEffect(() => {
     if (authLoading) return;
-    const uid = authUser?.uid ?? null;
-    if (lastUidRef.current === uid) return;
-    lastUidRef.current = uid;
+    const uidKey = authUser?.uid ?? '__guest__';
+    if (lastUidRef.current === uidKey) return;
+    lastUidRef.current = uidKey;
 
-    if (!uid) {
-      setIsLoading(false);
-      setLoadError('Please sign in to view contacts.');
-      return;
-    }
+    loadContacts({ showLoading: true });
+  }, [authLoading, authUser, loadContacts]);
 
-    const docRef = doc(db, 'contacts', 'main');
+  useEffect(() => {
+    const subscription = Network.addNetworkStateListener(state => {
+      const isOnline = Boolean(state.isConnected) && (state.isInternetReachable ?? true);
+      const wasOnline = lastOnlineRef.current;
+      lastOnlineRef.current = isOnline;
 
-    const applyContacts = (payload: any) => {
-      const nextCategories = Array.isArray(payload?.categories)
-        ? payload.categories.map(normalizeCategory)
-        : [];
-      const nextContacts = Array.isArray(payload?.contacts) ? payload.contacts.map(normalizeContact) : [];
-
-      setCategories(nextCategories);
-      setContacts(nextContacts);
-      setIsLoading(false);
-      setLoadError(null);
-    };
-
-    const loadContacts = async () => {
-      let hasCache = false;
-
-      try {
-        const cached = await getDocFromCache(docRef);
-        if (cached.exists()) {
-          applyContacts(cached.data());
-          hasCache = true;
-        }
-      } catch (error) {
-        // Cache miss is expected for first load or after app restart.
+      if (isOnline && wasOnline === false) {
+        loadContacts({ showLoading: false });
       }
+    });
 
-      try {
-        const serverDoc = await getDoc(docRef);
-        if (serverDoc.exists()) {
-          applyContacts(serverDoc.data());
-        } else if (!hasCache) {
-          setCategories([]);
-          setContacts([]);
-          setIsLoading(false);
-        }
-      } catch (error: any) {
-        console.error('Failed to load contacts:', error);
-        setLoadError(error?.message || 'Failed to load contacts');
-        if (!hasCache) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    loadContacts();
-  }, [authLoading, authUser]);
+    return () => subscription.remove();
+  }, [loadContacts]);
 
   const sortedCategories = useMemo(() => {
     return [...categories].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));

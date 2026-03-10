@@ -21,6 +21,7 @@ import {
   Switch,
   Textarea,
   Tooltip,
+  addToast,
 } from '@heroui/react';
 import axios from 'axios';
 import {
@@ -207,7 +208,7 @@ const SortableContactRow = ({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-base font-semibold text-default-900 dark:text-slate-100">{contact.name}</span>
-              <Chip size="sm" color={ACTION_META[contact.action].chip}>
+              <Chip size="sm" color={ACTION_META[contact.action].chip} className='text-white text-bold'>
                 {ACTION_META[contact.action].label}
               </Chip>
             </div>
@@ -487,9 +488,23 @@ const Contacts = () => {
         headers: { Authorization: `Bearer ${idToken}` },
         withCredentials: true,
       });
+      addToast({
+        title: 'Contacts saved',
+        description: 'Your contact updates are now live.',
+        severity: 'success',
+        timeout: 3500,
+        color: 'success',
+      });
     } catch (error) {
       console.error('[Sync Contacts Error]', error);
       setSyncError('Failed to save contacts. Please try again.');
+      addToast({
+        title: 'Contacts saved',
+        description: 'Contacts failed to save.',
+        severity: 'danger',
+        timeout: 3500,
+        color: 'danger',
+      });
     } finally {
       setIsSyncing(false);
     }
@@ -623,19 +638,13 @@ const Contacts = () => {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <Button color="primary" startContent={<Plus size={18} />} onPress={openCreateContact}>
-                New Contact
-              </Button>
-              <Button variant="flat" startContent={<Plus size={18} />} onPress={openCreateCategory}>
+              <Button variant="bordered" startContent={<Plus size={18} />} onPress={openCreateCategory}>
                 New Category
               </Button>
-              <Button
-                type="button"
-                variant="bordered"
-                onPress={handleSyncContacts}
-                isLoading={isSyncing}
-                isDisabled={isSyncing}
-              >
+              <Button variant="flat" startContent={<Plus size={18} />} onPress={openCreateContact}>
+                New Contact
+              </Button>
+              <Button color="primary" onPress={handleSyncContacts} isLoading={isSyncing} isDisabled={isSyncing}>
                 Save Changes
               </Button>
             </div>

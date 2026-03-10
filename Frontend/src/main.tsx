@@ -14,7 +14,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <HeroUIProvider>
     <ScreenSizeProvider>
       <main>
-        <ToastProvider />
+        <ToastProvider placement="top-right" />
         <App />
       </main>
     </ScreenSizeProvider>

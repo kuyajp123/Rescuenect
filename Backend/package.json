@@ -20,9 +20,9 @@
     "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
+    "@types/jsdom": "^27.0.0",
     "@types/lodash": "^4.17.20",
     "@types/luxon": "^3.7.1",
-    "@types/jsdom": "^27.0.0",
     "@types/multer": "^2.0.0",
     "@types/node": "^22.13.10",
     "axios": "^1.11.0",
@@ -40,7 +40,6 @@
     "lodash": "^4.17.21",
     "luxon": "^3.7.1",
     "multer": "^2.0.2",
-    "node-cron": "^4.2.1",
     "tsc-alias": "^1.8.16",
     "typescript": "^5.8.2"
   },
