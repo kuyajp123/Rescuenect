@@ -134,7 +134,7 @@ npm install
 
 ### Running on a physical device
 
-1. Install **Expo Go** on your device.
+1. Install **App apk** on your device.
 2. Start the dev server:
    ```bash
    npm start
@@ -151,6 +151,12 @@ If the app cannot reach the dev server, reverse the Metro bundler port via ADB:
 
 ```bash
 adb reverse tcp:8081 tcp:8081
+```
+
+And enter port 8081 in URL input in Expo Go
+
+```bash
+http://localhost:8081
 ```
 
 ### Running in offline / localhost mode

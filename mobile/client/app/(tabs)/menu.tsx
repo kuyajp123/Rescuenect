@@ -116,11 +116,6 @@ export const MenuScreen = () => {
           ]}
         >
           <NavigationButton
-            label="FAQ"
-            onPress={() => {}}
-            iconLeft={<BadgeQuestionMark size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
-          />
-          <NavigationButton
             label="Terms and Condition"
             onPress={() =>
               router.push({
@@ -148,7 +143,7 @@ export const MenuScreen = () => {
           />
           <NavigationButton
             label="About us"
-            onPress={() => {}}
+            onPress={() => router.push('/auth/about' as any)}
             iconLeft={<BadgeInfo size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
           />
         </View>
