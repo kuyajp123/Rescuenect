@@ -22,7 +22,7 @@ export const EarthquakeCard = ({ earthquake }: EarthquakeCardProps) => {
   }
 
   const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString('en-US', {
+    return new Date(timestamp).toLocaleString('en-PH', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -58,7 +58,7 @@ export const EarthquakeCard = ({ earthquake }: EarthquakeCardProps) => {
       label: 'Severity',
       value: earthquake.severity.charAt(0).toUpperCase() + earthquake.severity.slice(1),
     },
-    { key: 'depth', label: 'Depth', value: 'N/A' }, // Would need depth data from API
+    { key: 'depth', label: 'Depth', value: `${earthquake.coordinates.depth} km` }, // Would need depth data from API
     { key: 'location', label: 'Location', value: earthquake.place },
     { key: 'time', label: 'Time occurred', value: formatDate(earthquake.time) },
     { key: 'distance', label: 'Distance from Naic, Cavite', value: `~${distance} km` },

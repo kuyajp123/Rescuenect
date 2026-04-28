@@ -165,7 +165,6 @@ const Earthquake = () => {
   const filteredEarthquakeData = getFilteredEarthquakeData();
   const filteredStatusData = getFilteredStatusData();
 
-
   return (
     <div className="flex flex-col lg:grid lg:grid-cols-[2fr_1fr] gap-4 w-full h-full">
       <div className="rounded-lg overflow-hidden w-full h-[45vh] lg:h-full">

@@ -45,42 +45,6 @@
       },
       "id": "us6000rnq9"
     },
-    {
-      "type": "Feature",
-      "properties": {
-        "mag": 3.8,
-        "place": "12 km SE of Maragondon, Philippines",
-        "time": 1763375561120,
-        "updated": 1763378867300,
-        "tz": null,
-        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000test1",
-        "detail": "https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=us7000test1&format=geojson",
-        "felt": 2,
-        "cdi": 3.2,
-        "mmi": null,
-        "alert": null,
-        "status": "reviewed",
-        "tsunami": 0,
-        "sig": 222,
-        "net": "us",
-        "code": "7000test1",
-        "ids": ",us7000test1,",
-        "sources": ",us,",
-        "types": ",origin,phase-data,",
-        "nst": 24,
-        "dmin": 10.345,
-        "rms": 0.65,
-        "gap": 76,
-        "magType": "ml",
-        "type": "earthquake",
-        "title": "M 3.8 - 12 km SE of Maragondon, Philippines"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [120.8422, 14.1971, 34.5]
-      },
-      "id": "us7000test1"
-    },
 
     {
       "type": "Feature",

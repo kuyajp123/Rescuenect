@@ -209,7 +209,7 @@ const Residents = () => {
         return (
           <User
             name={`${user.firstName || ''} ${user.lastName || ''}`}
-            description={user.uid}
+            // description={user.uid}
             avatarProps={{
               src: user.photo,
               size: 'sm',

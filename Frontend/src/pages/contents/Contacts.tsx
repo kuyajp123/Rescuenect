@@ -208,7 +208,7 @@ const SortableContactRow = ({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-base font-semibold text-default-900 dark:text-slate-100">{contact.name}</span>
-              <Chip size="sm" color={ACTION_META[contact.action].chip} className='text-white text-bold'>
+              <Chip size="sm" color={ACTION_META[contact.action].chip} className='text-white bold'>
                 {ACTION_META[contact.action].label}
               </Chip>
             </div>

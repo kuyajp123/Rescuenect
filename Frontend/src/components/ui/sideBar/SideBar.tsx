@@ -1,4 +1,4 @@
-import { Activity, Cloud, HousePlus, LayoutDashboard, MapPin, UsersRound, Megaphone, Phone } from 'lucide-react';
+import { Activity, Cloud, HousePlus, LayoutDashboard, MapPin, Megaphone, Phone, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -10,7 +10,10 @@ const SideBar = ({ isOpen }: SideBarProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    if (path === '/') return location.pathname === '/';
+    return location.pathname.startsWith(path);
+  };
 
   const isExpanded = isOpen || isHovered;
 

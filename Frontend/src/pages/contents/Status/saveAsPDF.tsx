@@ -13,9 +13,9 @@ export const SaveAsPDF = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const formatDate = (timestamp: any) => {
-    if (!timestamp) return 'N/A';
+    if (!timestamp?._seconds) return 'N/A';
 
-    const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
+    const date = new Date(timestamp._seconds * 1000);
 
     return date.toLocaleString('en-PH', {
       timeZone: 'Asia/Manila',
@@ -477,16 +477,23 @@ const tableCellStyle: React.CSSProperties = {
 };
 
 const badgeStyle: React.CSSProperties = {
-  padding: '4px 8px',
+  padding: '5px 10px',
   borderRadius: '4px',
   color: 'white',
   fontSize: '10px',
   fontWeight: 'bold',
   textTransform: 'uppercase',
-  display: 'inline-block',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
   textAlign: 'center',
   verticalAlign: 'middle',
-  lineHeight: '1',
+  lineHeight: '1.2',
+  whiteSpace: 'nowrap',
+  maxWidth: '100%',
+  boxSizing: 'border-box',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
 };
 
 export default SaveAsPDF;
