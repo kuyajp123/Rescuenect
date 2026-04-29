@@ -94,15 +94,81 @@ export class UnifiedModel {
 
   public static async markAllNotificationsAsRead(uid: string, notificationIds: string[]) {
     try {
-      const batch = db.batch();
+      const uniqueIds = Array.from(new Set(notificationIds.filter(Boolean)));
+      if (uniqueIds.length === 0) return;
 
-      notificationIds.forEach(notificationId => {
-        const docRef = db.collection('notifications').doc(notificationId);
-        batch.update(docRef, {
+      // Some notification types (e.g. status_resolved) are stored inside the user document
+      // under `users/{uid}.notifications` rather than in the global `notifications` collection.
+      // Attempting to batch.update() a non-existent global doc will fail the entire batch.
+      const userNotificationIds = new Set<string>();
+      try {
+        const userDocRef = db.collection('users').doc(uid);
+        const userSnap = await userDocRef.get();
+
+        if (userSnap.exists) {
+          const data = userSnap.data();
+          const existingNotifications = Array.isArray(data?.notifications) ? data!.notifications : [];
+
+          for (const notif of existingNotifications) {
+            if (notif && typeof (notif as any).id === 'string') {
+              userNotificationIds.add((notif as any).id);
+            }
+          }
+
+          const idsToMark = new Set(uniqueIds);
+          let changed = false;
+          const updatedNotifications = existingNotifications.map((notif: any) => {
+            if (notif && typeof notif.id === 'string' && idsToMark.has(notif.id)) {
+              if (notif.read !== true) {
+                changed = true;
+                return { ...notif, read: true };
+              }
+            }
+            return notif;
+          });
+
+          if (changed) {
+            await userDocRef.set({ notifications: updatedNotifications }, { merge: true });
+          }
+        }
+      } catch (userNotifError) {
+        // Don't fail the entire operation if the user-doc notification update fails.
+        console.error('⚠️ Error updating user-stored notifications as read:', userNotifError);
+      }
+
+      const globalIds = uniqueIds.filter(id => !userNotificationIds.has(id));
+      if (globalIds.length === 0) return;
+
+      const docRefs = globalIds.map(id => db.collection('notifications').doc(id));
+      const snaps = await db.getAll(...docRefs);
+
+      // Batch write limit is 500 operations; chunk commits defensively.
+      let batch = db.batch();
+      let writesInBatch = 0;
+
+      const commitBatch = async () => {
+        if (writesInBatch === 0) return;
+        await batch.commit();
+        batch = db.batch();
+        writesInBatch = 0;
+      };
+
+      for (const snap of snaps) {
+        if (!snap.exists) {
+          continue; // Skip IDs that don't exist in global notifications
+        }
+
+        batch.update(snap.ref, {
           readBy: FieldValue.arrayUnion(uid),
         });
-      });
-      await batch.commit();
+        writesInBatch++;
+
+        if (writesInBatch >= 450) {
+          await commitBatch();
+        }
+      }
+
+      await commitBatch();
       return;
     } catch (error) {
       console.error('❌ Error in UnifiedModel.markAllNotificationsAsRead:', error);

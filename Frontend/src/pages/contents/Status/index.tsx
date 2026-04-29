@@ -57,6 +57,7 @@ const Status = () => {
           uid: selectedItem.uid,
           versionId: selectedItem.versionId || selectedItem.vid,
           resolvedNote: note,
+          resolvedBy: { name: admin?.displayName },
         },
         {
           headers: {

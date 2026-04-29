@@ -174,7 +174,7 @@ export class StatusModel {
     }
   }
 
-  public static async resolveStatus(uid: string, versionId: string, resolvedNote: string) {
+  public static async resolveStatus(uid: string, versionId: string, resolvedNote: string, resolvedBy: { name: string }) {
     try {
       const docRef = db.collection('status').doc(uid).collection('statuses').doc(versionId);
       const doc = await docRef.get();
@@ -202,6 +202,7 @@ export class StatusModel {
           statusType: 'resolved',
           resolvedNote: resolvedNote,
           resolvedAt: Timestamp.fromDate(new Date()),
+          resolvedBy: resolvedBy,
         },
         { merge: true }
       );

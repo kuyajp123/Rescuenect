@@ -72,19 +72,20 @@ export class StatusController {
     const uid = req.body.uid as string;
     const versionId = req.body.versionId as string;
     const resolvedNote = req.body.resolvedNote as string;
+    const resolvedBy = req.body.resolvedBy as { name: string };
 
     // Validate required parameters
-    if (!uid || !versionId) {
-      console.error('❌ Missing required parameters:', { uid, versionId, resolvedNote });
+    if (!uid || !versionId || !resolvedBy) {
+      console.error('❌ Missing required parameters:', { uid, versionId, resolvedNote, resolvedBy });
       res.status(400).json({
-        message: 'Missing required parameters: uid, versionId, and resolvedNote are required',
-        received: { uid, versionId, resolvedNote },
+        message: 'Missing required parameters: uid, versionId, resolvedNote, and resolvedBy are required',
+        received: { uid, versionId, resolvedNote, resolvedBy },
       });
       return;
     }
 
     try {
-      await StatusModel.resolveStatus(uid, versionId, resolvedNote);
+      await StatusModel.resolveStatus(uid, versionId, resolvedNote, resolvedBy);
       res.json({
         success: true,
         message: 'Status resolved successfully',

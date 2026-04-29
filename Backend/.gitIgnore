@@ -3,3 +3,5 @@ node_modules/
 src/data/rescuenect-private-key.json
 lively-metrics-453114-q3-firebase-adminsdk-fbsvc-dba3bff89c.json
 curl-test.txt
+dist/
+build/

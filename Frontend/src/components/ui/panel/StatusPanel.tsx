@@ -276,7 +276,7 @@ export const StatusPanel = ({ data }: { data: any }) => {
                   )}
                   {data.data.resolvedAt && (
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-500">Resolved:</span>
+                      <span className="text-gray-500">Resolved at:</span>
                       <span className="font-semibold text-primary">{formatTimestamp(data.data.resolvedAt)}</span>
                     </div>
                   )}
@@ -405,8 +405,14 @@ export const StatusPanel = ({ data }: { data: any }) => {
                   )}
                   {data.data.resolvedAt && (
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-500">Resolved:</span>
+                      <span className="text-gray-500">Resolved at:</span>
                       <span className="font-semibold text-primary">{formatTimestamp(data.data.resolvedAt)}</span>
+                    </div>
+                  )}
+                  {data.data.resolvedBy && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-500">Resolved By:</span>
+                      <span className="font-semibold">{data.data.resolvedBy.name}</span>
                     </div>
                   )}
                   {data.data.resolvedNote && (

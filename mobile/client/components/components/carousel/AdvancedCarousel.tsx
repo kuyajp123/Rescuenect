@@ -17,7 +17,7 @@ const carouselData = [
     image: require('@/assets/images/bancaan/officials_group_blue.jpg'),
     description:
       'Dedicated barangay officials working together to strengthen community resilience, coordination, and public service for everyone.',
-    action: '/community',
+    action: '/leadership',
   },
   {
     id: 2,
@@ -44,7 +44,7 @@ const carouselData = [
     image: require('@/assets/images/bancaan/officials_group_white.jpg'),
     description:
       'Bringing together barangay officials and residents to foster unity, collaboration, and a stronger sense of community for everyone.',
-    action: '/details',
+    action: '/officials',
   },
 ];
 
