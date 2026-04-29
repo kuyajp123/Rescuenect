@@ -208,7 +208,7 @@ const SortableContactRow = ({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-base font-semibold text-default-900 dark:text-slate-100">{contact.name}</span>
-              <Chip size="sm" color={ACTION_META[contact.action].chip} className='text-white bold'>
+              <Chip size="sm" color={ACTION_META[contact.action].chip} className="text-white bold">
                 {ACTION_META[contact.action].label}
               </Chip>
             </div>
@@ -833,19 +833,6 @@ const Contacts = () => {
                   isInvalid={!!contactErrors.name}
                   errorMessage={contactErrors.name}
                 />
-                <Input
-                  label={actionValueLabel(contactForm.action)}
-                  placeholder={actionValuePlaceholder(contactForm.action)}
-                  value={contactForm.value}
-                  onValueChange={value => {
-                    setContactForm(prev => ({ ...prev, value }));
-                    if (contactErrors.value) {
-                      setContactErrors(prev => ({ ...prev, value: undefined }));
-                    }
-                  }}
-                  isInvalid={!!contactErrors.value}
-                  errorMessage={contactErrors.value}
-                />
                 <Select
                   label="Action type"
                   selectedKeys={[contactForm.action]}
@@ -869,6 +856,20 @@ const Contacts = () => {
                     </SelectItem>
                   ))}
                 </Select>
+                <Input
+                  label={actionValueLabel(contactForm.action)}
+                  placeholder={actionValuePlaceholder(contactForm.action)}
+                  value={contactForm.value}
+                  onValueChange={value => {
+                    setContactForm(prev => ({ ...prev, value }));
+                    if (contactErrors.value) {
+                      setContactErrors(prev => ({ ...prev, value: undefined }));
+                    }
+                  }}
+                  isInvalid={!!contactErrors.value}
+                  errorMessage={contactErrors.value}
+                />
+
                 <Select
                   label="Category"
                   selectedKeys={[contactForm.categoryId]}
