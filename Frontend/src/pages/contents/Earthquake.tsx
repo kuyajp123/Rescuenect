@@ -45,7 +45,7 @@ const Earthquake = () => {
   const statusData = allstatusData.filter(item => item.category.includes('earthquake'));
 
   // Flag to switch between data sources for testing
-  const useJsonData = true; // Set to true to use JSON data, false for database data
+  const useJsonData = false; // Set to true to use JSON data, false for database data
 
   // Get earthquake data from appropriate source
   const processedEarthquakes = useJsonData

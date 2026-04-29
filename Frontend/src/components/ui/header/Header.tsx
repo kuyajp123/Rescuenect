@@ -186,10 +186,7 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
             <Bell size={20} />
           </SecondaryButton>
           {unreadCount > 0 && (
-            <span
-              className="absolute -top-1 -right-1 min-w-5 h-5 bg-red-500 rounded-full border border-white flex items-center justify-center text-white text-xs font-semibold px-1"
-              style={{ zIndex: 9999 }}
-            >
+            <span className="absolute -top-1 -right-1 z-10 min-w-5 h-5 bg-red-500 rounded-full border border-white flex items-center justify-center text-white text-xs font-semibold px-1">
               {unreadCount}
             </span>
           )}

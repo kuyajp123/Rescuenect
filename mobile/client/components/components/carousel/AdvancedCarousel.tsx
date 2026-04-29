@@ -12,26 +12,38 @@ const { width } = Dimensions.get('window');
 const carouselData = [
   {
     id: 1,
-    title: 'Emergency Alert System',
-    subtitle: 'Stay informed with real-time alerts',
-    image: require('@/assets/images/bancaan/barangay.png'),
-    description: 'Get instant notifications about emergencies in your area and stay prepared.',
-    action: '/notification',
+    title: 'Barangay Leadership & Unity',
+    subtitle: 'Serving the community together',
+    image: require('@/assets/images/bancaan/officials_group_blue.jpg'),
+    description:
+      'Dedicated barangay officials working together to strengthen community resilience, coordination, and public service for everyone.',
+    action: '/community',
   },
   {
     id: 2,
-    title: 'Community Support',
-    subtitle: 'Connect with your neighbors',
-    image: require('@/assets/images/bancaan/bangka.png'),
-    description: 'Join the community network and help each other during emergencies.',
+    title: 'Clean & Safe Community',
+    subtitle: 'Work together for a better barangay',
+    image: require('@/assets/images/bancaan/covered_court.jpg'),
+    description:
+      'Join community efforts to maintain cleanliness and create a safer, healthier environment for everyone in the barangay.',
     action: '/community',
   },
   {
     id: 3,
-    title: 'Resource Center',
-    subtitle: 'Find help and resources',
-    image: require('@/assets/images/bancaan/evacuation.png'),
-    description: 'Access emergency resources, shelters, and important contact information.',
+    title: 'Disaster Preparedness',
+    subtitle: 'Practice today, stay safe tomorrow',
+    image: require('@/assets/images/bancaan/drill.jpg'),
+    description:
+      'Participate in emergency drills and learn life-saving actions to protect yourself and your community during disasters.',
+    action: '/details',
+  },
+  {
+    id: 4,
+    title: 'Officials & Community Unity',
+    subtitle: 'Create a stronger barangay together',
+    image: require('@/assets/images/bancaan/officials_group_white.jpg'),
+    description:
+      'Bringing together barangay officials and residents to foster unity, collaboration, and a stronger sense of community for everyone.',
     action: '/details',
   },
 ];
