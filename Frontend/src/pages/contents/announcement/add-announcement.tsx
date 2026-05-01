@@ -516,7 +516,83 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
       return false;
     } catch (error) {
       console.error('Error publishing announcement:', error);
-      setSaveError(isEditMode ? 'We could not update your announcement. Please try again.' : 'We could not save your announcement. Please try again.');
+
+      if (axios.isAxiosError(error)) {
+        const responseData = error.response?.data as unknown;
+        const backendMessage =
+          responseData &&
+          typeof responseData === 'object' &&
+          'message' in responseData &&
+          typeof (responseData as { message?: unknown }).message === 'string'
+            ? (responseData as { message: string }).message
+            : '';
+
+        const backendFieldErrors =
+          responseData &&
+          typeof responseData === 'object' &&
+          'fieldErrors' in responseData &&
+          (responseData as { fieldErrors?: unknown }).fieldErrors &&
+          typeof (responseData as { fieldErrors: unknown }).fieldErrors === 'object'
+            ? ((responseData as { fieldErrors: Record<string, unknown> }).fieldErrors ?? {})
+            : null;
+
+        const fieldErrors = {
+          title: '',
+          subtitle: '',
+          category: '',
+          barangays: '',
+          thumbnail: '',
+          content: '',
+        };
+
+        if (backendFieldErrors) {
+          const titleError = backendFieldErrors.title;
+          const subtitleError = backendFieldErrors.subtitle;
+          const categoryError = backendFieldErrors.category;
+          const barangaysError = backendFieldErrors.barangays;
+          const thumbnailError = backendFieldErrors.thumbnail;
+          const contentError = backendFieldErrors.content;
+
+          if (typeof titleError === 'string') fieldErrors.title = titleError;
+          if (typeof subtitleError === 'string') fieldErrors.subtitle = subtitleError;
+          if (typeof categoryError === 'string') fieldErrors.category = categoryError;
+          if (typeof barangaysError === 'string') fieldErrors.barangays = barangaysError;
+          if (typeof thumbnailError === 'string') fieldErrors.thumbnail = thumbnailError;
+          if (typeof contentError === 'string') fieldErrors.content = contentError;
+        }
+
+        if (Object.values(fieldErrors).some(Boolean)) {
+          setErrors(fieldErrors);
+          setSaveError('');
+          return false;
+        }
+
+        const backendErrors =
+          responseData &&
+          typeof responseData === 'object' &&
+          'errors' in responseData &&
+          Array.isArray((responseData as { errors?: unknown }).errors)
+            ? ((responseData as { errors: unknown[] }).errors
+                .map(item => (typeof item === 'string' ? item : String(item)))
+                .filter(Boolean) as string[])
+            : [];
+
+        if (backendErrors.length > 0) {
+          setSaveError(backendErrors[0] ?? '');
+          return false;
+        }
+
+        if (backendMessage) {
+          setSaveError(backendMessage);
+          return false;
+        }
+      }
+
+      setSaveError(
+        isEditMode
+          ? 'We could not update your announcement. Please try again.'
+          : 'We could not save your announcement. Please try again.'
+      );
       return false;
     } finally {
       setIsSaving(false);
@@ -582,21 +658,22 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
   }, [title, subtitle, sanitizedContent, selectedCategory, selectedBarangays, thumbnailDataUrl]);
 
   useEffect(() => {
-    if (!title.trim() && errors.title) return;
-    if (title.trim() && errors.title) {
+    if (errors.title !== 'Please add a clear title.') return;
+    if (title.trim()) {
       setErrors(prev => ({ ...prev, title: '' }));
     }
   }, [title, errors.title]);
 
   useEffect(() => {
-    if (!subtitle.trim() && errors.subtitle) return;
-    if (subtitle.trim() && errors.subtitle) {
+    if (errors.subtitle !== 'Please add a short subtitle.') return;
+    if (subtitle.trim()) {
       setErrors(prev => ({ ...prev, subtitle: '' }));
     }
   }, [subtitle, errors.subtitle]);
 
   useEffect(() => {
-    if (!isPreviewEmpty && errors.content) {
+    if (errors.content !== 'Please add announcement content.') return;
+    if (!isPreviewEmpty) {
       setErrors(prev => ({ ...prev, content: '' }));
     }
   }, [isPreviewEmpty, errors.content]);
@@ -625,7 +702,9 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
   };
 
   if (isEditMode && isLoadingAnnouncement) {
-    return <div className="w-full h-full flex items-center justify-center text-default-500">Loading announcement...</div>;
+    return (
+      <div className="w-full h-full flex items-center justify-center text-default-500">Loading announcement...</div>
+    );
   }
 
   if (isEditMode && loadError) {
@@ -973,6 +1052,7 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
                 <div className="flex flex-col gap-6">
                   <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
                     <Input
+                      isRequired
                       className="lg:col-span-4"
                       type="file"
                       accept="image/*"
@@ -985,6 +1065,7 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
                       errorMessage={errors.thumbnail}
                     />
                     <Select
+                      isRequired
                       className="lg:col-span-3"
                       label="Category"
                       labelPlacement="outside"
@@ -1003,6 +1084,7 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
                       {item => <SelectItem key={item.key}>{item.label}</SelectItem>}
                     </Select>
                     <Select
+                      isRequired
                       className="lg:col-span-5"
                       label="Barangays"
                       labelPlacement="outside"
@@ -1026,7 +1108,9 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
                   <div className="space-y-4">
                     {(title.trim() || subtitle.trim()) && (
                       <div className="space-y-1">
-                        {title.trim() && <p className="text-xl font-semibold">{formatAnnouncementHeading(title.trim())}</p>}
+                        {title.trim() && (
+                          <p className="text-xl font-semibold">{formatAnnouncementHeading(title.trim())}</p>
+                        )}
                         {subtitle.trim() && (
                           <p className="text-sm text-default-500">{formatAnnouncementHeading(subtitle.trim())}</p>
                         )}
@@ -1059,6 +1143,7 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
                     )}
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
                       <Input
+                        isRequired
                         className="lg:col-span-6"
                         label="Title"
                         labelPlacement="outside"
@@ -1076,6 +1161,7 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
                         errorMessage={errors.title}
                       />
                       <Input
+                        isRequired
                         className="lg:col-span-6"
                         label="Subtitle"
                         labelPlacement="outside"
@@ -1121,7 +1207,9 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
                     const ok = await handlePublish();
                     if (ok) {
                       onClose();
-                      navigate(isEditMode && announcementId ? `/announcement/details/${announcementId}` : '/announcement');
+                      navigate(
+                        isEditMode && announcementId ? `/announcement/details/${announcementId}` : '/announcement'
+                      );
                     }
                   }}
                 >

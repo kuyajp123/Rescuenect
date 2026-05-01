@@ -27,14 +27,21 @@ const ALLOWED_TAGS = [
 ];
 const ALLOWED_ATTR = ['href', 'target', 'rel', 'src', 'alt', 'title', 'style'];
 const MAX_CONTENT_LENGTH = 100_000;
-const MAX_TEXT_LENGTH = 500;
+const MAX_TEXT_LENGTH = 50;
 
-const sanitizeText = (value: unknown, maxLength: number) => {
+type AnnouncementFieldErrors = Partial<{
+  title: string;
+  subtitle: string;
+  content: string;
+  category: string;
+}>;
+
+const sanitizeText = (value: unknown) => {
   if (typeof value !== 'string') return '';
   const trimmed = value.trim();
   if (trimmed.length === 0) return '';
   const sanitized = DOMPurify.sanitize(trimmed, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
-  return sanitized.slice(0, maxLength);
+  return sanitized;
 };
 
 DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
@@ -61,7 +68,7 @@ const sanitizeHtmlContent = (value: unknown) => {
     FORBID_ATTR: ['onerror', 'onload', 'onclick'],
   });
 
-  return sanitized.slice(0, MAX_CONTENT_LENGTH);
+  return sanitized;
 };
 
 const parseBarangays = (value: unknown): string[] => {
@@ -85,6 +92,12 @@ const parseBarangays = (value: unknown): string[] => {
   return [];
 };
 
+const isMaxLength = (value: unknown, maxLength: number): boolean => {
+  if (typeof value !== 'string') return false;
+  if (value.trim().length > maxLength) return false;
+  return true;
+};
+
 export class AnnouncementController {
   static async addAnnouncement(req: Request, res: Response): Promise<void> {
     const userId = (req as any).user?.uid as string | undefined;
@@ -94,22 +107,49 @@ export class AnnouncementController {
     }
 
     try {
-      const rawCategory = sanitizeText(req.body.category, 50).toLowerCase();
+      const rawCategory = sanitizeText(req.body.category).toLowerCase();
       const category = ALLOWED_CATEGORIES.has(rawCategory) ? rawCategory : '';
       const content = sanitizeHtmlContent(req.body.content);
       const barangays = parseBarangays(req.body.barangays);
 
-      const title = sanitizeText(req.body.title, MAX_TEXT_LENGTH);
-      const subtitle = sanitizeText(req.body.subtitle, MAX_TEXT_LENGTH);
-      const description = sanitizeText(req.body.description, MAX_TEXT_LENGTH);
+      const title = sanitizeText(req.body.title);
+      const subtitle = sanitizeText(req.body.subtitle);
+
+      const fieldErrors: AnnouncementFieldErrors = {};
+
+      if (!isMaxLength(title, MAX_TEXT_LENGTH)) {
+        fieldErrors.title = `Title should not exceed ${MAX_TEXT_LENGTH} characters`;
+      }
+
+      if (!isMaxLength(subtitle, MAX_TEXT_LENGTH)) {
+        fieldErrors.subtitle = `Subtitle should not exceed ${MAX_TEXT_LENGTH} characters`;
+      }
+
+      if (!isMaxLength(content, MAX_CONTENT_LENGTH)) {
+        fieldErrors.content = `Content should not exceed ${MAX_CONTENT_LENGTH} characters`;
+      }
+
+      if (Object.keys(fieldErrors).length > 0) {
+        const errors = [fieldErrors.title, fieldErrors.subtitle, fieldErrors.content].filter(Boolean);
+        res.status(400).json({ message: 'Validation failed', errors, fieldErrors });
+        return;
+      }
 
       if (!category) {
-        res.status(400).json({ message: 'Invalid or missing category' });
+        res.status(400).json({
+          message: 'Invalid or missing category',
+          errors: ['Invalid or missing category'],
+          fieldErrors: { category: 'Invalid or missing category' },
+        });
         return;
       }
 
       if (!content) {
-        res.status(400).json({ message: 'Content is required' });
+        res.status(400).json({
+          message: 'Content is required',
+          errors: ['Content is required'],
+          fieldErrors: { content: 'Content is required' },
+        });
         return;
       }
 
@@ -121,7 +161,6 @@ export class AnnouncementController {
 
       if (title) payload.title = title;
       if (subtitle) payload.subtitle = subtitle;
-      if (description) payload.description = description;
 
       const file = req.file as Express.Multer.File | undefined;
       const announcementId = await AnnouncementModel.addAnnouncement(payload, file, userId);
@@ -153,29 +192,55 @@ export class AnnouncementController {
     }
 
     try {
-      const rawCategory = sanitizeText(req.body.category, 50).toLowerCase();
+      const rawCategory = sanitizeText(req.body.category).toLowerCase();
       const category = ALLOWED_CATEGORIES.has(rawCategory) ? rawCategory : '';
       const content = sanitizeHtmlContent(req.body.content);
       const barangays = parseBarangays(req.body.barangays);
 
-      const title = sanitizeText(req.body.title, MAX_TEXT_LENGTH);
-      const subtitle = sanitizeText(req.body.subtitle, MAX_TEXT_LENGTH);
-      const description = sanitizeText(req.body.description, MAX_TEXT_LENGTH);
+      const title = sanitizeText(req.body.title);
+      const subtitle = sanitizeText(req.body.subtitle);
+
+      const fieldErrors: AnnouncementFieldErrors = {};
+
+      if (!isMaxLength(title, MAX_TEXT_LENGTH)) {
+        fieldErrors.title = `Title should not exceed ${MAX_TEXT_LENGTH} characters`;
+      }
+
+      if (!isMaxLength(subtitle, MAX_TEXT_LENGTH)) {
+        fieldErrors.subtitle = `Subtitle should not exceed ${MAX_TEXT_LENGTH} characters`;
+      }
+
+      if (!isMaxLength(content, MAX_CONTENT_LENGTH)) {
+        fieldErrors.content = `Content should not exceed ${MAX_CONTENT_LENGTH} characters`;
+      }
+
+      if (Object.keys(fieldErrors).length > 0) {
+        const errors = [fieldErrors.title, fieldErrors.subtitle, fieldErrors.content].filter(Boolean);
+        res.status(400).json({ message: 'Validation failed', errors, fieldErrors });
+        return;
+      }
 
       if (!category) {
-        res.status(400).json({ message: 'Invalid or missing category' });
+        res.status(400).json({
+          message: 'Invalid or missing category',
+          errors: ['Invalid or missing category'],
+          fieldErrors: { category: 'Invalid or missing category' },
+        });
         return;
       }
 
       if (!content) {
-        res.status(400).json({ message: 'Content is required' });
+        res.status(400).json({
+          message: 'Content is required',
+          errors: ['Content is required'],
+          fieldErrors: { content: 'Content is required' },
+        });
         return;
       }
 
       const payload: Record<string, unknown> = {
         title,
         subtitle,
-        description,
         content,
         category,
         barangays,
