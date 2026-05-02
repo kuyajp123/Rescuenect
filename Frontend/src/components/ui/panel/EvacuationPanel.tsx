@@ -6,8 +6,23 @@ import { usePanelStore } from '@/stores/panelStore';
 import { useEvacuationStore } from '@/stores/useEvacuationStore';
 import { Button, Input, Select, SelectItem, Textarea } from '@heroui/react';
 import axios from 'axios';
-import { Pencil, Save, Upload, X, Trash } from 'lucide-react';
+import { Pencil, Save, Trash, Upload, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+
+const MAX_NAME_LENGTH = 100;
+const MAX_LOCATION_LENGTH = 200;
+const MAX_CONTACT_LENGTH = 30;
+const MAX_DESCRIPTION_LENGTH = 500;
+
+const readFieldErrors = (error: unknown): Record<string, string> | null => {
+  if (!axios.isAxiosError(error)) return null;
+  const fieldErrors = error.response?.data?.fieldErrors;
+  if (!fieldErrors || typeof fieldErrors !== 'object' || Array.isArray(fieldErrors)) return null;
+
+  return Object.fromEntries(
+    Object.entries(fieldErrors).filter(([, value]) => typeof value === 'string' && value.trim().length > 0)
+  ) as Record<string, string>;
+};
 
 export const EvacuationPanel = ({ data }: { data: any }) => {
   const { fetchEvacuationCenters } = useEvacuationStore();
@@ -16,6 +31,7 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { onOpenModal } = usePanelStore();
 
@@ -34,6 +50,7 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
       });
       setExistingImages(data.data.images || []);
       setNewImages([]);
+      setErrors({});
       setIsEditing(false); // Reset editing mode when data changes
     }
   }, [data]);
@@ -43,7 +60,7 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
       const filesArray = Array.from(e.target.files);
       const totalImages = existingImages.length + newImages.length + filesArray.length;
       if (totalImages > 3) {
-        alert('You can only have a maximum of 3 images.');
+        setErrors(prev => ({ ...prev, images: 'You can only have a maximum of 3 images.' }));
         return;
       }
       setNewImages([...newImages, ...filesArray]);
@@ -70,6 +87,43 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
     }
 
     try {
+      const validationErrors: Record<string, string> = {};
+
+      if (!formData?.name?.trim()) validationErrors.name = 'Name is required';
+      else if (formData.name.trim().length > MAX_NAME_LENGTH) {
+        validationErrors.name = `Name should not exceed ${MAX_NAME_LENGTH} characters`;
+      }
+
+      if (!formData?.location?.trim()) validationErrors.location = 'Location is required';
+      else if (formData.location.trim().length > MAX_LOCATION_LENGTH) {
+        validationErrors.location = `Location should not exceed ${MAX_LOCATION_LENGTH} characters`;
+      }
+
+      if (!formData?.capacity || Number(formData.capacity) <= 0) {
+        validationErrors.capacity = 'Capacity must be a positive number';
+      }
+
+      if (!formData?.type?.trim()) validationErrors.type = 'Type is required';
+      if (!formData?.status?.trim()) validationErrors.status = 'Status is required';
+
+      if (typeof formData?.contact === 'string' && formData.contact.trim().length > MAX_CONTACT_LENGTH) {
+        validationErrors.contact = `Contact should not exceed ${MAX_CONTACT_LENGTH} characters`;
+      }
+
+      if (typeof formData?.description === 'string' && formData.description.trim().length > MAX_DESCRIPTION_LENGTH) {
+        validationErrors.description = `Description should not exceed ${MAX_DESCRIPTION_LENGTH} characters`;
+      }
+
+      if (existingImages.length + newImages.length <= 0) {
+        validationErrors.images = 'At least one image is required';
+      }
+
+      if (Object.keys(validationErrors).length > 0) {
+        setErrors(validationErrors);
+        setIsLoading(false);
+        return;
+      }
+
       const submitData = new FormData();
       const updatedData = {
         id: data.data.id,
@@ -102,10 +156,16 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
 
       // Update store with new data
       await fetchEvacuationCenters();
+      setErrors({});
       setIsEditing(false);
     } catch (error) {
       console.error('Error updating evacuation center:', error);
-      alert('Failed to update evacuation center.');
+      const fieldErrors = readFieldErrors(error);
+      if (fieldErrors) {
+        setErrors(fieldErrors);
+      } else {
+        setErrors({ submit: 'Failed to update evacuation center.' });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -207,11 +267,29 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
             <Input
               label="Name"
               value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
+              isInvalid={Boolean(errors.name)}
+              errorMessage={errors.name}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const v = e.target.value || '';
+                setFormData({ ...formData, name: v });
+                if (!v.trim()) {
+                  setErrors(prev => ({ ...prev, name: 'Name is required' }));
+                } else if (v.length > MAX_NAME_LENGTH) {
+                  setErrors(prev => ({ ...prev, name: `Name should not exceed ${MAX_NAME_LENGTH} characters` }));
+                } else {
+                  setErrors(prev => {
+                    const copy = { ...prev };
+                    delete copy.name;
+                    return copy;
+                  });
+                }
+              }}
             />
             <Select
               label="Status"
               selectedKeys={formData.status ? [formData.status] : []}
+              isInvalid={Boolean(errors.status)}
+              errorMessage={errors.status}
               onChange={e => setFormData({ ...formData, status: e.target.value })}
             >
               <SelectItem key="available">Available</SelectItem>
@@ -223,6 +301,8 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
               label="Type"
               items={types}
               selectedKeys={formData.type ? [formData.type] : []}
+              isInvalid={Boolean(errors.type)}
+              errorMessage={errors.type}
               onChange={e => setFormData({ ...formData, type: e.target.value })}
             >
               {item => <SelectItem key={item.key}>{item.label}</SelectItem>}
@@ -233,19 +313,67 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
                 label="Capacity"
                 type="number"
                 value={formData.capacity}
-                onChange={e => setFormData({ ...formData, capacity: e.target.value })}
+                isInvalid={Boolean(errors.capacity)}
+                errorMessage={errors.capacity}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const v = e.target.value;
+                  setFormData({ ...formData, capacity: v });
+                  if (!v || Number(v) <= 0) {
+                    setErrors(prev => ({ ...prev, capacity: 'Capacity must be a positive number' }));
+                  } else {
+                    setErrors(prev => {
+                      const copy = { ...prev };
+                      delete copy.capacity;
+                      return copy;
+                    });
+                  }
+                }}
               />
               <Input
                 label="Contact"
                 value={formData.contact}
-                onChange={e => setFormData({ ...formData, contact: e.target.value })}
+                isInvalid={Boolean(errors.contact)}
+                errorMessage={errors.contact}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const v = e.target.value || '';
+                  setFormData({ ...formData, contact: v });
+                  if (v.length > MAX_CONTACT_LENGTH) {
+                    setErrors(prev => ({
+                      ...prev,
+                      contact: `Contact should not exceed ${MAX_CONTACT_LENGTH} characters`,
+                    }));
+                  } else {
+                    setErrors(prev => {
+                      const copy = { ...prev };
+                      delete copy.contact;
+                      return copy;
+                    });
+                  }
+                }}
               />
             </div>
 
             <Input
               label="Location Name"
               value={formData.location}
-              onChange={e => setFormData({ ...formData, location: e.target.value })}
+              isInvalid={Boolean(errors.location)}
+              errorMessage={errors.location}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const v = e.target.value || '';
+                setFormData({ ...formData, location: v });
+                if (!v.trim()) setErrors(prev => ({ ...prev, location: 'Location is required' }));
+                else if (v.length > MAX_LOCATION_LENGTH)
+                  setErrors(prev => ({
+                    ...prev,
+                    location: `Location should not exceed ${MAX_LOCATION_LENGTH} characters`,
+                  }));
+                else
+                  setErrors(prev => {
+                    const copy = { ...prev };
+                    delete copy.location;
+                    return copy;
+                  });
+              }}
             />
 
             <div className="hidden">
@@ -266,8 +394,28 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
             <Textarea
               label="Description"
               value={formData.description}
-              onChange={e => setFormData({ ...formData, description: e.target.value })}
+              isInvalid={Boolean(errors.description)}
+              errorMessage={errors.description}
+              onChange={(e: any) => {
+                const v = e.target.value || '';
+                setFormData({ ...formData, description: v });
+                if (v.length > MAX_DESCRIPTION_LENGTH) {
+                  setErrors(prev => ({
+                    ...prev,
+                    description: `Description should not exceed ${MAX_DESCRIPTION_LENGTH} characters`,
+                  }));
+                } else {
+                  setErrors(prev => {
+                    const copy = { ...prev };
+                    delete copy.description;
+                    return copy;
+                  });
+                }
+              }}
             />
+
+            {errors.submit && <p className="text-sm text-red-600">{errors.submit}</p>}
+            {errors.images && <p className="text-sm text-red-600">{errors.images}</p>}
 
             <div>
               <p className="text-sm font-semibold mb-2">Images (Max 3)</p>

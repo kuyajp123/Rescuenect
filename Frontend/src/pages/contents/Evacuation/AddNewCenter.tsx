@@ -1,5 +1,6 @@
 import EvacuationCenterForm from '@/components/ui/form/EvacuationCenterForm';
 import { Map } from '@/components/ui/Map';
+import { Button } from '@heroui/react';
 import { useState } from 'react';
 
 const Add = () => {
@@ -19,7 +20,25 @@ const Add = () => {
           onMapClick={handleMapClick}
           popupType="coordinates"
           markerType="default"
-          overlayPosition="topright"
+          overlayComponent={
+            <div className="rounded-md bg-white/90 dark:bg-black/70 backdrop-blur px-3 py-2 shadow text-xs text-gray-800 dark:text-gray-100">
+              {mapClickPosition ? (
+                <div className="text-sm">
+                  <p className="font-semibold">Selected Coordinates</p>
+                  <p className="opacity-80">
+                    Lat: {mapClickPosition.lat.toFixed(6)}, Lng: {mapClickPosition.lng.toFixed(6)}
+                  </p>
+                  <Button onPress={() => setMapClickPosition(null)}>Clear</Button>
+                </div>
+              ) : (
+                <div className="space-y-0.5 text-sm">
+                  <p className="font-semibold">Set evacuation center location</p>
+                  <p className="opacity-80">Click the map to drop a marker.</p>
+                </div>
+              )}
+            </div>
+          }
+          overlayPosition="bottomright"
           overlayClassName="custom-map-overlay"
         />
       </div>

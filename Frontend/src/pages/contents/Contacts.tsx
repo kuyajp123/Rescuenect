@@ -34,6 +34,7 @@ import {
   Mail,
   Phone,
   Plus,
+  Save,
   Search,
   Shield,
   Smartphone,
@@ -68,6 +69,12 @@ type ContactsResponse = {
     categories?: unknown[];
     contacts?: unknown[];
   };
+};
+
+type ContactsApiError = {
+  message?: string;
+  errors?: string[];
+  fieldErrors?: Record<string, string>;
 };
 
 const makeId = () => (crypto?.randomUUID ? crypto.randomUUID() : `id-${Date.now()}`);
@@ -109,6 +116,11 @@ const ACTION_META: Record<ContactAction, { label: string; chip: 'primary' | 'sec
   link: { label: 'Link', chip: 'primary' },
   display: { label: 'Display', chip: 'secondary' },
 };
+
+const MAX_CATEGORY_NAME_LENGTH = 80;
+const MAX_CATEGORY_DESCRIPTION_LENGTH = 200;
+const MAX_CONTACT_NAME_LENGTH = 100;
+const MAX_CONTACT_VALUE_LENGTH = 100;
 
 const CATEGORY_TYPES: CategoryType[] = ['Emergency Hotline', 'Contact Information'];
 
@@ -162,6 +174,16 @@ const actionValuePlaceholder = (action: ContactAction) => {
     default:
       return '';
   }
+};
+
+const readFieldErrors = (error: unknown): Record<string, string> | null => {
+  if (!axios.isAxiosError(error)) return null;
+  const fieldErrors = (error.response?.data as ContactsApiError | undefined)?.fieldErrors;
+  if (!fieldErrors || typeof fieldErrors !== 'object' || Array.isArray(fieldErrors)) return null;
+
+  return Object.fromEntries(
+    Object.entries(fieldErrors).filter(([, value]) => typeof value === 'string' && value.trim().length > 0)
+  ) as Record<string, string>;
 };
 
 const SortableContactRow = ({
@@ -265,11 +287,13 @@ const Contacts = () => {
     value?: string;
     categoryId?: string;
     action?: string;
+    iconColor?: string;
   }>({});
 
   const [categoryErrors, setCategoryErrors] = useState<{
     name?: string;
     type?: string;
+    description?: string;
   }>({});
 
   const [contactForm, setContactForm] = useState<ContactItem>({
@@ -497,7 +521,12 @@ const Contacts = () => {
       });
     } catch (error) {
       console.error('[Sync Contacts Error]', error);
-      setSyncError('Failed to save contacts. Please try again.');
+      const fieldErrors = readFieldErrors(error);
+      if (fieldErrors) {
+        setSyncError(`Validation failed: ${Object.values(fieldErrors).slice(0, 3).join(' | ')}`);
+      } else {
+        setSyncError('Failed to save contacts. Please try again.');
+      }
       addToast({
         title: 'Contacts saved',
         description: 'Contacts failed to save.',
@@ -537,9 +566,13 @@ const Contacts = () => {
     const nextErrors: typeof contactErrors = {};
     if (!contactForm.name.trim()) {
       nextErrors.name = 'Contact name is required.';
+    } else if (contactForm.name.trim().length > MAX_CONTACT_NAME_LENGTH) {
+      nextErrors.name = `Contact name should not exceed ${MAX_CONTACT_NAME_LENGTH} characters.`;
     }
     if (!contactForm.value.trim()) {
       nextErrors.value = 'Contact value is required.';
+    } else if (contactForm.value.trim().length > MAX_CONTACT_VALUE_LENGTH) {
+      nextErrors.value = `Contact value should not exceed ${MAX_CONTACT_VALUE_LENGTH} characters.`;
     }
     if (!contactForm.categoryId) {
       nextErrors.categoryId = 'Please select a category.';
@@ -584,9 +617,17 @@ const Contacts = () => {
     const nextErrors: typeof categoryErrors = {};
     if (!categoryForm.name.trim()) {
       nextErrors.name = 'Category name is required.';
+    } else if (categoryForm.name.trim().length > MAX_CATEGORY_NAME_LENGTH) {
+      nextErrors.name = `Category name should not exceed ${MAX_CATEGORY_NAME_LENGTH} characters.`;
     }
     if (!categoryForm.type) {
       nextErrors.type = 'Category type is required.';
+    }
+    if (
+      typeof categoryForm.description === 'string' &&
+      categoryForm.description.trim().length > MAX_CATEGORY_DESCRIPTION_LENGTH
+    ) {
+      nextErrors.description = `Description should not exceed ${MAX_CATEGORY_DESCRIPTION_LENGTH} characters.`;
     }
     if (Object.keys(nextErrors).length > 0) {
       setCategoryErrors(nextErrors);
@@ -638,13 +679,22 @@ const Contacts = () => {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <Button variant="bordered" startContent={<Plus size={18} />} onPress={openCreateCategory}>
+              <Button
+                variant="solid"
+                color="success"
+                className="text-white"
+                startContent={<Plus size={18} />}
+                onPress={openCreateCategory}
+              >
                 New Category
               </Button>
-              <Button variant="flat" startContent={<Plus size={18} />} onPress={openCreateContact}>
-                New Contact
-              </Button>
-              <Button color="primary" onPress={handleSyncContacts} isLoading={isSyncing} isDisabled={isSyncing}>
+              <Button
+                color="primary"
+                onPress={handleSyncContacts}
+                isLoading={isSyncing}
+                isDisabled={isSyncing}
+                startContent={isSyncing ? undefined : <Save size={18} />}
+              >
                 Save Changes
               </Button>
             </div>
@@ -726,7 +776,13 @@ const Contacts = () => {
                     onValueChange={setSearchQuery}
                     className="w-full md:w-56"
                   />
-                  <Button variant="flat" onPress={openCreateContact}>
+                  <Button
+                    variant="solid"
+                    color="success"
+                    className="text-white"
+                    onPress={openCreateContact}
+                    startContent={<Plus size={18} />}
+                  >
                     Add contact
                   </Button>
                 </div>
@@ -772,7 +828,13 @@ const Contacts = () => {
                     <p className="mt-1 text-xs text-default-500 dark:text-slate-400">
                       Add your first contact for this category to get started.
                     </p>
-                    <Button className="mt-4" color="primary" onPress={openCreateContact}>
+                    <Button
+                      className="mt-4 text-white"
+                      variant="solid"
+                      color="success"
+                      onPress={openCreateContact}
+                      startContent={<Plus size={18} />}
+                    >
                       Add contact
                     </Button>
                   </div>
@@ -821,19 +883,27 @@ const Contacts = () => {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-[1.2fr_1fr]">
               <div className="flex flex-col gap-4">
                 <Input
+                  isRequired
                   label="Contact name"
                   placeholder="e.g. OPDRRMO Hotline"
                   value={contactForm.name}
                   onValueChange={value => {
                     setContactForm(prev => ({ ...prev, name: value }));
-                    if (contactErrors.name) {
-                      setContactErrors(prev => ({ ...prev, name: undefined }));
-                    }
+                    setContactErrors(prev => ({
+                      ...prev,
+                      name:
+                        value.trim().length > MAX_CONTACT_NAME_LENGTH
+                          ? `Contact name should not exceed ${MAX_CONTACT_NAME_LENGTH} characters.`
+                          : value.trim()
+                            ? undefined
+                            : 'Contact name is required.',
+                    }));
                   }}
                   isInvalid={!!contactErrors.name}
                   errorMessage={contactErrors.name}
                 />
                 <Select
+                  isRequired
                   label="Action type"
                   selectedKeys={[contactForm.action]}
                   disableAnimation
@@ -857,20 +927,28 @@ const Contacts = () => {
                   ))}
                 </Select>
                 <Input
+                  isRequired
                   label={actionValueLabel(contactForm.action)}
                   placeholder={actionValuePlaceholder(contactForm.action)}
                   value={contactForm.value}
                   onValueChange={value => {
                     setContactForm(prev => ({ ...prev, value }));
-                    if (contactErrors.value) {
-                      setContactErrors(prev => ({ ...prev, value: undefined }));
-                    }
+                    setContactErrors(prev => ({
+                      ...prev,
+                      value:
+                        value.trim().length > MAX_CONTACT_VALUE_LENGTH
+                          ? `Contact value should not exceed ${MAX_CONTACT_VALUE_LENGTH} characters.`
+                          : value.trim()
+                            ? undefined
+                            : 'Contact value is required.',
+                    }));
                   }}
                   isInvalid={!!contactErrors.value}
                   errorMessage={contactErrors.value}
                 />
 
                 <Select
+                  isRequired
                   label="Category"
                   selectedKeys={[contactForm.categoryId]}
                   disableAnimation
@@ -895,6 +973,7 @@ const Contacts = () => {
                 </Select>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_120px]">
                   <Select
+                    isRequired
                     label="Icon"
                     selectedKeys={[contactForm.iconKey]}
                     disableAnimation
@@ -934,7 +1013,7 @@ const Contacts = () => {
               </div>
               <div className="flex flex-col gap-4 rounded-2xl border border-default-200/70 bg-default-50 p-4 dark:border-slate-800/70 dark:bg-slate-900/70">
                 <div className="text-xs font-semibold uppercase text-default-400 dark:text-slate-500">Live preview</div>
-                <div className="rounded-2xl border border-default-200 bg-white px-4 py-5 dark:border-slate-800/70 dark:bg-slate-950/70">
+                <div className="max-h-[280px] overflow-hidden rounded-2xl border border-default-200 bg-white px-4 py-5 dark:border-slate-800/70 dark:bg-slate-950/70">
                   <div className="flex items-center gap-3">
                     <div
                       className="flex h-10 w-10 items-center justify-center rounded-xl text-white"
@@ -942,11 +1021,11 @@ const Contacts = () => {
                     >
                       {React.createElement(selectedIcon, { size: 18 })}
                     </div>
-                    <div>
-                      <div className="text-sm font-semibold text-default-900 dark:text-slate-100">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold text-default-900 dark:text-slate-100">
                         {contactForm.name || 'Contact name'}
                       </div>
-                      <div className="text-xs text-default-500 dark:text-slate-400">
+                      <div className="line-clamp-3 break-words text-xs text-default-500 dark:text-slate-400">
                         {contactForm.value || 'Contact value'}
                       </div>
                     </div>
@@ -978,19 +1057,27 @@ const Contacts = () => {
           <ModalHeader>{editingCategory ? 'Edit category' : 'Create category'}</ModalHeader>
           <ModalBody className="flex flex-col gap-4">
             <Input
+              isRequired
               label="Category name"
               placeholder="e.g. Emergency Hotlines"
               value={categoryForm.name}
               onValueChange={value => {
                 setCategoryForm(prev => ({ ...prev, name: value }));
-                if (categoryErrors.name) {
-                  setCategoryErrors(prev => ({ ...prev, name: undefined }));
-                }
+                setCategoryErrors(prev => ({
+                  ...prev,
+                  name:
+                    value.trim().length > MAX_CATEGORY_NAME_LENGTH
+                      ? `Category name should not exceed ${MAX_CATEGORY_NAME_LENGTH} characters.`
+                      : value.trim()
+                        ? undefined
+                        : 'Category name is required.',
+                }));
               }}
               isInvalid={!!categoryErrors.name}
               errorMessage={categoryErrors.name}
             />
             <Select
+              isRequired
               label="Category type"
               selectedKeys={[categoryForm.type]}
               disableAnimation
@@ -1015,8 +1102,19 @@ const Contacts = () => {
               label="Description"
               placeholder="Short description for admin context"
               value={categoryForm.description ?? ''}
-              onValueChange={value => setCategoryForm(prev => ({ ...prev, description: value }))}
+              onValueChange={value => {
+                setCategoryForm(prev => ({ ...prev, description: value }));
+                setCategoryErrors(prev => ({
+                  ...prev,
+                  description:
+                    value.trim().length > MAX_CATEGORY_DESCRIPTION_LENGTH
+                      ? `Description should not exceed ${MAX_CATEGORY_DESCRIPTION_LENGTH} characters.`
+                      : undefined,
+                }));
+              }}
               minRows={2}
+              isInvalid={!!categoryErrors.description}
+              errorMessage={categoryErrors.description}
             />
           </ModalBody>
           <ModalFooter>
