@@ -10,6 +10,13 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ImageBackground, StyleSheet, TouchableOpacity, View } from 'react-native';
 
+function capitalizeWords(words: string): string {
+  return words
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 export const CardWeather = () => {
   const weatherData = useWeatherStore(state => state.weather);
   const userData = useUserData(state => state.userData);
@@ -75,7 +82,7 @@ export const CardWeather = () => {
 
               <View style={styles.locationContainer}>
                 <Text size="2xs" style={styles.locationText}>
-                  {userData.barangay} • {getWeatherCondition(Number(currentRealtime?.temperature))}
+                  {capitalizeWords(userData.barangay)} • {getWeatherCondition(Number(currentRealtime?.temperature))}
                 </Text>
               </View>
             </View>
@@ -122,6 +129,8 @@ const styles = StyleSheet.create({
     width: 'auto',
   },
   timeContainer: {
+    flexDirection: 'row',
+    gap: 8,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     paddingHorizontal: 12,
     paddingVertical: 6,

@@ -1,7 +1,7 @@
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
 import type { ComponentProps, Ref } from "react";
-import type { ScrollViewProps, StyleProp, ViewStyle } from "react-native";
+import type { ScrollViewProps, StyleProp, ViewStyle, RefreshControlProps } from "react-native";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "../text";
 import { VStack } from "../vstack";
@@ -19,6 +19,7 @@ interface ContainerProps extends VStackProps {
   scrollEventThrottle?: number;
   contentContainerStyle?: StyleProp<ViewStyle>;
   scrollRef?: Ref<ScrollView>;
+  refreshControl?: React.ReactElement<RefreshControlProps>;
 }
 
 export const Body = ({
@@ -31,6 +32,7 @@ export const Body = ({
   scrollEventThrottle = 16,
   contentContainerStyle,
   scrollRef,
+  refreshControl,
   ...props
 }: ContainerProps) => {
   const { isDark } = useTheme();
@@ -51,6 +53,7 @@ export const Body = ({
           onScrollEndDrag={onScrollEndDrag}
           scrollEventThrottle={scrollEventThrottle}
           contentContainerStyle={[{ flexGrow: 1 }, contentContainerStyle]}
+          refreshControl={refreshControl}
         >
           <VStack
             style={[

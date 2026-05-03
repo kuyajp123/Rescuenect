@@ -22,7 +22,11 @@ const formatAnnouncementDate = (createdAt: AnnouncementDataCard['createdAt']): s
   });
 };
 
-const Announcement = () => {
+interface AnnouncementProps {
+  refreshTrigger?: number;
+}
+
+const Announcement = ({ refreshTrigger }: AnnouncementProps = {}) => {
   const { isDark } = useTheme();
   const router = useRouter();
   const [announcements, setAnnouncements] = useState<AnnouncementDataCard[]>([]);
@@ -49,7 +53,7 @@ const Announcement = () => {
     };
 
     getAnnouncements();
-  }, []);
+  }, [refreshTrigger]);
 
   if (isLoading) {
     return (

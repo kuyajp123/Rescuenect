@@ -4,7 +4,7 @@ import { Divider } from '@/components/ui/divider';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getImageBackground, getWeatherCondition } from '@/helper/WeatherLogic';
+import { getImageBackground, getWeatherCondition, getWeatherIcons } from '@/helper/WeatherLogic';
 import { useUserData } from '@/store/useBackendResponse';
 import { useNotificationStore } from '@/store/useNotificationStore';
 import { useWeatherStore } from '@/store/useWeatherStore';
@@ -24,6 +24,7 @@ export const MainPage = () => {
   const weatherData = useWeatherStore(state => state.weather);
   const userData = useUserData(state => state.userData);
   const notifications = useNotificationStore(state => state.notifications);
+  const WeatherIcon = getWeatherIcons(weatherData?.realtime ? weatherData.realtime[0]?.weatherCode : 0);
 
   const linerColorLight = ['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.2)'] as const;
   const linerColorDark = ['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.6)'] as const;
@@ -78,12 +79,18 @@ export const MainPage = () => {
             </IconButton>
           </View>
 
+          {/* Current Weather */}
           {weatherData?.realtime && weatherData.realtime.length > 0 ? (
             <View style={styles.weatherInfo}>
-              <Text size="6xl" style={styles.temperatureText}>
-                {weatherData.realtime[0]?.temperature ? Math.round(Number(weatherData.realtime[0].temperature)) : '--'}
-                °C
-              </Text>
+              <View style={styles.weatherIconContainer}>
+                <WeatherIcon width={100} height={60} style={{ marginBottom: 10 }} />
+                <Text size="6xl" style={styles.temperatureText}>
+                  {weatherData.realtime[0]?.temperature
+                    ? Math.round(Number(weatherData.realtime[0].temperature))
+                    : '--'}
+                  °C
+                </Text>
+              </View>
               <Text size="sm" style={styles.locationText}>
                 Brgy {userData.barangay} • {getWeatherCondition(weatherData.realtime[0]?.weatherCode)}
               </Text>
@@ -328,6 +335,11 @@ const styles = StyleSheet.create({
     },
     textShadowRadius: 10,
     textAlign: 'center',
+  },
+  weatherIconContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   locationText: {
     color: 'white',

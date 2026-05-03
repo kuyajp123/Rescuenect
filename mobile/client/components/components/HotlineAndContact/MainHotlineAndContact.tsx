@@ -1,10 +1,17 @@
-import { Image } from 'expo-image';
+import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { Text } from '@/components/ui/text';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { storageHelpers } from '@/helper/storage';
+import { db } from '@/lib/firebaseConfig';
+import { useAuth } from '@/store/useAuth';
 import * as Clipboard from 'expo-clipboard';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Network from 'expo-network';
 import * as WebBrowser from 'expo-web-browser';
+import { doc, getDoc, getDocFromCache } from 'firebase/firestore';
 import {
   Clipboard as ClipboardIcon,
   Copy,
@@ -21,13 +28,6 @@ import {
 } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Linking, Pressable, StyleSheet, View } from 'react-native';
-import { doc, getDoc, getDocFromCache } from 'firebase/firestore';
-import { db } from '@/lib/firebaseConfig';
-import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
-import { useAuth } from '@/store/useAuth';
-import { storageHelpers } from '@/helper/storage';
-import { STORAGE_KEYS } from '@/config/asyncStorage';
-import * as Network from 'expo-network';
 
 type ContactAction = 'call' | 'copy' | 'link' | 'display';
 type CategoryType = 'Emergency Hotline' | 'Contact Information';
@@ -98,7 +98,11 @@ const normalizeContact = (contact: any): ContactItem => ({
   order: typeof contact?.order === 'number' ? contact.order : undefined,
 });
 
-export const MainHotlineAndContact = () => {
+interface MainHotlineAndContactProps {
+  refreshTrigger?: number;
+}
+
+export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactProps = {}) => {
   const { isDark } = useTheme();
   const [showAlertDialog, setShowAlertDialog] = useState(false);
   const scaleValue = useRef(new Animated.Value(0)).current;
@@ -112,17 +116,18 @@ export const MainHotlineAndContact = () => {
   const lastOnlineRef = useRef<boolean | null>(null);
   const docRef = useMemo(() => doc(db, 'contacts', 'main'), []);
 
-  const applyContacts = useCallback((payload: ContactsCachePayload | any) => {
-    const nextCategories = Array.isArray(payload?.categories)
-      ? payload.categories.map(normalizeCategory)
-      : [];
-    const nextContacts = Array.isArray(payload?.contacts) ? payload.contacts.map(normalizeContact) : [];
+  const applyContacts = useCallback(
+    (payload: ContactsCachePayload | any) => {
+      const nextCategories = Array.isArray(payload?.categories) ? payload.categories.map(normalizeCategory) : [];
+      const nextContacts = Array.isArray(payload?.contacts) ? payload.contacts.map(normalizeContact) : [];
 
-    setCategories(nextCategories);
-    setContacts(nextContacts);
-    setIsLoading(false);
-    setLoadError(null);
-  }, []);
+      setCategories(nextCategories);
+      setContacts(nextContacts);
+      setIsLoading(false);
+      setLoadError(null);
+    },
+    []
+  );
 
   const persistCache = useCallback(async (payload: ContactsCachePayload | any) => {
     const categories = Array.isArray(payload?.categories) ? payload.categories : [];
@@ -232,6 +237,12 @@ export const MainHotlineAndContact = () => {
   }, [authLoading, authUser, loadContacts]);
 
   useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      loadContacts({ showLoading: false });
+    }
+  }, [refreshTrigger, loadContacts]);
+
+  useEffect(() => {
     const subscription = Network.addNetworkStateListener(state => {
       const isOnline = Boolean(state.isConnected) && (state.isInternetReachable ?? true);
       const wasOnline = lastOnlineRef.current;
@@ -339,13 +350,7 @@ export const MainHotlineAndContact = () => {
   const renderContactCard = (contact: ContactItem) => {
     const Icon = ICON_MAP[contact.iconKey] ?? Phone;
     const actionLabel =
-      contact.action === 'call'
-        ? 'Call'
-        : contact.action === 'copy'
-        ? 'Copy'
-        : contact.action === 'link'
-        ? 'Open'
-        : '';
+      contact.action === 'call' ? 'Call' : contact.action === 'copy' ? 'Copy' : contact.action === 'link' ? 'Open' : '';
 
     return (
       <View
@@ -427,7 +432,6 @@ export const MainHotlineAndContact = () => {
             source={require('../../../assets/images/Cavite-Logo 1.png')}
             style={styles.logo}
             alt="Cavite Logo"
-            
           />
         </View>
 

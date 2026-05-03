@@ -10,8 +10,8 @@ import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
 import { useStatusFormStore } from '@/store/useStatusForm';
 import { User, loggedInUser } from '@/types/components';
-import React, { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, RefreshControl } from 'react-native';
 
 export const HomeScreen = React.memo(() => {
   const [userData, setUserData] = useState<loggedInUser | null>(null);
@@ -20,6 +20,19 @@ export const HomeScreen = React.memo(() => {
   const formData = useStatusFormStore(state => state.formData);
   const userPhotoURL = userAuth?.photoURL || '';
   const userDataBackend = useUserData(state => state.userData);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const data = await storageHelpers.getData(STORAGE_KEYS.USER);
+      setUserData({ photoURL: userPhotoURL, ...data, ...userDataBackend });
+      setRefreshTrigger(prev => prev + 1);
+    } finally {
+      setTimeout(() => setRefreshing(false), 1000);
+    }
+  }, [userPhotoURL, userDataBackend]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -49,13 +62,13 @@ export const HomeScreen = React.memo(() => {
   }, [userData, formData]);
 
   return (
-    <Body gap={20}>
+    <Body gap={20} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       <StatusIndicator userStatus={userStatus as User | undefined} loggedInUser={userData || undefined} />
       <CardWeather />
 
       <QuickActions />
 
-      <Announcement />
+      <Announcement refreshTrigger={refreshTrigger} />
 
       <View style={{ marginTop: 20 }}>
         <AdvancedCarousel />
