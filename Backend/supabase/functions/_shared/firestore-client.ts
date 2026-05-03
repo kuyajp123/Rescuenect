@@ -62,10 +62,14 @@ export const initializeFirebase = () => {
       return firestoreInstance;
     }
 
-    const serviceAccountKeyString = Deno.env.get('FIREBASE_SERVICE_ACCOUNT_JSON');
+    // Prefer Supabase Edge Functions env var name, but allow local backend env name as fallback.
+    const serviceAccountKeyString =
+      Deno.env.get('FIREBASE_SERVICE_ACCOUNT_JSON') ?? Deno.env.get('FIREBASE_ADMIN_CREDENTIALS');
 
     if (!serviceAccountKeyString) {
-      throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON environment variable is not set');
+      throw new Error(
+        'Firebase service account JSON not found. Set FIREBASE_SERVICE_ACCOUNT_JSON (preferred) or FIREBASE_ADMIN_CREDENTIALS.'
+      );
     }
 
     let serviceAccount;

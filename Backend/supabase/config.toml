@@ -348,17 +348,6 @@ s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
 
-[functions.hello-world]
-enabled = true
-verify_jwt = true
-import_map = "./functions/hello-world/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/hello-world/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/hello-world/*.html" ]
-
 [functions.status-cleanup]
 enabled = true
 verify_jwt = true
@@ -380,17 +369,6 @@ entrypoint = "./functions/status-expire/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/status-expire/*.html" ]
-
-[functions.cron-schedule]
-enabled = true
-verify_jwt = true
-import_map = "./functions/cron-schedule/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/cron-schedule/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/cron-schedule/*.html" ]
 
 [functions.weather-hourly]
 enabled = true
@@ -425,50 +403,6 @@ entrypoint = "./functions/weather-realtime/index.ts"
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/weather-realtime/*.html" ]
 
-[functions.notification-critical]
-enabled = true
-verify_jwt = true
-import_map = "./functions/notification-critical/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/notification-critical/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/notification-critical/*.html" ]
-
-[functions.notification-warning]
-enabled = true
-verify_jwt = true
-import_map = "./functions/notification-warning/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/notification-warning/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/notification-warning/*.html" ]
-
-[functions.notification-advisory]
-enabled = true
-verify_jwt = true
-import_map = "./functions/notification-advisory/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/notification-advisory/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/notification-advisory/*.html" ]
-
-[functions.notification-info]
-enabled = true
-verify_jwt = true
-import_map = "./functions/notification-info/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/notification-info/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/notification-info/*.html" ]
-
 [functions.earthquake-monitor]
 enabled = true
 verify_jwt = true
@@ -480,6 +414,17 @@ entrypoint = "./functions/earthquake-monitor/index.ts"
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/earthquake-monitor/*.html" ]
 
+[functions.earthquake-test]
+enabled = true
+verify_jwt = true
+import_map = "./functions/earthquake-test/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/earthquake-test/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/earthquake-test/*.html" ]
+
 [functions.unified-weather-notification]
 enabled = true
 verify_jwt = true
@@ -490,28 +435,6 @@ entrypoint = "./functions/unified-weather-notification/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/unified-weather-notification/*.html" ]
-
-[functions.weather-forecast-notification]
-enabled = true
-verify_jwt = true
-import_map = "./functions/weather-forecast-notification/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/weather-forecast-notification/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/weather-forecast-notification/*.html" ]
-
-[functions.weather-tomorrow-notification]
-enabled = true
-verify_jwt = true
-import_map = "./functions/weather-tomorrow-notification/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/weather-tomorrow-notification/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/weather-tomorrow-notification/*.html" ]
 
 [functions.notification-cleanup]
 enabled = true

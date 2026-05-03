@@ -166,12 +166,9 @@ export const NotificationDetails = () => {
           <div className="p-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Earthquake Information</h3>
-              <Chip color={getChipColor()} variant="flat">
-                {earthquakeData.severity?.toUpperCase()}
-              </Chip>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
                   <Gauge size={20} className="text-orange-500" />
@@ -193,6 +190,20 @@ export const NotificationDetails = () => {
                   </div>
                 </div>
               )}
+
+              <div className="flex flex-col  items-end gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-red-100 dark:bg-blue-900/30">
+                    <Activity size={20} className="text-red-500" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-default-500 mb-1">Severity</p>
+                    <Chip color={getChipColor()} variant="flat">
+                      {earthquakeData.severity?.toUpperCase()}
+                    </Chip>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </Card>

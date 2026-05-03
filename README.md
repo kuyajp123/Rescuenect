@@ -173,18 +173,17 @@ Located in `Backend/supabase/functions/`. Functions are written in Deno TypeScri
 
 Available functions:
 
-| Function                        | Purpose                                  |
-| ------------------------------- | ---------------------------------------- |
-| `earthquake-monitor`            | Monitor and broadcast earthquake alerts  |
-| `weather-realtime`              | Real-time weather data ingestion         |
-| `weather-hourly`                | Hourly weather updates                   |
-| `weather-daily`                 | Daily weather summaries                  |
-| `weather-forecast-notification` | Push notifications for weather forecasts |
-| `weather-tomorrow-notification` | Next-day weather notifications           |
-| `unified-weather-notification`  | Consolidated weather push notifications  |
-| `status-expire`                 | Expire outdated status records           |
-| `status-cleanup`                | Clean up old status entries              |
-| `notification-cleanup`          | Clean up old notification records        |
+| Function                       | Purpose                                                    |
+| ------------------------------ | ---------------------------------------------------------- |
+| `earthquake-monitor`           | Monitor and broadcast earthquake alerts                    |
+| `earthquake-test`              | Simulate sending and saving a mock earthquake notification |
+| `weather-realtime`             | Real-time weather data ingestion                           |
+| `weather-hourly`               | Hourly weather updates                                     |
+| `weather-daily`                | Daily weather summaries                                    |
+| `unified-weather-notification` | Consolidated weather push notifications                    |
+| `status-expire`                | Expire outdated status records                             |
+| `status-cleanup`               | Clean up old status entries                                |
+| `notification-cleanup`         | Clean up old notification records                          |
 
 ### Deploy a function
 
@@ -192,6 +191,34 @@ Available functions:
 cd Backend
 npx supabase functions deploy <function-name>
 ```
+
+### Local Testing for Edge Functions (e.g. `earthquake-test`)
+
+1. **Start containerization** (e.g. start docker):
+
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Serve the function locally** (injecting variables from your `.env` file):
+
+   ```bash
+   cd Backend
+   npx supabase functions serve earthquake-test --env-file .env --no-verify-jwt
+   ```
+
+3. **Invoke the function** using an HTTP client like Postman or PowerShell's `Invoke-RestMethod`.
+   _Note: `earthquake-test` requires your `SUPABASE_SERVICE_KEY` in the `Authorization` header._
+
+   **PowerShell Example:**
+
+   ```powershell
+   Invoke-RestMethod -Uri "http://127.0.0.1:54321/functions/v1/earthquake-test" `
+     -Method Post `
+     -ContentType "application/json" `
+     -Headers @{ Authorization="Bearer <YOUR_SUPABASE_SERVICE_KEY_HERE>" } `
+     -Body (@{ audience="admin"; sendPush=$true; saveNotification=$true; magnitude=5.4; place="TEST: Naic, Cavite"; latitude=14.32; longitude=120.84; depth=12; tsunami_warning=$false } | ConvertTo-Json)
+   ```
 
 ---
 
