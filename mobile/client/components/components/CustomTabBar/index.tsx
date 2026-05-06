@@ -27,28 +27,28 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
     sheet.hide('FAB');
   };
 
-  const handleCityReportsPress = () => {
-    // Add navigation to city needs page here if needed
-    router.push('status/cityReports' as any);
-    const sheet = require('react-native-actions-sheet').SheetManager;
-    sheet.hide('FAB');
-  };
+  // const handleCityReportsPress = () => {
+  //   // Add navigation to city needs page here if needed
+  //   router.push('status/cityReports' as any);
+  //   const sheet = require('react-native-actions-sheet').SheetManager;
+  //   sheet.hide('FAB');
+  // };
 
-  // Action sheet items
-  const actionSheetItems = [
-    {
-      id: 'createStatus',
-      name: 'Create Status',
-      icon: <MapPinPlus size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-      onPress: handleCreateStatusPress,
-    },
-    {
-      id: 'cityReports',
-      name: 'City Reports',
-      icon: <MapPlus size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-      onPress: handleCityReportsPress,
-    },
-  ];
+  // // Action sheet items
+  // const actionSheetItems = [
+  //   {
+  //     id: 'createStatus',
+  //     name: 'Create Status',
+  //     icon: <MapPinPlus size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+  //     onPress: handleCreateStatusPress,
+  //   },
+  //   {
+  //     id: 'cityReports',
+  //     name: 'City Reports',
+  //     icon: <MapPlus size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+  //     onPress: handleCityReportsPress,
+  //   },
+  // ];
 
   return (
     <View

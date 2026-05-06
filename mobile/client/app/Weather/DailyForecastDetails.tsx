@@ -33,6 +33,10 @@ const DailyForecastDetails = () => {
 
   // Robust Date Parsing Helper
   const parseDate = (dateString: string) => {
+    if (typeof dateString !== 'string' || !dateString) {
+      return new Date('');
+    }
+
     let date = new Date(dateString);
     if (isNaN(date.getTime()) && dateString.includes('/')) {
       const [datePart, timePart] = dateString.split(', ');
@@ -94,7 +98,7 @@ const DailyForecastDetails = () => {
 
   // Format Time Helper
   const formatSunTime = (isoString: string) => {
-    if (!isoString) return '--:--';
+    if (typeof isoString !== 'string' || !isoString) return '--:--';
     const date = new Date(isoString);
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   };

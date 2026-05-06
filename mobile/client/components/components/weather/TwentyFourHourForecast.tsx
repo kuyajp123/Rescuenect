@@ -40,6 +40,10 @@ export const TwentyFourHourForecast = ({ hourlyData }: TwentyFourHourForecastPro
       ? hourlyData.map((item, index) => {
           // Parse the time properly
           const parseTime = (timeString: string) => {
+            if (typeof timeString !== 'string' || !timeString) {
+              return new Date('');
+            }
+
             // Try parsing the time string directly first
             let date = new Date(timeString);
 

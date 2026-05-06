@@ -388,8 +388,7 @@ export const createStatus = () => {
     }
 
     // Use GPS when explicitly selected, or when there's no existing selection yet
-    const shouldUseGps =
-      isGPSselection || (!hasUserTappedMap && selectedCoords[0] === 0 && selectedCoords[1] === 0);
+    const shouldUseGps = isGPSselection || (!hasUserTappedMap && selectedCoords[0] === 0 && selectedCoords[1] === 0);
 
     if (!shouldUseGps) {
       return;
@@ -401,7 +400,6 @@ export const createStatus = () => {
       lng: oneTimeLocationCoords[0],
       lat: oneTimeLocationCoords[1],
     }));
-
   }, [oneTimeLocationCoords, hasUserTappedMap, selectedCoords, isGPSselection]);
 
   // Update image when image picker store changes
@@ -873,6 +871,7 @@ export const createStatus = () => {
     {
       key: 'firstName',
       label: 'First Name',
+      required: true,
       placeholder: 'Enter your First Name',
       value: statusForm.firstName,
       onChangeText: text => handleInputChange('firstName', text),
@@ -881,6 +880,7 @@ export const createStatus = () => {
     {
       key: 'lastName',
       label: 'Last Name',
+      required: true,
       placeholder: 'Enter your Last Name',
       value: statusForm.lastName,
       onChangeText: text => handleInputChange('lastName', text),
@@ -889,6 +889,7 @@ export const createStatus = () => {
     {
       key: 'phoneNumber',
       label: 'Contact Number',
+      required: true,
       placeholder: 'Enter your Contact Number',
       value: statusForm.phoneNumber,
       onChangeText: text => handleInputChange('phoneNumber', text),
@@ -911,6 +912,7 @@ export const createStatus = () => {
     {
       key: 'people',
       label: 'Total people with you right now (count yourself too)',
+      required: true,
       placeholder: 'Enter Value',
       value: peopleInput,
       onChangeText: handlePeopleInputChange,
@@ -944,6 +946,7 @@ export const createStatus = () => {
     {
       key: 'status',
       label: 'What is your current condition?',
+      required: true,
       options: [
         { label: 'Safe', value: 'safe' },
         { label: 'Evacuated', value: 'evacuated' },
@@ -1095,7 +1098,10 @@ export const createStatus = () => {
   // Custom components
   const customComponents = [
     <View style={{ flex: 1, flexDirection: 'column' }} key="category-label-container">
-      <Text>Select which type of Category of your Status</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        <Text>Select which type of Category of your Status</Text>
+        <Text size="md" style={{ color: Colors.semantic.error }}>*</Text>
+      </View>
       <Text style={{ color: Colors.semantic.error }}>{formErrors.category}</Text>
     </View>,
 
@@ -1427,8 +1433,7 @@ export const createStatus = () => {
       return { headerActionNoData: helpAction };
     }
 
-    const hasCurrentMarker =
-      coords && coords.length === 2 && coords[0] !== null && coords[1] !== null;
+    const hasCurrentMarker = coords && coords.length === 2 && coords[0] !== null && coords[1] !== null;
 
     return {
       headerActionWithData: {

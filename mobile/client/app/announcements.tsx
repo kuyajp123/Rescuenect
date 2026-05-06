@@ -7,8 +7,8 @@ import { AnnouncementDataCard } from '@/types/components';
 import axios from 'axios';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, View } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, View } from 'react-native';
+import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 const handleBack = () => {
   router.back();
@@ -75,12 +75,69 @@ const buildHtmlDocument = (htmlContent: string, isDark: boolean): string => {
   `;
 };
 
+const WEBVIEW_AUTO_HEIGHT_SCRIPT = `
+  (function () {
+    var lastHeight = 0;
+    function postHeight() {
+      var doc = document.documentElement;
+      var body = document.body;
+      if (!doc || !body || !window.ReactNativeWebView) return;
+
+      var height = Math.max(
+        body.scrollHeight,
+        body.offsetHeight,
+        doc.clientHeight,
+        doc.scrollHeight,
+        doc.offsetHeight
+      );
+
+      if (height && height !== lastHeight) {
+        lastHeight = height;
+        window.ReactNativeWebView.postMessage(String(height));
+      }
+    }
+
+    function attachImageListeners() {
+      var images = document.images;
+      for (var i = 0; i < images.length; i++) {
+        images[i].addEventListener('load', postHeight);
+        images[i].addEventListener('error', postHeight);
+      }
+    }
+
+    window.addEventListener('load', function () {
+      attachImageListeners();
+      postHeight();
+      setTimeout(postHeight, 50);
+      setTimeout(postHeight, 300);
+    });
+
+    window.addEventListener('resize', postHeight);
+
+    var observer = new MutationObserver(function () {
+      attachImageListeners();
+      postHeight();
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+    });
+
+    attachImageListeners();
+    postHeight();
+  })();
+  true;
+`;
+
 const AnnouncementsScreen = () => {
   const { isDark } = useTheme();
   const { announcementId } = useLocalSearchParams<{ announcementId?: string | string[] }>();
   const [announcement, setAnnouncement] = useState<AnnouncementDataCard | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [webViewHeight, setWebViewHeight] = useState(200);
 
   const parsedAnnouncementId = useMemo(() => {
     if (Array.isArray(announcementId)) {
@@ -115,6 +172,25 @@ const AnnouncementsScreen = () => {
     fetchAnnouncementDetails();
   }, [parsedAnnouncementId]);
 
+  useEffect(() => {
+    setWebViewHeight(200);
+  }, [parsedAnnouncementId]);
+
+  const handleWebViewMessage = (event: WebViewMessageEvent) => {
+    const nextHeight = Number.parseInt(event.nativeEvent.data, 10);
+
+    if (!Number.isFinite(nextHeight) || nextHeight <= 0) {
+      return;
+    }
+
+    setWebViewHeight(currentHeight => {
+      if (Math.abs(currentHeight - nextHeight) < 2) {
+        return currentHeight;
+      }
+      return nextHeight;
+    });
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: isDark ? Colors.background.dark : Colors.background.light }]}>
       <Stack.Screen
@@ -148,7 +224,11 @@ const AnnouncementsScreen = () => {
       )}
 
       {!isLoading && !errorMessage && announcement && (
-        <>
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           <View
             style={[
               styles.headerCard,
@@ -185,9 +265,19 @@ const AnnouncementsScreen = () => {
             source={{ html: buildHtmlDocument(announcement.content, isDark) }}
             originWhitelist={['*']}
             startInLoadingState
-            style={{ flex: 1, backgroundColor: isDark ? Colors.background.dark : Colors.background.light }}
+            javaScriptEnabled
+            injectedJavaScript={WEBVIEW_AUTO_HEIGHT_SCRIPT}
+            onMessage={handleWebViewMessage}
+            scrollEnabled={false}
+            style={[
+              styles.webView,
+              {
+                height: webViewHeight,
+                backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+              },
+            ]}
           />
-        </>
+        </ScrollView>
       )}
     </View>
   );
@@ -212,6 +302,15 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     padding: 12,
     gap: 8,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 16,
+  },
+  webView: {
+    width: '100%',
   },
   thumbnail: {
     width: '100%',

@@ -11,6 +11,10 @@ import React, { useEffect, useState } from 'react';
 import { ImageBackground, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 function capitalizeWords(words: string): string {
+  if (!words) {
+    return '';
+  }
+
   return words
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))

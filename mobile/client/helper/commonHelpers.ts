@@ -39,6 +39,10 @@ export const isValidContactNumber = (contactNumber: string): boolean => {
 
 // Format name with proper capitalization
 export const formatName = (text: string): string => {
+  if (!text) {
+    return '';
+  }
+
   return text
     .toLowerCase()
     .split(' ')
@@ -184,6 +188,10 @@ export const formatTimeSince = (dateValue: any): string => {
 
 // address filter
 export const cleanAddress = (fullAddress: string) => {
+  if (!fullAddress) {
+    return '';
+  }
+
   // Split the address by commas and filter out unwanted parts
   const addressParts = fullAddress.split(',').map(part => part.trim());
 
@@ -223,6 +231,10 @@ export const normalizeCategory = (category: any): Category[] => {
 
 // Format to Capitalized teh first letter of each word
 export const formatToCapitalized = (text: string): string => {
+  if (!text) {
+    return '';
+  }
+
   return text
     .toLowerCase()
     .split(' ')

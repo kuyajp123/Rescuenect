@@ -30,6 +30,35 @@ export class GlobalErrorBoundary extends React.Component<Props, State> {
     this.setState({ hasError: false, error: null, errorInfo: null });
   };
 
+  private getErrorMessage = (): string => {
+    try {
+      if (this.state.error) {
+        if (typeof this.state.error === 'string') {
+          return this.state.error;
+        }
+        if (this.state.error instanceof Error) {
+          return this.state.error.message || this.state.error.toString();
+        }
+        return String(this.state.error);
+      }
+      return 'Unknown error occurred';
+    } catch (e) {
+      return 'Error reading error details';
+    }
+  };
+
+  private getStackTrace = (): string => {
+    try {
+      if (this.state.errorInfo?.componentStack) {
+        const stack = String(this.state.errorInfo.componentStack);
+        return stack.slice(0, 500);
+      }
+      return 'No stack trace available';
+    } catch (e) {
+      return 'Error reading stack trace';
+    }
+  };
+
   render() {
     if (this.state.hasError) {
       return (
@@ -40,13 +69,13 @@ export class GlobalErrorBoundary extends React.Component<Props, State> {
 
             <View style={styles.box}>
               <Text style={styles.label}>Error:</Text>
-              <Text style={styles.errorText}>{this.state.error?.toString()}</Text>
+              <Text style={styles.errorText}>{this.getErrorMessage()}</Text>
             </View>
 
             {this.state.errorInfo && (
               <View style={styles.box}>
                 <Text style={styles.label}>Stack Trace (Top):</Text>
-                <Text style={styles.stackText}>{this.state.errorInfo?.componentStack?.slice(0, 500)}...</Text>
+                <Text style={styles.stackText}>{this.getStackTrace()}...</Text>
               </View>
             )}
 

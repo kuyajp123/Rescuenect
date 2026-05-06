@@ -33,6 +33,10 @@ const HourlyDetails = () => {
 
   // Robust Date Parsing Helper
   const parseTime = (timeString: string) => {
+    if (typeof timeString !== 'string' || !timeString) {
+      return new Date('');
+    }
+
     let date = new Date(timeString);
     if (isNaN(date.getTime()) && timeString.includes('/')) {
       const [datePart, timePart] = timeString.split(', ');

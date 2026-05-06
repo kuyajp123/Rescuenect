@@ -217,6 +217,10 @@ export const MainPage = () => {
                     {weatherData.daily.slice(0, 5).map((dailyItem, index) => {
                       // Parse the date properly - handle different date formats
                       const parseDate = (dateString: string) => {
+                        if (typeof dateString !== 'string' || !dateString) {
+                          return new Date('');
+                        }
+
                         // Try parsing the date string directly first
                         let date = new Date(dateString);
 

@@ -10,6 +10,7 @@ import { storageHelpers } from '@/helper/storage';
 import { useIdToken } from '@/hooks/useIdToken';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -20,8 +21,10 @@ type FormState = {
   firstName: string;
   lastName: string;
   contactNumber?: string;
-  setFirstName: (name: string) => void;
-  setLastName: (name: string) => void;
+  firstNameTouched: boolean;
+  lastNameTouched: boolean;
+  setFirstName: (name: string, markTouched?: boolean) => void;
+  setLastName: (name: string, markTouched?: boolean) => void;
   setContactNumber: (number: string) => void;
   reset: () => void;
 };
@@ -30,10 +33,13 @@ export const useFormStore = create<FormState>(set => ({
   firstName: '',
   lastName: '',
   contactNumber: '',
-  setFirstName: firstName => set({ firstName }),
-  setLastName: lastName => set({ lastName }),
+  firstNameTouched: false,
+  lastNameTouched: false,
+  setFirstName: (firstName, markTouched = false) =>
+    set(markTouched ? { firstName, firstNameTouched: true } : { firstName }),
+  setLastName: (lastName, markTouched = false) => set(markTouched ? { lastName, lastNameTouched: true } : { lastName }),
   setContactNumber: contactNumber => set({ contactNumber }),
-  reset: () => set({ firstName: '', lastName: '', contactNumber: '' }),
+  reset: () => set({ firstName: '', lastName: '', contactNumber: '', firstNameTouched: false, lastNameTouched: false }),
 }));
 
 const nameAndContactForm = () => {
@@ -43,7 +49,17 @@ const nameAndContactForm = () => {
     lastName: '',
     contactNumber: '',
   });
-  const { firstName, lastName, contactNumber, setFirstName, setLastName, setContactNumber, reset } = useFormStore();
+  const {
+    firstName,
+    lastName,
+    contactNumber,
+    firstNameTouched,
+    lastNameTouched,
+    setFirstName,
+    setLastName,
+    setContactNumber,
+    reset,
+  } = useFormStore();
   const router = useRouter();
   const userData = useUserData(state => state.userData);
   const setUserData = useUserData(state => state.setUserData);
@@ -54,19 +70,69 @@ const nameAndContactForm = () => {
 
   // Initialize form with user data from Firebase Auth
   useEffect(() => {
-    if (authUser?.displayName) {
-      // If user has a display name, set it as the default firstName
-      const displayName = authUser.displayName.trim();
+    // Prefer backend-provided userData when available to avoid extra work
+    let isActive = true;
 
-      if (displayName) {
-        setFirstName(formatName(displayName));
+    const initializeFromGoogle = async () => {
+      try {
+        let googleUser = GoogleSignin.getCurrentUser();
+
+        if (!googleUser && GoogleSignin.hasPreviousSignIn()) {
+          const silentResponse = await GoogleSignin.signInSilently();
+          if (silentResponse.type === 'success') {
+            googleUser = silentResponse.data;
+          }
+        }
+
+        if (!googleUser || !isActive) {
+          return;
+        }
+
+        const googleFirstName = (googleUser.user.givenName ?? '').trim();
+        const googleLastName = (googleUser.user.familyName ?? '').trim();
+
+        const {
+          firstName: currentFirstName,
+          lastName: currentLastName,
+          firstNameTouched: currentFirstNameTouched,
+          lastNameTouched: currentLastNameTouched,
+        } = useFormStore.getState();
+
+        if (!currentFirstNameTouched && !currentFirstName.trim() && googleFirstName) {
+          setFirstName(formatName(googleFirstName));
+        }
+        if (!currentLastNameTouched && !currentLastName.trim() && googleLastName) {
+          setLastName(formatName(googleLastName));
+        }
+      } catch {
+        // Ignore Google profile failures (e.g., user not signed in)
       }
-    } else {
-      // If no user or no display name, ensure fields are empty
-      setFirstName('');
-      setLastName('');
+    };
+
+    const backendFirstName = (userData?.firstName ?? '').trim();
+    const backendLastName = (userData?.lastName ?? '').trim();
+
+    // Only prefill empty fields so we don't override user input.
+    if (!firstNameTouched && !firstName.trim() && backendFirstName) {
+      setFirstName(formatName(backendFirstName));
     }
-  }, [authUser, setFirstName, setLastName]);
+    if (!lastNameTouched && !lastName.trim() && backendLastName) {
+      setLastName(formatName(backendLastName));
+    }
+
+    // If still missing any name, try Google-provided givenName/familyName.
+    const shouldTryGoogle =
+      authUser &&
+      ((!firstNameTouched && !firstName.trim()) || (!lastNameTouched && !lastName.trim()));
+
+    if (shouldTryGoogle) {
+      void initializeFromGoogle();
+    }
+
+    return () => {
+      isActive = false;
+    };
+  }, [authUser, userData, firstName, lastName, firstNameTouched, lastNameTouched, setFirstName, setLastName]);
 
   const handleInputChange = (field: 'firstName' | 'lastName' | 'contactNumber', value: string) => {
     let formattedValue = value;
@@ -80,9 +146,9 @@ const nameAndContactForm = () => {
 
     // Update Zustand store based on field
     if (field === 'firstName') {
-      setFirstName(formattedValue);
+      setFirstName(formattedValue, true);
     } else if (field === 'lastName') {
-      setLastName(formattedValue);
+      setLastName(formattedValue, true);
     } else if (field === 'contactNumber') {
       setContactNumber(formattedValue);
     }
@@ -201,6 +267,7 @@ const nameAndContactForm = () => {
         <View style={styles.inputContainer}>
           <View style={styles.inputPlaceholder}>
             <Text>First Name</Text>
+            <Text style={{ color: 'red' }}>*</Text>
             {errorMessage.firstName && <Text style={styles.errorText}>{errorMessage.firstName}</Text>}
           </View>
           <Input variant="outline" size="md" style={styles.inputStyle}>
@@ -215,6 +282,7 @@ const nameAndContactForm = () => {
         <View style={styles.inputContainer}>
           <View style={styles.inputPlaceholder}>
             <Text>Last Name</Text>
+            <Text style={{ color: 'red' }}>*</Text>
             {errorMessage.lastName && <Text style={styles.errorText}>{errorMessage.lastName}</Text>}
           </View>
           <Input variant="outline" size="md" style={styles.inputStyle}>
@@ -229,6 +297,7 @@ const nameAndContactForm = () => {
         <View style={styles.inputContainer}>
           <View style={styles.inputPlaceholder}>
             <Text>Contact Number</Text>
+            <Text style={{ color: 'red' }}>*</Text>
             {errorMessage.contactNumber && <Text style={styles.errorText}>{errorMessage.contactNumber}</Text>}
           </View>
           <Input variant="outline" size="md" style={styles.inputStyle}>
@@ -288,7 +357,7 @@ const styles = StyleSheet.create({
   inputPlaceholder: {
     flex: 1,
     flexDirection: 'row',
-    gap: 10,
+    gap: 5,
   },
   input: {
     height: 40,

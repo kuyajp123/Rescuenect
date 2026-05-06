@@ -30,6 +30,7 @@ import { Button, IconButton, ToggleButton } from '../button/Button';
 export interface TextInputField {
   key: string;
   label: string;
+  required?: boolean;
   placeholder: string;
   value: string;
   onChangeText: (text: string) => void;
@@ -43,6 +44,7 @@ export interface TextInputField {
 export interface NumberInputField {
   key: string;
   label: string;
+  required?: boolean;
   placeholder: string;
   value: string;
   onChangeText: (value: string) => void;
@@ -59,6 +61,7 @@ export interface RadioOption {
 
 export interface RadioField {
   key: string;
+  required?: boolean;
   label: string;
   options: RadioOption[];
   selectedValue: string;
@@ -662,7 +665,14 @@ const Map = ({
                 {textInputFields.map(field => (
                   <VStack key={field.key} style={{ marginBottom: 12 }}>
                     <HStack>
-                      <Text>{field.label}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Text>{field.label}</Text>
+                        {field.required && (
+                          <Text size="md" style={{ color: Colors.semantic.error }}>
+                            *
+                          </Text>
+                        )}
+                      </View>
                       {field.errorText && <Text style={styles.errorText}>{field.errorText}</Text>}
                     </HStack>
                     <TextInput
@@ -692,10 +702,17 @@ const Map = ({
                 {/* Number Input Fields */}
                 {numberInputFields.map(field => (
                   <VStack key={field.key} style={{ marginBottom: 12 }}>
-                    <HStack>
-                      <Text>{field.label}</Text>
-                      {field.errorText && <Text style={styles.errorText}>{field.errorText}</Text>}
-                    </HStack>
+                    <VStack>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Text>{field.label}</Text>
+                        {field.required && (
+                          <Text size="md" style={{ color: Colors.semantic.error }}>
+                            *
+                          </Text>
+                        )}
+                      </View>
+                      {field.errorText && <Text style={[styles.errorText, { marginLeft: 0 }]}>{field.errorText}</Text>}
+                    </VStack>
                     <TextInput
                       placeholder={field.placeholder}
                       value={field.value}
@@ -730,7 +747,14 @@ const Map = ({
                 {radioFields.map(field => (
                   <VStack key={field.key} style={{ marginBottom: 12 }}>
                     <HStack>
-                      <Text>{field.label}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Text>{field.label}</Text>
+                        {field.required && (
+                          <Text size="md" style={{ color: Colors.semantic.error }}>
+                            *
+                          </Text>
+                        )}
+                      </View>
                       {field.errorText && <Text style={styles.errorText}>{field.errorText}</Text>}
                     </HStack>
                     <View style={styles.radioGroup}>
