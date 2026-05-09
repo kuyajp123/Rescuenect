@@ -6,6 +6,7 @@ import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { ServerWakeUpScreen } from '@/components/ui/loading/ServerWakeUpScreen';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
+import '@/config/herouiNativeUniwindBridge';
 import { Colors } from '@/constants/Colors';
 import { FontSizeProvider, useFontSize } from '@/contexts/FontSizeContext';
 import { HighContrastProvider } from '@/contexts/HighContrastContext';
@@ -31,6 +32,7 @@ import MapboxGL from '@rnmapbox/maps';
 import axios from 'axios';
 import { useFonts } from 'expo-font';
 import { Stack, usePathname, useRouter } from 'expo-router';
+import { HeroUINativeProvider } from 'heroui-native';
 import { Bell } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { BackHandler, LogBox, StyleSheet, View } from 'react-native';
@@ -445,17 +447,19 @@ function LayoutContent() {
 
   return (
     <GestureHandlerRootView style={styles.gestureHandlerContainer}>
-      <ThemeProvider>
-        <FontSizeProvider>
-          <HighContrastProvider>
-            <SheetProvider>
-              <MapContext>
-                <RootLayoutNav />
-              </MapContext>
-            </SheetProvider>
-          </HighContrastProvider>
-        </FontSizeProvider>
-      </ThemeProvider>
+      <HeroUINativeProvider>
+        <ThemeProvider>
+          <FontSizeProvider>
+            <HighContrastProvider>
+              <SheetProvider>
+                <MapContext>
+                  <RootLayoutNav />
+                </MapContext>
+              </SheetProvider>
+            </HighContrastProvider>
+          </FontSizeProvider>
+        </ThemeProvider>
+      </HeroUINativeProvider>
     </GestureHandlerRootView>
   );
 }

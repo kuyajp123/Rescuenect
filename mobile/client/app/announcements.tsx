@@ -131,7 +131,7 @@ const WEBVIEW_AUTO_HEIGHT_SCRIPT = `
   true;
 `;
 
-const AnnouncementsScreen = () => {
+export const AnnouncementsScreen = () => {
   const { isDark } = useTheme();
   const { announcementId } = useLocalSearchParams<{ announcementId?: string | string[] }>();
   const [announcement, setAnnouncement] = useState<AnnouncementDataCard | null>(null);

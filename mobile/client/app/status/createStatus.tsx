@@ -111,9 +111,9 @@ export const createStatus = () => {
   const [bottomSheetAnimationTrigger, setBottomSheetAnimationTrigger] = useState(0);
   const [isManualSelection, setIsManualSelection] = useState(false); // Track if user is making manual ButtonRadio selection
   const isFormDataLoadingRef = useRef(false); // Track if we're loading formData coordinates
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null); // For debouncing coords address calls
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // For debouncing coords address calls
   const [isGPSselection, setIsGPSselection] = useState(false); // Track if user has selected GPS option
-  const debounceTimerRefGPS = useRef<NodeJS.Timeout | null>(null); // For debouncing GPS address calls
+  const debounceTimerRefGPS = useRef<ReturnType<typeof setTimeout> | null>(null); // For debouncing GPS address calls
   const isSavedLocationSelectionRef = useRef(false); // Track if user selected a saved location
   const lastFetchedCoordsRef = useRef<[number, number] | null>(null);
   const lastFetchedGPSRef = useRef<[number, number] | null>(null);

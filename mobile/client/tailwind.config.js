@@ -9,6 +9,8 @@ module.exports = {
     './constants/**/*.{js,jsx,ts,tsx}',
     './contexts/**/*.{js,jsx,ts,tsx}',
     './hooks/**/*.{js,jsx,ts,tsx}',
+    './node_modules/heroui-native/src/**/*.{js,jsx,ts,tsx}',
+    './node_modules/heroui-native/lib/**/*.{js,jsx,ts,tsx}',
   ],
   presets: [require('nativewind/preset')],
   safelist: [
@@ -137,6 +139,7 @@ module.exports = {
           950: 'rgb(var(--color-outline-950)/<alpha-value>)',
         },
         background: {
+          DEFAULT: 'rgb(var(--color-background)/<alpha-value>)',
           0: 'rgb(var(--color-background-0)/<alpha-value>)',
           50: 'rgb(var(--color-background-50)/<alpha-value>)',
           100: 'rgb(var(--color-background-100)/<alpha-value>)',
@@ -262,7 +265,33 @@ module.exports = {
           'on-secondary': 'rgb(var(--color-button-text-on-secondary)/<alpha-value>)',
           'on-secondary-dark': 'rgb(var(--color-button-text-on-secondary-dark)/<alpha-value>)',
           'on-disabled': 'rgb(var(--color-button-text-on-disabled)/<alpha-value>)',
-        }
+        },
+
+        // HeroUI Native semantic colors (NativeWind / Tailwind v3)
+        accent: {
+          DEFAULT: 'rgb(var(--color-accent)/<alpha-value>)',
+          hover: 'rgb(var(--color-accent-hover)/<alpha-value>)',
+          foreground: 'rgb(var(--color-accent-foreground)/<alpha-value>)',
+          soft: 'rgb(var(--color-accent)/0.15)',
+          'soft-foreground': 'rgb(var(--color-accent)/<alpha-value>)',
+        },
+        default: {
+          DEFAULT: 'rgb(var(--color-default)/<alpha-value>)',
+          hover: 'rgb(var(--color-default-hover)/<alpha-value>)',
+          foreground: 'rgb(var(--color-default-foreground)/<alpha-value>)',
+        },
+        danger: {
+          DEFAULT: 'rgb(var(--color-danger)/<alpha-value>)',
+          hover: 'rgb(var(--color-danger-hover)/<alpha-value>)',
+          foreground: 'rgb(var(--color-danger-foreground)/<alpha-value>)',
+          soft: 'rgb(var(--color-danger)/0.15)',
+          'soft-hover': 'rgb(var(--color-danger)/0.20)',
+          'soft-foreground': 'rgb(var(--color-danger)/<alpha-value>)',
+        },
+        border: {
+          DEFAULT: 'rgb(var(--color-border)/<alpha-value>)',
+        },
+        foreground: 'rgb(var(--color-foreground)/<alpha-value>)',
       },
       fontFamily: {
         heading: undefined,
@@ -285,6 +314,12 @@ module.exports = {
         '4xl': '36px',
         '5xl': '48px',
         '6xl': '64px',
+      },
+      borderRadius: {
+        '4xl': '2rem',
+      },
+      opacity: {
+        disabled: '0.5',
       },
       boxShadow: {
         'hard-1': '-2px 2px 8px 0px rgba(38, 38, 38, 0.20)',

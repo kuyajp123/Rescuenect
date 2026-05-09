@@ -91,6 +91,24 @@
   --color-button-overlay-medium: 0 0 0 0.1; /* rgba(0, 0, 0, 0.1) */
   --color-button-overlay-light-dark: 255 255 255 0.1; /* rgba(255, 255, 255, 0.1) */
   --color-button-overlay-medium-dark: 255 255 255 0.15; /* rgba(255, 255, 255, 0.15) */
+
+  /* HeroUI Native tokens (NativeWind / Tailwind v3) */
+  --color-background: var(--color-background-light);
+  --color-foreground: var(--color-text-light);
+
+  --color-accent: var(--color-primary-500);
+  --color-accent-hover: var(--color-button-primary-hover);
+  --color-accent-foreground: 255 255 255;
+
+  --color-default: var(--color-button-secondary-default);
+  --color-default-hover: var(--color-button-secondary-hover);
+  --color-default-foreground: var(--color-text-light);
+
+  --color-danger: var(--color-error-500);
+  --color-danger-hover: var(--color-button-error-hover);
+  --color-danger-foreground: 255 255 255;
+
+  --color-border: 228 228 231; /* zinc-200 */
 }
 
 /* Dark mode overrides */
@@ -99,6 +117,12 @@
     /* Brand Colors Dark Mode */
     --color-primary-500: 37 99 235; /* #2563eb - Updated brand dark color */
     --color-secondary-500: 218 158 34; /* Keep secondary color #da9e22 */
+
+    /* HeroUI Native tokens (NativeWind / Tailwind v3) */
+    --color-background: var(--color-background-dark);
+    --color-foreground: var(--color-text-dark);
+    --color-default-foreground: var(--color-text-dark);
+    --color-border: 63 63 70; /* zinc-700 */
     
     /* Override button colors to use dark variants by default in dark mode */
     --color-button-primary-default: var(--color-button-primary-dark-default);
