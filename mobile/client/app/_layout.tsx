@@ -1,7 +1,7 @@
 import '@/components/components/ActionSheet/sheets';
 import { HeaderBackButton, IconButton } from '@/components/components/button/Button';
-import Dialog from '@/components/components/Dialog';
 import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary';
+import Dialog from '@/components/ui/Dialog';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { ServerWakeUpScreen } from '@/components/ui/loading/ServerWakeUpScreen';
 import { STORAGE_KEYS } from '@/config/asyncStorage';

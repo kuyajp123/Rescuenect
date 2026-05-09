@@ -1,12 +1,12 @@
 import { getAddress } from '@/API/getAddress';
 import { Button } from '@/components/components/button/Button';
 import CustomImagePicker from '@/components/components/CustomImagePicker';
-import Dialog from '@/components/components/Dialog';
 import { ImageModal } from '@/components/components/image-modal/ImageModal';
 import Map, { CustomButton, NumberInputField, RadioField, TextInputField } from '@/components/components/Map';
 import StatusOnboarding from '@/components/components/onboarding/StatusOnboarding';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { ButtonRadio } from '@/components/ui/CustomRadio';
+import Dialog from '@/components/ui/Dialog';
 import Body from '@/components/ui/layout/Body';
 import { LoadingOverlay } from '@/components/ui/loading/LoadingOverlay';
 import StateImage from '@/components/ui/StateImage/StateImage';

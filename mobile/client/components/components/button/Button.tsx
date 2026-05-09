@@ -1,18 +1,20 @@
 import GoogleIMG from '@/assets/images/google/google.svg';
-import { Colors } from '@/constants/Colors';
+import { Colors, getButtonColor } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
+import { Button as HeroButton, Switch } from 'heroui-native';
 
 type ButtonProps = {
-  style?: object;
+  style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   action?: 'primary' | 'secondary' | 'success' | 'error' | 'warning';
   variant?: 'solid' | 'outline' | 'link';
   children?: React.ReactNode;
   className?: string;
-  isDark?: boolean; // <--- optional theme flag for outline mode
+  isDark?: boolean; // optional theme override
   context?: boolean;
   size?: 'md' | 'lg' | 'xl';
   justify?: 'start' | 'center' | 'end';
@@ -26,11 +28,14 @@ export const Button = ({
   variant = 'solid',
   children,
   className = '',
-  isDark = false,
+  isDark,
   size = 'lg',
   justify = 'center',
   width = 'full',
 }: ButtonProps) => {
+  const { isDark: themeIsDark } = useTheme();
+  const resolvedIsDark = isDark ?? themeIsDark;
+
   let sizeStyle = 'py-3';
   if (size === 'lg') {
     sizeStyle = 'py-4';
@@ -54,42 +59,72 @@ export const Button = ({
   if (variant === 'solid') {
     switch (action) {
       case 'primary':
-        actionStyle = 'bg-button-primary-default';
+        actionStyle = 'bg-button-primary-default active:bg-button-primary-pressed';
         break;
       case 'secondary':
-        actionStyle = 'bg-button-secondary-default';
+        actionStyle = 'bg-button-secondary-default active:bg-button-secondary-pressed';
         break;
       case 'success':
-        actionStyle = 'bg-button-success-default';
+        actionStyle = 'bg-button-success-default active:bg-button-success-pressed';
         break;
       case 'error':
-        actionStyle = 'bg-button-error-default';
+        actionStyle = 'bg-button-error-default active:bg-button-error-pressed';
         break;
       case 'warning':
-        actionStyle = 'bg-button-warning-default';
+        actionStyle = 'bg-button-warning-default active:bg-button-warning-pressed';
         break;
       default:
-        actionStyle = 'bg-button-primary-default';
+        actionStyle = 'bg-button-primary-default active:bg-button-primary-pressed';
     }
   }
 
   // Variant styles
   let variantStyle = '';
   if (variant === 'outline') {
-    variantStyle = `bg-transparent border-2 ${isDark ? 'border-text_dark-500' : 'border-zinc-400'}`;
+    variantStyle = `bg-transparent border-2 ${resolvedIsDark ? 'border-text_dark-500' : 'border-zinc-400'}`;
   } else if (variant === 'link') {
     variantStyle = 'bg-transparent';
   }
 
+  const flattenedStyle = StyleSheet.flatten(style as any) as ViewStyle | undefined;
+  const borderColor = (flattenedStyle as any)?.borderColor;
+
+  // Press feedback: use highlight overlay tuned to our tokens.
+  const highlightBackgroundColor =
+    variant === 'solid'
+      ? getButtonColor(action, 'pressed', resolvedIsDark)
+      : typeof borderColor === 'string'
+        ? borderColor
+        : resolvedIsDark
+          ? Colors.button.overlay.mediumDark
+          : Colors.button.overlay.medium;
+
+  const highlightOpacity =
+    variant === 'solid'
+      ? 1
+      : typeof borderColor === 'string'
+        ? 0.2
+        : 1;
+
   return (
-    <Pressable
+    <HeroButton
+      // We provide our own colors via className + animation, so keep the underlying variant neutral.
+      variant="ghost"
+      feedbackVariant="scale-highlight"
+      animation={{
+        // Slightly stronger than the default for clearer press feedback
+        scale: { value: 0.98 },
+        highlight: {
+          backgroundColor: { value: highlightBackgroundColor },
+          opacity: { value: [0, highlightOpacity], timingConfig: { duration: 120 } },
+        },
+      }}
       className={`${baseStyle} ${actionStyle} ${variantStyle} ${className}`}
       style={style}
       onPress={onPress}
-      android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
     >
       {children}
-    </Pressable>
+    </HeroButton>
   );
 };
 
@@ -97,7 +132,7 @@ export const Button = ({
 export const OutlineButton = ({
   onPress,
   children,
-  isDark = false,
+  isDark,
   style,
   className = '',
 }: {
@@ -201,25 +236,35 @@ export const CustomOutlineButton = ({
   className?: string;
   width?: 'full' | 'auto' | 'fit';
   variant?: 'solid' | 'outline' | 'link';
-}) => (
-  <Button
-    variant={variant}
-    style={{ borderColor: color, width: width, borderWidth: 2, ...style }}
-    onPress={onPress}
-    className={className}
-  >
-    <Text style={{ color }}>{children || 'Custom Button'}</Text>
-  </Button>
-);
+}) => {
+  const resolvedWidth = width === 'full' ? ('100%' as const) : ('auto' as const);
+
+  return (
+    <Button
+      variant={variant}
+      style={{ borderColor: color, width: resolvedWidth, borderWidth: 2, ...(style as any) }}
+      onPress={onPress}
+      className={className}
+    >
+      <Text style={{ color }}>{children || 'Custom Button'}</Text>
+    </Button>
+  );
+};
 
 export const HoveredButton = ({ children, style, onPress, onLongPress }: ButtonProps & { onLongPress?: () => void }) => {
   const { isDark } = useTheme();
+  const pressedBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
 
   return (
     <Pressable
       android_ripple={{ color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
       onPress={onPress}
-      style={[style]}
+      style={({ pressed }) => [
+        style as any,
+        pressed && {
+          backgroundColor: pressedBg,
+        },
+      ]}
       onLongPress={onLongPress}
     >
       {children}
@@ -266,41 +311,42 @@ export const ToggleButton = ({
 }: {
   isEnabled: boolean;
   onToggle: () => void;
-  style?: object;
+  style?: StyleProp<ViewStyle>;
 }) => {
   const { isDark } = useTheme();
 
-  const toggleButtonStyle = [
-    {
-      width: 50,
-      height: 30,
-      borderRadius: 15,
-      justifyContent: 'center' as const,
-      position: 'relative' as const,
-      backgroundColor: isEnabled
-        ? isDark
-          ? Colors.brand.dark
-          : Colors.brand.light
-        : isDark
-        ? Colors.border.dark
-        : '#767577',
-    },
-    style,
-  ];
-
-  const toggleIndicatorStyle = {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    position: 'absolute' as const,
-    backgroundColor: isEnabled ? '#f4f3f4' : isDark ? Colors.text.dark : '#f4f3f4',
-    transform: [{ translateX: isEnabled ? 22 : 2 }],
-  };
+  const offColor = isDark ? Colors.border.dark : '#767577';
+  const onColor = isDark ? Colors.brand.dark : Colors.brand.light;
 
   return (
-    <Pressable style={toggleButtonStyle} onPress={onToggle} android_ripple={{ color: 'rgba(0,0,0,0.1)' }}>
-      <View style={toggleIndicatorStyle} />
-    </Pressable>
+    <Switch
+      isSelected={isEnabled}
+      onSelectedChange={() => onToggle()}
+      style={[
+        {
+          width: 50,
+          height: 30,
+        },
+        style,
+      ]}
+      animation={{
+        backgroundColor: { value: [offColor, onColor] },
+        // More noticeable press feedback for small controls
+        scale: { value: [1, 0.9], timingConfig: { duration: 120 } },
+      }}
+    >
+      <Switch.Thumb
+        animation={{
+          left: { value: 2 },
+          backgroundColor: { value: ['#f4f3f4', '#f4f3f4'] },
+        }}
+        style={{
+          width: 26,
+          height: 26,
+          borderRadius: 13,
+        }}
+      />
+    </Switch>
   );
 };
 

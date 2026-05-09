@@ -1,7 +1,7 @@
 import { getAddress } from '@/API/getAddress';
 import { Button } from '@/components/components/button/Button';
-import Dialog from '@/components/components/Dialog';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
+import Dialog from '@/components/ui/Dialog';
 import { Fab } from '@/components/ui/fab';
 import { HStack } from '@/components/ui/hstack';
 import Body from '@/components/ui/layout/Body';
