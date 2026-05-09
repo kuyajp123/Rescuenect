@@ -1,6 +1,6 @@
 import '@/components/components/ActionSheet/sheets';
 import { HeaderBackButton, IconButton } from '@/components/components/button/Button';
-import Modal from '@/components/components/Modal';
+import Dialog from '@/components/components/Dialog';
 import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { ServerWakeUpScreen } from '@/components/ui/loading/ServerWakeUpScreen';
@@ -22,8 +22,8 @@ import { useCurrentStatuses } from '@/hooks/useStatusSubscriber';
 import { subscribeToWeatherData } from '@/hooks/useWeatherData';
 import { FCMTokenService } from '@/services/fcmTokenService';
 import { useAuth } from '@/store/useAuth';
-import { useCoords } from '@/store/useCoords';
 import { useUserData } from '@/store/useBackendResponse';
+import { useCoords } from '@/store/useCoords';
 import { useNotificationStore } from '@/store/useNotificationStore';
 import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import { useStatusFormStore } from '@/store/useStatusForm';
@@ -306,8 +306,9 @@ function RootLayoutNav() {
       </Stack>
 
       {/* Exit Confirmation Modal */}
-      <Modal
+      <Dialog
         modalVisible={exitModalVisible}
+        size="full"
         onClose={() => setExitModalVisible(false)}
         primaryText="Exit App"
         secondaryText="Are you sure you want to exit Rescuenect?"
@@ -447,19 +448,19 @@ function LayoutContent() {
 
   return (
     <GestureHandlerRootView style={styles.gestureHandlerContainer}>
-      <HeroUINativeProvider>
-        <ThemeProvider>
-          <FontSizeProvider>
-            <HighContrastProvider>
+      <ThemeProvider>
+        <FontSizeProvider>
+          <HighContrastProvider>
+            <HeroUINativeProvider>
               <SheetProvider>
                 <MapContext>
                   <RootLayoutNav />
                 </MapContext>
               </SheetProvider>
-            </HighContrastProvider>
-          </FontSizeProvider>
-        </ThemeProvider>
-      </HeroUINativeProvider>
+            </HeroUINativeProvider>
+          </HighContrastProvider>
+        </FontSizeProvider>
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }

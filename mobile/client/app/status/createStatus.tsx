@@ -1,9 +1,9 @@
 import { getAddress } from '@/API/getAddress';
 import { Button } from '@/components/components/button/Button';
 import CustomImagePicker from '@/components/components/CustomImagePicker';
+import Dialog from '@/components/components/Dialog';
 import { ImageModal } from '@/components/components/image-modal/ImageModal';
 import Map, { CustomButton, NumberInputField, RadioField, TextInputField } from '@/components/components/Map';
-import Modal from '@/components/components/Modal';
 import StatusOnboarding from '@/components/components/onboarding/StatusOnboarding';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { ButtonRadio } from '@/components/ui/CustomRadio';
@@ -1100,7 +1100,9 @@ export const createStatus = () => {
     <View style={{ flex: 1, flexDirection: 'column' }} key="category-label-container">
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         <Text>Select which type of Category of your Status</Text>
-        <Text size="md" style={{ color: Colors.semantic.error }}>*</Text>
+        <Text size="md" style={{ color: Colors.semantic.error }}>
+          *
+        </Text>
       </View>
       <Text style={{ color: Colors.semantic.error }}>{formErrors.category}</Text>
     </View>,
@@ -1493,10 +1495,10 @@ export const createStatus = () => {
           onLocationClear={onLocationClear}
           errMessage={formErrors.errMessage || ''}
         />
-        <Modal
+        <Dialog
           modalVisible={modals.noChanges}
           onClose={() => toggleModal('noChanges', false)}
-          size="lg"
+          size="full"
           iconOnPress={() => toggleModal('noChanges', false)}
           sizeIcon={20}
           primaryButtonText="Close"
@@ -1505,10 +1507,10 @@ export const createStatus = () => {
           primaryText="No changes made"
           secondaryText="Your status remains the same as before."
         />
-        <Modal
+        <Dialog
           modalVisible={modals.errorFetchStatus}
           onClose={handleErrorModalClose}
-          size="lg"
+          size="full"
           iconOnPress={handleErrorModalClose}
           sizeIcon={20}
           primaryButtonText="Close"
@@ -1517,13 +1519,15 @@ export const createStatus = () => {
           primaryText="Oops! Something went wrong."
           secondaryText="We couldn’t load the details right now. Please try again later."
         />
-        <Modal
+        <Dialog
           modalVisible={modals.noNetwork}
           onClose={() => toggleModal('noNetwork', false)}
-          size="lg"
+          size="full"
           iconOnPress={() => toggleModal('noNetwork', false)}
           sizeIcon={20}
           primaryButtonText="Continue"
+          primaryButtonAction="primary"
+          primaryButtonVariant="solid"
           primaryButtonOnPress={() => sendSMS()}
           secondaryButtonText="Cancel"
           secondaryButtonOnPress={() => toggleModal('noNetwork', false)}
@@ -1531,10 +1535,10 @@ export const createStatus = () => {
           primaryText={authUser ? 'No Internet Connection' : 'You are in Guest Mode'}
           secondaryText="Would you like to send the details you entered through your messaging app instead?"
         />
-        <Modal
+        <Dialog
           modalVisible={modals.submitFailure}
           onClose={() => toggleModal('submitFailure', false)}
-          size="lg"
+          size="full"
           iconOnPress={() => toggleModal('submitFailure', false)}
           sizeIcon={20}
           primaryButtonText="Continue"
@@ -1545,10 +1549,11 @@ export const createStatus = () => {
           primaryText={submitError.title}
           secondaryText={`${submitError.message}\n\nWould you like to send the details you entered through your messaging app instead?`}
         />
-        <Modal
+        <Dialog
           modalVisible={modals.savedLocation}
           onClose={() => toggleModal('savedLocation', false)}
           size="full"
+          headerTitle={savedLocations.length > 0 ? 'Choose your Locations' : undefined}
           iconOnPress={() => toggleModal('savedLocation', false)}
           sizeIcon={20}
           items={savedLocations.map(loc => ({
@@ -1571,6 +1576,8 @@ export const createStatus = () => {
             },
           }))}
           primaryButtonText="Add New Location"
+          primaryButtonAction="primary"
+          primaryButtonVariant="solid"
           primaryButtonOnPress={() => {
             toggleModal('savedLocation', false);
             router.push('profile/(saveLocation)' as any);
@@ -1587,11 +1594,12 @@ export const createStatus = () => {
               </Text>
             </View>
           )}
-        </Modal>
-        <Modal
+        </Dialog>
+        <Dialog
           modalVisible={modals.deleteConfirm}
           onClose={() => toggleModal('deleteConfirm', false)}
-          size="lg"
+          size="full"
+          showCloseButton={true}
           iconOnPress={() => toggleModal('deleteConfirm', false)}
           sizeIcon={20}
           primaryButtonText="Confirm"

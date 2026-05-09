@@ -1,6 +1,6 @@
 import { getAddress } from '@/API/getAddress';
 import { Button } from '@/components/components/button/Button';
-import Modal from '@/components/components/Modal';
+import Dialog from '@/components/components/Dialog';
 import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { Fab } from '@/components/ui/fab';
 import { HStack } from '@/components/ui/hstack';
@@ -535,7 +535,7 @@ const SaveLocationScreen = () => {
 
       <LoadingOverlay visible={deleteLoading} message="Deleting..." />
 
-      <Modal
+      <Dialog
         modalVisible={deleteModalVisible}
         onClose={() => setDeleteModalVisible(false)}
         primaryText="Delete Location"
