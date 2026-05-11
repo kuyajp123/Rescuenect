@@ -1,4 +1,4 @@
-import { tva } from '@gluestack-ui/utils/nativewind-utils';
+import { tv as tva } from 'tailwind-variants';
 
 export const skeletonStyle = tva({
   base: 'w-full h-full',

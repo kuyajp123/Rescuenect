@@ -1,10 +1,10 @@
-import { PrimaryButton } from '@/components/components/button/Button';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
 import { ColorCombinations } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useStatusStore } from '@/store/useCurrentStatusStore';
 import { useRouter } from 'expo-router';
+import { Button } from 'heroui-native/button';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -104,11 +104,16 @@ export const CommunityStatus = () => {
               />
             </View>
           </View>
-          <PrimaryButton onPress={() => router.push('post/status' as any)}>
+          <Button
+            style={{
+              borderRadius: 10,
+            }}
+            onPress={() => router.push('post/status' as any)}
+          >
             <Text style={{ color: '#ffffff' }} bold>
               View all Status
             </Text>
-          </PrimaryButton>
+          </Button>
         </View>
       </VStack>
     </View>

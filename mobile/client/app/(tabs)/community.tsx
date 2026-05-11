@@ -1,4 +1,4 @@
-import { Button } from '@/components/components/button/Button';
+import { Button } from 'heroui-native/button';
 import { CommunityStatus } from '@/components/components/community-status/communityStatus';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
@@ -25,7 +25,7 @@ const community = () => {
           Residents can check if the center is open, how many people it can still accommodate, and what basic facilities
           are available, helping families make informed evacuation decisions.
         </Text>
-        <Button onPress={() => router.push('/evacuation')}>
+        <Button style={{ borderRadius: 10 }} onPress={() => router.push('/evacuation')}>
           <Text style={{ color: '#ffffff' }} bold>
             View Evacuation Center
           </Text>

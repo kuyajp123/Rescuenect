@@ -2,18 +2,16 @@ import { ToggleButton } from '@/components/components/button/Button';
 import NavigationButton from '@/components/components/button/NavigationButton';
 import { storageHelpers } from '@/helper/storage';
 import { useStatusFormStore } from '@/store/useStatusForm';
-import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { CustomRadio } from '@/components/ui/CustomRadio';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { useFocusEffect } from '@react-navigation/native';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 const statusSettings = () => {
   const formData = useStatusFormStore(state => state.formData);
-  const scaleValue = useRef(new Animated.Value(0)).current;
   const options = [
     { key: '24 hours', value: 24 },
     { key: '12 hours', value: 12 },
@@ -22,7 +20,6 @@ const statusSettings = () => {
   const [selectedDuration, setSelectedDuration] = useState<string | number>(options[0].value);
   const [enabledShareLocation, setEnabledShareLocation] = useState(formData?.shareLocation ?? true);
   const [enabledShareContactNumber, setEnabledShareContactNumber] = useState(formData?.shareContact ?? true);
-  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   const LoadStorage = async () => {
     const expirationDuration = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'expirationDuration');
@@ -55,27 +52,6 @@ const statusSettings = () => {
       });
     }, [formData])
   );
-
-  // Auto hide after 3 seconds
-  useEffect(() => {
-    if (showSuccessDialog) {
-      const timer = setTimeout(() => {
-        handleClose();
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [showSuccessDialog]);
-
-  const handleClose = () => {
-    // Scale out animation
-    Animated.timing(scaleValue, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      setShowSuccessDialog(false);
-    });
-  };
 
   const saveStorage = async (key: string, value: any) => {
     await storageHelpers.setField(STORAGE_KEYS.USER_SETTINGS, key, value);
@@ -151,11 +127,6 @@ const statusSettings = () => {
 
       {/* Temporary */}
       {/* {conditionalUpdateButtonRender()} */}
-      <CustomAlertDialog
-        showAlertDialog={showSuccessDialog}
-        handleClose={handleClose}
-        text="Status submitted successfully!"
-      />
     </Body>
   );
 };

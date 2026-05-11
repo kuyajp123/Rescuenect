@@ -1,4 +1,4 @@
-import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
+
 import { useTheme } from '@/contexts/ThemeContext';
 import { Stack } from 'expo-router';
 import React from 'react';
@@ -6,7 +6,7 @@ import React from 'react';
 export const _layout = () => {
   const { isDark } = useTheme();
   return (
-    <GluestackUIProvider mode={isDark ? 'dark' : 'light'}>
+    <>
       <Stack>
         <Stack.Screen
           name="signIn"
@@ -38,7 +38,7 @@ export const _layout = () => {
           }}
         />
       </Stack>
-    </GluestackUIProvider>
+    </>
   );
 };
 

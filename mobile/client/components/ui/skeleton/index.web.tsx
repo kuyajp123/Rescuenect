@@ -1,7 +1,7 @@
 import React from 'react';
 import { skeletonStyle, skeletonTextStyle } from './styles';
 
-import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
+import type { VariantProps } from 'tailwind-variants';
 
 type ISkeletonProps = React.ComponentPropsWithoutRef<'div'> &
   VariantProps<typeof skeletonStyle> & {

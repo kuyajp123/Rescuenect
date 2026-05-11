@@ -1,13 +1,12 @@
 import { Card } from '@/components/components/card/Card';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
-import { Badge, BadgeIcon, BadgeText } from '@/components/ui/badge';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
 import { ColorCombinations } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { loggedInUser, User } from '@/types/components';
 import { useRouter } from 'expo-router';
-import { CircleCheck, CircleQuestionMark, Info, ShieldCheck } from 'lucide-react-native';
+import { Chip } from 'heroui-native';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -78,37 +77,24 @@ export const StatusIndicator = ({ userStatus, loggedInUser }: StatusIndicatorPro
 
               {/* Status badge section */}
               <Box style={styles.statusSection}>
-                <Badge
+                <Chip
                   size="sm"
-                  action={
+                  color={
                     userStatus.condition == 'evacuated'
-                      ? 'info'
+                      ? 'accent'
                       : userStatus.condition == 'safe'
-                      ? 'success'
-                      : userStatus.condition == 'missing'
-                      ? 'error'
-                      : userStatus.condition == 'affected'
-                      ? 'warning'
-                      : 'muted'
+                        ? 'success'
+                        : userStatus.condition == 'missing'
+                          ? 'danger'
+                          : userStatus.condition == 'affected'
+                            ? 'danger'
+                            : 'default'
                   }
-                  variant="solid"
+                  variant="primary"
                   style={styles.statusBadge}
                 >
-                  <BadgeIcon
-                    as={
-                      userStatus.condition == 'evacuated'
-                        ? ShieldCheck
-                        : userStatus.condition == 'safe'
-                        ? CircleCheck
-                        : userStatus.condition == 'affected'
-                        ? Info
-                        : userStatus.condition == 'missing'
-                        ? CircleQuestionMark
-                        : undefined
-                    }
-                  />
-                  <BadgeText>{userStatus.condition}</BadgeText>
-                </Badge>
+                  <Chip.Label>{userStatus.condition}</Chip.Label>
+                </Chip>
               </Box>
             </Box>
           </Card>

@@ -1,5 +1,5 @@
-import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { Text } from '@/components/ui/text';
+import { useAppToast } from '@/components/ui/Toast';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -27,7 +27,7 @@ import {
   Zap,
 } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
 type ContactAction = 'call' | 'copy' | 'link' | 'display';
 type CategoryType = 'Emergency Hotline' | 'Contact Information';
@@ -104,8 +104,7 @@ interface MainHotlineAndContactProps {
 
 export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactProps = {}) => {
   const { isDark } = useTheme();
-  const [showAlertDialog, setShowAlertDialog] = useState(false);
-  const scaleValue = useRef(new Animated.Value(0)).current;
+  const { showSuccess } = useAppToast();
   const authUser = useAuth(state => state.authUser);
   const authLoading = useAuth(state => state.isLoading);
   const [categories, setCategories] = useState<ContactCategory[]>([]);
@@ -195,38 +194,6 @@ export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactP
     [authLoading, applyContacts, docRef, persistCache]
   );
 
-  const handleClose = () => {
-    // Scale out animation
-    Animated.timing(scaleValue, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      setShowAlertDialog(false);
-    });
-  };
-
-  const showAlert = () => {
-    setShowAlertDialog(true);
-    // Scale in animation with bounce
-    Animated.spring(scaleValue, {
-      toValue: 1,
-      tension: 100,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  // Auto hide after 3 seconds
-  useEffect(() => {
-    if (showAlertDialog) {
-      const timer = setTimeout(() => {
-        handleClose();
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [showAlertDialog]);
-
   useEffect(() => {
     if (authLoading) return;
     const uidKey = authUser?.uid ?? '__guest__';
@@ -308,7 +275,7 @@ export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactP
   const copyValue = async (value: string) => {
     if (!value) return;
     await Clipboard.setStringAsync(value);
-    showAlert();
+    showSuccess('Contact Copied to Clipboard!');
   };
 
   const openInAppBrowser = async (url: string) => {
@@ -551,13 +518,6 @@ export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactP
           official government channels.
         </Text>
       </View>
-
-      {/* Success Alert Dialog */}
-      <CustomAlertDialog
-        showAlertDialog={showAlertDialog}
-        handleClose={handleClose}
-        text="Contact Copied to Clipboard!"
-      />
     </View>
   );
 };

@@ -66,8 +66,8 @@ const signIn = () => {
           </View>
           <View style={styles.buttons}>
             <GoogleButton onValidate={handleValidate} />
-            <Button action="secondary" onPress={handleGuestLogin}>
-              <Text>Continue as a guest</Text>
+            <Button variant="solid" action="secondary" onPress={handleGuestLogin}>
+              <Text style={{ color: 'white' }}>Continue as a guest</Text>
             </Button>
           </View>
           <View style={styles.checkboxContainer}>

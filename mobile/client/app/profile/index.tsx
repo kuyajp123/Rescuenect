@@ -1,4 +1,5 @@
-import { Button } from '@/components/components/button/Button';
+// import { Button } from '@/components/components/button/Button';
+import { Button } from 'heroui-native/button';
 import { StatusTemplate } from '@/components/components/PostTemplate/StatusTemplate';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
@@ -78,9 +79,7 @@ const index = () => {
       </View>
       <View style={styles.buttons}>
         <Button
-          variant="solid"
-          width="full"
-          style={{ marginTop: 20, flex: 1 }}
+          style={{ marginTop: 20, flex: 1, borderRadius: 10 }}
           onPress={() => router.push('profile/(saveLocation)' as any)}
         >
           <MapPinPlus size={16} style={{ marginRight: 8 }} color={'white'} />
@@ -89,9 +88,8 @@ const index = () => {
           </Text>
         </Button>
         <Button
-          action="secondary"
-          width="fit"
-          style={{ marginLeft: 10, marginTop: 20 }}
+          variant="secondary"
+          style={[{ marginLeft: 10, marginTop: 20 }, { borderRadius: 10 }]}
           onPress={() => {
             router.push('profile/profileDetails' as any);
           }}

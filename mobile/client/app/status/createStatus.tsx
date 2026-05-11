@@ -4,9 +4,9 @@ import CustomImagePicker from '@/components/components/CustomImagePicker';
 import { ImageModal } from '@/components/components/image-modal/ImageModal';
 import Map, { CustomButton, NumberInputField, RadioField, TextInputField } from '@/components/components/Map';
 import StatusOnboarding from '@/components/components/onboarding/StatusOnboarding';
-import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { ButtonRadio } from '@/components/ui/CustomRadio';
 import Dialog from '@/components/ui/Dialog';
+import { useAppToast } from '@/components/ui/Toast';
 import Body from '@/components/ui/layout/Body';
 import { LoadingOverlay } from '@/components/ui/loading/LoadingOverlay';
 import StateImage from '@/components/ui/StateImage/StateImage';
@@ -55,7 +55,6 @@ const areCoordsEqual = (a: [number, number] | null, b: [number, number] | null) 
 
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
-  const scaleValue = useRef(new Animated.Value(0)).current;
   const image = useImagePickerStore(state => state.image);
   const setImagePickerImage = useImagePickerStore(state => state.setImage);
   const isOnline = useNetwork(state => state.isOnline);
@@ -63,6 +62,8 @@ export const createStatus = () => {
   const { setCameraCenter } = useMap();
   const authUser = useAuth(state => state.authUser);
   const router = useRouter();
+  const { showSuccess } = useAppToast();
+  const TOAST_AFTER_MODAL_DISMISS_MS = 350;
 
   // Onboarding
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -164,8 +165,6 @@ export const createStatus = () => {
     noChanges: false,
     errorFetchStatus: errorFetching,
     noNetwork: false,
-    submitSuccess: false,
-    deleteSuccess: false,
     deleteConfirm: false,
     submitFailure: false,
     isImageModalVisible: false,
@@ -181,25 +180,6 @@ export const createStatus = () => {
   const toggleModal = (name: keyof typeof modals, value: boolean) => {
     setModals(prev => ({ ...prev, [name]: value }));
   };
-
-  // Auto hide after 3 seconds
-  useEffect(() => {
-    if (modals.submitSuccess) {
-      const timer = setTimeout(() => {
-        handleClose();
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [modals.submitSuccess]);
-
-  useEffect(() => {
-    if (modals.deleteSuccess) {
-      const timer = setTimeout(() => {
-        handleClose();
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [modals.deleteSuccess]);
 
   const getStorage = async () => {
     try {
@@ -827,6 +807,7 @@ export const createStatus = () => {
     }
 
     // Submit form online
+    let pendingSuccessToastLabel: string | null = null;
     try {
       const response = await axios.post(API_ROUTES.STATUS.SAVE_STATUS, statusData, {
         headers: {
@@ -850,8 +831,7 @@ export const createStatus = () => {
         createdAt: response.data?.data?.createdAt,
       });
       setOneTimeLocationCoords(null);
-      toggleModal('submitSuccess', true);
-      showAlert();
+      pendingSuccessToastLabel = 'Status submitted successfully!';
     } catch (error: any) {
       console.error('Error submitting form:', error);
 
@@ -860,9 +840,12 @@ export const createStatus = () => {
 
       setSubmitError({ title, message });
       toggleModal('submitFailure', true);
-      setSubmitStatusLoading(false);
     } finally {
       setSubmitStatusLoading(false);
+      if (pendingSuccessToastLabel) {
+        const label = pendingSuccessToastLabel;
+        setTimeout(() => showSuccess(label), TOAST_AFTER_MODAL_DISMISS_MS);
+      }
     }
   };
 
@@ -1275,29 +1258,6 @@ export const createStatus = () => {
     setAddressCoords(null); // Clear tapped location address
   };
 
-  const handleClose = () => {
-    // Scale out animation
-    Animated.timing(scaleValue, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      toggleModal('submitSuccess', false);
-      toggleModal('deleteSuccess', false);
-    });
-  };
-
-  const showAlert = () => {
-    toggleModal('submitSuccess', true);
-    // Scale in animation with bounce
-    Animated.spring(scaleValue, {
-      toValue: 1,
-      tension: 100,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
-  };
-
   const sendSMS = () => {
     const { firstName, lastName, condition, phoneNumber, lat, lng, location, note, category, people } = statusForm;
 
@@ -1374,6 +1334,7 @@ export const createStatus = () => {
 
     setSubmitStatusLoading(true);
 
+    let pendingSuccessToastLabel: string | null = null;
     try {
       const response = await axios.delete(`${API_ROUTES.STATUS.DELETE_STATUS}/${authUser.uid}`, {
         data: { parentId: formData.parentId },
@@ -1405,7 +1366,7 @@ export const createStatus = () => {
         // Clear image picker
         setImagePickerImage(null);
 
-        toggleModal('deleteSuccess', true);
+        pendingSuccessToastLabel = 'Status deleted successfully!';
         toggleModal('deleteConfirm', false);
       }
     } catch (error) {
@@ -1414,6 +1375,10 @@ export const createStatus = () => {
       toggleModal('submitFailure', true);
     } finally {
       setSubmitStatusLoading(false);
+      if (pendingSuccessToastLabel) {
+        const label = pendingSuccessToastLabel;
+        setTimeout(() => showSuccess(label), TOAST_AFTER_MODAL_DISMISS_MS);
+      }
     }
   };
 
@@ -1609,16 +1574,6 @@ export const createStatus = () => {
           secondaryButtonText="Cancel"
           secondaryButtonOnPress={() => toggleModal('deleteConfirm', false)}
           primaryText="Are you sure you want to delete this status?"
-        />
-        <CustomAlertDialog
-          showAlertDialog={modals.submitSuccess}
-          handleClose={handleClose}
-          text="Status submitted successfully!"
-        />
-        <CustomAlertDialog
-          showAlertDialog={modals.deleteSuccess}
-          handleClose={handleClose}
-          text="Status deleted successfully!"
         />
       </Body>
       <LoadingOverlay visible={submitStatusLoading} message="Saving your status..." />

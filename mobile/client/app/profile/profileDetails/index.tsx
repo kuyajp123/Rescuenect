@@ -1,11 +1,11 @@
 import { IconButton } from '@/components/components/button/Button';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
-import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { Divider } from '@/components/ui/divider';
 import { HStack } from '@/components/ui/hstack';
 import Body from '@/components/ui/layout/Body';
 import { Modal, ModalBackdrop, ModalBody, ModalCloseButton, ModalContent, ModalHeader } from '@/components/ui/modal';
 import { Text } from '@/components/ui/text';
+import { useAppToast } from '@/components/ui/Toast';
 import { VStack } from '@/components/ui/vstack';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
@@ -128,10 +128,7 @@ const ProfileDetails = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-
-  // Alert State
-  const [showAlertDialog, setShowAlertDialog] = useState(false);
-  const [alertMessage, setAlertMessage] = useState('');
+  const { showSuccess } = useAppToast();
 
   // Form State
   const [formData, setFormData] = useState({
@@ -208,14 +205,7 @@ const ProfileDetails = () => {
 
       setIsEditing(false);
 
-      // Show Custom Alert
-      setAlertMessage('Profile updated successfully');
-      setShowAlertDialog(true);
-
-      // Auto close after 2 seconds
-      setTimeout(() => {
-        setShowAlertDialog(false);
-      }, 2000);
+      showSuccess('Profile updated successfully');
     } catch (error) {
       console.error('Error updating profile:', error);
       Alert.alert('Error', 'Failed to update profile. Please try again.');
@@ -492,13 +482,6 @@ const ProfileDetails = () => {
           </ModalBody>
         </ModalContent>
       </Modal>
-
-      {/* Custom Alert Dialog */}
-      <CustomAlertDialog
-        showAlertDialog={showAlertDialog}
-        handleClose={() => setShowAlertDialog(false)}
-        text={alertMessage}
-      />
     </Body>
   );
 };

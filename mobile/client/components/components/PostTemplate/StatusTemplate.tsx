@@ -1,6 +1,5 @@
 import { ImageModal } from '@/components/components/image-modal/ImageModal';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
-import { Badge, BadgeIcon, BadgeText } from '@/components/ui/badge';
 import { Box } from '@/components/ui/box';
 import { Divider } from '@/components/ui/divider';
 import { Text } from '@/components/ui/text';
@@ -9,15 +8,8 @@ import { ColorCombinations } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { StatusData } from '@/types/components';
 import { Image } from 'expo-image';
-import {
-  CircleCheck,
-  CircleQuestionMark,
-  Info,
-  MapPin,
-  Phone,
-  ShieldCheck,
-  Users,
-} from 'lucide-react-native';
+import { Chip } from 'heroui-native';
+import { MapPin, Phone, Users } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 
@@ -106,8 +98,7 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
     <Box style={[styles.container, dynamicStyles.container, style]} key={uid}>
       <VStack space="sm">
         {/* Header with menu icon */}
-        <Box style={styles.header}>
-        </Box>
+        <Box style={styles.header}></Box>
 
         {/* Main content row */}
         <Box style={styles.mainContent}>
@@ -142,37 +133,26 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
 
           {/* Status badge section */}
           <Box style={styles.statusSection}>
-            <Badge
+            <Chip
               size="sm"
-              action={
+              color={
                 condition == 'evacuated'
-                  ? 'info'
+                  ? 'accent'
                   : condition == 'safe'
-                  ? 'success'
-                  : condition == 'missing'
-                  ? 'error'
-                  : condition == 'affected'
-                  ? 'warning'
-                  : 'muted'
+                    ? 'success'
+                    : condition == 'missing'
+                      ? 'danger'
+                      : condition == 'affected'
+                        ? 'warning'
+                        : 'default'
               }
-              variant="solid"
+              variant="primary"
               style={styles.statusBadge}
             >
-              <BadgeIcon
-                as={
-                  condition == 'evacuated'
-                    ? ShieldCheck
-                    : condition == 'safe'
-                    ? CircleCheck
-                    : condition == 'affected'
-                    ? Info
-                    : condition == 'missing'
-                    ? CircleQuestionMark
-                    : undefined
-                }
-              />
-              <BadgeText>{condition}</BadgeText>
-            </Badge>
+              <Text bold style={{ color: 'white' }}>
+                {condition}
+              </Text>
+            </Chip>
           </Box>
         </Box>
 

@@ -1,20 +1,16 @@
-import { ImageModal } from "@/components/components/image-modal/ImageModal";
-import type { StatusTemplateProps } from "@/types/components";
-import {
-  Avatar,
-  AvatarFallbackText,
-  AvatarImage,
-} from "@/components/ui/avatar";
-import { Badge, BadgeText } from "@/components/ui/badge";
-import { Box } from "@/components/ui/box";
+import { ImageModal } from '@/components/components/image-modal/ImageModal';
+import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
+import { VStack } from '@/components/ui/vstack';
+import { ColorCombinations } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { StatusTemplateProps } from '@/types/components';
 import { Image } from 'expo-image';
-import { Text } from "@/components/ui/text";
-import { VStack } from "@/components/ui/vstack";
-import { ColorCombinations } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
-import { Ellipsis } from "lucide-react-native";
-import React, { useState } from "react";
-import { StyleSheet, TouchableOpacity } from "react-native";
+import { Chip } from 'heroui-native';
+import { Ellipsis } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 
 export const DonnationPostTemplate = ({
   style,
@@ -44,12 +40,10 @@ export const DonnationPostTemplate = ({
   // Dynamic styles based on theme
   const dynamicStyles = {
     container: {
-      backgroundColor: isDark
-        ? ColorCombinations.statusTemplate.dark
-        : ColorCombinations.statusTemplate.light,
+      backgroundColor: isDark ? ColorCombinations.statusTemplate.dark : ColorCombinations.statusTemplate.light,
     },
     ellipsisIcon: {
-      color: isDark ? "#A6A6A6" : "#5B5B5B",
+      color: isDark ? '#A6A6A6' : '#5B5B5B',
     },
   };
 
@@ -94,14 +88,9 @@ export const DonnationPostTemplate = ({
 
           {/* Status badge section */}
           <Box style={styles.statusSection}>
-            <Badge
-              size="sm"
-              action={"muted"}
-              variant="solid"
-              style={styles.statusBadge}
-            >
-              <BadgeText>{category}</BadgeText>
-            </Badge>
+            <Chip size="sm" color="default" variant="primary" style={styles.statusBadge}>
+              <Chip.Label>{category}</Chip.Label>
+            </Chip>
           </Box>
         </Box>
 
@@ -169,23 +158,23 @@ const styles = StyleSheet.create({
 
   // Header styles
   header: {
-    flexDirection: "row-reverse",
+    flexDirection: 'row-reverse',
   },
 
   // Main content styles
   mainContent: {
     flex: 1,
-    flexDirection: "row",
-    height: "auto",
-    width: "100%",
+    flexDirection: 'row',
+    height: 'auto',
+    width: '100%',
   },
 
   // User section styles
   userSection: {
-    width: "70%",
-    flexWrap: "wrap",
+    width: '70%',
+    flexWrap: 'wrap',
     gap: 8,
-    flexDirection: "row",
+    flexDirection: 'row',
   },
 
   avatarContainer: {
@@ -193,86 +182,86 @@ const styles = StyleSheet.create({
   },
 
   userInfo: {
-    width: "75%",
-    flexWrap: "wrap",
+    width: '75%',
+    flexWrap: 'wrap',
   },
 
   userName: {
-    maxWidth: "100%",
+    maxWidth: '100%',
   },
 
   timestamp: {
-    maxWidth: "100%",
+    maxWidth: '100%',
   },
 
   // Status section styles
   statusSection: {
-    width: "30%",
-    justifyContent: "flex-end",
-    alignItems: "flex-start",
-    flexDirection: "row",
-    height: "auto",
+    width: '30%',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    height: 'auto',
   },
 
   statusBadge: {
-    width: "auto",
-    height: "auto",
-    justifyContent: "center",
-    alignItems: "center",
+    width: 'auto',
+    height: 'auto',
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 8,
   },
 
   // Location section styles
   itemContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     paddingLeft: 40,
     gap: 8,
   },
 
   locationIconContainer: {
-    flexDirection: "row-reverse",
+    flexDirection: 'row-reverse',
     paddingTop: 5,
   },
 
   itemNameContent: {
     flex: 1,
-    flexWrap: "wrap",
-    maxWidth: "60%",
-    width: "100%",
+    flexWrap: 'wrap',
+    maxWidth: '60%',
+    width: '100%',
   },
 
   quantityContent: {
-    flexDirection: "row-reverse",
+    flexDirection: 'row-reverse',
     flex: 1,
-    flexWrap: "wrap",
+    flexWrap: 'wrap',
     width: 40,
-    maxWidth: "40%",
+    maxWidth: '40%',
   },
 
   ItemText: {
-    maxWidth: "100%",
+    maxWidth: '100%',
   },
 
   coordinateText: {
-    maxWidth: "100%",
+    maxWidth: '100%',
   },
 
   // Description section styles
   descriptionContainer: {
-    width: "100%",
+    width: '100%',
     paddingTop: 5,
     paddingLeft: 48,
-    flexDirection: "row",
+    flexDirection: 'row',
   },
 
   descriptionText: {
-    maxWidth: "85%",
+    maxWidth: '85%',
   },
 
   // Image section styles
   imageContainer: {
-    width: "100%",
-    flexDirection: "row",
+    width: '100%',
+    flexDirection: 'row',
     paddingLeft: 48,
   },
 
@@ -286,21 +275,21 @@ const styles = StyleSheet.create({
   },
 
   footerMainContainer: {
-    width: "100%",
-    flexDirection: "row",
-    justifyContent: "flex-end",
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
   },
 
   // People count section styles
   peopleSection: {
-    width: "50%",
-    flexDirection: "row",
+    width: '50%',
+    flexDirection: 'row',
     gap: 8,
   },
 
   peopleIconContainer: {
     width: 40,
-    flexDirection: "row-reverse",
+    flexDirection: 'row-reverse',
     paddingTop: 5,
   },
 
@@ -310,16 +299,16 @@ const styles = StyleSheet.create({
 
   // Contact section styles
   contactSection: {
-    width: "50%",
-    flexDirection: "row",
+    width: '50%',
+    flexDirection: 'row',
     gap: 8,
-    justifyContent: "flex-end",
-    alignItems: "flex-start",
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
   },
 
   contactIconContainer: {
     width: 40,
-    flexDirection: "row-reverse",
+    flexDirection: 'row-reverse',
     paddingTop: 5,
   },
 

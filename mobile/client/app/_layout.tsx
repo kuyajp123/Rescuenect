@@ -2,11 +2,11 @@ import '@/components/components/ActionSheet/sheets';
 import { HeaderBackButton, IconButton } from '@/components/components/button/Button';
 import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary';
 import Dialog from '@/components/ui/Dialog';
-import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
+
 import { ServerWakeUpScreen } from '@/components/ui/loading/ServerWakeUpScreen';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
-import '@/config/herouiNativeUniwindBridge';
+
 import { Colors } from '@/constants/Colors';
 import { FontSizeProvider, useFontSize } from '@/contexts/FontSizeContext';
 import { HighContrastProvider } from '@/contexts/HighContrastContext';
@@ -142,14 +142,14 @@ function RootLayoutNav() {
   // Show Wake-Up Screen if server is not ready yet
   if (!isServerReady) {
     return (
-      <GluestackUIProvider mode={isDark ? 'dark' : 'light'}>
+      <>
         <ServerWakeUpScreen onServerReady={() => setIsServerReady(true)} />
-      </GluestackUIProvider>
+      </>
     );
   }
 
   return (
-    <GluestackUIProvider mode={isDark ? 'dark' : 'light'}>
+    <>
       <Stack screenOptions={{ gestureEnabled: true }}>
         <Stack.Screen
           name="index"
@@ -320,7 +320,7 @@ function RootLayoutNav() {
         primaryButtonVariant="solid"
         iconOnPress={() => setExitModalVisible(false)}
       />
-    </GluestackUIProvider>
+    </>
   );
 }
 
@@ -451,7 +451,23 @@ function LayoutContent() {
       <ThemeProvider>
         <FontSizeProvider>
           <HighContrastProvider>
-            <HeroUINativeProvider>
+            <HeroUINativeProvider
+              config={{
+                toast: {
+                  defaultProps: {
+                    variant: 'accent',
+                    placement: 'top',
+                    isSwipeable: false,
+                  },
+                  insets: {
+                    top: 80,
+                    bottom: 20,
+                    left: 20,
+                    right: 20,
+                  },
+                },
+              }}
+            >
               <SheetProvider>
                 <MapContext>
                   <RootLayoutNav />

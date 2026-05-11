@@ -15,6 +15,8 @@ import { Uniwind } from 'uniwind';
 Uniwind.updateCSSVariables('light', {
   '--color-background': '#f8fafc',
   '--color-foreground': '#000000',
+  '--color-surface': '#ffffff',
+  '--color-muted': '#71717a',
   '--color-border': '#e4e4e7',
 
   '--color-accent': '#0ea5e9',
@@ -42,6 +44,8 @@ Uniwind.updateCSSVariables('light', {
 Uniwind.updateCSSVariables('dark', {
   '--color-background': '#171717',
   '--color-foreground': '#f2f2f2',
+  '--color-surface': '#262626',
+  '--color-muted': '#a3a3aa',
   '--color-border': '#3f3f46',
 
   '--color-accent': '#2563eb',
