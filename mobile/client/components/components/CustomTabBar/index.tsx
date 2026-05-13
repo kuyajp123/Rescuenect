@@ -76,7 +76,7 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
           pointerEvents="none"
           colors={
             isDark
-              ? ['rgba(255, 255, 255, 0.12)', 'rgba(255, 255, 255, 0)', 'rgba(0, 0, 0, 0.12)']
+              ? ['rgba(255, 255, 255, 0.06)', 'rgba(255, 255, 255, 0)', 'rgba(0, 0, 0, 0.16)']
               : ['rgba(255, 255, 255, 0.9)', 'rgba(255, 255, 255, 0)', 'rgba(0, 0, 0, 0.06)']
           }
           start={{ x: 0, y: 0 }}
@@ -87,7 +87,7 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
           pointerEvents="none"
           colors={
             isDark
-              ? ['rgba(255, 255, 255, 0.22)', 'rgba(255, 255, 255, 0.08)', 'rgba(255, 255, 255, 0)']
+              ? ['rgba(255, 255, 255, 0.12)', 'rgba(255, 255, 255, 0.04)', 'rgba(255, 255, 255, 0)']
               : ['rgba(255, 255, 255, 0.9)', 'rgba(255, 255, 255, 0.35)', 'rgba(255, 255, 255, 0)']
           }
           start={{ x: 0, y: 0 }}
@@ -250,13 +250,13 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
           end={{ x: 1, y: 1 }}
           style={styles.fabGradient}
         />
-        <LinearGradient
+        {/* <LinearGradient
           pointerEvents="none"
           colors={['rgba(255, 255, 255, 0.7)', 'rgba(255, 255, 255, 0.05)']}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={styles.fabGloss}
-        />
+        /> */}
         <Plus color="#FFFFFF" size={24} />
       </Pressable>
     </View>

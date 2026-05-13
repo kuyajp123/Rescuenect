@@ -6,9 +6,9 @@ import { useStatusStore } from '@/store/useCurrentStatusStore';
 import { useRouter } from 'expo-router';
 import { Button } from 'heroui-native/button';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { BarChart, PieChart } from 'react-native-gifted-charts';
 
-// Status Card Component
 type StatusKey = 'safe' | 'affected' | 'evacuated' | 'missing';
 
 const STATUS_DOT_COLORS: Record<StatusKey, string> = {
@@ -18,47 +18,79 @@ const STATUS_DOT_COLORS: Record<StatusKey, string> = {
   missing: Colors.semantic.error,
 };
 
-const StatusCard = ({
-  status,
-  count,
-  label,
-  onPress,
-  isDark,
-}: {
-  status: StatusKey;
-  count: number;
-  label: string;
-  onPress: () => void;
-  isDark: boolean;
-}) => {
-  const dotColor = STATUS_DOT_COLORS[status];
-
-  return (
-    <TouchableOpacity
-      style={[styles.statusCard, isDark ? styles.statusCardDark : styles.statusCardLight]}
-      activeOpacity={0.8}
-      onPress={onPress}
-    >
-      <View style={styles.statusHeader}>
-        <View style={[styles.statusDot, { backgroundColor: dotColor, borderColor: dotColor }]} />
-        <Text>{label}</Text>
-      </View>
-      <View style={styles.statusContent}>
-        <Text size="xl">{count}</Text>
-      </View>
-      <View>
-        <Text emphasis="light" size="2xs">
-          Individual
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
-};
-
 export const CommunityStatus = () => {
   const { isDark } = useTheme();
   const router = useRouter();
-  const { statusCounts, statusesByCondition } = useStatusStore();
+  const { statusCounts, statusData } = useStatusStore();
+  const totalCount = Object.values(statusCounts).reduce((sum, value) => sum + value, 0);
+
+  const formatCategoryLabel = (value: string) => {
+    return value.replace(/-/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+  };
+
+  const normalizeCategories = (value: unknown) => {
+    if (Array.isArray(value)) {
+      return value.map(item => String(item)).filter(Boolean);
+    }
+
+    if (typeof value !== 'string') {
+      return [];
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return [];
+    }
+
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map(item => String(item)).filter(Boolean);
+        }
+      } catch {
+        return [];
+      }
+    }
+
+    return trimmed
+      .split(',')
+      .map(item => item.replace(/[\[\]"]+/g, '').trim())
+      .filter(Boolean);
+  };
+
+  const categoryCounts = statusData.reduce<Record<string, number>>((acc, status) => {
+    const categories = normalizeCategories((status as { category?: unknown }).category);
+    categories.forEach(item => {
+      acc[item] = (acc[item] || 0) + 1;
+    });
+    return acc;
+  }, {});
+
+  const barPalette = [
+    Colors.brand.light,
+    Colors.semantic.warning,
+    Colors.semantic.success,
+    Colors.semantic.error,
+    Colors.semantic.info,
+    Colors.icons.light,
+  ];
+  const barLabelWidth = 110;
+
+  const barData = Object.entries(categoryCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([label, value], index) => ({
+      value,
+      label: formatCategoryLabel(label),
+      frontColor: barPalette[index % barPalette.length],
+    }));
+
+  const pieData = [
+    { value: statusCounts.safe, color: STATUS_DOT_COLORS.safe, text: 'Safe' },
+    { value: statusCounts.affected, color: STATUS_DOT_COLORS.affected, text: 'Affected' },
+    { value: statusCounts.evacuated, color: STATUS_DOT_COLORS.evacuated, text: 'Evacuated' },
+    { value: statusCounts.missing, color: STATUS_DOT_COLORS.missing, text: 'Missing' },
+  ].filter(item => item.value > 0);
 
   return (
     <View>
@@ -67,7 +99,7 @@ export const CommunityStatus = () => {
         <View>
           <View
             style={[
-              styles.statusContainer,
+              styles.chartCard,
               {
                 backgroundColor: isDark
                   ? ColorCombinations.statusTemplate.dark
@@ -75,40 +107,102 @@ export const CommunityStatus = () => {
               },
             ]}
           >
-            <View style={styles.leftColumn}>
-              <StatusCard status="safe" count={statusCounts.safe} label="Safe" onPress={() => {}} isDark={isDark} />
-              <StatusCard
-                status="affected"
-                count={statusCounts.affected}
-                label="Affected"
-                onPress={() => {}}
-                isDark={isDark}
+            <Text size="sm" bold>
+              Status Categories
+            </Text>
+            {barData.length > 0 ? (
+              <BarChart
+                data={barData}
+                barWidth={16}
+                spacing={22}
+                initialSpacing={12}
+                endSpacing={16}
+                disableScroll={false}
+                showScrollIndicator
+                roundedTop
+                rotateLabel
+                xAxisTextNumberOfLines={1}
+                xAxisLabelsHeight={64}
+                labelsDistanceFromXaxis={16}
+                xAxisLabelsVerticalShift={12}
+                labelsExtraHeight={16}
+                yAxisLabelWidth={30}
+                hideYAxisText={false}
+                yAxisThickness={0}
+                xAxisThickness={0}
+                xAxisLabelTextStyle={{
+                  color: isDark ? Colors.text.dark : Colors.text.light,
+                  fontSize: 10,
+                  textAlign: 'left',
+                  width: barLabelWidth,
+                  alignSelf: 'center',
+                }}
+                yAxisTextStyle={{
+                  color: isDark ? Colors.text.dark : Colors.text.light,
+                  fontSize: 10,
+                  textAlign: 'right',
+                }}
               />
-            </View>
-
-            <View style={styles.rightColumn}>
-              <StatusCard
-                status="evacuated"
-                count={statusCounts.evacuated}
-                label="Evacuated"
-                onPress={() => {}}
-                isDark={isDark}
-              />
-              <StatusCard
-                status="missing"
-                count={statusCounts.missing}
-                label="Missing"
-                onPress={() => {}}
-                isDark={isDark}
-              />
-            </View>
+            ) : (
+              <Text size="2xs" emphasis="light" style={styles.emptyText}>
+                No category data yet.
+              </Text>
+            )}
           </View>
-          <Button
-            style={{
-              borderRadius: 10,
-            }}
-            onPress={() => router.push('post/status' as any)}
+
+          <View
+            style={[
+              styles.chartCard,
+              {
+                backgroundColor: isDark
+                  ? ColorCombinations.statusTemplate.dark
+                  : ColorCombinations.statusTemplate.light,
+              },
+            ]}
           >
+            <Text size="sm" bold>
+              Status Breakdown
+            </Text>
+            {totalCount > 0 ? (
+              <View style={styles.pieRow}>
+                <PieChart
+                  data={pieData}
+                  donut
+                  radius={58}
+                  innerRadius={36}
+                  centerLabelComponent={() => (
+                    <View style={styles.pieCenter}>
+                      <Text size="sm" bold>
+                        {totalCount}
+                      </Text>
+                      <Text size="2xs" emphasis="light">
+                        Total
+                      </Text>
+                    </View>
+                  )}
+                />
+                <View style={styles.legendColumn}>
+                  {pieData.map(item => (
+                    <View key={item.text} style={styles.legendRow}>
+                      <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+                      <Text size="2xs" style={styles.legendLabel}>
+                        {item.text}
+                      </Text>
+                      <Text size="2xs" style={styles.legendValue}>
+                        {item.value}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : (
+              <Text size="2xs" emphasis="light" style={styles.emptyText}>
+                No status data yet.
+              </Text>
+            )}
+          </View>
+
+          <Button style={styles.viewAllButton} onPress={() => router.push('post/status' as any)}>
             <Text style={{ color: '#ffffff' }} bold>
               View all Status
             </Text>
@@ -120,58 +214,48 @@ export const CommunityStatus = () => {
 };
 
 const styles = StyleSheet.create({
-  statusContainer: {
-    padding: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'stretch',
-    gap: 10,
-    marginBottom: 20,
-    borderRadius: 10,
-  },
-  leftColumn: {
-    flex: 1,
-    flexDirection: 'column',
-    alignItems: 'stretch',
-    gap: 10,
-  },
-  rightColumn: {
-    flex: 1,
-    flexDirection: 'column',
-    alignItems: 'stretch',
-    gap: 10,
-  },
-  statusCard: {
-    width: '100%',
+  chartCard: {
     padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 12,
+  },
+  pieRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  pieCenter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  legendColumn: {
+    flex: 1,
+    gap: 8,
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+  },
+  legendLabel: {
+    flex: 1,
+  },
+  legendValue: {
+    fontWeight: '600',
+  },
+  emptyText: {
+    textAlign: 'center',
+    paddingVertical: 8,
+  },
+  viewAllButton: {
     borderRadius: 10,
-    borderWidth: 1,
-  },
-  statusCardLight: {
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    borderColor: 'rgba(0, 0, 0, 0.08)',
-  },
-  statusCardDark: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-  },
-  statusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginBottom: 6,
-  },
-  statusDot: {
-    height: 10,
-    width: 10,
-    borderRadius: '50%',
-  },
-  statusContent: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    marginTop: 2,
   },
 });
 

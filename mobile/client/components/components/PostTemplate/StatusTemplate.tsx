@@ -3,7 +3,7 @@ import { Box } from '@/components/ui/box';
 import { Divider } from '@/components/ui/divider';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
-import { ColorCombinations } from '@/constants/Colors';
+import { ColorCombinations, Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { StatusData } from '@/types/components';
 import { Image } from 'expo-image';
@@ -23,6 +23,7 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
   firstName,
   lastName,
   condition,
+  category,
   createdAt,
   location,
   lat,
@@ -44,6 +45,43 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
   const handleCloseModal = () => {
     setIsImageModalVisible(false);
   };
+
+  const formatCategoryLabel = (value: string) => {
+    return value.replace(/-/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+  };
+
+  const normalizeCategories = (value: StatusData['category'] | string | null | undefined) => {
+    if (Array.isArray(value)) {
+      return value.map(item => String(item)).filter(Boolean);
+    }
+
+    if (typeof value !== 'string') {
+      return [];
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return [];
+    }
+
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map(item => String(item)).filter(Boolean);
+        }
+      } catch {
+        return [];
+      }
+    }
+
+    return trimmed
+      .split(',')
+      .map(item => item.replace(/[\[\]"]+/g, '').trim())
+      .filter(Boolean);
+  };
+
+  const categories = normalizeCategories(category);
 
   const formatDate = (
     timestamp:
@@ -168,6 +206,21 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
 
               {lat && <Text style={styles.coordinateText}>Latitude: {lat}</Text>}
             </Box>
+          </Box>
+        )}
+
+        {categories.length > 0 && (
+          <Box style={styles.categoryContainer}>
+            {categories.map(item => (
+              <Chip key={item} size="sm" variant="soft" color="default" style={styles.categoryChip}>
+                <Text
+                  size="2xs"
+                  style={[styles.categoryText, { color: isDark ? Colors.text.dark : Colors.text.light }]}
+                >
+                  {formatCategoryLabel(item)}
+                </Text>
+              </Chip>
+            ))}
           </Box>
         )}
 
@@ -336,6 +389,21 @@ const styles = StyleSheet.create({
     paddingTop: 5,
     paddingLeft: 48,
     flexDirection: 'row',
+  },
+  categoryContainer: {
+    width: '100%',
+    paddingTop: 6,
+    paddingLeft: 48,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  categoryChip: {
+    height: 26,
+    paddingHorizontal: 8,
+  },
+  categoryText: {
+    lineHeight: 14,
   },
 
   descriptionText: {
