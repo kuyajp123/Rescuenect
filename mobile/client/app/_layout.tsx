@@ -457,7 +457,7 @@ function LayoutContent() {
                   defaultProps: {
                     variant: 'accent',
                     placement: 'top',
-                    isSwipeable: false,
+                    isSwipeable: true,
                   },
                   insets: {
                     top: 80,

@@ -2,9 +2,10 @@ import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
-import { FileText, MapPin, Plus, CircleUserRound } from 'lucide-react-native';
+import { Button } from 'heroui-native/button';
+import { CircleUserRound, FileText, MapPin, Plus } from 'lucide-react-native';
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 const QuickActions = () => {
   const { isDark } = useTheme();
@@ -45,69 +46,67 @@ const QuickActions = () => {
     },
   ];
 
+  const rows = [actions.slice(0, 2), actions.slice(2, 4)];
+
   return (
     <View style={styles.container}>
       <View style={styles.grid}>
-        {actions.map(action => (
-          <Pressable
-            key={action.id}
-            style={({ pressed }) => [
-              styles.card,
-              {
-                backgroundColor: action.isPrimary
-                  ? isDark
-                    ? Colors.brand.dark
-                    : Colors.brand.light
-                  : isDark
-                    ? Colors.muted.dark.background
-                    : '#FFFFFF',
-                opacity: pressed ? 0.95 : 1,
-                transform: [{ scale: pressed ? 0.98 : 1 }],
-                borderColor: isDark ? '#333' : '#F0F0F0',
-                borderWidth: action.isPrimary ? 0 : 1,
-              },
-            ]}
-            onPress={() => router.push(action.route as any)}
-          >
-            <View
-              style={[
-                styles.iconWrapper,
-                {
-                  backgroundColor: action.isPrimary
-                    ? 'rgba(255,255,255,0.2)'
-                    : isDark
-                      ? 'rgba(255,255,255,0.05)'
-                      : Colors.muted.light.background,
-                },
-              ]}
-            >
-              {action.icon}
-            </View>
-            <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-              <Text
-                size="xs"
-                bold
-                style={{
-                  color: action.isPrimary ? '#FFF' : isDark ? Colors.text.dark : Colors.text.light,
-                }}
+        {rows.map((row, rowIndex) => (
+          <View key={`row-${rowIndex}`} style={styles.row}>
+            {row.map(action => (
+              <Button
+                key={action.id}
+                variant="ghost"
+                style={styles.buttons}
+                feedbackVariant="none"
+                onPress={() => router.push(action.route as any)}
               >
-                {action.label}
-              </Text>
-              <Text
-                size="xs"
-                style={{
-                  marginTop: 2,
-                  color: action.isPrimary
-                    ? 'rgba(255,255,255,0.8)'
-                    : isDark
-                      ? Colors.muted.dark.text
-                      : Colors.muted.light.text,
-                }}
-              >
-                {action.subLabel}
-              </Text>
-            </View>
-          </Pressable>
+                <View
+                  style={[
+                    styles.iconWrapper,
+                    {
+                      backgroundColor: action.isPrimary
+                        ? 'rgba(255,255,255,0.2)'
+                        : isDark
+                          ? 'rgba(255,255,255,0.05)'
+                          : Colors.muted.light.background,
+                    },
+                  ]}
+                >
+                  {action.icon}
+                </View>
+                <View style={styles.labelWrapper}>
+                  <Text
+                    size="sm"
+                    bold
+                    style={[
+                      styles.labelText,
+                      {
+                        color: action.isPrimary ? '#FFF' : isDark ? Colors.text.dark : Colors.text.light,
+                      },
+                    ]}
+                  >
+                    {action.label}
+                  </Text>
+                  <Text
+                    size="xs"
+                    style={[
+                      styles.subLabelText,
+                      {
+                        color: action.isPrimary
+                          ? 'rgba(255,255,255,0.8)'
+                          : isDark
+                            ? Colors.muted.dark.text
+                            : Colors.muted.light.text,
+                      },
+                    ]}
+                  >
+                    {action.subLabel}
+                  </Text>
+                </View>
+              </Button>
+            ))}
+          </View>
         ))}
       </View>
     </View>
@@ -126,27 +125,40 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: 'column',
     gap: 12,
-    justifyContent: 'space-between',
-  },
-  card: {
-    width: '48%',
-    paddingVertical: 24,
-    paddingHorizontal: 16,
-    borderRadius: 24,
-    minHeight: 160,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+  },
+  row: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  buttons: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    minHeight: 112,
+    flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  labelWrapper: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  labelText: {
+    width: '100%',
+    textAlign: 'center',
+  },
+  subLabelText: {
+    marginTop: 2,
+    width: '100%',
+    textAlign: 'center',
   },
   iconWrapper: {
     width: 48,
@@ -155,6 +167,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
-    marginBottom: 10,
   },
 });

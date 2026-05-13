@@ -16,7 +16,10 @@ export const DetailsScreen = () => {
   }, []);
 
   return (
-    <Body refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+    <Body
+      style={{ paddingBottom: 110 }}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
       <MainHotlineAndContact refreshTrigger={refreshTrigger} />
     </Body>
   );

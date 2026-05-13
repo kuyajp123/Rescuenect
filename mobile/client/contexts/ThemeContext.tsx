@@ -1,8 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { storageHelpers } from '@/helper/storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Appearance, useColorScheme } from 'react-native';
-import { storageHelpers } from '@/helper/storage';
-import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { Uniwind } from 'uniwind';
 
 export type ColorMode = 'light' | 'dark' | 'system';
 
@@ -72,7 +72,8 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
 
     const newIsDark = colorMode === 'dark' || (colorMode === 'system' && effectiveSystemScheme === 'dark');
     setIsDarkState(newIsDark);
-  }, [colorMode, forceUpdate]);
+    Uniwind.setTheme(newIsDark ? 'dark' : 'light');
+  }, [colorMode, forceUpdate, systemColorScheme]);
 
   const value = {
     colorMode,

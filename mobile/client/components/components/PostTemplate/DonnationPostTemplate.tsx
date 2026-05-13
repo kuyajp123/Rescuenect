@@ -1,5 +1,4 @@
 import { ImageModal } from '@/components/components/image-modal/ImageModal';
-import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
@@ -7,7 +6,7 @@ import { ColorCombinations } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { StatusTemplateProps } from '@/types/components';
 import { Image } from 'expo-image';
-import { Chip } from 'heroui-native';
+import { Avatar, Chip } from 'heroui-native';
 import { Ellipsis } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
@@ -61,17 +60,17 @@ export const DonnationPostTemplate = ({
           <Box style={styles.userSection}>
             <Box style={styles.avatarContainer}>
               {picture && (
-                <Avatar>
-                  <AvatarImage
+                <Avatar alt="Profile avatar">
+                  <Avatar.Image
                     source={{
                       uri: picture,
                     }}
                     alt={`${firstName} ${lastName}`}
                   />
-                  <AvatarFallbackText>
+                  <Avatar.Fallback>
                     {firstName.charAt(0)}
                     {lastName.charAt(0)}
-                  </AvatarFallbackText>
+                  </Avatar.Fallback>
                 </Avatar>
               )}
             </Box>

@@ -1,6 +1,6 @@
 import Logo from '@/assets/images/logo/logoVerti.svg';
 import { PrimaryButton } from '@/components/components/button/Button';
-import { Input, InputField } from '@/components/ui/input';
+// import { Input, InputField } from '@/components/ui/input';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
@@ -13,6 +13,7 @@ import { useUserData } from '@/store/useBackendResponse';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
+import { Input } from 'heroui-native';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { create } from 'zustand';
@@ -122,8 +123,7 @@ const nameAndContactForm = () => {
 
     // If still missing any name, try Google-provided givenName/familyName.
     const shouldTryGoogle =
-      authUser &&
-      ((!firstNameTouched && !firstName.trim()) || (!lastNameTouched && !lastName.trim()));
+      authUser && ((!firstNameTouched && !firstName.trim()) || (!lastNameTouched && !lastName.trim()));
 
     if (shouldTryGoogle) {
       void initializeFromGoogle();
@@ -270,14 +270,12 @@ const nameAndContactForm = () => {
             <Text style={{ color: 'red' }}>*</Text>
             {errorMessage.firstName && <Text style={styles.errorText}>{errorMessage.firstName}</Text>}
           </View>
-          <Input variant="outline" size="md" style={styles.inputStyle}>
-            <InputField
-              style={styles.inputField}
-              placeholder="Juan"
-              value={firstName}
-              onChangeText={text => handleInputChange('firstName', text)}
-            />
-          </Input>
+          <Input
+            style={[styles.inputStyle, styles.inputField]}
+            placeholder="Juan"
+            value={firstName}
+            onChangeText={text => handleInputChange('firstName', text)}
+          />
         </View>
         <View style={styles.inputContainer}>
           <View style={styles.inputPlaceholder}>
@@ -285,14 +283,12 @@ const nameAndContactForm = () => {
             <Text style={{ color: 'red' }}>*</Text>
             {errorMessage.lastName && <Text style={styles.errorText}>{errorMessage.lastName}</Text>}
           </View>
-          <Input variant="outline" size="md" style={styles.inputStyle}>
-            <InputField
-              style={styles.inputField}
-              placeholder="Dela Cruz"
-              value={lastName}
-              onChangeText={text => handleInputChange('lastName', text)}
-            />
-          </Input>
+          <Input
+            style={[styles.inputStyle, styles.inputField]}
+            placeholder="Dela Cruz"
+            value={lastName}
+            onChangeText={text => handleInputChange('lastName', text)}
+          />
         </View>
         <View style={styles.inputContainer}>
           <View style={styles.inputPlaceholder}>
@@ -300,16 +296,14 @@ const nameAndContactForm = () => {
             <Text style={{ color: 'red' }}>*</Text>
             {errorMessage.contactNumber && <Text style={styles.errorText}>{errorMessage.contactNumber}</Text>}
           </View>
-          <Input variant="outline" size="md" style={styles.inputStyle}>
-            <InputField
-              style={styles.inputField}
-              placeholder="0917-123-4567"
-              value={contactNumber}
-              onChangeText={text => handleInputChange('contactNumber', text)}
-              keyboardType="numeric"
-              maxLength={13} // XXXX-XXX-XXXX format
-            />
-          </Input>
+          <Input
+            style={[styles.inputStyle, styles.inputField]}
+            placeholder="0912-345-6789"
+            value={contactNumber}
+            onChangeText={text => handleInputChange('contactNumber', text)}
+            keyboardType="numeric"
+            maxLength={13} // XXXX-XXX-XXXX format
+          />
           <Text style={styles.helperText}>Format: 09XX-XXX-XXXX (11 digits)</Text>
         </View>
       </View>

@@ -1,5 +1,4 @@
 import { IconButton } from '@/components/components/button/Button';
-import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Divider } from '@/components/ui/divider';
 import { HStack } from '@/components/ui/hstack';
 import Body from '@/components/ui/layout/Body';
@@ -18,6 +17,7 @@ import { auth } from '@/lib/firebaseConfig';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
 import axios from 'axios';
+import { Avatar } from 'heroui-native';
 import { Calendar, ChevronDown, Mail, MapPin, Phone, Trash2, X } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
@@ -279,15 +279,14 @@ const ProfileDetails = () => {
         {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.avatarContainer}>
-            <Avatar size="2xl" className="border-4 border-white shadow-sm">
-              <AvatarFallbackText>
-                {formData.firstName} {formData.lastName}
-              </AvatarFallbackText>
-              <AvatarImage
+            <Avatar size="lg" className="border-4 border-white shadow-sm" alt="Profile avatar">
+              <Avatar.Fallback color="default">
+                {userData.firstName?.charAt(0)}
+                {userData.lastName?.charAt(0)}
+              </Avatar.Fallback>
+              <Avatar.Image
                 source={{
-                  uri:
-                    auth.currentUser?.photoURL ||
-                    'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y',
+                  uri: auth.currentUser?.photoURL || undefined,
                 }}
               />
             </Avatar>

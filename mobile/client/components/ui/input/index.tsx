@@ -1,7 +1,5 @@
-
-import React from 'react';
 import { Input as HeroInput } from 'heroui-native';
-import { View } from 'react-native';
+import React from 'react';
 
 export const Input = ({ children, variant, size, className, ...props }: any) => {
   let inputFieldProps: any = {};
@@ -13,6 +11,8 @@ export const Input = ({ children, variant, size, className, ...props }: any) => 
   return <HeroInput variant="default" {...props} {...inputFieldProps} className={className} />;
 };
 
-export const InputField = (props: import('react-native').TextInputProps & { style?: any; value?: string; placeholder?: string }) => null;
+export const InputField = (
+  props: import('react-native').TextInputProps & { style?: any; value?: string; placeholder?: string }
+) => null;
 export const InputSlot = (props: any) => null;
-export const InputIcon = ({ as: As, ...props }: any) => As ? <As {...props} /> : null;
+export const InputIcon = ({ as: As, ...props }: any) => (As ? <As {...props} /> : null);

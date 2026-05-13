@@ -1,6 +1,5 @@
 import { IconButton } from '@/components/components/button/Button';
 import { Card } from '@/components/components/card/Card';
-// import { Chip, ChipText } from '@/components/ui/Chip';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { EvacuationCenter } from '@/types/components';

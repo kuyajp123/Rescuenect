@@ -10,6 +10,7 @@ import { useMapSettingsStore } from '@/store/useMapSettings';
 import { useStatusFormStore } from '@/store/useStatusForm';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useFocusEffect } from 'expo-router';
+import { Input } from 'heroui-native/input';
 import { Bookmark, ChevronUp, Ellipsis, HelpCircle, Info, Navigation, Settings, X } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
@@ -21,7 +22,6 @@ import {
   Text as RNText,
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from 'react-native';
 import { Button, IconButton, ToggleButton } from '../button/Button';
@@ -207,7 +207,7 @@ const Map = ({
   const bottomSheetRef = useRef<BottomSheet>(null);
   const bottomSheetIndexRef = useRef(0);
   const hasAnimatedMapTapRef = useRef(false);
-  const mapTapAnimationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mapTapAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastActionAnimationRef = useRef(0);
 
   // Single variable that handles all snap point logic
@@ -675,7 +675,7 @@ const Map = ({
                       </View>
                       {field.errorText && <Text style={styles.errorText}>{field.errorText}</Text>}
                     </HStack>
-                    <TextInput
+                    <Input
                       placeholder={field.placeholder}
                       value={field.value}
                       onChangeText={field.onChangeText}
@@ -713,7 +713,7 @@ const Map = ({
                       </View>
                       {field.errorText && <Text style={[styles.errorText, { marginLeft: 0 }]}>{field.errorText}</Text>}
                     </VStack>
-                    <TextInput
+                    <Input
                       placeholder={field.placeholder}
                       value={field.value}
                       onChangeText={field.onChangeText}

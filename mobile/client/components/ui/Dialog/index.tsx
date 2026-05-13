@@ -2,6 +2,7 @@ import { Button, HoveredButton } from '@/components/components/button/Button';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { Button as HeroButton } from 'heroui-native/button';
 import { Dialog as HeroDialog } from 'heroui-native/dialog';
 import React, { useMemo } from 'react';
 import { ScrollView, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
@@ -192,22 +193,25 @@ const Dialog = ({
 
           {hasFooter && (
             <View style={styles.footer}>
+              {secondaryButtonText && (
+                <HeroButton
+                  variant="secondary"
+                  style={[styles.footerButton, { borderRadius: 8 }]}
+                  onPress={secondaryButtonOnPress}
+                >
+                  <Text size="sm">{secondaryButtonText}</Text>
+                </HeroButton>
+              )}
               {primaryButtonText && (
                 <Button
                   action={primaryButtonAction}
                   variant={primaryButtonVariant}
-                  width="fit"
                   onPress={primaryButtonOnPress}
-                  style={primaryButtonVariant === 'solid' ? { borderRadius: 10 } : undefined}
+                  style={[styles.footerButton, primaryButtonVariant === 'solid' ? { borderRadius: 10 } : undefined]}
                 >
                   <Text size="sm" style={primaryButtonVariant === 'solid' ? { color: 'white' } : undefined}>
                     {primaryButtonText}
                   </Text>
-                </Button>
-              )}
-              {secondaryButtonText && (
-                <Button variant="solid" action="secondary" width="fit" onPress={secondaryButtonOnPress}>
-                  <Text size="sm">{secondaryButtonText}</Text>
                 </Button>
               )}
             </View>
@@ -254,11 +258,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   footer: {
+    width: '100%',
     marginTop: 20,
-    flexDirection: 'column',
-    justifyContent: 'flex-end',
+    flexDirection: 'row',
     gap: 12,
-    // borderWidth: 1,
+  },
+  footerButton: {
+    flex: 1,
   },
 });
 

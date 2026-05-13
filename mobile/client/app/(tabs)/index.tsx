@@ -62,7 +62,7 @@ export default function HomeScreen() {
   }, [userData, formData]);
 
   return (
-    <Body gap={20} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+    <Body style={{ paddingBottom: 110 }} gap={20} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       <StatusIndicator userStatus={userStatus as User | undefined} loggedInUser={userData || undefined} />
       <CardWeather />
 
@@ -70,7 +70,7 @@ export default function HomeScreen() {
 
       <Announcement refreshTrigger={refreshTrigger} />
 
-      <View style={{ marginTop: 20 }}>
+      <View>
         <AdvancedCarousel />
       </View>
     </Body>

@@ -1,9 +1,8 @@
 import { handleLogout } from '@/auth/auth';
-import { Button, HoveredButton } from '@/components/components/button/Button';
+import { HoveredButton } from '@/components/components/button/Button';
 import GoogleButton from '@/components/components/button/GoogleButton';
 import NavigationButton from '@/components/components/button/NavigationButton';
 import { Card } from '@/components/components/card/Card';
-import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { ColorCombinations, Colors } from '@/constants/Colors';
@@ -11,17 +10,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
 import { useRouter } from 'expo-router';
-import {
-  BadgeInfo,
-  BadgeQuestionMark,
-  ChevronRight,
-  FileText,
-  LogOut,
-  Moon,
-  ReceiptText,
-  Settings,
-  Sun,
-} from 'lucide-react-native';
+import { Avatar } from 'heroui-native';
+import { Button } from 'heroui-native/button';
+import { BadgeInfo, ChevronRight, FileText, LogOut, Moon, ReceiptText, Settings, Sun } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -38,15 +29,12 @@ export const MenuScreen = () => {
           <HoveredButton onPress={() => router.push('profile' as any)} style={styles.HoveredButton}>
             <View style={styles.mainContainer}>
               <View>
-                <Avatar size="lg">
-                  <AvatarFallbackText></AvatarFallbackText>
-                  {authUser?.photoURL && (
-                    <AvatarImage
-                      source={{
-                        uri: authUser.photoURL,
-                      }}
-                    />
-                  )}
+                <Avatar alt="Profile avatar">
+                  <Avatar.Fallback>
+                    {userData.firstName?.charAt(0) ?? ''}
+                    {userData.lastName?.charAt(0) ?? ''}
+                  </Avatar.Fallback>
+                  {authUser?.photoURL ? <Avatar.Image source={{ uri: authUser.photoURL }} /> : null}
                 </Avatar>
               </View>
 
@@ -150,7 +138,7 @@ export const MenuScreen = () => {
 
         <Button
           onPress={handleLogout}
-          variant="outline"
+          variant="danger-soft"
           style={[
             styles.logoutButton,
             {
@@ -159,16 +147,20 @@ export const MenuScreen = () => {
           ]}
         >
           <LogOut size={20} color={isDark ? Colors.button.errorDark.default : Colors.button.error.default} />
-          <Text
-            style={[
-              styles.logoutText,
-              {
-                color: isDark ? Colors.button.errorDark.default : Colors.button.error.default,
-              },
-            ]}
-          >
-            Logout
-          </Text>
+
+          <Button.Label>
+            <Text
+              size="sm"
+              style={[
+                styles.logoutText,
+                {
+                  color: isDark ? Colors.button.errorDark.default : Colors.button.error.default,
+                },
+              ]}
+            >
+              Logout
+            </Text>
+          </Button.Label>
         </Button>
       </View>
     </Body>
@@ -235,6 +227,7 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     marginHorizontal: 20,
+    borderRadius: 8,
     width: 'auto',
   },
   logoutText: {

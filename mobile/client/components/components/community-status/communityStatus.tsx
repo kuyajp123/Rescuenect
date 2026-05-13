@@ -1,6 +1,6 @@
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
-import { ColorCombinations } from '@/constants/Colors';
+import { ColorCombinations, Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useStatusStore } from '@/store/useCurrentStatusStore';
 import { useRouter } from 'expo-router';
@@ -9,21 +9,30 @@ import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 // Status Card Component
+type StatusKey = 'safe' | 'affected' | 'evacuated' | 'missing';
+
+const STATUS_DOT_COLORS: Record<StatusKey, string> = {
+  safe: Colors.semantic.success,
+  affected: Colors.semantic.warning,
+  evacuated: Colors.brand.light,
+  missing: Colors.semantic.error,
+};
+
 const StatusCard = ({
   status,
   count,
   label,
-  colorClass,
   onPress,
   isDark,
 }: {
-  status: string;
+  status: StatusKey;
   count: number;
   label: string;
-  colorClass: string;
   onPress: () => void;
   isDark: boolean;
 }) => {
+  const dotColor = STATUS_DOT_COLORS[status];
+
   return (
     <TouchableOpacity
       style={[styles.statusCard, isDark ? styles.statusCardDark : styles.statusCardLight]}
@@ -31,7 +40,7 @@ const StatusCard = ({
       onPress={onPress}
     >
       <View style={styles.statusHeader}>
-        <View style={styles.statusDot} className={colorClass} />
+        <View style={[styles.statusDot, { backgroundColor: dotColor, borderColor: dotColor }]} />
         <Text>{label}</Text>
       </View>
       <View style={styles.statusContent}>
@@ -67,19 +76,11 @@ export const CommunityStatus = () => {
             ]}
           >
             <View style={styles.leftColumn}>
-              <StatusCard
-                status="safe"
-                count={statusCounts.safe}
-                label="Safe"
-                colorClass="bg-safe-500"
-                onPress={() => {}}
-                isDark={isDark}
-              />
+              <StatusCard status="safe" count={statusCounts.safe} label="Safe" onPress={() => {}} isDark={isDark} />
               <StatusCard
                 status="affected"
                 count={statusCounts.affected}
                 label="Affected"
-                colorClass="bg-affected-500"
                 onPress={() => {}}
                 isDark={isDark}
               />
@@ -90,7 +91,6 @@ export const CommunityStatus = () => {
                 status="evacuated"
                 count={statusCounts.evacuated}
                 label="Evacuated"
-                colorClass="bg-evacuated-500"
                 onPress={() => {}}
                 isDark={isDark}
               />
@@ -98,7 +98,6 @@ export const CommunityStatus = () => {
                 status="missing"
                 count={statusCounts.missing}
                 label="Missing"
-                colorClass="bg-missing-500"
                 onPress={() => {}}
                 isDark={isDark}
               />
@@ -165,7 +164,7 @@ const styles = StyleSheet.create({
   statusDot: {
     height: 10,
     width: 10,
-    borderRadius: 50,
+    borderRadius: '50%',
   },
   statusContent: {
     width: '100%',

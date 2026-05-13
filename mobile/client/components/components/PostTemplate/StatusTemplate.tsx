@@ -1,5 +1,4 @@
 import { ImageModal } from '@/components/components/image-modal/ImageModal';
-import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Box } from '@/components/ui/box';
 import { Divider } from '@/components/ui/divider';
 import { Text } from '@/components/ui/text';
@@ -8,7 +7,7 @@ import { ColorCombinations } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { StatusData } from '@/types/components';
 import { Image } from 'expo-image';
-import { Chip } from 'heroui-native';
+import { Avatar, Chip } from 'heroui-native';
 import { MapPin, Phone, Users } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
@@ -105,20 +104,19 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
           {/* User info section */}
           <Box style={styles.userSection}>
             <Box style={styles.avatarContainer}>
-              {profileImage && (
-                <Avatar size="md">
-                  <AvatarImage
+              <Avatar size="sm" alt={`${firstName} ${lastName}`}>
+                <Avatar.Fallback color="default">
+                  {firstName?.charAt(0) ?? ''}
+                  {lastName?.charAt(0) ?? ''}
+                </Avatar.Fallback>
+                {profileImage ? (
+                  <Avatar.Image
                     source={{
                       uri: profileImage,
                     }}
-                    alt={`${firstName} ${lastName}`}
                   />
-                  <AvatarFallbackText>
-                    {firstName.charAt(0)}
-                    {lastName.charAt(0)}
-                  </AvatarFallbackText>
-                </Avatar>
-              )}
+                ) : null}
+              </Avatar>
             </Box>
 
             <Box style={styles.userInfo}>
