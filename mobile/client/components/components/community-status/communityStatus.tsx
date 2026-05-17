@@ -18,6 +18,10 @@ const STATUS_DOT_COLORS: Record<StatusKey, string> = {
   missing: Colors.semantic.error,
 };
 
+const PIE_RADIUS = 58;
+const PIE_INNER_RADIUS = 36;
+const PIE_CENTER_SIZE = PIE_INNER_RADIUS * 2;
+
 export const CommunityStatus = () => {
   const { isDark } = useTheme();
   const router = useRouter();
@@ -95,7 +99,9 @@ export const CommunityStatus = () => {
   return (
     <View>
       <VStack space="lg">
-        <Text>Status</Text>
+        <Text size="lg" bold>
+          Evacuation Centers
+        </Text>
         <View>
           <View
             style={[
@@ -168,10 +174,19 @@ export const CommunityStatus = () => {
                 <PieChart
                   data={pieData}
                   donut
-                  radius={58}
-                  innerRadius={36}
+                  radius={PIE_RADIUS}
+                  innerRadius={PIE_INNER_RADIUS}
                   centerLabelComponent={() => (
-                    <View style={styles.pieCenter}>
+                    <View
+                      style={[
+                        styles.pieCenter,
+                        {
+                          backgroundColor: isDark
+                            ? ColorCombinations.statusTemplate.dark
+                            : ColorCombinations.statusTemplate.light,
+                        },
+                      ]}
+                    >
                       <Text size="sm" bold>
                         {totalCount}
                       </Text>
@@ -227,6 +242,9 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   pieCenter: {
+    width: PIE_CENTER_SIZE,
+    height: PIE_CENTER_SIZE,
+    borderRadius: PIE_CENTER_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },

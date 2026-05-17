@@ -6,11 +6,11 @@ import Map, { CustomButton, NumberInputField, RadioField, TextInputField } from 
 import StatusOnboarding from '@/components/components/onboarding/StatusOnboarding';
 import { ButtonRadio } from '@/components/ui/CustomRadio';
 import Dialog from '@/components/ui/Dialog';
-import { useAppToast } from '@/components/ui/Toast';
 import Body from '@/components/ui/layout/Body';
 import { LoadingOverlay } from '@/components/ui/loading/LoadingOverlay';
 import StateImage from '@/components/ui/StateImage/StateImage';
 import { Text } from '@/components/ui/text';
+import { useAppToast } from '@/components/ui/Toast';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
@@ -45,7 +45,7 @@ import { useRouter } from 'expo-router';
 import { isEqual } from 'lodash';
 import { Bookmark, HelpCircle, Navigation, SquarePen, Trash } from 'lucide-react-native';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const areCoordsEqual = (a: [number, number] | null, b: [number, number] | null) => {
@@ -793,9 +793,19 @@ export const createStatus = () => {
         }
 
         if (imageUri && imageUri.trim() !== '') {
-          const filename = imageUri.split('/').pop() || 'image.jpg';
-          const match = /\.(\w+)$/.exec(filename);
-          const type = match ? `image/${match[1]}` : 'image/jpeg';
+          const lowerUri = imageUri.toLowerCase();
+          const filenameFromUri = imageUri.split('/').pop();
+
+          const type = lowerUri.endsWith('.png')
+            ? 'image/png'
+            : lowerUri.endsWith('.webp')
+              ? 'image/webp'
+              : 'image/jpeg';
+
+          const filename =
+            filenameFromUri && filenameFromUri.includes('.')
+              ? filenameFromUri
+              : `status-image-${Date.now()}.${type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg'}`;
 
           statusData.append('image', {
             uri: imageUri,
@@ -814,7 +824,7 @@ export const createStatus = () => {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${await authUser?.getIdToken()}`,
         },
-        timeout: 30000, // 30 seconds timeout
+        timeout: 180000, // Allow slow networks (image is already optimized client-side)
       });
 
       if (response.status === 200 && response.data.message === 'No changes detected') {
@@ -964,6 +974,7 @@ export const createStatus = () => {
           setAddressGPSLoading(true);
         }
         try {
+          await new Promise(resolve => setTimeout(resolve, 800));
           const currentCoords = await getCurrentPositionOnce();
           if (currentCoords) {
             setOneTimeLocationCoords(currentCoords);
@@ -1134,6 +1145,7 @@ export const createStatus = () => {
               style={styles.checkbox}
             />
             <Text
+              size="md"
               style={{
                 color: isDark ? Colors.text.dark : Colors.text.light,
                 fontSize: 16,
@@ -1409,7 +1421,7 @@ export const createStatus = () => {
         rightAction: hasCurrentMarker
           ? {
               text: 'Delete Status',
-              icon: <Trash size={20} color={Colors.text.dark} />,
+              icon: <Trash size={20} color={Colors.button.error.default} />,
               onPress: () => {
                 deleteModalConfirm();
               },

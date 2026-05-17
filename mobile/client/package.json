@@ -33,6 +33,7 @@
     "expo-dev-client": "~55.0.32",
     "expo-font": "~55.0.7",
     "expo-image": "~55.0.10",
+    "expo-image-manipulator": "~55.0.16",
     "expo-image-picker": "~55.0.20",
     "expo-linear-gradient": "~55.0.13",
     "expo-linking": "~55.0.15",

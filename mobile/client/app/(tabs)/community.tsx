@@ -21,15 +21,20 @@ const community = () => {
       <CommunityStatus />
 
       <View style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <Text size="lg" bold>
+          Evacuation Centers
+        </Text>
+        <Text size="xs" style={{ textAlign: 'justify' }}>
+          A safe shelter for community members during emergencies. Check real-time availability, capacity, and
+          facilities to make informed evacuation decisions.
+        </Text>
         <Image
           source={require('../../assets/images/images/evacuation_map.png')}
           contentFit="contain"
           style={{ width: '100%', height: 300, borderRadius: 12 }}
           accessibilityLabel="Evacuation center map illustration"
         />
-        <Text size="xs" style={{ textAlign: 'justify' }}>
-          A safe shelter for community members during emergencies. Check real-time availability, capacity, and facilities to make informed evacuation decisions.
-        </Text>
+
         <Button style={{ borderRadius: 10 }} onPress={() => router.push('/evacuation')}>
           <Text style={{ color: '#ffffff' }} bold>
             View Evacuation Center

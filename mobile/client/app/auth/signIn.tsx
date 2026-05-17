@@ -9,7 +9,7 @@ import { storageHelpers } from '@/helper/storage';
 import { Checkbox } from 'expo-checkbox';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Button as HeroButton } from 'heroui-native/button';
+import { Button } from 'heroui-native/button';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -67,14 +67,14 @@ const signIn = () => {
           </View>
           <View style={styles.buttons}>
             <GoogleButton onValidate={handleValidate} />
-            <HeroButton
+            <Button
               variant="tertiary"
-              style={{ width: '100%', borderRadius: 8,}}
+              style={{ width: '100%', borderRadius: 10 }}
               onPress={handleGuestLogin}
               className="bg-slate-500/70"
             >
               <Text style={{ color: 'white' }}>Continue as a guest</Text>
-            </HeroButton>
+            </Button>
           </View>
           <View style={styles.checkboxContainer}>
             {isOpen && (

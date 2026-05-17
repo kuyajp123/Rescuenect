@@ -279,7 +279,7 @@ const ProfileDetails = () => {
         {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.avatarContainer}>
-            <Avatar size="lg" className="border-4 border-white shadow-sm" alt="Profile avatar">
+            <Avatar size="lg" className="border-4 h-25 w-25 border-white shadow-sm" alt="Profile avatar">
               <Avatar.Fallback color="default">
                 {userData.firstName?.charAt(0)}
                 {userData.lastName?.charAt(0)}

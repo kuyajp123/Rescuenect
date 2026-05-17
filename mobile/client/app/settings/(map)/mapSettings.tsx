@@ -33,7 +33,9 @@ const MapSettings = () => {
   return (
     <Body style={{ padding: 0 }}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: isDark ? Colors.text.dark : Colors.text.light }]}>Map Style</Text>
+        <Text size="2xl" style={[styles.title, { color: isDark ? Colors.text.dark : Colors.text.light }]}>
+          Map Style
+        </Text>
       </View>
 
       <View style={styles.container}>

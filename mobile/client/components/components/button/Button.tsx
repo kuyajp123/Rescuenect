@@ -352,15 +352,18 @@ export const ToggleButton = ({
 
 export const GoogleButtonComponent = ({ onPress, disabled = false }: { onPress: () => void; disabled?: boolean }) => {
   return (
-    <Button
+    <HeroButton
+      
       onPress={disabled ? undefined : onPress}
       style={{
         opacity: disabled ? 0.6 : 1,
+        width: '100%',
+        borderRadius: 10,
       }}
     >
       <GoogleIMG />
       <Text style={{ color: 'white' }}>{disabled ? 'Signing in...' : 'Sign in with Google'}</Text>
-    </Button>
+    </HeroButton>
   );
 };
 
