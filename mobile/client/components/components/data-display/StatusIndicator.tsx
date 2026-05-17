@@ -1,13 +1,12 @@
 import { Card } from '@/components/components/card/Card';
-import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
-import { Badge, BadgeIcon, BadgeText } from '@/components/ui/badge';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
 import { ColorCombinations } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { auth } from '@/lib/firebaseConfig';
 import { loggedInUser, User } from '@/types/components';
 import { useRouter } from 'expo-router';
-import { CircleCheck, CircleQuestionMark, Info, ShieldCheck } from 'lucide-react-native';
+import { Avatar, Chip } from 'heroui-native';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -19,6 +18,10 @@ interface StatusIndicatorProps {
 export const StatusIndicator = ({ userStatus, loggedInUser }: StatusIndicatorProps) => {
   const { isDark } = useTheme();
   const router = useRouter();
+  const activeAvatarUri = userStatus?.profileImage || auth.currentUser?.photoURL || loggedInUser?.profileImage;
+  const activeAvatarFallback = `${userStatus?.firstName?.charAt(0) ?? ''}${userStatus?.lastName?.charAt(0) ?? ''}`;
+  const helloAvatarUri = loggedInUser?.profileImage || auth.currentUser?.photoURL;
+  const helloAvatarFallback = `${loggedInUser?.firstName?.charAt(0) ?? ''}${loggedInUser?.lastName?.charAt(0) ?? ''}`;
 
   // Dynamic styles based on theme
   const dynamicStyles = {
@@ -50,20 +53,10 @@ export const StatusIndicator = ({ userStatus, loggedInUser }: StatusIndicatorPro
               {/* User info section */}
               <Box style={styles.userSection}>
                 <Box style={styles.avatarContainer}>
-                  {userStatus.profileImage && (
-                    <Avatar size="md">
-                      <AvatarImage
-                        source={{
-                          uri: userStatus.profileImage,
-                        }}
-                        alt={`${userStatus.firstName} ${userStatus.lastName}`}
-                      />
-                      <AvatarFallbackText>
-                        {userStatus.firstName?.charAt(0)}
-                        {userStatus.lastName?.charAt(0)}
-                      </AvatarFallbackText>
-                    </Avatar>
-                  )}
+                  <Avatar alt="Profile avatar">
+                    <Avatar.Fallback color="default">{activeAvatarFallback}</Avatar.Fallback>
+                    {activeAvatarUri ? <Avatar.Image source={{ uri: activeAvatarUri }} /> : null}
+                  </Avatar>
                 </Box>
 
                 <Box style={styles.userInfo}>
@@ -78,37 +71,24 @@ export const StatusIndicator = ({ userStatus, loggedInUser }: StatusIndicatorPro
 
               {/* Status badge section */}
               <Box style={styles.statusSection}>
-                <Badge
+                <Chip
                   size="sm"
-                  action={
+                  color={
                     userStatus.condition == 'evacuated'
-                      ? 'info'
+                      ? 'accent'
                       : userStatus.condition == 'safe'
-                      ? 'success'
-                      : userStatus.condition == 'missing'
-                      ? 'error'
-                      : userStatus.condition == 'affected'
-                      ? 'warning'
-                      : 'muted'
+                        ? 'success'
+                        : userStatus.condition == 'missing'
+                          ? 'danger'
+                          : userStatus.condition == 'affected'
+                            ? 'danger'
+                            : 'default'
                   }
-                  variant="solid"
+                  variant="primary"
                   style={styles.statusBadge}
                 >
-                  <BadgeIcon
-                    as={
-                      userStatus.condition == 'evacuated'
-                        ? ShieldCheck
-                        : userStatus.condition == 'safe'
-                        ? CircleCheck
-                        : userStatus.condition == 'affected'
-                        ? Info
-                        : userStatus.condition == 'missing'
-                        ? CircleQuestionMark
-                        : undefined
-                    }
-                  />
-                  <BadgeText>{userStatus.condition}</BadgeText>
-                </Badge>
+                  <Chip.Label>{userStatus.condition}</Chip.Label>
+                </Chip>
               </Box>
             </Box>
           </Card>
@@ -117,20 +97,10 @@ export const StatusIndicator = ({ userStatus, loggedInUser }: StatusIndicatorPro
         // Hello component when no active status
         <View style={styles.helloContainer}>
           <Box style={styles.avatarContainer}>
-            {loggedInUser?.profileImage && (
-              <Avatar size="md">
-                <AvatarImage
-                  source={{
-                    uri: loggedInUser.profileImage,
-                  }}
-                  alt={`${loggedInUser.firstName} ${loggedInUser.lastName}`}
-                />
-                <AvatarFallbackText>
-                  {loggedInUser?.firstName?.charAt(0) || ''}
-                  {loggedInUser?.lastName?.charAt(0) || ''}
-                </AvatarFallbackText>
-              </Avatar>
-            )}
+            <Avatar alt="Profile avatar">
+              <Avatar.Fallback color="default">{helloAvatarFallback}</Avatar.Fallback>
+              {helloAvatarUri ? <Avatar.Image source={{ uri: helloAvatarUri }} /> : null}
+            </Avatar>
           </Box>
           <Box style={styles.helloTextContainer}>
             <Text size="sm" style={styles.helloText}>
@@ -173,10 +143,11 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   statusSection: {
+    flex: 1,
     width: 'auto',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'row',
+    flexDirection: 'column',
   },
   statusBadge: {
     gap: 4,

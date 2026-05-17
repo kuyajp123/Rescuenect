@@ -153,11 +153,13 @@ If the app cannot reach the dev server, reverse the Metro bundler port via ADB:
 adb reverse tcp:8081 tcp:8081
 ```
 
-And enter port 8081 in URL input in Expo Go
+On Windows, `npx expo start --localhost` can bind Metro to IPv6 loopback (`::1`), which does not always work cleanly with `adb reverse tcp:8081 tcp:8081`. If you see `unexpected end of stream on http://localhost:8081/...`, stop Metro and restart it in LAN mode instead:
 
 ```bash
-http://localhost:8081
+npx expo start --dev-client --lan
 ```
+
+Then open the development build again on the emulator.
 
 ### Running in offline / localhost mode
 

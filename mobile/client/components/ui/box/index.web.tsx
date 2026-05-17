@@ -1,7 +1,7 @@
 import React from 'react';
 import { boxStyle } from './styles';
 
-import type { VariantProps } from '@gluestack-ui/nativewind-utils';
+import type { VariantProps } from 'tailwind-variants';
 
 type IBoxProps = React.ComponentPropsWithoutRef<'div'> &
   VariantProps<typeof boxStyle> & { className?: string };

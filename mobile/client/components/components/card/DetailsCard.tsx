@@ -1,10 +1,10 @@
 import { IconButton } from '@/components/components/button/Button';
 import { Card } from '@/components/components/card/Card';
-import { Badge, BadgeText } from '@/components/ui/badge';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { EvacuationCenter } from '@/types/components';
 import { Image } from 'expo-image';
+import { Chip } from 'heroui-native';
 import { House, ImageOff, MapPin, Phone, UsersRound, X } from 'lucide-react-native';
 import React from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
@@ -99,22 +99,21 @@ const DetailsCard: React.FC<DetailsCardProps> = ({ selectedMarker, isDark, onClo
           <Text size="lg" bold style={{ flex: 1 }}>
             {selectedMarker.name}
           </Text>
-          <Badge
+          <Chip
             size="sm"
-            variant="solid"
+            variant="primary"
             style={styles.detailBadge}
-            action={
-              ({ available: 'success', full: 'warning', closed: 'error' }[selectedMarker.status] as
+            color={
+              { available: 'success', full: 'warning', closed: 'danger' }[selectedMarker.status] as
                 | 'success'
                 | 'warning'
-                | 'error'
-                | 'info'
-                | 'muted'
-                | undefined) || 'error'
+                | 'danger'
+                | 'default'
+                | undefined
             }
           >
-            <BadgeText style={{ padding: 6 }}>{selectedMarker.status.toUpperCase()}</BadgeText>
-          </Badge>
+            <Text bold style={{ color: 'white' }}>{selectedMarker.status.toUpperCase()}</Text>
+          </Chip>
         </View>
 
         {/* Description */}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, ViewProps } from 'react-native';
 
-import type { VariantProps } from '@gluestack-ui/nativewind-utils';
+import type { VariantProps } from 'tailwind-variants';
 import { boxStyle } from './styles';
 
 type IBoxProps = ViewProps &

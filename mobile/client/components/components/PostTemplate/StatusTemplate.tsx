@@ -1,23 +1,14 @@
 import { ImageModal } from '@/components/components/image-modal/ImageModal';
-import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
-import { Badge, BadgeIcon, BadgeText } from '@/components/ui/badge';
 import { Box } from '@/components/ui/box';
 import { Divider } from '@/components/ui/divider';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
-import { ColorCombinations } from '@/constants/Colors';
+import { ColorCombinations, Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { StatusData } from '@/types/components';
 import { Image } from 'expo-image';
-import {
-  CircleCheck,
-  CircleQuestionMark,
-  Info,
-  MapPin,
-  Phone,
-  ShieldCheck,
-  Users,
-} from 'lucide-react-native';
+import { Avatar, Chip } from 'heroui-native';
+import { MapPin, Phone, Users } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 
@@ -32,6 +23,7 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
   firstName,
   lastName,
   condition,
+  category,
   createdAt,
   location,
   lat,
@@ -53,6 +45,43 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
   const handleCloseModal = () => {
     setIsImageModalVisible(false);
   };
+
+  const formatCategoryLabel = (value: string) => {
+    return value.replace(/-/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+  };
+
+  const normalizeCategories = (value: StatusData['category'] | string | null | undefined) => {
+    if (Array.isArray(value)) {
+      return value.map(item => String(item)).filter(Boolean);
+    }
+
+    if (typeof value !== 'string') {
+      return [];
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return [];
+    }
+
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map(item => String(item)).filter(Boolean);
+        }
+      } catch {
+        return [];
+      }
+    }
+
+    return trimmed
+      .split(',')
+      .map(item => item.replace(/[\[\]"]+/g, '').trim())
+      .filter(Boolean);
+  };
+
+  const categories = normalizeCategories(category);
 
   const formatDate = (
     timestamp:
@@ -106,28 +135,26 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
     <Box style={[styles.container, dynamicStyles.container, style]} key={uid}>
       <VStack space="sm">
         {/* Header with menu icon */}
-        <Box style={styles.header}>
-        </Box>
+        <Box style={styles.header}></Box>
 
         {/* Main content row */}
         <Box style={styles.mainContent}>
           {/* User info section */}
           <Box style={styles.userSection}>
             <Box style={styles.avatarContainer}>
-              {profileImage && (
-                <Avatar size="md">
-                  <AvatarImage
+              <Avatar size="sm" alt={`${firstName} ${lastName}`}>
+                <Avatar.Fallback color="default">
+                  {firstName?.charAt(0) ?? ''}
+                  {lastName?.charAt(0) ?? ''}
+                </Avatar.Fallback>
+                {profileImage ? (
+                  <Avatar.Image
                     source={{
                       uri: profileImage,
                     }}
-                    alt={`${firstName} ${lastName}`}
                   />
-                  <AvatarFallbackText>
-                    {firstName.charAt(0)}
-                    {lastName.charAt(0)}
-                  </AvatarFallbackText>
-                </Avatar>
-              )}
+                ) : null}
+              </Avatar>
             </Box>
 
             <Box style={styles.userInfo}>
@@ -142,37 +169,26 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
 
           {/* Status badge section */}
           <Box style={styles.statusSection}>
-            <Badge
+            <Chip
               size="sm"
-              action={
+              color={
                 condition == 'evacuated'
-                  ? 'info'
+                  ? 'accent'
                   : condition == 'safe'
-                  ? 'success'
-                  : condition == 'missing'
-                  ? 'error'
-                  : condition == 'affected'
-                  ? 'warning'
-                  : 'muted'
+                    ? 'success'
+                    : condition == 'missing'
+                      ? 'danger'
+                      : condition == 'affected'
+                        ? 'warning'
+                        : 'default'
               }
-              variant="solid"
+              variant="primary"
               style={styles.statusBadge}
             >
-              <BadgeIcon
-                as={
-                  condition == 'evacuated'
-                    ? ShieldCheck
-                    : condition == 'safe'
-                    ? CircleCheck
-                    : condition == 'affected'
-                    ? Info
-                    : condition == 'missing'
-                    ? CircleQuestionMark
-                    : undefined
-                }
-              />
-              <BadgeText>{condition}</BadgeText>
-            </Badge>
+              <Text bold style={{ color: 'white' }}>
+                {condition}
+              </Text>
+            </Chip>
           </Box>
         </Box>
 
@@ -190,6 +206,21 @@ export const StatusTemplate: React.FC<StatusTemplateProps> = ({
 
               {lat && <Text style={styles.coordinateText}>Latitude: {lat}</Text>}
             </Box>
+          </Box>
+        )}
+
+        {categories.length > 0 && (
+          <Box style={styles.categoryContainer}>
+            {categories.map(item => (
+              <Chip key={item} size="sm" variant="soft" color="default" style={styles.categoryChip}>
+                <Text
+                  size="2xs"
+                  style={[styles.categoryText, { color: isDark ? Colors.text.dark : Colors.text.light }]}
+                >
+                  {formatCategoryLabel(item)}
+                </Text>
+              </Chip>
+            ))}
           </Box>
         )}
 
@@ -358,6 +389,21 @@ const styles = StyleSheet.create({
     paddingTop: 5,
     paddingLeft: 48,
     flexDirection: 'row',
+  },
+  categoryContainer: {
+    width: '100%',
+    paddingTop: 6,
+    paddingLeft: 48,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  categoryChip: {
+    height: 26,
+    paddingHorizontal: 8,
+  },
+  categoryText: {
+    lineHeight: 14,
   },
 
   descriptionText: {

@@ -1,11 +1,12 @@
 import '@/components/components/ActionSheet/sheets';
 import { HeaderBackButton, IconButton } from '@/components/components/button/Button';
-import Modal from '@/components/components/Modal';
 import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary';
-import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
+import Dialog from '@/components/ui/Dialog';
+
 import { ServerWakeUpScreen } from '@/components/ui/loading/ServerWakeUpScreen';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
+
 import { Colors } from '@/constants/Colors';
 import { FontSizeProvider, useFontSize } from '@/contexts/FontSizeContext';
 import { HighContrastProvider } from '@/contexts/HighContrastContext';
@@ -21,8 +22,8 @@ import { useCurrentStatuses } from '@/hooks/useStatusSubscriber';
 import { subscribeToWeatherData } from '@/hooks/useWeatherData';
 import { FCMTokenService } from '@/services/fcmTokenService';
 import { useAuth } from '@/store/useAuth';
-import { useCoords } from '@/store/useCoords';
 import { useUserData } from '@/store/useBackendResponse';
+import { useCoords } from '@/store/useCoords';
 import { useNotificationStore } from '@/store/useNotificationStore';
 import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import { useStatusFormStore } from '@/store/useStatusForm';
@@ -31,6 +32,7 @@ import MapboxGL from '@rnmapbox/maps';
 import axios from 'axios';
 import { useFonts } from 'expo-font';
 import { Stack, usePathname, useRouter } from 'expo-router';
+import { HeroUINativeProvider } from 'heroui-native';
 import { Bell } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { BackHandler, LogBox, StyleSheet, View } from 'react-native';
@@ -140,14 +142,14 @@ function RootLayoutNav() {
   // Show Wake-Up Screen if server is not ready yet
   if (!isServerReady) {
     return (
-      <GluestackUIProvider mode={isDark ? 'dark' : 'light'}>
+      <>
         <ServerWakeUpScreen onServerReady={() => setIsServerReady(true)} />
-      </GluestackUIProvider>
+      </>
     );
   }
 
   return (
-    <GluestackUIProvider mode={isDark ? 'dark' : 'light'}>
+    <>
       <Stack screenOptions={{ gestureEnabled: true }}>
         <Stack.Screen
           name="index"
@@ -304,8 +306,9 @@ function RootLayoutNav() {
       </Stack>
 
       {/* Exit Confirmation Modal */}
-      <Modal
+      <Dialog
         modalVisible={exitModalVisible}
+        size="full"
         onClose={() => setExitModalVisible(false)}
         primaryText="Exit App"
         secondaryText="Are you sure you want to exit Rescuenect?"
@@ -317,7 +320,7 @@ function RootLayoutNav() {
         primaryButtonVariant="solid"
         iconOnPress={() => setExitModalVisible(false)}
       />
-    </GluestackUIProvider>
+    </>
   );
 }
 
@@ -448,11 +451,29 @@ function LayoutContent() {
       <ThemeProvider>
         <FontSizeProvider>
           <HighContrastProvider>
-            <SheetProvider>
-              <MapContext>
-                <RootLayoutNav />
-              </MapContext>
-            </SheetProvider>
+            <HeroUINativeProvider
+              config={{
+                toast: {
+                  defaultProps: {
+                    variant: 'accent',
+                    placement: 'top',
+                    isSwipeable: true,
+                  },
+                  insets: {
+                    top: 80,
+                    bottom: 20,
+                    left: 20,
+                    right: 20,
+                  },
+                },
+              }}
+            >
+              <SheetProvider>
+                <MapContext>
+                  <RootLayoutNav />
+                </MapContext>
+              </SheetProvider>
+            </HeroUINativeProvider>
           </HighContrastProvider>
         </FontSizeProvider>
       </ThemeProvider>

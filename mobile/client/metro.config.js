@@ -1,5 +1,5 @@
 const { getDefaultConfig } = require('expo/metro-config');
-const { withNativeWind } = require('nativewind/metro');
+const { withUniwindConfig } = require('uniwind/metro');
   
 const config = getDefaultConfig(__dirname);
 
@@ -26,4 +26,4 @@ config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 config.transformer.experimentalImportSupport = false;
 config.transformer.inlineRequires = true;
   
-module.exports = withNativeWind(config, { input: './global.css' });
+module.exports = withUniwindConfig(config, { cssEntryFile: './global.css' });

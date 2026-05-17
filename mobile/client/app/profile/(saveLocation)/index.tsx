@@ -1,13 +1,13 @@
 import { getAddress } from '@/API/getAddress';
 import { Button } from '@/components/components/button/Button';
-import Modal from '@/components/components/Modal';
-import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
+import Dialog from '@/components/ui/Dialog';
 import { Fab } from '@/components/ui/fab';
 import { HStack } from '@/components/ui/hstack';
 import Body from '@/components/ui/layout/Body';
 import { LoadingOverlay } from '@/components/ui/loading';
 import { MapView } from '@/components/ui/map/MapView';
 import { Text } from '@/components/ui/text';
+import { useAppToast } from '@/components/ui/Toast';
 import { VStack } from '@/components/ui/vstack';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
@@ -25,7 +25,6 @@ import { ChevronRight, LocateFixed, MapPin, Plus, Trash } from 'lucide-react-nat
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Animated,
   BackHandler,
   Keyboard,
   Pressable,
@@ -84,10 +83,9 @@ const SaveLocationScreen = () => {
   const [location, setLocation] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const [showSuccessDialog, setShowSuccessDialog] = useState<boolean>(false);
   const { isDark } = useTheme();
   const authUser = useAuth(state => state.authUser);
-  const scaleValue = useRef(new Animated.Value(0)).current;
+  const { showSuccess } = useAppToast();
   const savedLocations = useSavedLocationsStore(state => state.savedLocations);
   const setSavedLocations = useSavedLocationsStore(state => state.setSavedLocations);
   const [errMessage, setErrMessage] = useState<{ label: string; location: string; message: string }>({
@@ -174,27 +172,6 @@ const SaveLocationScreen = () => {
     bottomSheetRef.current?.snapToIndex(0); // Snap to peek
     Keyboard.dismiss();
   };
-
-  // Close Custom Alert
-  const handleClose = () => {
-    Animated.timing(scaleValue, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      setShowSuccessDialog(false);
-    });
-  };
-
-  // Auto close alert
-  useEffect(() => {
-    if (showSuccessDialog) {
-      const timer = setTimeout(() => {
-        handleClose();
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [showSuccessDialog]);
 
   const handleMapPress = useCallback(
     (event: any) => {
@@ -331,7 +308,7 @@ const SaveLocationScreen = () => {
       }
 
       // Success
-      setShowSuccessDialog(true);
+      showSuccess(selectedId ? 'Location updated' : 'Location saved');
       handleBackToList();
     } catch (e: any) {
       setErrMessage({ ...newErrors, message: e.message || 'Error saving' });
@@ -527,15 +504,9 @@ const SaveLocationScreen = () => {
         </Fab>
       )}
 
-      <CustomAlertDialog
-        showAlertDialog={showSuccessDialog}
-        handleClose={handleClose}
-        text={selectedId ? 'Location updated' : 'Location saved'}
-      />
-
       <LoadingOverlay visible={deleteLoading} message="Deleting..." />
 
-      <Modal
+      <Dialog
         modalVisible={deleteModalVisible}
         onClose={() => setDeleteModalVisible(false)}
         primaryText="Delete Location"

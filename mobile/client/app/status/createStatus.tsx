@@ -3,14 +3,14 @@ import { Button } from '@/components/components/button/Button';
 import CustomImagePicker from '@/components/components/CustomImagePicker';
 import { ImageModal } from '@/components/components/image-modal/ImageModal';
 import Map, { CustomButton, NumberInputField, RadioField, TextInputField } from '@/components/components/Map';
-import Modal from '@/components/components/Modal';
 import StatusOnboarding from '@/components/components/onboarding/StatusOnboarding';
-import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { ButtonRadio } from '@/components/ui/CustomRadio';
+import Dialog from '@/components/ui/Dialog';
 import Body from '@/components/ui/layout/Body';
 import { LoadingOverlay } from '@/components/ui/loading/LoadingOverlay';
 import StateImage from '@/components/ui/StateImage/StateImage';
 import { Text } from '@/components/ui/text';
+import { useAppToast } from '@/components/ui/Toast';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
@@ -45,7 +45,7 @@ import { useRouter } from 'expo-router';
 import { isEqual } from 'lodash';
 import { Bookmark, HelpCircle, Navigation, SquarePen, Trash } from 'lucide-react-native';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const areCoordsEqual = (a: [number, number] | null, b: [number, number] | null) => {
@@ -55,7 +55,6 @@ const areCoordsEqual = (a: [number, number] | null, b: [number, number] | null) 
 
 export const createStatus = () => {
   const insets = useSafeAreaInsets();
-  const scaleValue = useRef(new Animated.Value(0)).current;
   const image = useImagePickerStore(state => state.image);
   const setImagePickerImage = useImagePickerStore(state => state.setImage);
   const isOnline = useNetwork(state => state.isOnline);
@@ -63,6 +62,8 @@ export const createStatus = () => {
   const { setCameraCenter } = useMap();
   const authUser = useAuth(state => state.authUser);
   const router = useRouter();
+  const { showSuccess } = useAppToast();
+  const TOAST_AFTER_MODAL_DISMISS_MS = 350;
 
   // Onboarding
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -111,9 +112,9 @@ export const createStatus = () => {
   const [bottomSheetAnimationTrigger, setBottomSheetAnimationTrigger] = useState(0);
   const [isManualSelection, setIsManualSelection] = useState(false); // Track if user is making manual ButtonRadio selection
   const isFormDataLoadingRef = useRef(false); // Track if we're loading formData coordinates
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null); // For debouncing coords address calls
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // For debouncing coords address calls
   const [isGPSselection, setIsGPSselection] = useState(false); // Track if user has selected GPS option
-  const debounceTimerRefGPS = useRef<NodeJS.Timeout | null>(null); // For debouncing GPS address calls
+  const debounceTimerRefGPS = useRef<ReturnType<typeof setTimeout> | null>(null); // For debouncing GPS address calls
   const isSavedLocationSelectionRef = useRef(false); // Track if user selected a saved location
   const lastFetchedCoordsRef = useRef<[number, number] | null>(null);
   const lastFetchedGPSRef = useRef<[number, number] | null>(null);
@@ -164,8 +165,6 @@ export const createStatus = () => {
     noChanges: false,
     errorFetchStatus: errorFetching,
     noNetwork: false,
-    submitSuccess: false,
-    deleteSuccess: false,
     deleteConfirm: false,
     submitFailure: false,
     isImageModalVisible: false,
@@ -181,25 +180,6 @@ export const createStatus = () => {
   const toggleModal = (name: keyof typeof modals, value: boolean) => {
     setModals(prev => ({ ...prev, [name]: value }));
   };
-
-  // Auto hide after 3 seconds
-  useEffect(() => {
-    if (modals.submitSuccess) {
-      const timer = setTimeout(() => {
-        handleClose();
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [modals.submitSuccess]);
-
-  useEffect(() => {
-    if (modals.deleteSuccess) {
-      const timer = setTimeout(() => {
-        handleClose();
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [modals.deleteSuccess]);
 
   const getStorage = async () => {
     try {
@@ -813,9 +793,19 @@ export const createStatus = () => {
         }
 
         if (imageUri && imageUri.trim() !== '') {
-          const filename = imageUri.split('/').pop() || 'image.jpg';
-          const match = /\.(\w+)$/.exec(filename);
-          const type = match ? `image/${match[1]}` : 'image/jpeg';
+          const lowerUri = imageUri.toLowerCase();
+          const filenameFromUri = imageUri.split('/').pop();
+
+          const type = lowerUri.endsWith('.png')
+            ? 'image/png'
+            : lowerUri.endsWith('.webp')
+              ? 'image/webp'
+              : 'image/jpeg';
+
+          const filename =
+            filenameFromUri && filenameFromUri.includes('.')
+              ? filenameFromUri
+              : `status-image-${Date.now()}.${type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg'}`;
 
           statusData.append('image', {
             uri: imageUri,
@@ -827,13 +817,14 @@ export const createStatus = () => {
     }
 
     // Submit form online
+    let pendingSuccessToastLabel: string | null = null;
     try {
       const response = await axios.post(API_ROUTES.STATUS.SAVE_STATUS, statusData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${await authUser?.getIdToken()}`,
         },
-        timeout: 30000, // 30 seconds timeout
+        timeout: 180000, // Allow slow networks (image is already optimized client-side)
       });
 
       if (response.status === 200 && response.data.message === 'No changes detected') {
@@ -850,8 +841,7 @@ export const createStatus = () => {
         createdAt: response.data?.data?.createdAt,
       });
       setOneTimeLocationCoords(null);
-      toggleModal('submitSuccess', true);
-      showAlert();
+      pendingSuccessToastLabel = 'Status submitted successfully!';
     } catch (error: any) {
       console.error('Error submitting form:', error);
 
@@ -860,9 +850,12 @@ export const createStatus = () => {
 
       setSubmitError({ title, message });
       toggleModal('submitFailure', true);
-      setSubmitStatusLoading(false);
     } finally {
       setSubmitStatusLoading(false);
+      if (pendingSuccessToastLabel) {
+        const label = pendingSuccessToastLabel;
+        setTimeout(() => showSuccess(label), TOAST_AFTER_MODAL_DISMISS_MS);
+      }
     }
   };
 
@@ -981,6 +974,7 @@ export const createStatus = () => {
           setAddressGPSLoading(true);
         }
         try {
+          await new Promise(resolve => setTimeout(resolve, 800));
           const currentCoords = await getCurrentPositionOnce();
           if (currentCoords) {
             setOneTimeLocationCoords(currentCoords);
@@ -1100,7 +1094,9 @@ export const createStatus = () => {
     <View style={{ flex: 1, flexDirection: 'column' }} key="category-label-container">
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         <Text>Select which type of Category of your Status</Text>
-        <Text size="md" style={{ color: Colors.semantic.error }}>*</Text>
+        <Text size="md" style={{ color: Colors.semantic.error }}>
+          *
+        </Text>
       </View>
       <Text style={{ color: Colors.semantic.error }}>{formErrors.category}</Text>
     </View>,
@@ -1149,6 +1145,7 @@ export const createStatus = () => {
               style={styles.checkbox}
             />
             <Text
+              size="md"
               style={{
                 color: isDark ? Colors.text.dark : Colors.text.light,
                 fontSize: 16,
@@ -1273,29 +1270,6 @@ export const createStatus = () => {
     setAddressCoords(null); // Clear tapped location address
   };
 
-  const handleClose = () => {
-    // Scale out animation
-    Animated.timing(scaleValue, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      toggleModal('submitSuccess', false);
-      toggleModal('deleteSuccess', false);
-    });
-  };
-
-  const showAlert = () => {
-    toggleModal('submitSuccess', true);
-    // Scale in animation with bounce
-    Animated.spring(scaleValue, {
-      toValue: 1,
-      tension: 100,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
-  };
-
   const sendSMS = () => {
     const { firstName, lastName, condition, phoneNumber, lat, lng, location, note, category, people } = statusForm;
 
@@ -1372,6 +1346,7 @@ export const createStatus = () => {
 
     setSubmitStatusLoading(true);
 
+    let pendingSuccessToastLabel: string | null = null;
     try {
       const response = await axios.delete(`${API_ROUTES.STATUS.DELETE_STATUS}/${authUser.uid}`, {
         data: { parentId: formData.parentId },
@@ -1403,7 +1378,7 @@ export const createStatus = () => {
         // Clear image picker
         setImagePickerImage(null);
 
-        toggleModal('deleteSuccess', true);
+        pendingSuccessToastLabel = 'Status deleted successfully!';
         toggleModal('deleteConfirm', false);
       }
     } catch (error) {
@@ -1412,6 +1387,10 @@ export const createStatus = () => {
       toggleModal('submitFailure', true);
     } finally {
       setSubmitStatusLoading(false);
+      if (pendingSuccessToastLabel) {
+        const label = pendingSuccessToastLabel;
+        setTimeout(() => showSuccess(label), TOAST_AFTER_MODAL_DISMISS_MS);
+      }
     }
   };
 
@@ -1442,7 +1421,7 @@ export const createStatus = () => {
         rightAction: hasCurrentMarker
           ? {
               text: 'Delete Status',
-              icon: <Trash size={20} color={Colors.text.dark} />,
+              icon: <Trash size={20} color={Colors.button.error.default} />,
               onPress: () => {
                 deleteModalConfirm();
               },
@@ -1493,10 +1472,10 @@ export const createStatus = () => {
           onLocationClear={onLocationClear}
           errMessage={formErrors.errMessage || ''}
         />
-        <Modal
+        <Dialog
           modalVisible={modals.noChanges}
           onClose={() => toggleModal('noChanges', false)}
-          size="lg"
+          size="full"
           iconOnPress={() => toggleModal('noChanges', false)}
           sizeIcon={20}
           primaryButtonText="Close"
@@ -1505,10 +1484,10 @@ export const createStatus = () => {
           primaryText="No changes made"
           secondaryText="Your status remains the same as before."
         />
-        <Modal
+        <Dialog
           modalVisible={modals.errorFetchStatus}
           onClose={handleErrorModalClose}
-          size="lg"
+          size="full"
           iconOnPress={handleErrorModalClose}
           sizeIcon={20}
           primaryButtonText="Close"
@@ -1517,13 +1496,15 @@ export const createStatus = () => {
           primaryText="Oops! Something went wrong."
           secondaryText="We couldn’t load the details right now. Please try again later."
         />
-        <Modal
+        <Dialog
           modalVisible={modals.noNetwork}
           onClose={() => toggleModal('noNetwork', false)}
-          size="lg"
+          size="full"
           iconOnPress={() => toggleModal('noNetwork', false)}
           sizeIcon={20}
           primaryButtonText="Continue"
+          primaryButtonAction="primary"
+          primaryButtonVariant="solid"
           primaryButtonOnPress={() => sendSMS()}
           secondaryButtonText="Cancel"
           secondaryButtonOnPress={() => toggleModal('noNetwork', false)}
@@ -1531,10 +1512,10 @@ export const createStatus = () => {
           primaryText={authUser ? 'No Internet Connection' : 'You are in Guest Mode'}
           secondaryText="Would you like to send the details you entered through your messaging app instead?"
         />
-        <Modal
+        <Dialog
           modalVisible={modals.submitFailure}
           onClose={() => toggleModal('submitFailure', false)}
-          size="lg"
+          size="full"
           iconOnPress={() => toggleModal('submitFailure', false)}
           sizeIcon={20}
           primaryButtonText="Continue"
@@ -1545,10 +1526,11 @@ export const createStatus = () => {
           primaryText={submitError.title}
           secondaryText={`${submitError.message}\n\nWould you like to send the details you entered through your messaging app instead?`}
         />
-        <Modal
+        <Dialog
           modalVisible={modals.savedLocation}
           onClose={() => toggleModal('savedLocation', false)}
           size="full"
+          headerTitle={savedLocations.length > 0 ? 'Choose your Locations' : undefined}
           iconOnPress={() => toggleModal('savedLocation', false)}
           sizeIcon={20}
           items={savedLocations.map(loc => ({
@@ -1571,6 +1553,8 @@ export const createStatus = () => {
             },
           }))}
           primaryButtonText="Add New Location"
+          primaryButtonAction="primary"
+          primaryButtonVariant="solid"
           primaryButtonOnPress={() => {
             toggleModal('savedLocation', false);
             router.push('profile/(saveLocation)' as any);
@@ -1587,11 +1571,12 @@ export const createStatus = () => {
               </Text>
             </View>
           )}
-        </Modal>
-        <Modal
+        </Dialog>
+        <Dialog
           modalVisible={modals.deleteConfirm}
           onClose={() => toggleModal('deleteConfirm', false)}
-          size="lg"
+          size="full"
+          showCloseButton={true}
           iconOnPress={() => toggleModal('deleteConfirm', false)}
           sizeIcon={20}
           primaryButtonText="Confirm"
@@ -1601,16 +1586,6 @@ export const createStatus = () => {
           secondaryButtonText="Cancel"
           secondaryButtonOnPress={() => toggleModal('deleteConfirm', false)}
           primaryText="Are you sure you want to delete this status?"
-        />
-        <CustomAlertDialog
-          showAlertDialog={modals.submitSuccess}
-          handleClose={handleClose}
-          text="Status submitted successfully!"
-        />
-        <CustomAlertDialog
-          showAlertDialog={modals.deleteSuccess}
-          handleClose={handleClose}
-          text="Status deleted successfully!"
         />
       </Body>
       <LoadingOverlay visible={submitStatusLoading} message="Saving your status..." />

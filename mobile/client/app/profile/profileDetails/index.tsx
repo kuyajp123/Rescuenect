@@ -1,11 +1,10 @@
 import { IconButton } from '@/components/components/button/Button';
-import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
-import CustomAlertDialog from '@/components/ui/CustomAlertDialog';
 import { Divider } from '@/components/ui/divider';
 import { HStack } from '@/components/ui/hstack';
 import Body from '@/components/ui/layout/Body';
 import { Modal, ModalBackdrop, ModalBody, ModalCloseButton, ModalContent, ModalHeader } from '@/components/ui/modal';
 import { Text } from '@/components/ui/text';
+import { useAppToast } from '@/components/ui/Toast';
 import { VStack } from '@/components/ui/vstack';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
@@ -18,6 +17,7 @@ import { auth } from '@/lib/firebaseConfig';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
 import axios from 'axios';
+import { Avatar } from 'heroui-native';
 import { Calendar, ChevronDown, Mail, MapPin, Phone, Trash2, X } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
@@ -128,10 +128,7 @@ const ProfileDetails = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-
-  // Alert State
-  const [showAlertDialog, setShowAlertDialog] = useState(false);
-  const [alertMessage, setAlertMessage] = useState('');
+  const { showSuccess } = useAppToast();
 
   // Form State
   const [formData, setFormData] = useState({
@@ -208,14 +205,7 @@ const ProfileDetails = () => {
 
       setIsEditing(false);
 
-      // Show Custom Alert
-      setAlertMessage('Profile updated successfully');
-      setShowAlertDialog(true);
-
-      // Auto close after 2 seconds
-      setTimeout(() => {
-        setShowAlertDialog(false);
-      }, 2000);
+      showSuccess('Profile updated successfully');
     } catch (error) {
       console.error('Error updating profile:', error);
       Alert.alert('Error', 'Failed to update profile. Please try again.');
@@ -289,15 +279,14 @@ const ProfileDetails = () => {
         {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.avatarContainer}>
-            <Avatar size="2xl" className="border-4 border-white shadow-sm">
-              <AvatarFallbackText>
-                {formData.firstName} {formData.lastName}
-              </AvatarFallbackText>
-              <AvatarImage
+            <Avatar size="lg" className="border-4 h-25 w-25 border-white shadow-sm" alt="Profile avatar">
+              <Avatar.Fallback color="default">
+                {userData.firstName?.charAt(0)}
+                {userData.lastName?.charAt(0)}
+              </Avatar.Fallback>
+              <Avatar.Image
                 source={{
-                  uri:
-                    auth.currentUser?.photoURL ||
-                    'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y',
+                  uri: auth.currentUser?.photoURL || undefined,
                 }}
               />
             </Avatar>
@@ -492,13 +481,6 @@ const ProfileDetails = () => {
           </ModalBody>
         </ModalContent>
       </Modal>
-
-      {/* Custom Alert Dialog */}
-      <CustomAlertDialog
-        showAlertDialog={showAlertDialog}
-        handleClose={() => setShowAlertDialog(false)}
-        text={alertMessage}
-      />
     </Body>
   );
 };

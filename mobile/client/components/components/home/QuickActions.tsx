@@ -1,10 +1,11 @@
 import { Text } from '@/components/ui/text';
-import { Colors } from '@/constants/Colors';
+import { ColorCombinations, Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
-import { FileText, MapPin, Plus, CircleUserRound } from 'lucide-react-native';
+import { Button } from 'heroui-native/button';
+import { CircleUserRound, FileText, MapPin, Plus } from 'lucide-react-native';
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 const QuickActions = () => {
   const { isDark } = useTheme();
@@ -14,101 +15,61 @@ const QuickActions = () => {
     {
       id: 'create',
       label: 'Create Status',
-      subLabel: 'Share Update',
-      icon: <Plus size={26} color={isDark ? Colors.brand.dark : Colors.brand.light} />,
+      icon: Plus,
       route: '/status/createStatus',
-      isPrimary: false,
     },
     {
       id: 'view',
       label: 'View Feed',
-      subLabel: 'Community',
-      icon: <FileText size={26} color={isDark ? Colors.brand.dark : Colors.brand.light} />,
+      icon: FileText,
       route: '/post/status',
-      isPrimary: false,
     },
     {
       id: 'evacuation',
       label: 'Evacuation',
-      subLabel: 'Centers',
-      icon: <MapPin size={26} color={isDark ? Colors.brand.dark : Colors.brand.light} />,
+      icon: MapPin,
       route: '/evacuation',
-      isPrimary: false,
     },
     {
       id: 'profile',
       label: 'My Profile',
-      subLabel: 'Account',
-      icon: <CircleUserRound size={26} color={isDark ? Colors.brand.dark : Colors.brand.light} />,
+      icon: CircleUserRound,
       route: '/profile',
-      isPrimary: false,
     },
   ];
+  const iconColor = isDark ? Colors.brand.dark : Colors.brand.light;
+  const labelColor = isDark ? Colors.text.dark : Colors.text.light;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.grid}>
-        {actions.map(action => (
-          <Pressable
-            key={action.id}
-            style={({ pressed }) => [
-              styles.card,
-              {
-                backgroundColor: action.isPrimary
-                  ? isDark
-                    ? Colors.brand.dark
-                    : Colors.brand.light
-                  : isDark
-                    ? Colors.muted.dark.background
-                    : '#FFFFFF',
-                opacity: pressed ? 0.95 : 1,
-                transform: [{ scale: pressed ? 0.98 : 1 }],
-                borderColor: isDark ? '#333' : '#F0F0F0',
-                borderWidth: action.isPrimary ? 0 : 1,
-              },
-            ]}
-            onPress={() => router.push(action.route as any)}
-          >
-            <View
-              style={[
-                styles.iconWrapper,
-                {
-                  backgroundColor: action.isPrimary
-                    ? 'rgba(255,255,255,0.2)'
-                    : isDark
-                      ? 'rgba(255,255,255,0.05)'
-                      : Colors.muted.light.background,
-                },
-              ]}
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: isDark ? Colors.border.dark : Colors.muted.light.background, borderRadius: 15 },
+      ]}
+    >
+      <View style={styles.row}>
+        {actions.map(action => {
+          const Icon = action.icon;
+
+          return (
+            <Button
+              key={action.id}
+              variant="ghost"
+              style={styles.actionButton}
+              feedbackVariant="none"
+              onPress={() => router.push(action.route as any)}
             >
-              {action.icon}
-            </View>
-            <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-              <Text
-                size="xs"
-                bold
-                style={{
-                  color: action.isPrimary ? '#FFF' : isDark ? Colors.text.dark : Colors.text.light,
-                }}
-              >
-                {action.label}
-              </Text>
-              <Text
-                size="xs"
-                style={{
-                  marginTop: 2,
-                  color: action.isPrimary
-                    ? 'rgba(255,255,255,0.8)'
-                    : isDark
-                      ? Colors.muted.dark.text
-                      : Colors.muted.light.text,
-                }}
-              >
-                {action.subLabel}
-              </Text>
-            </View>
-          </Pressable>
-        ))}
+              <View style={styles.actionContent}>
+                <View style={styles.iconWrapper}>
+                  <Icon size={28} color={iconColor} />
+                </View>
+                <Text size="2xs" bold numberOfLines={2} style={[styles.labelText, { color: labelColor }]}>
+                  {action.label}
+                </Text>
+              </View>
+            </Button>
+          );
+        })}
       </View>
     </View>
   );
@@ -118,43 +79,43 @@ export default QuickActions;
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 24,
-    paddingHorizontal: 4,
+    marginTop: 16,
+    paddingHorizontal: 10,
+    borderRadius: 12,
   },
-  headerTitle: {
-    marginBottom: 16,
-    marginLeft: 4,
-  },
-  grid: {
+  row: {
+    width: '100%',
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
     justifyContent: 'space-between',
-  },
-  card: {
-    width: '48%',
-    paddingVertical: 24,
-    paddingHorizontal: 16,
-    borderRadius: 24,
-    minHeight: 160,
-    justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    gap: 4,
+  },
+  actionButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 2,
+    minHeight: 96,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    width: '100%',
+  },
+  labelText: {
+    width: '100%',
+    textAlign: 'center',
+    lineHeight: 14,
+    flexWrap: 'wrap',
   },
   iconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    alignSelf: 'center',
-    marginBottom: 10,
+    backgroundColor: 'transparent',
   },
 });

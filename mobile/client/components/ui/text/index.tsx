@@ -2,7 +2,7 @@ import { Colors } from '@/constants/Colors';
 import { getScaledFontSize, useFontSize } from '@/contexts/FontSizeContext';
 import { useHighContrast } from '@/contexts/HighContrastContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import type { VariantProps } from '@gluestack-ui/nativewind-utils';
+import type { VariantProps } from 'tailwind-variants';
 import React from 'react';
 import { Text as RNText } from 'react-native';
 import { textStyle } from './styles';

@@ -10,10 +10,10 @@ import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
 import { useStatusFormStore } from '@/store/useStatusForm';
 import { User, loggedInUser } from '@/types/components';
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, RefreshControl } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { RefreshControl, View } from 'react-native';
 
-export const HomeScreen = React.memo(() => {
+export default function HomeScreen() {
   const [userData, setUserData] = useState<loggedInUser | null>(null);
   const [userStatus, setUserStatus] = useState({});
   const userAuth = useAuth(state => state.authUser);
@@ -62,7 +62,7 @@ export const HomeScreen = React.memo(() => {
   }, [userData, formData]);
 
   return (
-    <Body gap={20} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+    <Body style={{ paddingBottom: 110 }} gap={20} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       <StatusIndicator userStatus={userStatus as User | undefined} loggedInUser={userData || undefined} />
       <CardWeather />
 
@@ -70,11 +70,9 @@ export const HomeScreen = React.memo(() => {
 
       <Announcement refreshTrigger={refreshTrigger} />
 
-      <View style={{ marginTop: 20 }}>
+      <View>
         <AdvancedCarousel />
       </View>
     </Body>
   );
-});
-
-export default HomeScreen;
+}

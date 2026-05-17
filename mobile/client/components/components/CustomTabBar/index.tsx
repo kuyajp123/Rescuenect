@@ -1,7 +1,8 @@
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { AlignRight, House, MapPinPlus, MapPlus, Phone, Plus, UsersRound } from 'lucide-react-native';
+import { AlignRight, House, Phone, Plus, UsersRound } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -55,141 +56,207 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
       style={[
         styles.tabBarContainer,
         {
-          backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
-          borderTopColor: isDark ? Colors.border.dark : Colors.border.light,
-          paddingBottom: Math.max(insets.bottom, 8),
-          height: 75 + insets.bottom, // Increased height to accommodate labels
+          bottom: Math.max(insets.bottom, 12),
         },
       ]}
       accessibilityRole="tablist"
       accessibilityLabel="Bottom navigation tabs"
     >
-      {state.routes.map((route: any, index: number) => {
-        const { options } = descriptors[route.key];
-        const label =
-          options.tabBarLabel !== undefined
-            ? options.tabBarLabel
-            : options.title !== undefined
-              ? options.title
-              : route.name;
-
-        const isFocused = state.index === index;
-
-        // For 4 tabs, FAB should be between community (index 1) and contacts (index 2)
-        // So we adjust spacing for these tabs but don't skip any
-        const isBeforeFAB = index === 1; // community
-        const isAfterFAB = index === 2; // contacts
-
-        const onPress = () => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
-
-          if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name, route.params);
-          }
-        };
-
-        // Get the appropriate icon
-        const getIcon = () => {
-          const color = isFocused
-            ? isDark
-              ? Colors.brand.dark
-              : Colors.brand.light
-            : isDark
-              ? Colors.text.dark
-              : Colors.text.light;
-          const size = 20;
-
-          switch (route.name) {
-            case 'index':
-              return <House color={color} size={size} />;
-            case 'community':
-              return <UsersRound color={color} size={size} />;
-            case 'contacts':
-              return <Phone color={color} size={size} />;
-            case 'menu':
-              return <AlignRight color={color} size={size} />;
-            default:
-              return null;
-          }
-        };
-
-        // Get accessibility label based on route name
-        const getAccessibilityLabel = () => {
-          const baseLabels = {
-            index: 'Home',
-            community: 'Community',
-            contacts: 'Contacts',
-            menu: 'Menu',
-          };
-
-          const baseLabel = baseLabels[route.name as keyof typeof baseLabels] || label;
-          return `${baseLabel} tab${isFocused ? ', selected' : ''}`;
-        };
-
-        const getAccessibilityHint = () => {
-          const hints = {
-            index: 'Navigate to home screen with dashboard and overview',
-            community: 'Navigate to community screen to see status updates and posts',
-            contacts: 'Navigate to contacts screen for managing your connections',
-            menu: 'Navigate to menu screen for app settings and options',
-          };
-
-          return hints[route.name as keyof typeof hints] || `Navigate to ${label} screen`;
-        };
-
-        return (
-          <Pressable
-            key={route.key}
-            onPress={onPress}
-            style={[
-              styles.tabItem,
-              // Add extra margin for tabs adjacent to FAB
-              isBeforeFAB && styles.tabItemBeforeFAB,
-              isAfterFAB && styles.tabItemAfterFAB,
-            ]}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: isFocused }}
-            accessibilityLabel={getAccessibilityLabel()}
-            accessibilityHint={getAccessibilityHint()}
-          >
-            {getIcon()}
-            <Text
-              style={[
-                styles.tabLabel,
-                {
-                  color: isFocused
-                    ? isDark
-                      ? Colors.brand.dark
-                      : Colors.brand.light
-                    : isDark
-                      ? Colors.text.dark
-                      : Colors.text.light,
-                },
-              ]}
-            >
-              {label}
-            </Text>
-          </Pressable>
-        );
-      })}
-
-      {/* Floating Action Button */}
-      <Pressable
-        onPress={handleFABPress}
+      <View
         style={[
-          styles.fab,
+          styles.glassPill,
           {
-            backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light,
+            backgroundColor: isDark ? 'rgba(20, 22, 27, 0.7)' : 'rgba(255, 255, 255, 0.74)',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(255, 255, 255, 0.65)',
+            shadowColor: isDark ? '#000000' : '#1f2937',
           },
         ]}
+      >
+        <LinearGradient
+          pointerEvents="none"
+          colors={
+            isDark
+              ? ['rgba(255, 255, 255, 0.06)', 'rgba(255, 255, 255, 0)', 'rgba(0, 0, 0, 0.16)']
+              : ['rgba(255, 255, 255, 0.9)', 'rgba(255, 255, 255, 0)', 'rgba(0, 0, 0, 0.06)']
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.glassHighlight}
+        />
+        <LinearGradient
+          pointerEvents="none"
+          colors={
+            isDark
+              ? ['rgba(255, 255, 255, 0.12)', 'rgba(255, 255, 255, 0.04)', 'rgba(255, 255, 255, 0)']
+              : ['rgba(255, 255, 255, 0.9)', 'rgba(255, 255, 255, 0.35)', 'rgba(255, 255, 255, 0)']
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.glassSheen}
+        />
+        <LinearGradient
+          pointerEvents="none"
+          colors={isDark ? ['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0.25)'] : ['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0.08)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.glassShade}
+        />
+        <View
+          pointerEvents="none"
+          style={[
+            styles.glassInnerBorder,
+            {
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(255, 255, 255, 0.75)',
+            },
+          ]}
+        />
+        {/* <View
+          pointerEvents="none"
+          style={[
+            styles.glassBubble,
+            styles.glassBubbleLeft,
+            {
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(255, 255, 255, 0.45)',
+            },
+          ]}
+        />
+        <View
+          pointerEvents="none"
+          style={[
+            styles.glassBubble,
+            styles.glassBubbleRight,
+            {
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.35)',
+            },
+          ]}
+        /> */}
+        {state.routes.map((route: any, index: number) => {
+          const { options } = descriptors[route.key];
+          const label =
+            options.tabBarLabel !== undefined
+              ? options.tabBarLabel
+              : options.title !== undefined
+                ? options.title
+                : route.name;
+
+          const isFocused = state.index === index;
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name, route.params);
+            }
+          };
+
+          const getIcon = () => {
+            const color = isFocused
+              ? isDark
+                ? Colors.brand.dark
+                : Colors.brand.light
+              : isDark
+                ? Colors.text.dark
+                : Colors.text.light;
+            const size = 20;
+
+            switch (route.name) {
+              case 'index':
+                return <House color={color} size={size} />;
+              case 'community':
+                return <UsersRound color={color} size={size} />;
+              case 'contacts':
+                return <Phone color={color} size={size} />;
+              case 'menu':
+                return <AlignRight color={color} size={size} />;
+              default:
+                return null;
+            }
+          };
+
+          const getAccessibilityLabel = () => {
+            const baseLabels = {
+              index: 'Home',
+              community: 'Community',
+              contacts: 'Contacts',
+              menu: 'Menu',
+            };
+
+            const baseLabel = baseLabels[route.name as keyof typeof baseLabels] || label;
+            return `${baseLabel} tab${isFocused ? ', selected' : ''}`;
+          };
+
+          const getAccessibilityHint = () => {
+            const hints = {
+              index: 'Navigate to home screen with dashboard and overview',
+              community: 'Navigate to community screen to see status updates and posts',
+              contacts: 'Navigate to contacts screen for managing your connections',
+              menu: 'Navigate to menu screen for app settings and options',
+            };
+
+            return hints[route.name as keyof typeof hints] || `Navigate to ${label} screen`;
+          };
+
+          return (
+            <Pressable
+              key={route.key}
+              onPress={onPress}
+              style={styles.tabItem}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isFocused }}
+              accessibilityLabel={getAccessibilityLabel()}
+              accessibilityHint={getAccessibilityHint()}
+            >
+              {getIcon()}
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+                style={[
+                  styles.tabLabel,
+                  {
+                    color: isFocused
+                      ? isDark
+                        ? Colors.brand.dark
+                        : Colors.brand.light
+                      : isDark
+                        ? Colors.text.dark
+                        : Colors.text.light,
+                  },
+                ]}
+              >
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Pressable
+        onPress={handleFABPress}
+        style={styles.fab}
         accessibilityRole="button"
         accessibilityLabel="Add status update"
         accessibilityHint="Opens status update screen to post your safety status"
       >
+        <LinearGradient
+          pointerEvents="none"
+          colors={isDark ? ['#1d4ed8', '#3b82f6', '#60a5fa'] : ['#0ea5e9', '#38bdf8', '#7dd3fc']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.fabGradient}
+        />
+        {/* <LinearGradient
+          pointerEvents="none"
+          colors={['rgba(255, 255, 255, 0.7)', 'rgba(255, 255, 255, 0.05)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.fabGloss}
+        /> */}
         <Plus color="#FFFFFF" size={24} />
       </Pressable>
     </View>
@@ -199,49 +266,102 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
 const styles = StyleSheet.create({
   tabBarContainer: {
     flexDirection: 'row',
-    borderTopWidth: 1,
-    // borderTopColor moved to inline style for theme awareness
-    paddingTop: 8,
-    paddingHorizontal: 16,
     alignItems: 'center',
-    justifyContent: 'space-around',
-    position: 'relative',
+    justifyContent: 'center',
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    paddingHorizontal: 12,
+    gap: 12,
+    zIndex: 50,
+    elevation: 50,
+  },
+  glassPill: {
+    flex: 1,
+    maxWidth: 420,
+    minHeight: 62,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  glassHighlight: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  glassSheen: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  glassShade: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  glassInnerBorder: {
+    ...StyleSheet.absoluteFillObject,
+    borderWidth: 1,
+    borderRadius: 999,
+  },
+  glassBubble: {
+    position: 'absolute',
+    borderRadius: 999,
+  },
+  glassBubbleLeft: {
+    width: 70,
+    height: 70,
+    top: -30,
+    left: 30,
+  },
+  glassBubbleRight: {
+    width: 52,
+    height: 52,
+    bottom: -20,
+    right: 40,
   },
   tabItem: {
     flex: 1,
+    minWidth: 56,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
+    paddingHorizontal: 6,
   },
   tabLabel: {
-    fontSize: 12,
+    fontSize: 10,
+    lineHeight: 12,
     marginTop: 4,
     textAlign: 'center',
-  },
-  tabItemBeforeFAB: {
-    marginRight: 28, // Extra space before FAB
-  },
-  tabItemAfterFAB: {
-    marginLeft: 28, // Extra space after FAB
+    maxWidth: 80,
+    includeFontPadding: false,
+    flexShrink: 1,
   },
   fab: {
-    position: 'absolute',
-    top: -20, // Raised above the tab bar
-    alignSelf: 'center',
     width: 56,
     height: 56,
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 8, // Android shadow
-    shadowColor: '#000', // iOS shadow
+    overflow: 'hidden',
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 4,
     },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    borderWidth: 3,
-    borderColor: '#FFFFFF', // White border around FAB
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  fabGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  fabGloss: {
+    ...StyleSheet.absoluteFillObject,
   },
 });

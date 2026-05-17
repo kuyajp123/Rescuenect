@@ -1,14 +1,15 @@
 import Logo from '@/assets/images/logo/logoVerti.svg';
-import { Button } from '@/components/components/button/Button';
 import GoogleButton from '@/components/components/button/GoogleButton';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { storageHelpers } from '@/helper/storage';
 import { Checkbox } from 'expo-checkbox';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { Button } from 'heroui-native/button';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -66,8 +67,13 @@ const signIn = () => {
           </View>
           <View style={styles.buttons}>
             <GoogleButton onValidate={handleValidate} />
-            <Button action="secondary" onPress={handleGuestLogin}>
-              <Text>Continue as a guest</Text>
+            <Button
+              variant="tertiary"
+              style={{ width: '100%', borderRadius: 10 }}
+              onPress={handleGuestLogin}
+              className="bg-slate-500/70"
+            >
+              <Text style={{ color: 'white' }}>Continue as a guest</Text>
             </Button>
           </View>
           <View style={styles.checkboxContainer}>

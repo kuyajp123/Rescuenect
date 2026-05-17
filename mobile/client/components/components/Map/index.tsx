@@ -10,6 +10,7 @@ import { useMapSettingsStore } from '@/store/useMapSettings';
 import { useStatusFormStore } from '@/store/useStatusForm';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useFocusEffect } from 'expo-router';
+import { Button, Input } from 'heroui-native';
 import { Bookmark, ChevronUp, Ellipsis, HelpCircle, Info, Navigation, Settings, X } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
@@ -21,10 +22,9 @@ import {
   Text as RNText,
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from 'react-native';
-import { Button, IconButton, ToggleButton } from '../button/Button';
+import { IconButton, ToggleButton } from '../button/Button';
 
 // Types for flexible form fields
 export interface TextInputField {
@@ -207,7 +207,7 @@ const Map = ({
   const bottomSheetRef = useRef<BottomSheet>(null);
   const bottomSheetIndexRef = useRef(0);
   const hasAnimatedMapTapRef = useRef(false);
-  const mapTapAnimationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mapTapAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastActionAnimationRef = useRef(0);
 
   // Single variable that handles all snap point logic
@@ -432,9 +432,12 @@ const Map = ({
                 )}
             </VStack>
             <Button
-              width="fit"
-              style={{ width: 'auto' }}
-              action="secondary"
+              feedbackVariant="scale"
+              variant="tertiary"
+              style={{
+                borderRadius: 10,
+                backgroundColor: isDark ? Colors.border.dark : Colors.border.light,
+              }}
               onPress={handleClearOneTimeLocation || (() => {})}
             >
               <Text>Stop</Text>
@@ -498,9 +501,12 @@ const Map = ({
               )}
           </VStack>
           <Button
-            width="fit"
-            style={{ width: 'auto' }}
-            action="secondary"
+            feedbackVariant="scale"
+            variant="tertiary"
+            style={{
+              borderRadius: 10,
+              backgroundColor: isDark ? Colors.border.dark : Colors.border.light,
+            }}
             onPress={handleClearOneTimeLocation || (() => {})}
           >
             <Text>Stop</Text>
@@ -615,18 +621,20 @@ const Map = ({
                     {/* Right Action (optional) */}
                     {headerActions.headerActionWithData.rightAction && (
                       <Button
+                        style={{ borderRadius: 10 }}
+                        feedbackVariant="scale"
+                        variant="danger-soft"
                         onPress={headerActions.headerActionWithData.rightAction.onPress || (() => {})}
-                        width="fit"
-                        action="error"
-                        size="md"
                       >
                         {headerActions.headerActionWithData.rightAction.icon || (
-                          <Ellipsis color={isDark ? Colors.icons.dark : Colors.icons.light} />
+                          <Ellipsis color={Colors.button.error.default} />
                         )}
                         {headerActions.headerActionWithData.rightAction.text && (
-                          <Text size="xs" style={{ marginLeft: 8, color: Colors.text.dark }}>
-                            {headerActions.headerActionWithData.rightAction.text}
-                          </Text>
+                          <Button.Label>
+                            <Text style={{ color: Colors.button.error.default }}>
+                              {headerActions.headerActionWithData.rightAction.text}
+                            </Text>
+                          </Button.Label>
                         )}
                       </Button>
                     )}
@@ -675,7 +683,7 @@ const Map = ({
                       </View>
                       {field.errorText && <Text style={styles.errorText}>{field.errorText}</Text>}
                     </HStack>
-                    <TextInput
+                    <Input
                       placeholder={field.placeholder}
                       value={field.value}
                       onChangeText={field.onChangeText}
@@ -713,7 +721,7 @@ const Map = ({
                       </View>
                       {field.errorText && <Text style={[styles.errorText, { marginLeft: 0 }]}>{field.errorText}</Text>}
                     </VStack>
-                    <TextInput
+                    <Input
                       placeholder={field.placeholder}
                       value={field.value}
                       onChangeText={field.onChangeText}
@@ -783,6 +791,7 @@ const Map = ({
                               )}
                             </View>
                             <Text
+                              size="md"
                               style={[styles.radioLabel, { color: textValueColor }]}
                               onPress={() => field.onSelect(option.value)}
                             >
@@ -824,12 +833,15 @@ const Map = ({
                 </Text>
                 {/* Primary Action Button */}
                 {primaryButton && (
-                  <Button onPress={primaryButton.onPress} style={[{ marginTop: 20 }, primaryButton.style]}>
+                  <Button
+                    onPress={primaryButton.onPress}
+                    style={[{ marginTop: 20, borderRadius: 10 }, primaryButton.style]}
+                  >
                     <RNText style={styles.submitText}>{primaryButton.label}</RNText>
                   </Button>
                 )}
                 {secondaryButton && (
-                  <Button onPress={secondaryButton.onPress} style={{ marginTop: 20 }} action="secondary">
+                  <Button onPress={secondaryButton.onPress} style={{ marginTop: 20, borderRadius: 10 }}>
                     <RNText style={styles.submitText}>{secondaryButton.label}</RNText>
                   </Button>
                 )}

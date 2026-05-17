@@ -4,11 +4,11 @@ import {
   ActivityIndicator, 
   StyleSheet, 
   Modal, 
-  Text 
 } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
+import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
-import { Button } from '@/components/components/button/Button'
+import { Button } from 'heroui-native/button';
 
 interface LoadingOverlayProps {
   visible: boolean;
@@ -46,7 +46,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
             size="large" 
             color={isDark ? Colors.brand.dark : Colors.brand.light}
           />
-          <Text style={[
+          <Text size='sm' style={[
             styles.message,
             { 
               color: isDark ? Colors.text.dark : Colors.text.light 
@@ -60,8 +60,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
             >
               <Button 
                 onPress={onRequestClose}
-                width='fit'
-                variant='link'
+                variant='ghost'
               >
                 <Text>Close</Text>
               </Button>

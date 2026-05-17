@@ -1,8 +1,4 @@
-import { Button } from '@/components/components/button/Button';
 import { StatusTemplate } from '@/components/components/PostTemplate/StatusTemplate';
-import { useAuth } from '@/store/useAuth';
-import { useUserData } from '@/store/useBackendResponse';
-import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Box } from '@/components/ui/box';
 import { HStack } from '@/components/ui/hstack';
 import Body from '@/components/ui/layout/Body';
@@ -12,9 +8,13 @@ import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { auth } from '@/lib/firebaseConfig';
+import { useAuth } from '@/store/useAuth';
+import { useUserData } from '@/store/useBackendResponse';
 import { StatusData } from '@/types/components';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
+import { Avatar } from 'heroui-native';
+import { Button } from 'heroui-native/button';
 import { Ellipsis, MapPinPlus } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -56,13 +56,14 @@ const index = () => {
     <Body>
       <View style={styles.profile}>
         <View style={{ marginTop: 40 }}>
-          <Avatar size="2xl">
-            <AvatarFallbackText></AvatarFallbackText>
-            <AvatarImage
+          <Avatar size="lg" alt="Profile avatar" className="h-[80px] w-[80px]">
+            <Avatar.Fallback color="default">
+              {userData.firstName?.charAt(0)}
+              {userData.lastName?.charAt(0)}
+            </Avatar.Fallback>
+            <Avatar.Image
               source={{
-                uri:
-                  auth.currentUser?.photoURL ||
-                  'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y',
+                uri: auth.currentUser?.photoURL || undefined,
               }}
             />
           </Avatar>
@@ -78,9 +79,7 @@ const index = () => {
       </View>
       <View style={styles.buttons}>
         <Button
-          variant="solid"
-          width="full"
-          style={{ marginTop: 20, flex: 1 }}
+          style={{ marginTop: 20, flex: 1, borderRadius: 10 }}
           onPress={() => router.push('profile/(saveLocation)' as any)}
         >
           <MapPinPlus size={16} style={{ marginRight: 8 }} color={'white'} />
@@ -89,11 +88,20 @@ const index = () => {
           </Text>
         </Button>
         <Button
-          action="secondary"
-          width="fit"
-          style={{ marginLeft: 10, marginTop: 20 }}
+          feedbackVariant="scale-ripple"
+          variant="tertiary"
+          style={[
+            { marginLeft: 10, marginTop: 20 },
+            { borderRadius: 10, backgroundColor: isDark ? Colors.border.dark : Colors.border.light },
+          ]}
           onPress={() => {
             router.push('profile/profileDetails' as any);
+          }}
+          animation={{
+            ripple: {
+              backgroundColor: { value: isDark ? '#e4e4e7' : Colors.border.dark },
+              opacity: { value: [0, 0.3, 0] },
+            },
           }}
         >
           <Ellipsis size={24} color={isDark ? Colors.text.dark : Colors.text.light} />
