@@ -16,6 +16,7 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
+  Skeleton,
   Select,
   SelectItem,
   Switch,
@@ -318,6 +319,7 @@ const Contacts = () => {
 
   const selectPopoverProps = useMemo(() => ({ disableAnimation: true }), []);
   const selectListboxProps = useMemo(() => ({ autoFocus: false, shouldUseVirtualFocus: true }), []);
+  const isInitialLoading = Boolean(auth) && !hasLoadedRemote;
 
   const blurActiveElement = () => {
     if (typeof document === 'undefined') return;
@@ -708,48 +710,71 @@ const Contacts = () => {
               <div className="flex w-full items-center justify-between">
                 <h2 className="text-lg font-semibold text-default-900 dark:text-slate-100">Categories</h2>
                 <Chip size="sm" variant="flat">
-                  {categories.length} total
+                  {isInitialLoading ? 'Loading...' : `${categories.length} total`}
                 </Chip>
               </div>
               <p className="text-xs text-default-500 dark:text-slate-400">Tap a category to manage its contacts.</p>
             </CardHeader>
             <Divider />
             <CardBody className="flex flex-col gap-3">
-              {categories.map(category => (
-                <div
-                  key={category.id}
-                  className={`flex w-full flex-col gap-2 rounded-xl border px-4 py-3 text-left transition ${
-                    selectedCategoryId === category.id
-                      ? 'border-primary/40 bg-primary/10 dark:border-primary/40 dark:bg-primary/20'
-                      : 'border-default-200/70 bg-white/60 hover:border-primary/40 hover:bg-primary/5 dark:border-slate-800/70 dark:bg-slate-900/60 dark:hover:border-primary/40 dark:hover:bg-slate-800/70'
-                  }`}
-                  onClick={() => setSelectedCategoryId(category.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-semibold text-default-900 dark:text-slate-100">{category.name}</div>
-                      <div className="text-xs text-default-500 dark:text-slate-400">{category.type}</div>
+              {isInitialLoading ? (
+                Array.from({ length: 4 }).map((_, index) => (
+                  <div
+                    key={`category-skeleton-${index}`}
+                    className="flex w-full flex-col gap-2 rounded-xl border border-default-200/70 bg-white/60 px-4 py-3 dark:border-slate-800/70 dark:bg-slate-900/60"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-3/5 rounded-lg" />
+                        <Skeleton className="h-3 w-2/5 rounded-lg" />
+                      </div>
+                      <Skeleton className="h-6 w-8 rounded-full" />
                     </div>
-                    <Chip size="sm" variant="flat">
-                      {contacts.filter(contact => contact.categoryId === category.id).length}
-                    </Chip>
+                    <div className="space-y-2">
+                      <Skeleton className="h-3 w-4/5 rounded-lg" />
+                      <Skeleton className="h-3 w-2/3 rounded-lg" />
+                    </div>
                   </div>
-                  <div className="text-xs text-default-500 dark:text-slate-400">{category.description}</div>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="light" onPress={() => openEditCategory(category)}>
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      color="danger"
-                      variant="light"
-                      onPress={() => setConfirmDelete({ type: 'category', id: category.id, label: category.name })}
-                    >
-                      Delete
-                    </Button>
+                ))
+              ) : (
+                categories.map(category => (
+                  <div
+                    key={category.id}
+                    className={`flex w-full flex-col gap-2 rounded-xl border px-4 py-3 text-left transition ${
+                      selectedCategoryId === category.id
+                        ? 'border-primary/40 bg-primary/10 dark:border-primary/40 dark:bg-primary/20'
+                        : 'border-default-200/70 bg-white/60 hover:border-primary/40 hover:bg-primary/5 dark:border-slate-800/70 dark:bg-slate-900/60 dark:hover:border-primary/40 dark:hover:bg-slate-800/70'
+                    }`}
+                    onClick={() => setSelectedCategoryId(category.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-semibold text-default-900 dark:text-slate-100">
+                          {category.name}
+                        </div>
+                        <div className="text-xs text-default-500 dark:text-slate-400">{category.type}</div>
+                      </div>
+                      <Chip size="sm" variant="flat">
+                        {contacts.filter(contact => contact.categoryId === category.id).length}
+                      </Chip>
+                    </div>
+                    <div className="text-xs text-default-500 dark:text-slate-400">{category.description}</div>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="light" onPress={() => openEditCategory(category)}>
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        color="danger"
+                        variant="light"
+                        onPress={() => setConfirmDelete({ type: 'category', id: category.id, label: category.name })}
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </CardBody>
           </Card>
 
@@ -817,12 +842,37 @@ const Contacts = () => {
                   </p>
                 </div>
                 <Chip size="sm" variant="flat">
-                  {visibleContacts.length} shown
+                  {isInitialLoading ? 'Loading...' : `${visibleContacts.length} shown`}
                 </Chip>
               </CardHeader>
               <Divider />
               <CardBody className="flex min-w-0 flex-col gap-3" style={{ overflow: 'visible' }}>
-                {visibleContacts.length === 0 ? (
+                {isInitialLoading ? (
+                  <div className="flex min-w-0 flex-col gap-3" style={{ minHeight: listMinHeight }}>
+                    {Array.from({ length: 4 }).map((_, index) => (
+                      <Card
+                        key={`contact-skeleton-${index}`}
+                        className="border border-default-200/60 bg-white/70 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70"
+                        shadow="none"
+                      >
+                        <CardBody className="flex min-w-0 flex-row items-center gap-4 px-4 py-3">
+                          <Skeleton className="h-10 w-10 rounded-xl shrink-0" />
+                          <div className="min-w-0 flex-1 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Skeleton className="h-4 w-1/3 rounded-lg" />
+                              <Skeleton className="h-5 w-14 rounded-full" />
+                            </div>
+                            <Skeleton className="h-3 w-2/3 rounded-lg" />
+                          </div>
+                          <div className="hidden md:flex items-center gap-2">
+                            <Skeleton className="h-6 w-20 rounded-lg" />
+                            <Skeleton className="h-6 w-16 rounded-lg" />
+                          </div>
+                        </CardBody>
+                      </Card>
+                    ))}
+                  </div>
+                ) : visibleContacts.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-default-200/80 bg-default-50 px-6 py-12 text-center dark:border-slate-800/70 dark:bg-slate-900/70">
                     <p className="text-sm font-semibold text-default-900 dark:text-slate-100">No contacts yet</p>
                     <p className="mt-1 text-xs text-default-500 dark:text-slate-400">

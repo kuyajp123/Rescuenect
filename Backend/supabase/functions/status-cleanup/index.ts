@@ -223,7 +223,7 @@ async function deleteRetentionExpiredStatuses(
                   op: 'IN',
                   value: {
                     arrayValue: {
-                      values: [{ stringValue: 'history' }, { stringValue: 'deleted' }],
+                      values: [{ stringValue: 'history' }, { stringValue: 'deleted' }, { stringValue: 'resolved' }],
                     },
                   },
                 },

@@ -155,9 +155,9 @@ export const Dashboard = () => {
         iconColor: 'text-orange-600 dark:text-orange-400',
       },
       {
-        title: 'Safe Status',
-        value: safeCount.toString(),
-        change: safeCount > 0 ? `${Math.round((safeCount / (activeIncidents || 1)) * 100)}% of total` : 'No data',
+        title: 'Missing Status',
+        value: missingCount.toString(),
+        change: missingCount > 0 ? `${Math.round((missingCount / (activeIncidents || 1)) * 100)}% of total` : 'No data',
         trend: 'up' as const,
         icon: Activity,
         color: 'bg-green-500/10 dark:bg-green-500/20',

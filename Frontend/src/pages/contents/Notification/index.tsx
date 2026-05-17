@@ -9,11 +9,16 @@ import {
   Activity,
   AlertTriangle,
   Bell,
+  Cloud,
   CloudRain,
+  CloudFog,
+  CloudLightning,
   EllipsisVertical,
   Megaphone,
   Shield,
+  Sun,
   Thermometer,
+  ThermometerSun,
   Wind,
 } from 'lucide-react';
 import { useMemo } from 'react';
@@ -53,12 +58,48 @@ export const Notification = () => {
     switch (notification.type) {
       case 'earthquake':
         return <Activity size={20} className="text-orange-500 flex-shrink-0" />;
-      case 'weather':
-        const weatherData = notification.data as WeatherNotificationData;
+      case 'weather': {
+        const weatherData = notification.data as WeatherNotificationData | undefined;
+
+        const severityColor =
+          weatherData?.severity === 'CRITICAL'
+            ? 'text-red-500'
+            : weatherData?.severity === 'WARNING'
+              ? 'text-orange-500'
+              : weatherData?.severity === 'ADVISORY'
+                ? 'text-yellow-600'
+                : 'text-blue-500';
+
+        // For CRITICAL, keep the universal alert icon.
         if (weatherData?.severity === 'CRITICAL') {
-          return <AlertTriangle size={20} className="text-red-500 flex-shrink-0" />;
+          return <AlertTriangle size={20} className={`${severityColor} flex-shrink-0`} />;
         }
-        return <CloudRain size={20} className="text-blue-500 flex-shrink-0" />;
+
+        // For non-critical, pick an icon that matches the weather category (Heat, UV, Rain, etc).
+        switch (weatherData?.category) {
+          case 'Heat':
+            return <ThermometerSun size={20} className={`${severityColor} flex-shrink-0`} />;
+          case 'UV':
+            return <Sun size={20} className={`${severityColor} flex-shrink-0`} />;
+          case 'Combined':
+            return <ThermometerSun size={20} className={`${severityColor} flex-shrink-0`} />;
+          case 'Wind':
+            return <Wind size={20} className={`${severityColor} flex-shrink-0`} />;
+          case 'Visibility':
+            return <CloudFog size={20} className={`${severityColor} flex-shrink-0`} />;
+          case 'Storm':
+          case 'Tropical':
+            return <CloudLightning size={20} className={`${severityColor} flex-shrink-0`} />;
+          case 'Clear':
+            return <Sun size={20} className={`${severityColor} flex-shrink-0`} />;
+          case 'Cloudy':
+            return <Cloud size={20} className={`${severityColor} flex-shrink-0`} />;
+          case 'Flood':
+          case 'Rain':
+          default:
+            return <CloudRain size={20} className={`${severityColor} flex-shrink-0`} />;
+        }
+      }
       case 'announcement':
         return <Megaphone size={20} className="text-purple-500 flex-shrink-0" />;
       case 'emergency':
