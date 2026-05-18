@@ -32,6 +32,7 @@ import MapboxGL from '@rnmapbox/maps';
 import axios from 'axios';
 import { useFonts } from 'expo-font';
 import { Stack, usePathname, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { HeroUINativeProvider } from 'heroui-native';
 import { Bell } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
@@ -143,6 +144,7 @@ function RootLayoutNav() {
   if (!isServerReady) {
     return (
       <>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
         <ServerWakeUpScreen onServerReady={() => setIsServerReady(true)} />
       </>
     );
@@ -150,6 +152,7 @@ function RootLayoutNav() {
 
   return (
     <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack screenOptions={{ gestureEnabled: true }}>
         <Stack.Screen
           name="index"

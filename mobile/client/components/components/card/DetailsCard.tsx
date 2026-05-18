@@ -22,8 +22,102 @@ interface Images {
   uri: string;
 }
 
+const STANDARD_IMAGE_WIDTH = 960;
+const STANDARD_IMAGE_QUALITY = 72;
+
+const getStandardQualityImageUri = (uri: string) => {
+  try {
+    const url = new URL(uri);
+    const publicObjectPath = '/storage/v1/object/public/';
+    const signedObjectPath = '/storage/v1/object/sign/';
+
+    if (url.pathname.includes(publicObjectPath)) {
+      url.pathname = url.pathname.replace(publicObjectPath, '/storage/v1/render/image/public/');
+    } else if (url.pathname.includes(signedObjectPath)) {
+      url.pathname = url.pathname.replace(signedObjectPath, '/storage/v1/render/image/sign/');
+    } else if (!url.pathname.includes('/storage/v1/render/image/')) {
+      return uri;
+    }
+
+    url.searchParams.set('width', String(STANDARD_IMAGE_WIDTH));
+    url.searchParams.set('quality', String(STANDARD_IMAGE_QUALITY));
+    url.searchParams.set('resize', 'cover');
+
+    return url.toString();
+  } catch {
+    return uri;
+  }
+};
+
+const ProgressiveEvacuationImage = ({ uri, isActive }: { uri: string; isActive: boolean }) => {
+  const standardUri = React.useMemo(() => getStandardQualityImageUri(uri), [uri]);
+  const hasOptimizedVariant = standardUri !== uri;
+  const [standardLoaded, setStandardLoaded] = React.useState(!hasOptimizedVariant);
+  const [standardFailed, setStandardFailed] = React.useState(false);
+  const [showOriginal, setShowOriginal] = React.useState(!hasOptimizedVariant);
+
+  React.useEffect(() => {
+    setStandardLoaded(!hasOptimizedVariant);
+    setStandardFailed(false);
+    setShowOriginal(!hasOptimizedVariant);
+  }, [hasOptimizedVariant, standardUri, uri]);
+
+  React.useEffect(() => {
+    let isCancelled = false;
+
+    if (!hasOptimizedVariant || !standardLoaded || !isActive || standardFailed) {
+      return;
+    }
+
+    Image.prefetch(uri, 'memory-disk')
+      .then(prefetched => {
+        if (!isCancelled && prefetched) {
+          setShowOriginal(true);
+        }
+      })
+      .catch(() => {
+        // Keep the standard-quality image visible when the original cannot be prefetched.
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [hasOptimizedVariant, isActive, standardFailed, standardLoaded, uri]);
+
+  const sourceUri = showOriginal || standardFailed ? uri : standardUri;
+  const imageQualityKey = showOriginal || standardFailed ? 'original' : 'standard';
+
+  return (
+    <Image
+      source={{ uri: sourceUri }}
+      placeholder={showOriginal && hasOptimizedVariant ? { uri: standardUri } : undefined}
+      placeholderContentFit="cover"
+      style={styles.carouselImage}
+      contentFit="cover"
+      cachePolicy="memory-disk"
+      priority={isActive ? 'high' : 'low'}
+      transition={180}
+      recyclingKey={`${uri}-${imageQualityKey}`}
+      onLoad={() => {
+        if (!showOriginal) {
+          setStandardLoaded(true);
+        }
+      }}
+      onError={() => {
+        if (!showOriginal && hasOptimizedVariant) {
+          setStandardFailed(true);
+        }
+      }}
+    />
+  );
+};
+
 const DetailsCard: React.FC<DetailsCardProps> = ({ selectedMarker, isDark, onClose }) => {
   const [activeIndex, setActiveIndex] = React.useState(0);
+
+  React.useEffect(() => {
+    setActiveIndex(0);
+  }, [selectedMarker?.id]);
 
   if (!selectedMarker) return null;
 
@@ -35,7 +129,7 @@ const DetailsCard: React.FC<DetailsCardProps> = ({ selectedMarker, isDark, onClo
 
   const renderItem = ({ item, index }: { item: Images; index: number }) => (
     <View style={styles.carouselItemContainer}>
-      <Image source={{ uri: item.uri }} style={styles.carouselImage} contentFit="cover" />
+      <ProgressiveEvacuationImage uri={item.uri} isActive={index === activeIndex} />
     </View>
   );
 

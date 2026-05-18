@@ -1,16 +1,54 @@
-import { Button } from '@/components/components/button/Button';
 import { Text } from '@/components/ui/text';
+import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
-type CityNeedsProps = {
+type ButtonRadioValue = [number, number] | string;
+
+type ButtonRadioProps = {
   label: string;
-  subLabel: [number, number] | string;
-  value: [number, number] | string;
-  selectedValue: [number, number] | string;
-  onSelect: (value: [number, number] | string) => void;
-  style?: object;
+  subLabel: ButtonRadioValue;
+  value: ButtonRadioValue;
+  selectedValue: ButtonRadioValue;
+  onSelect: (value: ButtonRadioValue) => void;
+  style?: StyleProp<ViewStyle>;
   sizeText?: 'sm' | 'md' | 'lg';
+};
+
+const isCoordinateValue = (value: ButtonRadioValue): value is [number, number] => {
+  return (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    typeof value[0] === 'number' &&
+    typeof value[1] === 'number' &&
+    Number.isFinite(value[0]) &&
+    Number.isFinite(value[1])
+  );
+};
+
+const areValuesEqual = (value: ButtonRadioValue, selectedValue: ButtonRadioValue) => {
+  if (typeof value === 'string' && typeof selectedValue === 'string') {
+    return selectedValue === value;
+  }
+
+  if (isCoordinateValue(value) && isCoordinateValue(selectedValue)) {
+    return value[0] === selectedValue[0] && value[1] === selectedValue[1];
+  }
+
+  return false;
+};
+
+const formatSubLabel = (subLabel: ButtonRadioValue) => {
+  if (typeof subLabel === 'string') {
+    return subLabel;
+  }
+
+  if (isCoordinateValue(subLabel)) {
+    return `Lat: ${subLabel[1].toFixed(6)}, Lng: ${subLabel[0].toFixed(6)}`;
+  }
+
+  return '';
 };
 
 export const ButtonRadio = ({
@@ -21,30 +59,14 @@ export const ButtonRadio = ({
   onSelect,
   style,
   sizeText = 'md',
-}: CityNeedsProps) => {
-  // Custom comparison for different value types
-  const isSelected = () => {
-    if (typeof value === 'string' && typeof selectedValue === 'string') {
-      return selectedValue === value;
-    }
-    if (Array.isArray(value) && Array.isArray(selectedValue)) {
-      return value[0] === selectedValue[0] && value[1] === selectedValue[1];
-    }
-    return false;
-  };
-
-  // Format display text for different types
-  const formatSubLabel = (subLabel: [number, number] | string) => {
-    if (typeof subLabel === 'string') {
-      return subLabel;
-    }
-    if (Array.isArray(subLabel)) {
-      return `${subLabel[1].toFixed(4)}, ${subLabel[0].toFixed(4)}`; // lat, lng (subLabel = [lng, lat])
-    }
-    return '';
-  };
-
-  const selected = isSelected();
+}: ButtonRadioProps) => {
+  const { isDark } = useTheme();
+  const selected = areValuesEqual(value, selectedValue);
+  const brandColor = isDark ? Colors.brand.dark : Colors.brand.light;
+  const borderColor = selected ? brandColor : isDark ? Colors.border.dark : Colors.border.medium;
+  const backgroundColor = selected ? (isDark ? 'rgba(59, 130, 246, 0.14)' : 'rgba(14, 165, 233, 0.08)') : 'transparent';
+  const mutedTextColor = isDark ? Colors.muted.dark.text : Colors.muted.light.text;
+  const displayLabel = label.trim() || 'Selected location';
 
   let sizeLabel: 'sm' | 'md' | 'lg' | 'xs' | 'xl' | '2xs' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl';
   let sizeSubLabel: 'sm' | 'md' | 'lg' | 'xs' | 'xl' | '2xs' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl';
@@ -65,29 +87,78 @@ export const ButtonRadio = ({
   }
 
   return (
-    <Button
-      size="xl"
-      justify="start"
-      variant={selected ? 'outline' : 'link'}
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
       onPress={() => {
         if (!selected) {
           onSelect(value);
         }
       }}
-      style={style}
+      style={({ pressed }) => [
+        styles.option,
+        {
+          borderColor,
+          backgroundColor,
+        },
+        pressed && styles.pressed,
+        style,
+      ]}
     >
-      <View>
-        <Text size={sizeLabel} >
-          {label}
+      <View style={[styles.radioCircle, { borderColor: selected ? brandColor : borderColor }]}>
+        {selected && <View style={[styles.radioInner, { backgroundColor: brandColor }]} />}
+      </View>
+      <View style={styles.labelContainer}>
+        <Text size={sizeLabel} emphasis="medium" numberOfLines={2} style={styles.label}>
+          {displayLabel}
         </Text>
-        <Text size={sizeSubLabel} >
+        <Text size={sizeSubLabel} numberOfLines={1} style={[styles.subLabel, { color: mutedTextColor }]}>
           {formatSubLabel(subLabel)}
         </Text>
       </View>
-    </Button>
+    </Pressable>
   );
 };
 
+const styles = StyleSheet.create({
+  option: {
+    width: '100%',
+    minHeight: 72,
+    borderWidth: 1.5,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  pressed: {
+    opacity: 0.82,
+  },
+  radioCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  labelContainer: {
+    flex: 1,
+    minWidth: 0,
+  },
+  label: {
+    flexShrink: 1,
+  },
+  subLabel: {
+    marginTop: 2,
+  },
+});
 
 /*
 Usage Examples:

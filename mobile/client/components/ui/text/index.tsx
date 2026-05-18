@@ -53,9 +53,29 @@ const Text = React.forwardRef<React.ComponentRef<typeof RNText>, ITextProps>(
       '6xl': 60,
     };
 
+    // Base line-heights (chosen to match common Tailwind defaults).
+    // We scale these using the same fontMultiplier so line-height stays in sync with font size
+    // and descenders (g, y, p, etc.) don't get clipped.
+    const lineHeightMap: Record<string, number> = {
+      '2xs': 14,
+      'xs': 16,
+      'sm': 20,
+      'md': 24,
+      'lg': 28,
+      'xl': 28,
+      '2xl': 32,
+      '3xl': 36,
+      '4xl': 40,
+      '5xl': 52,
+      '6xl': 64,
+    };
+
     // Get base font size and apply multiplier
     const baseFontSize = sizeMap[size] || 14;
     const scaledFontSize = getScaledFontSize(baseFontSize, fontMultiplier);
+    const baseLineHeight = lineHeightMap[size] ?? Math.round(baseFontSize * 1.4);
+    const scaledLineHeight = Math.round(baseLineHeight * fontMultiplier);
+    const safeLineHeight = Math.max(scaledLineHeight, scaledFontSize + 2);
     
     // Map emphasis to font family
     const getFontFamily = () => {
@@ -96,6 +116,7 @@ const Text = React.forwardRef<React.ComponentRef<typeof RNText>, ITextProps>(
           { 
             color: defaultColor,
             fontSize: scaledFontSize,
+            lineHeight: safeLineHeight,
             fontFamily: getFontFamily(),
           }, 
           style

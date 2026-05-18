@@ -87,7 +87,7 @@ export const StatusIndicator = ({ userStatus, loggedInUser }: StatusIndicatorPro
                   variant="primary"
                   style={styles.statusBadge}
                 >
-                  <Chip.Label>{userStatus.condition}</Chip.Label>
+                  <Chip.Label className="text-white">{userStatus.condition}</Chip.Label>
                 </Chip>
               </Box>
             </Box>

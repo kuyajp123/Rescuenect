@@ -12,6 +12,7 @@ type MapButtonStates = {
   rotateEnabled?: boolean;
   scrollEnabled?: boolean;
   zoomEnabled?: boolean;
+  fastTapEnabled?: boolean;
   mapStyle?: MapStyle['value'];
   centerCoordinate: [number, number] | null;
   setHasButtons: (hasButtons: boolean) => void;
@@ -20,6 +21,7 @@ type MapButtonStates = {
   setRotateEnabled: (rotateEnabled: boolean) => void;
   setScrollEnabled: (scrollEnabled: boolean) => void;
   setZoomEnabled: (zoomEnabled: boolean) => void;
+  setFastTapEnabled: (enabled: boolean) => void;
   setCenterCoordinate: (coordinate: [number, number] | null) => void;
   setMapStyle?: (style: MapStyle['value']) => void;
 };
@@ -31,6 +33,7 @@ export const useMapSettingsStore = create<MapButtonStates>(set => ({
   rotateEnabled: true,
   scrollEnabled: true,
   zoomEnabled: true,
+  fastTapEnabled: false,
   mapStyle: StyleURL.Street,
   centerCoordinate: [120.7752839, 14.2919325],
   setHasButtons: hasButtons => set({ hasButtons }),
@@ -39,6 +42,7 @@ export const useMapSettingsStore = create<MapButtonStates>(set => ({
   setRotateEnabled: rotateEnabled => set({ rotateEnabled }),
   setScrollEnabled: scrollEnabled => set({ scrollEnabled }),
   setZoomEnabled: zoomEnabled => set({ zoomEnabled }),
+  setFastTapEnabled: enabled => set({ fastTapEnabled: enabled }),
   setCenterCoordinate: coordinate => set({ centerCoordinate: coordinate }),
   setMapStyle: style => set({ mapStyle: style }),
 }));

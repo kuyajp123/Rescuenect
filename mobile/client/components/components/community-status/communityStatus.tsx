@@ -21,15 +21,32 @@ const STATUS_DOT_COLORS: Record<StatusKey, string> = {
 const PIE_RADIUS = 58;
 const PIE_INNER_RADIUS = 36;
 const PIE_CENTER_SIZE = PIE_INNER_RADIUS * 2;
+const CATEGORY_BAR_WIDTH = 18;
+const CATEGORY_BAR_SPACING = 34;
+const CATEGORY_LABEL_SLOT_WIDTH = CATEGORY_BAR_WIDTH + CATEGORY_BAR_SPACING;
+const CATEGORY_LABEL_WIDTH = 92;
+const CATEGORY_LABEL_HEIGHT = 96;
 
 export const CommunityStatus = () => {
   const { isDark } = useTheme();
   const router = useRouter();
   const { statusCounts, statusData } = useStatusStore();
   const totalCount = Object.values(statusCounts).reduce((sum, value) => sum + value, 0);
+  const chartTextColor = isDark ? Colors.text.dark : Colors.text.light;
 
   const formatCategoryLabel = (value: string) => {
     return value.replace(/-/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+  };
+
+  const wrapCategoryLabel = (value: string) => {
+    const words = value.split(/\s+/).filter(Boolean);
+
+    if (value.length <= 16 || words.length < 2) {
+      return value;
+    }
+
+    const midpoint = Math.ceil(words.length / 2);
+    return `${words.slice(0, midpoint).join(' ')}\n${words.slice(midpoint).join(' ')}`;
   };
 
   const normalizeCategories = (value: unknown) => {
@@ -79,15 +96,32 @@ export const CommunityStatus = () => {
     Colors.semantic.info,
     Colors.icons.light,
   ];
-  const barLabelWidth = 110;
+
+  const renderCategoryLabel = (label: string) => (
+    <View style={styles.categoryLabelSlot}>
+      <Text
+        size="2xs"
+        numberOfLines={2}
+        style={[styles.categoryLabelText, { color: chartTextColor }]}
+      >
+        {label}
+      </Text>
+    </View>
+  );
 
   const barData = Object.entries(categoryCounts)
     .sort((a, b) => b[1] - a[1])
-    .map(([label, value], index) => ({
-      value,
-      label: formatCategoryLabel(label),
-      frontColor: barPalette[index % barPalette.length],
-    }));
+    .map(([label, value], index) => {
+      const displayLabel = wrapCategoryLabel(formatCategoryLabel(label));
+
+      return {
+        value,
+        label: displayLabel,
+        labelWidth: CATEGORY_BAR_WIDTH,
+        labelComponent: () => renderCategoryLabel(displayLabel),
+        frontColor: barPalette[index % barPalette.length],
+      };
+    });
 
   const pieData = [
     { value: statusCounts.safe, color: STATUS_DOT_COLORS.safe, text: 'Safe' },
@@ -100,7 +134,7 @@ export const CommunityStatus = () => {
     <View>
       <VStack space="lg">
         <Text size="lg" bold>
-          Evacuation Centers
+          Status
         </Text>
         <View>
           <View
@@ -117,38 +151,40 @@ export const CommunityStatus = () => {
               Status Categories
             </Text>
             {barData.length > 0 ? (
-              <BarChart
-                data={barData}
-                barWidth={16}
-                spacing={22}
-                initialSpacing={12}
-                endSpacing={16}
-                disableScroll={false}
-                showScrollIndicator
-                roundedTop
-                rotateLabel
-                xAxisTextNumberOfLines={1}
-                xAxisLabelsHeight={64}
-                labelsDistanceFromXaxis={16}
-                xAxisLabelsVerticalShift={12}
-                labelsExtraHeight={16}
-                yAxisLabelWidth={30}
-                hideYAxisText={false}
-                yAxisThickness={0}
-                xAxisThickness={0}
-                xAxisLabelTextStyle={{
-                  color: isDark ? Colors.text.dark : Colors.text.light,
-                  fontSize: 10,
-                  textAlign: 'left',
-                  width: barLabelWidth,
-                  alignSelf: 'center',
-                }}
-                yAxisTextStyle={{
-                  color: isDark ? Colors.text.dark : Colors.text.light,
-                  fontSize: 10,
-                  textAlign: 'right',
-                }}
-              />
+              <View style={styles.categoryChartFrame}>
+                <BarChart
+                  data={barData}
+                  height={150}
+                  barWidth={CATEGORY_BAR_WIDTH}
+                  spacing={CATEGORY_BAR_SPACING}
+                  initialSpacing={18}
+                  endSpacing={42}
+                  disableScroll={barData.length <= 3}
+                  showScrollIndicator={barData.length > 3}
+                  roundedTop
+                  xAxisTextNumberOfLines={2}
+                  xAxisLabelsHeight={CATEGORY_LABEL_HEIGHT}
+                  labelsDistanceFromXaxis={24}
+                  xAxisLabelsVerticalShift={22}
+                  labelsExtraHeight={36}
+                  yAxisLabelWidth={30}
+                  hideYAxisText={false}
+                  yAxisThickness={0}
+                  xAxisThickness={0}
+                  xAxisLabelTextStyle={{
+                    color: chartTextColor,
+                    fontSize: 10,
+                    lineHeight: 12,
+                    textAlign: 'right',
+                    width: CATEGORY_LABEL_WIDTH,
+                  }}
+                  yAxisTextStyle={{
+                    color: chartTextColor,
+                    fontSize: 10,
+                    textAlign: 'right',
+                  }}
+                />
+              </View>
             ) : (
               <Text size="2xs" emphasis="light" style={styles.emptyText}>
                 No category data yet.
@@ -234,6 +270,27 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
     gap: 12,
+  },
+  categoryChartFrame: {
+    minHeight: 268,
+    paddingTop: 4,
+    overflow: 'visible',
+  },
+  categoryLabelSlot: {
+    width: CATEGORY_LABEL_SLOT_WIDTH,
+    height: CATEGORY_LABEL_HEIGHT,
+    overflow: 'visible',
+  },
+  categoryLabelText: {
+    position: 'absolute',
+    top: 4,
+    left: CATEGORY_LABEL_SLOT_WIDTH / 2 - CATEGORY_LABEL_WIDTH,
+    width: CATEGORY_LABEL_WIDTH,
+    fontSize: 10,
+    lineHeight: 12,
+    textAlign: 'right',
+    transform: [{ rotate: '-45deg' }],
+    transformOrigin: 'right top',
   },
   pieRow: {
     flexDirection: 'row',

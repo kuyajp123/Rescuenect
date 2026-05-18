@@ -45,26 +45,13 @@ export const MapProvider = ({ children }: MapProviderProps) => {
   const [mapStyle, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
   const [showMapStyles, setShowMapStyles] = useState(false);
   const hasButtons = useMapSettingsStore(state => state.hasButtons);
+  const fastTapEnabled = useMapSettingsStore(state => state.fastTapEnabled);
   const router = useRouter();
   const { isDark } = useTheme();
   const [cameraCenter, setCameraCenterState] = useState<[number, number]>([120.750674, 14.31808]);
 
   const setCameraCenter = useCallback((coords: [number, number]) => {
     setCameraCenterState(coords);
-
-    if (cameraRef.current?.setCamera) {
-      cameraRef.current.setCamera({
-        centerCoordinate: coords,
-        zoomLevel: 16,
-        animationDuration: 400,
-        animationMode: 'flyTo',
-      });
-      return;
-    }
-
-    if (cameraRef.current?.flyTo) {
-      cameraRef.current.flyTo(coords, 400);
-    }
   }, []);
 
   // Load saved map style from storage
@@ -93,6 +80,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
 
   const setMapStyle = useCallback(async (style: MapboxGL.StyleURL) => {
     try {
+      setIsMapReady(false);
       setMapStyleState(style);
       setShowMapStyles(false);
       // Save the selected style to storage
@@ -152,13 +140,25 @@ export const MapProvider = ({ children }: MapProviderProps) => {
         <MapboxGL.MapView
           ref={mapRef}
           style={styles.mapStyle}
+          onWillStartLoadingMap={() => setIsMapReady(false)}
           onDidFinishLoadingMap={() => setIsMapReady(true)}
-          onDidFailLoadingMap={() => setIsMapReady(false)}
+          onDidFinishRenderingMapFully={() => setIsMapReady(true)}
           styleURL={mapStyle}
           logoEnabled={false}
           compassEnabled={true}
           compassViewPosition={1}
           compassViewMargins={{ x: 20, y: 20 }}
+          gestureSettings={
+            fastTapEnabled
+              ? {
+                  // Improves perceived responsiveness for single taps (pin placement) by disabling
+                  // double-tap/quick-zoom gestures. Users can still zoom via pinch.
+                  doubleTapToZoomInEnabled: false,
+                  doubleTouchToZoomOutEnabled: false,
+                  quickZoomEnabled: false,
+                }
+              : undefined
+          }
           onPress={handlePress}
         >
           {/* Add your default map children here */}
@@ -194,26 +194,19 @@ export const MapProvider = ({ children }: MapProviderProps) => {
             </MapboxGL.VectorSource>
           )}
 
-          {oneTimeLocationCoords && (
-            <MapboxGL.PointAnnotation
-              key={`user-marker-${oneTimeLocationCoords[0]}-${oneTimeLocationCoords[1]}`}
-              id="user-marker"
-              coordinate={oneTimeLocationCoords}
-            >
-              <View style={styles.GpsMarker} />
+          {isMapReady && oneTimeLocationCoords && (
+            <MapboxGL.PointAnnotation id="user-marker" coordinate={oneTimeLocationCoords}>
+              <View collapsable={false} style={styles.GpsMarker} />
             </MapboxGL.PointAnnotation>
           )}
-          {coords &&
+          {isMapReady &&
+            coords &&
             (() => {
               const markerColor = activeStatusCoords ? Colors.semantic.success : Colors.brand.dark;
 
               return (
-                <MapboxGL.PointAnnotation
-                  key={`tap-marker-${activeStatusCoords ? 'green' : 'blue'}-${coords[0]}-${coords[1]}`}
-                  id={`tap-marker-${activeStatusCoords ? 'green' : 'blue'}-${coords[0]}-${coords[1]}`}
-                  coordinate={coords}
-                >
-                  <View style={[styles.tapMarker, { backgroundColor: markerColor }]} />
+                <MapboxGL.PointAnnotation id="tap-marker" coordinate={coords}>
+                  <View collapsable={false} style={[styles.tapMarker, { backgroundColor: markerColor }]} />
                 </MapboxGL.PointAnnotation>
               );
             })()}
@@ -299,9 +292,14 @@ export const MapProvider = ({ children }: MapProviderProps) => {
     mapStyle,
     showMapStyles,
     isDark,
+    isMapReady,
     hasButtons,
     followUserLocation,
     activeStatusCoords,
+    fastTapEnabled,
+    router,
+    setMapStyle,
+    toggleMapStyles,
   ]);
 
   const value = {

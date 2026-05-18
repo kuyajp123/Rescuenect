@@ -210,7 +210,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Sequential loading: Wait for style -> Wait for Images -> Show Markers
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
+    let timeout: ReturnType<typeof setTimeout>;
     if (isStyleLoaded && isMapReady) {
       // Give the Images component time to register native assets before adding the ShapeSource
       timeout = setTimeout(() => {
@@ -274,7 +274,7 @@ export const MapView: React.FC<MapViewProps> = ({
         console.error('Error saving map style:', error);
       }
     },
-    [mapStyleState]
+    [mapStyleState, setMapStyle]
   );
 
   // Convert EvacuationCenterFormData[] to GeoJSON FeatureCollection
@@ -316,6 +316,10 @@ export const MapView: React.FC<MapViewProps> = ({
         compassViewPosition={1}
         compassViewMargins={{ x: 20, y: 20 }}
         onPress={handleMapPress}
+        onWillStartLoadingMap={() => {
+          setIsMapReady(false);
+          setIsStyleLoaded(false);
+        }}
         onDidFinishLoadingMap={() => setIsMapReady(true)}
         onDidFailLoadingMap={() => setIsMapReady(false)}
         onDidFinishLoadingStyle={() => setIsStyleLoaded(true)}
@@ -453,12 +457,8 @@ export const MapView: React.FC<MapViewProps> = ({
             )}
 
             {coords && (
-              <MapboxGL.PointAnnotation
-                key={`tap-marker-${coords ? 'green' : 'blue'}-${coords.lat}-${coords.lng}`}
-                id={`tap-marker-${coords ? 'green' : 'blue'}-${coords.lat}-${coords.lng}`}
-                coordinate={[coords.lng, coords.lat]}
-              >
-                <View style={[styles.tapMarker, { backgroundColor: Colors.brand.dark }]} />
+              <MapboxGL.PointAnnotation id="tap-marker" coordinate={[coords.lng, coords.lat]}>
+                <View collapsable={false} style={[styles.tapMarker, { backgroundColor: Colors.brand.dark }]} />
               </MapboxGL.PointAnnotation>
             )}
 
@@ -469,7 +469,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   id={`saved-location-marker-${location.id}`}
                   coordinate={[location.lng, location.lat]}
                 >
-                  <View style={styles.savedLocationMarker} />
+                  <View collapsable={false} style={styles.savedLocationMarker} />
                 </MapboxGL.PointAnnotation>
               ))}
 
@@ -511,6 +511,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   coordinate={[earthquakeData.coordinates.longitude, earthquakeData.coordinates.latitude]}
                 >
                   <View
+                    collapsable={false}
                     style={[
                       styles.tapMarker,
                       {

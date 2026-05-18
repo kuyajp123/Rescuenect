@@ -3,7 +3,7 @@ import { differenceInHours, formatDistanceToNow } from 'date-fns';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
 import * as Network from 'expo-network';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 // Convert contact number to E.164 format (+63xxxxxxxxxx)
 export const convertToE164Format = (contactNumber: string): string => {
@@ -72,6 +72,133 @@ export const requestLocationPermission = async (): Promise<boolean> => {
   }
 };
 
+const LOCATION_WATCH_TIMEOUT_MS = 10000;
+const RECENT_LAST_KNOWN_MAX_AGE_MS = 2 * 60 * 1000;
+const FALLBACK_LAST_KNOWN_MAX_AGE_MS = 10 * 60 * 1000;
+const RECENT_LAST_KNOWN_REQUIRED_ACCURACY_METERS = 150;
+const FALLBACK_LAST_KNOWN_REQUIRED_ACCURACY_METERS = 500;
+const ANDROID_LOCATION_SETTINGS_ACTION = 'android.settings.LOCATION_SOURCE_SETTINGS';
+
+const toCoordTuple = (location: Location.LocationObject): [number, number] => [
+  location.coords.longitude,
+  location.coords.latitude,
+];
+
+const isCurrentLocationUnavailableError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.toLowerCase().includes('current location is unavailable');
+};
+
+const getLastKnownLocation = async (maxAge: number, requiredAccuracy: number) => {
+  try {
+    return await Location.getLastKnownPositionAsync({
+      maxAge,
+      requiredAccuracy,
+    });
+  } catch (error) {
+    console.warn('Error getting last known location:', error);
+    return null;
+  }
+};
+
+const getFreshLocation = async (accuracy: Location.Accuracy) => {
+  try {
+    return await Location.getCurrentPositionAsync({
+      accuracy,
+      mayShowUserSettingsDialog: true,
+    });
+  } catch (error) {
+    if (!isCurrentLocationUnavailableError(error)) {
+      console.warn('Error getting fresh location:', error);
+    }
+    return null;
+  }
+};
+
+const openDeviceLocationSettings = async () => {
+  if (Platform.OS === 'android') {
+    try {
+      await Linking.sendIntent(ANDROID_LOCATION_SETTINGS_ACTION);
+      return;
+    } catch (error) {
+      console.warn('Error opening device location settings:', error);
+    }
+  }
+
+  await Linking.openSettings();
+};
+
+const requestEnableLocationServices = async () => {
+  if (Platform.OS !== 'android') {
+    return false;
+  }
+
+  try {
+    await Location.enableNetworkProviderAsync();
+    return await Location.hasServicesEnabledAsync();
+  } catch {
+    return false;
+  }
+};
+
+const watchLocationOnce = async (timeoutMs = LOCATION_WATCH_TIMEOUT_MS) => {
+  let subscription: Location.LocationSubscription | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  let settled = false;
+
+  return new Promise<Location.LocationObject | null>(resolve => {
+    const finish = (location: Location.LocationObject | null) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+
+      if (subscription) {
+        subscription.remove();
+        subscription = null;
+      }
+
+      resolve(location);
+    };
+
+    timeoutId = setTimeout(() => finish(null), timeoutMs);
+
+    Location.watchPositionAsync(
+      {
+        accuracy: Location.Accuracy.Balanced,
+        timeInterval: 1000,
+        distanceInterval: 0,
+        mayShowUserSettingsDialog: true,
+      },
+      location => finish(location),
+      reason => {
+        console.warn('Location watch error:', reason);
+        finish(null);
+      }
+    )
+      .then(nextSubscription => {
+        if (settled) {
+          nextSubscription.remove();
+          return;
+        }
+
+        subscription = nextSubscription;
+      })
+      .catch(error => {
+        if (!isCurrentLocationUnavailableError(error)) {
+          console.warn('Error watching current location:', error);
+        }
+        finish(null);
+      });
+  });
+};
+
 // Get current position once
 export const getCurrentPositionOnce = async (): Promise<[number, number] | null> => {
   try {
@@ -84,14 +211,51 @@ export const getCurrentPositionOnce = async (): Promise<[number, number] | null>
       return null;
     }
 
-    const currentLocation = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.High,
-    });
+    let hasLocationServices = await Location.hasServicesEnabledAsync();
+    if (!hasLocationServices) {
+      hasLocationServices = await requestEnableLocationServices();
+    }
 
-    const coords: [number, number] = [currentLocation.coords.longitude, currentLocation.coords.latitude];
-    return coords;
+    if (!hasLocationServices) {
+      Alert.alert('Location Services Disabled', 'Please turn on device location services to use your GPS location.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Open Location Settings', onPress: () => void openDeviceLocationSettings() },
+      ]);
+      return null;
+    }
+
+    const recentLastKnownLocation = await getLastKnownLocation(
+      RECENT_LAST_KNOWN_MAX_AGE_MS,
+      RECENT_LAST_KNOWN_REQUIRED_ACCURACY_METERS
+    );
+
+    const freshHighLocation = await getFreshLocation(Location.Accuracy.High);
+    if (freshHighLocation) {
+      return toCoordTuple(freshHighLocation);
+    }
+
+    const freshBalancedLocation = await getFreshLocation(Location.Accuracy.Balanced);
+    if (freshBalancedLocation) {
+      return toCoordTuple(freshBalancedLocation);
+    }
+
+    const watchedLocation = await watchLocationOnce();
+    if (watchedLocation) {
+      return toCoordTuple(watchedLocation);
+    }
+
+    if (recentLastKnownLocation) {
+      return toCoordTuple(recentLastKnownLocation);
+    }
+
+    const fallbackLastKnownLocation = await getLastKnownLocation(
+      FALLBACK_LAST_KNOWN_MAX_AGE_MS,
+      FALLBACK_LAST_KNOWN_REQUIRED_ACCURACY_METERS
+    );
+
+    return fallbackLastKnownLocation ? toCoordTuple(fallbackLastKnownLocation) : null;
   } catch (error) {
-    console.error('Error getting current location:', error);
+    console.warn('Unable to get current location:', error);
     return null;
   }
 };
@@ -181,7 +345,7 @@ export const formatTimeSince = (dateValue: any): string => {
     }
 
     return relativeTime;
-  } catch (error) {
+  } catch {
     return 'Unknown';
   }
 };

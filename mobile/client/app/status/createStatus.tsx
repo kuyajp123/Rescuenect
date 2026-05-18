@@ -40,8 +40,8 @@ import { useStatusFormStore } from '@/store/useStatusForm';
 import { AddressState, Category, StatusFormErrors, StatusStateData } from '@/types/components';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
-import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
+import { Checkbox as HeroCheckbox } from 'heroui-native';
 import { isEqual } from 'lodash';
 import { Bookmark, HelpCircle, Navigation, SquarePen, Trash } from 'lucide-react-native';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -62,7 +62,7 @@ export const createStatus = () => {
   const { setCameraCenter } = useMap();
   const authUser = useAuth(state => state.authUser);
   const router = useRouter();
-  const { showSuccess } = useAppToast();
+  const { showSuccess, showWarning } = useAppToast();
   const TOAST_AFTER_MODAL_DISMISS_MS = 350;
 
   // Onboarding
@@ -119,6 +119,7 @@ export const createStatus = () => {
   const lastFetchedCoordsRef = useRef<[number, number] | null>(null);
   const lastFetchedGPSRef = useRef<[number, number] | null>(null);
   const lastMapTapCoordsRef = useRef<[number, number] | null>(null);
+  const ADDRESS_LOOKUP_DEBOUNCE_MS = 250; // keep API calls reasonable while staying responsive
 
   // Form related states
   const [submitStatusLoading, setSubmitStatusLoading] = useState(false);
@@ -138,6 +139,7 @@ export const createStatus = () => {
   const setRotateEnabled = useMapSettingsStore(state => state.setRotateEnabled);
   const setScrollEnabled = useMapSettingsStore(state => state.setScrollEnabled);
   const setZoomEnabled = useMapSettingsStore(state => state.setZoomEnabled);
+  const setFastTapEnabled = useMapSettingsStore(state => state.setFastTapEnabled);
 
   const [statusForm, setStatusForm] = useState<StatusStateData>({
     uid: authUser?.uid || '',
@@ -359,7 +361,8 @@ export const createStatus = () => {
     setRotateEnabled(true);
     setScrollEnabled(true);
     setZoomEnabled(true);
-  }, [setHasButtons, setCompassEnabled, setPitchEnabled, setRotateEnabled, setScrollEnabled, setZoomEnabled]);
+    setFastTapEnabled(true);
+  }, [setHasButtons, setCompassEnabled, setPitchEnabled, setRotateEnabled, setScrollEnabled, setZoomEnabled, setFastTapEnabled]);
 
   // Handle GPS availability (secondary priority)
   useEffect(() => {
@@ -413,6 +416,18 @@ export const createStatus = () => {
     // Cleanup function - reset activeStatusCoords when component unmounts
     return () => {
       setActiveStatusCoords(false);
+      setFastTapEnabled(false);
+
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      if (debounceTimerRefGPS.current) {
+        clearTimeout(debounceTimerRefGPS.current);
+        debounceTimerRefGPS.current = null;
+      }
+      setAddressCoordsLoading(false);
+      setAddressGPSLoading(false);
     };
   }, []);
 
@@ -487,18 +502,17 @@ export const createStatus = () => {
       clearTimeout(debounceTimerRef.current);
     }
 
-    // Set new timer for 1.5 seconds
+    // Debounce address lookup a bit to avoid spamming the API on rapid taps.
     debounceTimerRef.current = setTimeout(() => {
       handleGetAddress(coords[1], coords[0]);
       debounceTimerRef.current = null;
-    }, 1500);
+    }, ADDRESS_LOOKUP_DEBOUNCE_MS);
 
     // Cleanup function to clear timer on unmount
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
         debounceTimerRef.current = null;
-        setAddressCoordsLoading(false);
       }
     };
   }, [coords, isOnline, authUser, formData]);
@@ -536,18 +550,17 @@ export const createStatus = () => {
       clearTimeout(debounceTimerRefGPS.current);
     }
 
-    // Set new timer for 1.5 seconds
+    // Debounce address lookup a bit to avoid spamming the API on rapid taps.
     debounceTimerRefGPS.current = setTimeout(() => {
       handleGetAddress(oneTimeLocationCoords[1], oneTimeLocationCoords[0]);
       debounceTimerRefGPS.current = null;
-    }, 1500);
+    }, ADDRESS_LOOKUP_DEBOUNCE_MS);
 
     // Cleanup function to clear timer on unmount
     return () => {
       if (debounceTimerRefGPS.current) {
         clearTimeout(debounceTimerRefGPS.current);
         debounceTimerRefGPS.current = null;
-        setAddressGPSLoading(false);
       }
     };
   }, [oneTimeLocationCoords, isOnline, authUser]);
@@ -974,7 +987,6 @@ export const createStatus = () => {
           setAddressGPSLoading(true);
         }
         try {
-          await new Promise(resolve => setTimeout(resolve, 800));
           const currentCoords = await getCurrentPositionOnce();
           if (currentCoords) {
             setOneTimeLocationCoords(currentCoords);
@@ -989,12 +1001,12 @@ export const createStatus = () => {
             }));
             triggerBottomSheetAnimation();
           } else {
-            console.warn('Failed to get current location');
             setAddressGPSLoading(false);
+            showWarning('GPS location is not ready yet. Please try again in a moment.');
           }
-        } catch (error) {
+        } catch {
           setAddressGPSLoading(false);
-          console.error('Error getting current location:', error);
+          showWarning('GPS location is not ready yet. Please try again in a moment.');
         } finally {
           setGetCurrentPositionLoading(false);
         }
@@ -1113,6 +1125,8 @@ export const createStatus = () => {
         return (
           <Pressable
             key={`category-checkbox-${c}`}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: isChecked }}
             style={styles.checkboxContainer}
             onPress={() => {
               let newCategories: Category[] = [];
@@ -1127,23 +1141,38 @@ export const createStatus = () => {
               handleInputChange('category', newCategories as any);
             }}
           >
-            <Checkbox
-              value={isChecked}
-              onValueChange={() => {
-                let newCategories: Category[] = [];
-                const currentCategories = statusForm.category || [];
-
-                if (currentCategories.includes(c)) {
-                  newCategories = currentCategories.filter((cat: Category) => cat !== c);
-                } else {
-                  newCategories = [...currentCategories, c];
-                }
-
-                handleInputChange('category', newCategories as any);
-              }}
-              color={isChecked ? (isDark ? Colors.brand.dark : Colors.brand.light) : undefined}
-              style={styles.checkbox}
-            />
+            <HeroCheckbox
+              isSelected={isChecked}
+              onSelectedChange={() => {}}
+              pointerEvents="none"
+              style={[
+                styles.checkbox,
+                {
+                  borderColor: isChecked
+                    ? isDark
+                      ? Colors.brand.dark
+                      : Colors.brand.light
+                    : isDark
+                      ? Colors.border.dark
+                      : Colors.border.medium,
+                  backgroundColor: isChecked
+                    ? isDark
+                      ? Colors.brand.dark
+                      : Colors.brand.light
+                    : 'transparent',
+                },
+              ]}
+            >
+              <HeroCheckbox.Indicator
+                iconProps={{ color: '#FFFFFF', size: 18, strokeWidth: 3 }}
+                style={[
+                  styles.checkboxIndicator,
+                  {
+                    backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light,
+                  },
+                ]}
+              />
+            </HeroCheckbox>
             <Text
               size="md"
               style={{
@@ -1175,7 +1204,7 @@ export const createStatus = () => {
         {/* Tapped Location Option (Default/Priority) */}
         <ButtonRadio
           key="tapped-location"
-          label={addressCoords ? addressCoords.formatted : 'Tapped Location'}
+          label={addressCoords?.formatted || 'Tapped Location'}
           sizeText="sm"
           subLabel={coords}
           value={coords}
@@ -1187,7 +1216,7 @@ export const createStatus = () => {
         {/* GPS/Current Location Option */}
         <ButtonRadio
           key="gps-location"
-          label={addressGPS ? addressGPS.formatted : 'GPS Location'}
+          label={addressGPS?.formatted || 'GPS Location'}
           sizeText="sm"
           subLabel={oneTimeLocationCoords}
           value={oneTimeLocationCoords}
@@ -1654,5 +1683,10 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 25,
     height: 25,
+    borderRadius: 6,
+    borderWidth: 2,
+  },
+  checkboxIndicator: {
+    borderRadius: 4,
   },
 });

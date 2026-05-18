@@ -23,8 +23,18 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { IconButton, ToggleButton } from '../button/Button';
+
+const snapPointToHeightPx = (snapPoint: string | number, containerHeight: number) => {
+  if (typeof snapPoint === 'number') return snapPoint;
+  const trimmed = snapPoint.trim();
+  if (!trimmed.endsWith('%')) return 0;
+  const value = Number(trimmed.slice(0, -1));
+  if (Number.isNaN(value)) return 0;
+  return (value * containerHeight) / 100;
+};
 
 // Types for flexible form fields
 export interface TextInputField {
@@ -152,7 +162,7 @@ export interface MapNewProps {
   stopTracking?: () => void;
 
   // Additional props
-  snapPoints?: string[];
+  snapPoints?: (string | number)[];
   onLocationClear?: () => void;
   animateOnMapTap?: boolean;
   animateOnActionTrigger?: number;
@@ -188,7 +198,7 @@ const Map = ({
   showCoordinates = true,
   stopTracking,
   headerActions,
-  snapPoints = ['14%', '90%'],
+  snapPoints = ['14%', '100%'],
   onLocationClear,
   errMessage = '',
   animateOnMapTap = false,
@@ -200,6 +210,9 @@ const Map = ({
   const oneTimeLocationCoords = useCoords(state => state.oneTimeLocationCoords);
   const { isDark } = useTheme();
   const [bottomSheetEnabled, setBottomSheetEnabled] = React.useState(false);
+  const { height: windowHeight } = useWindowDimensions();
+  const [measuredHandleHeight, setMeasuredHandleHeight] = React.useState(0);
+  const [measuredActionContentsHeight, setMeasuredActionContentsHeight] = React.useState(0);
   const statusForm = useStatusFormStore(state => state.formData);
   const addressCoordsLoading = useGetAddress(state => state.addressCoordsLoading);
   const addressGPSLoading = useGetAddress(state => state.addressGPSLoading);
@@ -210,9 +223,6 @@ const Map = ({
   const mapTapAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastActionAnimationRef = useRef(0);
 
-  // Single variable that handles all snap point logic
-  let memoizedSnapPoints;
-  // If both coordinates exist, use larger initial height
   const hasValidCoords = coords && coords.length >= 2 && coords[0] !== null && coords[1] !== null;
   const hasValidOneTimeCoords =
     oneTimeLocationCoords &&
@@ -220,15 +230,72 @@ const Map = ({
     oneTimeLocationCoords[0] !== null &&
     oneTimeLocationCoords[1] !== null;
 
-  if (hasValidCoords && hasValidOneTimeCoords) {
-    memoizedSnapPoints = ['25%', '90%'];
-  } else if (hasValidCoords || hasValidOneTimeCoords) {
-    // If only one coordinate exists, use default from props
-    memoizedSnapPoints = snapPoints;
-  } else {
-    // If no coordinates exist (after deletion), use 14% as initial height
-    memoizedSnapPoints = ['14%', '90%'];
-  }
+  const handleBottomSheetHandleLayout = useCallback(
+    (event: { nativeEvent: { layout: { height: number } } }) => {
+      const nextHeight = Math.ceil(event.nativeEvent.layout.height);
+      setMeasuredHandleHeight(prev => (Math.abs(prev - nextHeight) > 1 ? nextHeight : prev));
+    },
+    []
+  );
+
+  const handleActionContentsLayout = useCallback(
+    (event: { nativeEvent: { layout: { height: number } } }) => {
+      const nextHeight = Math.ceil(event.nativeEvent.layout.height);
+      setMeasuredActionContentsHeight(prev => (Math.abs(prev - nextHeight) > 1 ? nextHeight : prev));
+    },
+    []
+  );
+
+  const { memoizedSnapPoints, maxSnapHeightPx } = React.useMemo(() => {
+    // Base snap points logic (existing behavior)
+    const baseSnapPoints: (string | number)[] =
+      hasValidCoords && hasValidOneTimeCoords
+        ? ['25%', '100%']
+        : hasValidCoords || hasValidOneTimeCoords
+          ? snapPoints
+          : ['14%', '100%'];
+
+    const maxSnapPoint = baseSnapPoints[baseSnapPoints.length - 1] ?? '100%';
+    const maxHeightPx = snapPointToHeightPx(maxSnapPoint, windowHeight);
+
+    // Only adapt the *collapsed* snap point when we are showing an address/coords block.
+    if (!(hasValidCoords || hasValidOneTimeCoords)) {
+      return { memoizedSnapPoints: baseSnapPoints, maxSnapHeightPx: maxHeightPx };
+    }
+
+    if (measuredActionContentsHeight <= 0 || measuredHandleHeight <= 0 || windowHeight <= 0) {
+      return { memoizedSnapPoints: baseSnapPoints, maxSnapHeightPx: maxHeightPx };
+    }
+
+    const baseCollapsed = baseSnapPoints[0] ?? '14%';
+    const baseCollapsedHeightPx = snapPointToHeightPx(baseCollapsed, windowHeight);
+    const requiredCollapsedHeightPx = measuredHandleHeight + measuredActionContentsHeight;
+
+    const adaptiveCollapsedHeightPx = Math.min(
+      Math.ceil(Math.max(baseCollapsedHeightPx, requiredCollapsedHeightPx)),
+      // Ensure collapsed height never exceeds the max snap height.
+      maxHeightPx > 0 ? maxHeightPx - 1 : Number.MAX_SAFE_INTEGER
+    );
+
+    const remainingSnapPoints = baseSnapPoints.slice(1).filter(point => {
+      const heightPx = snapPointToHeightPx(point, windowHeight);
+      if (heightPx <= 0) return true;
+      return heightPx > adaptiveCollapsedHeightPx;
+    });
+
+    const nextSnapPoints = [adaptiveCollapsedHeightPx, ...remainingSnapPoints];
+    return {
+      memoizedSnapPoints: nextSnapPoints,
+      maxSnapHeightPx: maxHeightPx,
+    };
+  }, [
+    hasValidCoords,
+    hasValidOneTimeCoords,
+    measuredActionContentsHeight,
+    measuredHandleHeight,
+    snapPoints,
+    windowHeight,
+  ]);
 
   // Auto-snap to index 0 when no coordinates are available (after deletion)
   useEffect(() => {
@@ -250,12 +317,26 @@ const Map = ({
       clearTimeout(mapTapAnimationTimeoutRef.current);
     }
 
-    bottomSheetRef.current?.snapToPosition('20%', { duration: 260 });
+    const collapsedSnapPoint = memoizedSnapPoints[0] ?? '14%';
+    const collapsedHeightPx = snapPointToHeightPx(collapsedSnapPoint, windowHeight);
+    const effectiveMaxHeightPx =
+      maxSnapHeightPx || snapPointToHeightPx(memoizedSnapPoints[memoizedSnapPoints.length - 1] ?? '100%', windowHeight);
+
+    const bounceDeltaPx = 40;
+    const bounceTo =
+      collapsedHeightPx > 0
+        ? Math.min(
+            Math.ceil(collapsedHeightPx + bounceDeltaPx),
+            effectiveMaxHeightPx > 0 ? effectiveMaxHeightPx - 1 : Number.MAX_SAFE_INTEGER
+          )
+        : '20%';
+
+    bottomSheetRef.current?.snapToPosition(bounceTo, { duration: 260 });
     mapTapAnimationTimeoutRef.current = setTimeout(() => {
       bottomSheetRef.current?.snapToIndex(0, { duration: 320 });
       mapTapAnimationTimeoutRef.current = null;
     }, 380);
-  }, []);
+  }, [maxSnapHeightPx, memoizedSnapPoints, windowHeight]);
 
   // Compute values on each render
   const textValueColor = isDark ? Colors.text.dark : Colors.text.light;
@@ -368,7 +449,7 @@ const Map = ({
   const handleInputFocus = () => {
     // Only expand bottom sheet when input is focused if there's a marker coordinate
     if (coords && coords.length >= 2 && coords[0] !== null && coords[1] !== null) {
-      bottomSheetRef.current?.snapToIndex(2);
+      bottomSheetRef.current?.expand();
     }
   };
 
@@ -550,6 +631,7 @@ const Map = ({
           ref={bottomSheetRef}
           index={0}
           snapPoints={memoizedSnapPoints}
+          enableDynamicSizing={false}
           onChange={handleSheetChanges}
           keyboardBehavior="interactive"
           keyboardBlurBehavior="restore"
@@ -569,7 +651,7 @@ const Map = ({
             const shouldShowHandle = hasValidCoords || hasValidOneTimeCoords;
 
             return (
-              <View style={styles.handleContainer}>
+              <View style={styles.handleContainer} onLayout={handleBottomSheetHandleLayout}>
                 {shouldShowHandle && <ChevronUp size={24} color={isDark ? Colors.icons.dark : Colors.icons.light} />}
               </View>
             );
@@ -586,9 +668,11 @@ const Map = ({
             showsVerticalScrollIndicator={false}
             keyboardDismissMode="interactive"
           >
-            <VStack space="md" className="w-full">
-              {renderActionContents()}
-            </VStack>
+            <View onLayout={handleActionContentsLayout}>
+              <VStack space="md" className="w-full">
+                {renderActionContents()}
+              </VStack>
+            </View>
 
             {/* Conditional Header Actions */}
             {headerActions && (
