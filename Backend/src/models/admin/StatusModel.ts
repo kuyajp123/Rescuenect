@@ -3,6 +3,94 @@ import { VersionHistoryItem } from '@/types/types';
 import { Timestamp } from 'firebase-admin/firestore';
 
 export class StatusModel {
+  private static getTimestamp(t: any): number {
+    if (!t) return 0;
+    if (typeof t === 'number') return t;
+    if (typeof t === 'string') {
+      const parsed = new Date(t).getTime();
+      return Number.isNaN(parsed) ? 0 : parsed;
+    }
+    if (t instanceof Date) return t.getTime();
+    if (typeof t.toMillis === 'function') return t.toMillis();
+    if (typeof t.toDate === 'function') return t.toDate().getTime();
+
+    const seconds = t.seconds ?? t._seconds;
+    if (seconds !== undefined && seconds !== null) {
+      const nanoseconds = t.nanoseconds ?? t._nanoseconds ?? 0;
+      return seconds * 1000 + Math.floor(nanoseconds / 1000000);
+    }
+
+    const parsed = new Date(t).getTime();
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+
+  private static getStatusPriority(statusType?: string): number {
+    switch (statusType) {
+      case 'current':
+        return 4;
+      case 'resolved':
+        return 3;
+      case 'deleted':
+        return 2;
+      case 'history':
+        return 1;
+      default:
+        return 0;
+    }
+  }
+
+  private static getActivityTimestamp(status: any): number {
+    return Math.max(
+      this.getTimestamp(status.updatedAt),
+      this.getTimestamp(status.resolvedAt),
+      this.getTimestamp(status.deletedAt),
+      this.getTimestamp(status.createdAt)
+    );
+  }
+
+  private static getVersionNumber(status: any): number {
+    const versionId = String(status.versionId || status.id || '');
+    const match = versionId.match(/-v(\d+)$/);
+    return match ? Number(match[1]) : 0;
+  }
+
+  private static normalizeStatusDoc(doc: any) {
+    const data = doc.data();
+    const userId = data.uid || doc.ref?.parent?.parent?.id || '';
+    const parentId = data.parentId || doc.id;
+
+    return {
+      id: doc.id,
+      ...data,
+      uid: userId,
+      parentId,
+      versionId: data.versionId || doc.id,
+    };
+  }
+
+  private static getStatusGroupKey(doc: any, status: any): string {
+    const userId = status.uid || doc.ref?.parent?.parent?.id || 'unknown-user';
+    return `${userId}:${status.parentId || doc.id}`;
+  }
+
+  private static shouldReplaceStatus(existing: any, next: any): boolean {
+    const existingPriority = this.getStatusPriority(existing.statusType);
+    const nextPriority = this.getStatusPriority(next.statusType);
+
+    if (nextPriority !== existingPriority) {
+      return nextPriority > existingPriority;
+    }
+
+    const existingActivity = this.getActivityTimestamp(existing);
+    const nextActivity = this.getActivityTimestamp(next);
+
+    if (nextActivity !== existingActivity) {
+      return nextActivity > existingActivity;
+    }
+
+    return this.getVersionNumber(next) > this.getVersionNumber(existing);
+  }
+
   private static pathRef(userId: string, parentId: string) {
     if (!userId || typeof userId !== 'string' || userId.trim() === '') {
       throw new Error(`Invalid userId provided: ${userId}`);
@@ -75,46 +163,25 @@ export class StatusModel {
         return [];
       }
 
-      // Group by parentId and get only the latest version of each
+      // Group by user + parentId so different residents never collapse into one row.
       const statusMap = new Map();
-      let processedCount = 0;
 
       allStatusesSnapshot.docs.forEach(doc => {
-        const data = doc.data();
-        const parentId = data.parentId;
+        const data = this.normalizeStatusDoc(doc);
+        const groupKey = this.getStatusGroupKey(doc, data);
 
-        // Get the current entry for this parentId (if any)
-        const existing = statusMap.get(parentId);
+        const existing = statusMap.get(groupKey);
 
-        // Priority logic:
-        // 1. Always prefer 'current' status over others
-        // 2. If both are current or neither is current, prefer the one with latest createdAt
         if (!existing) {
-          // First time seeing this parentId
-          statusMap.set(parentId, { id: doc.id, ...data });
-          processedCount++;
-        } else {
-          const existingTime = existing.createdAt?._seconds || 0;
-          const currentTime = data.createdAt?._seconds || 0;
-
-          // Replace if:
-          // - New status is 'current' and existing is not
-          // - Both have same statusType but new one is more recent
-          const shouldReplace =
-            (data.statusType === 'current' && existing.statusType !== 'current') ||
-            (data.statusType === existing.statusType && currentTime > existingTime);
-
-          if (shouldReplace) {
-            statusMap.set(parentId, { id: doc.id, ...data });
-          }
+          statusMap.set(groupKey, data);
+        } else if (this.shouldReplaceStatus(existing, data)) {
+          statusMap.set(groupKey, data);
         }
       });
 
-      // Convert to array and sort by createdAt descending (newest first)
+      // Convert to array and sort by the latest meaningful lifecycle time.
       const allLatestStatuses = Array.from(statusMap.values()).sort((a, b) => {
-        const aTime = a.createdAt?._seconds || 0;
-        const bTime = b.createdAt?._seconds || 0;
-        return bTime - aTime;
+        return this.getActivityTimestamp(b) - this.getActivityTimestamp(a);
       });
 
       return allLatestStatuses;
@@ -134,37 +201,22 @@ export class StatusModel {
         return [];
       }
 
-      // Group by parentId and get only the latest version based on createdAt
+      // Group by user + parentId and prefer the active/latest lifecycle state.
       const latestStatusMap = new Map();
 
       allStatusesSnapshot.docs.forEach(doc => {
-        const data = doc.data();
-        const parentId = data.parentId;
+        const data = this.normalizeStatusDoc(doc);
+        const groupKey = this.getStatusGroupKey(doc, data);
+        const existing = latestStatusMap.get(groupKey);
 
-        const getTimestamp = (t: any): number => {
-          if (!t) return 0;
-          if (typeof t === 'string') return new Date(t).getTime();
-          if (t.seconds || t._seconds) return (t.seconds || t._seconds) * 1000;
-          if (t.toDate) return t.toDate().getTime();
-          return new Date(t).getTime();
-        };
-
-        const existing = latestStatusMap.get(parentId);
-        if (!existing || getTimestamp(data.createdAt) > getTimestamp(existing.createdAt)) {
-          latestStatusMap.set(parentId, { uid: doc.id, ...data });
+        if (!existing || this.shouldReplaceStatus(existing, data)) {
+          latestStatusMap.set(groupKey, data);
         }
       });
 
-      // Convert to array and sort by createdAt descending
+      // Convert to array and sort by the latest meaningful lifecycle time.
       const latestStatuses = Array.from(latestStatusMap.values()).sort((a, b) => {
-        const getTimestamp = (t: any): number => {
-          if (!t) return 0;
-          if (typeof t === 'string') return new Date(t).getTime();
-          if (t.seconds || t._seconds) return (t.seconds || t._seconds) * 1000;
-          if (t.toDate) return t.toDate().getTime();
-          return new Date(t).getTime();
-        };
-        return getTimestamp(b.createdAt) - getTimestamp(a.createdAt);
+        return this.getActivityTimestamp(b) - this.getActivityTimestamp(a);
       });
 
       return latestStatuses;

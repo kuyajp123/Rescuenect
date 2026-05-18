@@ -2,6 +2,15 @@ import { StatusModel } from '@/models/admin/StatusModel';
 import { NextFunction, Request, Response } from 'express';
 
 export class StatusController {
+  private static setNoStoreHeaders(res: Response): void {
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      Pragma: 'no-cache',
+      Expires: '0',
+      'Surrogate-Control': 'no-store',
+    });
+  }
+
   static async getVersions(req: Request, res: Response, next: NextFunction): Promise<void> {
     const uid = req.query.uid as string;
     const parentId = req.query.parentId as string;
@@ -39,6 +48,7 @@ export class StatusController {
   static async getAllLatestStatuses(req: Request, res: Response): Promise<void> {
     try {
       const statuses = await StatusModel.getAllLatestStatuses();
+      StatusController.setNoStoreHeaders(res);
       res.status(200).json({ statuses });
     } catch (error) {
       console.error('❌ Failed to get all latest statuses:', {
@@ -55,6 +65,7 @@ export class StatusController {
   static async getStatusHistory(req: Request, res: Response): Promise<void> {
     try {
       const statuses = await StatusModel.getStatusHistory();
+      StatusController.setNoStoreHeaders(res);
       res.status(200).json({ statuses, totalCount: statuses.length });
     } catch (error) {
       console.error('❌ Failed to get status history:', {

@@ -33,15 +33,15 @@ const DailyForecastCard = ({ time, temperature, weatherCode, onClick }: Forecast
       isPressable
       isHoverable
       onPress={onClick}
-      className="w-auto shadow-lg p-4 dark:border dark:border-gray-700 cursor-pointer"
+      className="w-full min-w-0 shadow-lg p-3 sm:p-4 dark:border dark:border-gray-700 cursor-pointer"
     >
-      <CardHeader className="flex justify-center">{label}</CardHeader>
-      <CardBody className="flex flex-col items-center gap-4 justify-center">
-        <h2 className="text-lg font-semibold">{temperature}°C</h2>
+      <CardHeader className="flex justify-center px-2 pb-1 text-sm">{label}</CardHeader>
+      <CardBody className="flex flex-col items-center gap-3 justify-center px-2 py-2">
+        <h2 className="text-lg font-semibold">{temperature}&deg;C</h2>
         {getWeatherIcons(weatherCode, time)({ height: 40, width: 50 })}
       </CardBody>
-      <CardFooter className="flex justify-center">
-        <p className="text-xs text-gray-500">{getWeatherCondition(weatherCode)}</p>
+      <CardFooter className="flex justify-center px-2 pt-1">
+        <p className="text-center text-xs text-gray-500">{getWeatherCondition(weatherCode)}</p>
       </CardFooter>
     </Card>
   );

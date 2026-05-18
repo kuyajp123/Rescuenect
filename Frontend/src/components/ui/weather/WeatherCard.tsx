@@ -1,10 +1,8 @@
+import { getWeatherCondition, getWeatherIcons } from '@/helper/WeatherLogic';
+import { WeatherCardProps } from '@/types/types';
 import { Card, CardBody } from '@heroui/card';
 import { Divider } from '@heroui/divider';
-import { Table, TableHeader, TableBody, TableColumn, TableRow, TableCell } from '@heroui/table';
-import { getWeatherIcons, getWeatherCondition } from '@/helper/WeatherLogic';
 import { useMemo } from 'react';
-
-import { WeatherCardProps } from '@/types/types';
 
 const WeatherCard = ({
   name,
@@ -20,60 +18,52 @@ const WeatherCard = ({
   cloudCover,
   rainAccumulation,
 }: WeatherCardProps) => {
-  const rows = useMemo(() => {
-    const baseRows = [
-      <TableRow key="1">
-        <TableCell>Feels like:</TableCell>
-        <TableCell>
-          <p>{temperatureApparent}°C</p>
-        </TableCell>
-        <TableCell>Chance of Rain:</TableCell>
-        <TableCell>
-          <p>{precipitationProbability}%</p>
-        </TableCell>
-      </TableRow>,
-      <TableRow key="2">
-        <TableCell>Humidity:</TableCell>
-        <TableCell>
-          <p>{humidity}%</p>
-        </TableCell>
-        <TableCell>Rain intensity:</TableCell>
-        <TableCell>
-          <p>{rainIntensity} mm/h</p>
-        </TableCell>
-      </TableRow>,
-      <TableRow key="3">
-        <TableCell>Cloud:</TableCell>
-        <TableCell>
-          <p>{cloudCover}%</p>
-        </TableCell>
-        <TableCell>Wind speed:</TableCell>
-        <TableCell>
-          <p>{windSpeed} km/h</p>
-        </TableCell>
-      </TableRow>,
+  const metrics = useMemo(() => {
+    const baseMetrics = [
+      {
+        label: 'Feels like',
+        value: temperatureApparent !== undefined && temperatureApparent !== null ? <>{temperatureApparent}&deg;C</> : '--',
+      },
+      {
+        label: 'Chance of rain',
+        value:
+          precipitationProbability !== undefined && precipitationProbability !== null
+            ? `${precipitationProbability}%`
+            : '--',
+      },
+      {
+        label: 'Humidity',
+        value: humidity !== undefined && humidity !== null ? `${humidity}%` : '--',
+      },
+      {
+        label: 'Rain intensity',
+        value: rainIntensity !== undefined && rainIntensity !== null ? `${rainIntensity} mm/h` : '--',
+      },
+      {
+        label: 'Cloud',
+        value: cloudCover !== undefined && cloudCover !== null ? `${cloudCover}%` : '--',
+      },
+      {
+        label: 'Wind speed',
+        value: windSpeed !== undefined && windSpeed !== null ? `${windSpeed} km/h` : '--',
+      },
     ];
 
-    if ((uvIndex !== undefined && uvIndex !== null) || (rainAccumulation !== undefined && rainAccumulation !== null)) {
-      baseRows.push(
-        <TableRow key="4">
-          <TableCell>
-            <p>{uvIndex ? 'UV Index:' : ''}</p>
-          </TableCell>
-          <TableCell>
-            <p>{uvIndex ? <>{uvIndex}</> : ''}</p>
-          </TableCell>
-          <TableCell>
-            <p>{rainAccumulation ? 'Rain acc:' : ''}</p>
-          </TableCell>
-          <TableCell>
-            <p>{rainAccumulation ? <>{rainAccumulation} mm</> : ''}</p>
-          </TableCell>
-        </TableRow>
-      );
+    if (uvIndex !== undefined && uvIndex !== null) {
+      baseMetrics.push({
+        label: 'UV Index',
+        value: String(uvIndex),
+      });
     }
 
-    return baseRows;
+    if (rainAccumulation !== undefined && rainAccumulation !== null) {
+      baseMetrics.push({
+        label: 'Rain acc.',
+        value: `${rainAccumulation} mm`,
+      });
+    }
+
+    return baseMetrics;
   }, [
     temperatureApparent,
     precipitationProbability,
@@ -86,31 +76,29 @@ const WeatherCard = ({
   ]);
 
   return (
-    <Card className="w-auto h-auto dark:border dark:border-gray-700">
-      <CardBody className="flex flex-row gap-4 p-8">
-        <div className="flex flex-col h-auto pt-2 gap-4 justify-between">
-          <div className="flex flex-col gap-1">
-            <p>{name}</p>
-            <p>{getWeatherCondition(weatherCode)}</p>
+    <Card className="w-full max-w-full h-auto dark:border dark:border-gray-700">
+      <CardBody className="flex flex-col gap-5 p-4 sm:p-6 lg:flex-row lg:items-stretch lg:gap-6">
+        <div className="flex min-w-0 flex-row items-center justify-between gap-4 lg:w-44 lg:shrink-0 lg:flex-col lg:items-start">
+          <div className="flex min-w-0 flex-col gap-1">
+            <p className="break-words text-sm font-medium sm:text-base">{name}</p>
+            <p className="text-sm text-default-500">{getWeatherCondition(weatherCode)}</p>
           </div>
-          <div className="flex flex-row gap-2 items-center">
-            <strong className="text-3xl">{temperature}°C</strong>
+          <div className="flex shrink-0 flex-row items-center gap-2">
+            <strong className="text-3xl sm:text-4xl lg:text-3xl">{temperature}&deg;C</strong>
             {icon && getWeatherIcons(icon)({ height: 40, width: 50 })}
           </div>
         </div>
 
-        <Divider orientation="vertical" className="h-auto" />
+        <Divider orientation="vertical" className="hidden h-auto lg:block" />
+        <Divider className="lg:hidden" />
 
-        <div>
-          <Table shadow="none" removeWrapper hideHeader aria-label="Example static collection table">
-            <TableHeader>
-              <TableColumn>1</TableColumn>
-              <TableColumn>2</TableColumn>
-              <TableColumn>3</TableColumn>
-              <TableColumn>4</TableColumn>
-            </TableHeader>
-            <TableBody>{rows}</TableBody>
-          </Table>
+        <div className="grid min-w-0 flex-1 grid-cols-2 gap-3 sm:grid-cols-3">
+          {metrics.map(metric => (
+            <div key={metric.label} className="min-w-0 rounded-lg bg-default-100/70 p-3 dark:bg-default-100/10">
+              <p className="text-[11px] uppercase tracking-wide text-default-500">{metric.label}</p>
+              <p className="mt-1 break-words text-sm font-semibold text-default-900">{metric.value}</p>
+            </div>
+          ))}
         </div>
       </CardBody>
     </Card>

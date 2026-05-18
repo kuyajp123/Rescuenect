@@ -132,6 +132,11 @@ export const useStatusHistory = create<StatusStore>(set => ({
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            'Cache-Control': 'no-cache',
+            Pragma: 'no-cache',
+          },
+          params: {
+            refreshAt: Date.now(),
           },
         }
       );

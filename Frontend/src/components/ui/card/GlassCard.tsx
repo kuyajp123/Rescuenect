@@ -9,7 +9,7 @@ interface GlassCardProps {
 const sizeClasses = {
   small: "min-w-[80px] min-h-[60px] p-3",
   medium: "min-w-[170px] min-h-[100px] p-6",
-  large: "min-w-[160px] min-h-[100px] p-8",
+  large: "min-w-[160px] min-h-[100px] p-3 sm:p-5 lg:p-8",
 };
 
 const GlassCard: React.FC<GlassCardProps> = ({

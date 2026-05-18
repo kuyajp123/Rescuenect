@@ -176,17 +176,18 @@ export const StatusHistory = () => {
 
   const [page, setPage] = useState(1);
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
+  const liveActiveStatusCount = useMemo(
+    () => statusData.filter(status => status.statusType === 'current').length,
+    [statusData]
+  );
+  const historyActiveStatusCount = useMemo(
+    () => users.filter(user => user.status === 'current' || user.originalStatus?.statusType === 'current').length,
+    [users]
+  );
 
   useEffect(() => {
-    const activeStatusCount = statusData.length;
-    const usersStatusesActiveCount = users.filter(
-      user => user.status === 'current' || user.originalStatus?.statusType === 'current'
-    ).length;
-
-    const hasChanges = activeStatusCount !== usersStatusesActiveCount;
-
-    setStatusChanges(hasChanges);
-  }, [statusData, users, statusChanges]);
+    setStatusChanges(liveActiveStatusCount !== historyActiveStatusCount);
+  }, [liveActiveStatusCount, historyActiveStatusCount]);
 
   // Update loading state when Firebase loading changes
   useEffect(() => {
@@ -563,9 +564,8 @@ export const StatusHistory = () => {
                 isIconOnly
                 variant="flat"
                 aria-label="Refresh status history"
-                onPress={() => {
-                  fetchStatusHistory();
-                  setStatusChanges(false);
+                onPress={async () => {
+                  await fetchStatusHistory();
                 }}
               >
                 <RefreshCcw size={20} />
@@ -605,7 +605,9 @@ export const StatusHistory = () => {
     statusFilter,
     conditionFilter,
     dateRange,
+    fetchStatusHistory,
     onSearchChange,
+    onClear,
     onRowsPerPageChange,
     hasSearchFilter,
     statusChanges,
