@@ -81,7 +81,17 @@ type saveLocationData = {
   lng: number;
 };
 
+type CameraBoundsWithPadding = {
+  ne: [number, number];
+  sw: [number, number];
+  paddingTop?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
+  paddingRight?: number;
+};
+
 interface MapViewProps {
+  children?: React.ReactNode;
   coords?: { lat: number; lng: number };
   data?: EvacuationCenter[];
   earthquakeData?: EarthquakeData;
@@ -90,6 +100,8 @@ interface MapViewProps {
   showButtons?: boolean;
   showStyleSelector?: boolean;
   showEvacuationLegend?: boolean;
+  mapStyleButtonTop?: number;
+  mapStyleSelectorTop?: number;
   interactive?: boolean;
   pitchEnabled?: boolean;
   compassEnabled?: boolean;
@@ -97,7 +109,10 @@ interface MapViewProps {
   scrollEnabled?: boolean;
   zoomEnabled?: boolean;
   centerCoordinate?: [number, number];
-  maxBounds?: [[number, number], [number, number]];
+  cameraBounds?: CameraBoundsWithPadding;
+  cameraTriggerKey?: string | number;
+  compassViewMargins?: { x: number; y: number };
+  maxBounds?: [[number, number], [number, number]] | null;
   zoomLevel?: number;
   minZoomLevel?: number;
   maxZoomLevel?: number;
@@ -153,6 +168,7 @@ const EVACUATION_CENTER_LEGEND: { type: CenterType; label: string; icon: number 
 ];
 
 export const MapView: React.FC<MapViewProps> = ({
+  children,
   coords,
   data,
   earthquakeData,
@@ -165,8 +181,13 @@ export const MapView: React.FC<MapViewProps> = ({
   showButtons = true,
   showStyleSelector = true,
   showEvacuationLegend = false,
+  mapStyleButtonTop = 80,
+  mapStyleSelectorTop = 130,
   interactive = true,
   centerCoordinate = [120.750674, 14.31808],
+  cameraBounds,
+  cameraTriggerKey,
+  compassViewMargins = { x: 20, y: 20 },
   maxBounds = [
     [120.735, 14.305],
     [120.765, 14.33],
@@ -314,29 +335,38 @@ export const MapView: React.FC<MapViewProps> = ({
         scrollEnabled={interactive ? scrollEnabled : false}
         zoomEnabled={interactive ? zoomEnabled : false}
         compassViewPosition={1}
-        compassViewMargins={{ x: 20, y: 20 }}
+        compassViewMargins={compassViewMargins}
         onPress={handleMapPress}
         onWillStartLoadingMap={() => {
           setIsMapReady(false);
           setIsStyleLoaded(false);
         }}
         onDidFinishLoadingMap={() => setIsMapReady(true)}
-        onDidFailLoadingMap={() => setIsMapReady(false)}
+        onDidFailLoadingMap={() => {
+          setIsMapReady(false);
+        }}
         onDidFinishLoadingStyle={() => setIsStyleLoaded(true)}
+        onDidFinishRenderingMapFully={() => setIsMapReady(true)}
       >
         <MapboxGL.Camera
-          zoomLevel={zoomLevel}
-          centerCoordinate={centerCoordinate}
-          maxBounds={{
-            ne: [maxBounds[1][0], maxBounds[1][1]],
-            sw: [maxBounds[0][0], maxBounds[0][1]],
-          }}
+          bounds={cameraBounds}
+          zoomLevel={cameraBounds ? undefined : zoomLevel}
+          centerCoordinate={cameraBounds ? undefined : centerCoordinate}
+          maxBounds={
+            maxBounds
+              ? {
+                  ne: [maxBounds[1][0], maxBounds[1][1]],
+                  sw: [maxBounds[0][0], maxBounds[0][1]],
+                }
+              : undefined
+          }
           animationDuration={300}
           animationMode={hasAnimation ? 'flyTo' : 'none'}
           minZoomLevel={minZoomLevel}
           maxZoomLevel={maxZoomLevel}
           followUserLocation={followUserLocation}
           followZoomLevel={16}
+          triggerKey={cameraTriggerKey}
         />
 
         {isStyleLoaded && isMapReady && (
@@ -345,6 +375,10 @@ export const MapView: React.FC<MapViewProps> = ({
             <Images
               images={{
                 pin: require('@/assets/images/marker/marker-icon-blue.png'),
+                'status-safe-marker': require('@/assets/images/marker/marker-icon-green.png'),
+                'status-evacuated-marker': require('@/assets/images/marker/marker-icon-blue.png'),
+                'status-affected-marker': require('@/assets/images/marker/marker-icon-orange.png'),
+                'status-missing-marker': require('@/assets/images/marker/marker-icon-red.png'),
                 'marker-school': require('@/assets/images/marker/evacuation-center-marker/marker-school.png'),
                 'marker-barangay-hall': require('@/assets/images/marker/evacuation-center-marker/marker-barangay-hall.png'),
                 'marker-gymnasium': require('@/assets/images/marker/evacuation-center-marker/marker-gymnasium.png'),
@@ -525,6 +559,8 @@ export const MapView: React.FC<MapViewProps> = ({
                 </MapboxGL.PointAnnotation>
               </>
             )}
+
+            {areMarkersReady && children}
           </>
         )}
       </MapboxGL.MapView>
@@ -582,25 +618,33 @@ export const MapView: React.FC<MapViewProps> = ({
         </View>
       )}
 
-      {showButtons && (
+      {(showButtons || showStyleSelector) && (
         <>
-          <HoveredButton
-            onPress={() => router.back()}
-            style={[styles.toggleButton, { backgroundColor: isDark ? Colors.border.dark : Colors.border.light }]}
-          >
-            <ChevronLeft size={24} color={isDark ? Colors.border.light : Colors.border.dark} />
-          </HoveredButton>
+          {showButtons && (
+            <HoveredButton
+              onPress={() => router.back()}
+              style={[styles.toggleButton, { backgroundColor: isDark ? Colors.border.dark : Colors.border.light }]}
+            >
+              <ChevronLeft size={24} color={isDark ? Colors.border.light : Colors.border.dark} />
+            </HoveredButton>
+          )}
 
           {showStyleSelector && (
             <HoveredButton
               onPress={toggleMapStyles}
-              style={[styles.mapStyleButton, { backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light }]}
+              style={[
+                styles.mapStyleButton,
+                {
+                  top: mapStyleButtonTop,
+                  backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light,
+                },
+              ]}
             >
               <MapIcon size={24} color={Colors.border.light} />
             </HoveredButton>
           )}
 
-          {savedLocationsList.length > 0 && (
+          {showButtons && savedLocationsList.length > 0 && (
             <HoveredButton
               onPress={toggleSavedLocations}
               style={[
@@ -623,6 +667,7 @@ export const MapView: React.FC<MapViewProps> = ({
               style={[
                 styles.mapStyleSelector,
                 {
+                  top: mapStyleSelectorTop,
                   backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
                   borderColor: isDark ? Colors.border.dark : Colors.border.light,
                 },

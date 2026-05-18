@@ -81,7 +81,7 @@ export const StatusIndicator = ({ userStatus, loggedInUser }: StatusIndicatorPro
                         : userStatus.condition == 'missing'
                           ? 'danger'
                           : userStatus.condition == 'affected'
-                            ? 'danger'
+                            ? 'warning'
                             : 'default'
                   }
                   variant="primary"

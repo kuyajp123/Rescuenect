@@ -1,5 +1,5 @@
 import Logo from '@/assets/images/logo/logoVerti.svg';
-import { PrimaryButton } from '@/components/components/button/Button';
+import { Button } from 'heroui-native/button';
 // import { Input, InputField } from '@/components/ui/input';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
@@ -309,9 +309,9 @@ const nameAndContactForm = () => {
       </View>
 
       <View style={styles.primaryButton}>
-        <PrimaryButton style={[isLoading ? { opacity: 0.5 } : null]} onPress={isLoading ? () => {} : handleSaveUser}>
+        <Button style={[isLoading ? { opacity: 0.5 } : null, { borderRadius: 10 }]} onPress={isLoading ? () => {} : handleSaveUser}>
           {isLoading ? 'Saving...' : 'Next'}
-        </PrimaryButton>
+        </Button>
         <Pressable onPress={() => router.back()}>
           <Text style={styles.backText}>Back</Text>
         </Pressable>

@@ -1,8 +1,4 @@
 import Logo from '@/assets/images/logo/logoVerti.svg';
-import { PrimaryButton } from '@/components/components/button/Button';
-import { storageHelpers } from '@/helper/storage';
-import { useAuth } from '@/store/useAuth';
-import { useUserData } from '@/store/useBackendResponse';
 import Body from '@/components/ui/layout/Body';
 import {
   Modal,
@@ -17,17 +13,21 @@ import { Text } from '@/components/ui/text';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
+import { barangays } from '@/constants/variables';
 import { useTheme } from '@/contexts/ThemeContext';
+import { formatBarangayLabel, sortByLabel } from '@/helper/commonHelpers';
+import { storageHelpers } from '@/helper/storage';
 import { useIdToken } from '@/hooks/useIdToken';
 import { messaging } from '@/lib/firebaseConfig';
+import { useAuth } from '@/store/useAuth';
+import { useUserData } from '@/store/useBackendResponse';
 import { getToken as getFcmToken } from '@react-native-firebase/messaging';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
+import { Button } from 'heroui-native/button';
 import { ChevronDown, X } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { barangays } from '@/constants/variables';
-import { formatBarangayLabel, sortByLabel } from '@/helper/commonHelpers';
 
 const barangayForm = () => {
   const router = useRouter();
@@ -215,12 +215,12 @@ const barangayForm = () => {
         </Text>
       </View>
       <View style={styles.primaryButton}>
-        <PrimaryButton
+        <Button
           onPress={isLoading ? () => {} : handleSaveBarangay}
-          style={[isLoading ? { opacity: 0.5 } : null]}
+          style={[isLoading ? { opacity: 0.5 } : null, { borderRadius: 10 }]}
         >
           {isLoading ? 'Saving...' : 'Next'}
-        </PrimaryButton>
+        </Button>
       </View>
     </Body>
   );

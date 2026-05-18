@@ -488,7 +488,7 @@ const Map = ({
               ]}
               onPress={handleLocationClear}
             >
-              <X size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
+              <X size={16} color={isDark ? Colors.icons.dark : Colors.icons.light} />
             </IconButton>
           </HStack>
 
@@ -553,7 +553,7 @@ const Map = ({
             ]}
             onPress={handleLocationClear}
           >
-            <X size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />
+            <X size={16} color={isDark ? Colors.icons.dark : Colors.icons.light} />
           </IconButton>
         </HStack>
       );
@@ -984,8 +984,8 @@ const styles = StyleSheet.create({
     width: '85%',
   },
   button: {
-    width: 40,
-    height: 40,
+    width: 34,
+    height: 34,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
