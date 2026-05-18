@@ -1,10 +1,10 @@
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Image } from 'expo-image';
+import { Button } from 'heroui-native/button';
 import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Onboarding from 'react-native-onboarding-swiper';
-import { Button } from '../button/Button';
 
 interface StatusOnboardingProps {
   visible: boolean;
@@ -20,7 +20,7 @@ const StatusOnboarding = ({ visible, onDone, onSkip }: StatusOnboardingProps) =>
   const subTextColor = isDark ? Colors.muted.dark.text : Colors.muted.light.text;
 
   const DoneButton = ({ ...props }) => (
-    <Button style={styles.button} {...props} width="auto">
+    <Button style={styles.button} {...props}>
       <Text style={{ color: Colors.text.dark, fontWeight: 'bold' }}>Done</Text>
     </Button>
   );
@@ -32,7 +32,7 @@ const StatusOnboarding = ({ visible, onDone, onSkip }: StatusOnboardingProps) =>
   );
 
   const NextButton = ({ ...props }) => (
-    <Button style={styles.button} {...props} width="auto">
+    <Button style={styles.button} {...props}>
       <Text style={{ color: Colors.text.dark }}>Next</Text>
     </Button>
   );
@@ -112,6 +112,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   button: {
+    borderRadius: 10,
     marginHorizontal: 20,
     marginBottom: 10, // Adjust for bottom bar safe area if needed
   },

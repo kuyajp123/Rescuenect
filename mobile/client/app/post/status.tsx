@@ -1,5 +1,4 @@
 import { HeaderBackButton } from '@/components/components/button/Button';
-import { Button } from 'heroui-native';
 import { ImageModal } from '@/components/components/image-modal/ImageModal';
 import { StatusList } from '@/components/components/PostTemplate';
 import BodyLayout from '@/components/ui/layout/Body';
@@ -14,7 +13,7 @@ import { ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import type { FeatureCollection, Point } from 'geojson';
-import { Dialog as HeroDialog } from 'heroui-native/dialog';
+import { Button, Dialog as HeroDialog } from 'heroui-native';
 import { ChevronDown, List, MapIcon, MapPin, Maximize2, Minimize2, Phone, Users } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent, ScrollView as ScrollViewType } from 'react-native';
@@ -404,141 +403,141 @@ export const StatusScreen = () => {
             },
           ]}
         >
-        <View style={styles.modeRow}>
-          <View style={styles.modeTitleBlock}>
-            <Text
-              size="xs"
-              numberOfLines={1}
-              style={{ color: isDark ? Colors.muted.dark.text : Colors.muted.light.text }}
-            >
-              Community Status
-            </Text>
-            <Text size="sm" bold numberOfLines={1} style={{ color: isDark ? Colors.text.dark : Colors.text.light }}>
-              {viewMode === 'map' ? `${mapStatusCount} on map` : `${filteredStatusData.length} updates`}
-            </Text>
-          </View>
+          <View style={styles.modeRow}>
+            <View style={styles.modeTitleBlock}>
+              <Text
+                size="xs"
+                numberOfLines={1}
+                style={{ color: isDark ? Colors.muted.dark.text : Colors.muted.light.text }}
+              >
+                Community Status
+              </Text>
+              <Text size="sm" bold numberOfLines={1} style={{ color: isDark ? Colors.text.dark : Colors.text.light }}>
+                {viewMode === 'map' ? `${mapStatusCount} on map` : `${filteredStatusData.length} updates`}
+              </Text>
+            </View>
 
-          <View
-            style={[
-              styles.modeSegment,
-              {
-                backgroundColor: isDark ? Colors.background.dark : '#ffffff',
-                borderColor: isDark ? Colors.border.dark : Colors.border.light,
-              },
-            ]}
-          >
-            {(['list', 'map'] as ViewMode[]).map(mode => {
-              const isActive = viewMode === mode;
-              const Icon = mode === 'list' ? List : MapIcon;
-              return (
-                <Pressable
-                  key={mode}
-                  onPress={() => {
-                    setViewMode(mode);
-                    setShowStatusMenu(false);
-                  }}
-                  style={({ pressed }) => [
-                    styles.modeOption,
-                    {
-                      backgroundColor: isActive ? Colors.brand.light : 'transparent',
-                      opacity: pressed ? 0.8 : 1,
-                    },
-                  ]}
-                >
-                  <Icon size={16} color={isActive ? '#ffffff' : isDark ? Colors.icons.dark : Colors.icons.light} />
-                  <Text
-                    size="xs"
-                    bold={isActive}
-                    style={{ color: isActive ? '#ffffff' : isDark ? Colors.text.dark : Colors.text.light }}
-                  >
-                    {mode === 'list' ? 'List' : 'Map'}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        <View style={styles.filterControlsRow}>
-          <View style={styles.filterGroup}>
-            <Text size="xs" style={{ color: isDark ? Colors.muted.dark.text : Colors.muted.light.text }}>
-              Status
-            </Text>
-            <Pressable
-              onPress={() => setShowStatusMenu(prev => !prev)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            <View
               style={[
-                styles.dropdownButton,
+                styles.modeSegment,
                 {
                   backgroundColor: isDark ? Colors.background.dark : '#ffffff',
                   borderColor: isDark ? Colors.border.dark : Colors.border.light,
                 },
               ]}
             >
-              <Text size="sm" style={{ color: isDark ? Colors.text.dark : Colors.text.light }}>
-                {activeFilterLabel}
-              </Text>
-              <ChevronDown size={16} color={isDark ? Colors.muted.dark.text : Colors.muted.light.text} />
-            </Pressable>
+              {(['list', 'map'] as ViewMode[]).map(mode => {
+                const isActive = viewMode === mode;
+                const Icon = mode === 'list' ? List : MapIcon;
+                return (
+                  <Pressable
+                    key={mode}
+                    onPress={() => {
+                      setViewMode(mode);
+                      setShowStatusMenu(false);
+                    }}
+                    style={({ pressed }) => [
+                      styles.modeOption,
+                      {
+                        backgroundColor: isActive ? Colors.brand.light : 'transparent',
+                        opacity: pressed ? 0.8 : 1,
+                      },
+                    ]}
+                  >
+                    <Icon size={16} color={isActive ? '#ffffff' : isDark ? Colors.icons.dark : Colors.icons.light} />
+                    <Text
+                      size="xs"
+                      bold={isActive}
+                      style={{ color: isActive ? '#ffffff' : isDark ? Colors.text.dark : Colors.text.light }}
+                    >
+                      {mode === 'list' ? 'List' : 'Map'}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
 
-            {showStatusMenu && (
-              <View
+          <View style={styles.filterControlsRow}>
+            <View style={styles.filterGroup}>
+              <Text size="xs" style={{ color: isDark ? Colors.muted.dark.text : Colors.muted.light.text }}>
+                Status
+              </Text>
+              <Pressable
+                onPress={() => setShowStatusMenu(prev => !prev)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 style={[
-                  styles.dropdownMenu,
+                  styles.dropdownButton,
                   {
                     backgroundColor: isDark ? Colors.background.dark : '#ffffff',
                     borderColor: isDark ? Colors.border.dark : Colors.border.light,
                   },
                 ]}
               >
-                <View style={styles.optionRow}>
-                  {FILTERS.map(option => {
-                    const isActive = option.key === activeFilter;
-                    return (
-                      <Button
-                        key={option.key}
-                        variant={isActive ? 'primary' : 'tertiary'}
-                        onPress={() => {
-                          setActiveFilter(option.key);
-                          setShowStatusMenu(false);
-                        }}
-                        style={StyleSheet.flatten([
-                          styles.optionButton,
-                          isActive ? styles.optionButtonActive : styles.optionButtonInactive,
-                        ])}
-                      >
-                        <Text
-                          size="xs"
-                          style={{ color: isActive ? '#ffffff' : isDark ? Colors.text.dark : Colors.text.light }}
-                        >
-                          {option.label}
-                        </Text>
-                      </Button>
-                    );
-                  })}
-                </View>
-              </View>
-            )}
-          </View>
+                <Text size="sm" style={{ color: isDark ? Colors.text.dark : Colors.text.light }}>
+                  {activeFilterLabel}
+                </Text>
+                <ChevronDown size={16} color={isDark ? Colors.muted.dark.text : Colors.muted.light.text} />
+              </Pressable>
 
-          <Button
-            variant="ghost"
-            onPress={() => {
-              setActiveFilter('all');
-              setShowStatusMenu(false);
-            }}
-            style={StyleSheet.flatten([
-              styles.resetButton,
-              {
-                borderColor: isDark ? Colors.border.dark : Colors.border.light,
-              },
-            ])}
-          >
-            <Text size="sm" style={{ color: isDark ? Colors.text.dark : Colors.text.light }}>
-              Reset
-            </Text>
-          </Button>
-        </View>
+              {showStatusMenu && (
+                <View
+                  style={[
+                    styles.dropdownMenu,
+                    {
+                      backgroundColor: isDark ? Colors.background.dark : '#ffffff',
+                      borderColor: isDark ? Colors.border.dark : Colors.border.light,
+                    },
+                  ]}
+                >
+                  <View style={styles.optionRow}>
+                    {FILTERS.map(option => {
+                      const isActive = option.key === activeFilter;
+                      return (
+                        <Button
+                          key={option.key}
+                          variant={isActive ? 'primary' : 'tertiary'}
+                          onPress={() => {
+                            setActiveFilter(option.key);
+                            setShowStatusMenu(false);
+                          }}
+                          style={StyleSheet.flatten([
+                            styles.optionButton,
+                            isActive ? styles.optionButtonActive : styles.optionButtonInactive,
+                          ])}
+                        >
+                          <Text
+                            size="xs"
+                            style={{ color: isActive ? '#ffffff' : isDark ? Colors.text.dark : Colors.text.light }}
+                          >
+                            {option.label}
+                          </Text>
+                        </Button>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+            </View>
+
+            <Button
+              variant="ghost"
+              onPress={() => {
+                setActiveFilter('all');
+                setShowStatusMenu(false);
+              }}
+              style={StyleSheet.flatten([
+                styles.resetButton,
+                {
+                  borderColor: isDark ? Colors.border.dark : Colors.border.light,
+                },
+              ])}
+            >
+              <Text size="sm" style={{ color: isDark ? Colors.text.dark : Colors.text.light }}>
+                Reset
+              </Text>
+            </Button>
+          </View>
         </Animated.View>
       )}
     </View>
@@ -876,7 +875,7 @@ const StatusMapDetailsDialog = ({ bottomInset, condition, isDark, onClose, statu
   const mutedText = isDark ? Colors.muted.dark.text : Colors.muted.light.text;
   const surfaceColor = isDark ? Colors.background.dark : '#ffffff';
   const borderColor = isDark ? Colors.border.dark : Colors.border.light;
-  const dialogMaxHeight = Math.min(430, Math.max(320, windowHeight * 0.5));
+  const dialogMaxHeight = Math.min(450, Math.max(440, windowHeight * 0.5));
 
   const handleClose = () => {
     setIsImageModalVisible(false);
@@ -903,7 +902,7 @@ const StatusMapDetailsDialog = ({ bottomInset, condition, isDark, onClose, statu
         >
           <HeroDialog.Overlay isCloseOnPress style={styles.detailDialogOverlay} />
           <HeroDialog.Content
-            isSwipeable
+            isSwipeable={false}
             style={[
               styles.detailDialogContent,
               {
