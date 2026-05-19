@@ -7,7 +7,6 @@ declare const Deno: {
 
 import { cert, getApps, initializeApp, type ServiceAccount } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
-import _ from 'lodash';
 import type { EarthquakeNotificationData, NotificationType, WeatherNotificationData } from './notification-schema.ts';
 import type { EarthquakeData } from './types.ts';
 
@@ -418,6 +417,26 @@ function isValidToken(token: string): boolean {
   return !!(token && token.length > 100 && token.includes(':'));
 }
 
+function normalizeForComparison(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(normalizeForComparison);
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+        .map(([key, nestedValue]) => [key, normalizeForComparison(nestedValue)])
+    );
+  }
+
+  return value;
+}
+
+function deepEqual(left: unknown, right: unknown): boolean {
+  return JSON.stringify(normalizeForComparison(left)) === JSON.stringify(normalizeForComparison(right));
+}
+
 /**
  * Get notification statistics
  */
@@ -550,7 +569,7 @@ export async function replaceEarthquakesInFirestore(
       return normalized;
     });
 
-    if (_.isEqual(earthquakes, normalizedExisting)) {
+    if (deepEqual(earthquakes, normalizedExisting)) {
       console.log(`ℹ️ No changes detected in earthquake data - skipping replacement`);
       return;
     }
