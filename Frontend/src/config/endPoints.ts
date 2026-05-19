@@ -1,8 +1,7 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL!;
+const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL ?? '').replace(/\/$/, '');
 
 if (!BACKEND_URL) {
-  console.error('❌ BACKEND_URL is not defined');
-  throw new Error('BACKEND_URL not configured');
+  console.error('VITE_BACKEND_URL is not configured');
 }
 
 export const API_ENDPOINTS = {
