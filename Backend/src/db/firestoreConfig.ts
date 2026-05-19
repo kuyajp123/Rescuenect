@@ -6,12 +6,12 @@ dotenv.config();
 
 let serviceAccount: any;
 try {
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
-    serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64').toString('utf-8'));
-  } else {
-    // Fallback to local file for development
-    // Using require to avoid TypeScript build errors if file is missing in prod
-    serviceAccount = require('../../lively-metrics-453114-q3-firebase-adminsdk-fbsvc-dba3bff89c.json');
+  if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+    serviceAccount = {
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    };
   }
 } catch (error) {
   console.warn(
@@ -39,9 +39,12 @@ function initializeFirebase(): admin.app.App {
       throw new Error('Firebase Service Account credentials are missing.');
     }
 
+    const projectId = serviceAccount.projectId ?? serviceAccount.project_id;
+    serviceAccount.project_id = projectId;
+
     const app = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      projectId: serviceAccount.project_id,
+      projectId,
     });
 
     console.log('✅ Firebase Admin SDK initialized successfully');
@@ -159,10 +162,13 @@ export async function withRetry<T>(
 }
 
 // Set up periodic health checks (every 30 minutes)
-setInterval(async () => {
-  console.log('🔍 Running periodic Firebase health check...');
-  await verifyFirebaseConnection();
-}, 30 * 60 * 1000);
+setInterval(
+  async () => {
+    console.log('🔍 Running periodic Firebase health check...');
+    await verifyFirebaseConnection();
+  },
+  30 * 60 * 1000
+);
 
 // Initial health check
 setTimeout(async () => {
