@@ -397,6 +397,16 @@ Important notes:
 - Native Firebase config is baked into the built app. Changing `google-services.json` or `staging-google-services.json` requires a new EAS build.
 - The staging Firebase Android app package name must match `com.yajeyps.client.staging` exactly.
 
+
+potential error: 
+
+Failed to delete android code: EBUSY: resource busy or locked, unlink 'C:\Users\Paul\Rescuenect\mobile\client\android\app\build\intermediates\dex\release\mergeDexRelease\classes4.dex'
+
+```bash
+cd C:\Users\Paul\Rescuenect\mobile\client\android
+.\gradlew.bat --stop
+```
+
 ---
 
 ## Supabase Edge Functions
