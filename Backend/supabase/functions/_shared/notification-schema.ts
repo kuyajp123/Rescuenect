@@ -1,6 +1,11 @@
 // ============================================
 // NOTIFICATION SCHEMA - Unified Structure
 // ============================================
+import {
+  LEGACY_WEATHER_ZONE_KEYS,
+  getBarangaysByLegacyWeatherZone,
+  type LegacyWeatherZoneKey,
+} from './location-config.ts';
 
 /**
  * Base notification interface - all notifications must implement this
@@ -256,36 +261,11 @@ export function hasUserHidden(notification: BaseNotification, userId: string): b
  * Helper function to get barangays from weather zone
  */
 export function getBarangaysFromZone(zone: string): string[] {
-  const zoneMap: Record<string, string[]> = {
-    coastal_west: [
-      'labac',
-      'mabolo',
-      'bancaan',
-      'balsahan',
-      'bagong karsada',
-      'sapa',
-      'bucana sasahan',
-      'capt c. nazareno',
-      'gomez-zamora',
-      'kanluran',
-      'humbac',
-    ],
-    coastal_east: [
-      'bucana malaki',
-      'ibayo estacion',
-      'ibayo silangan',
-      'latoria',
-      'munting mapino',
-      'timalan balsahan',
-      'timalan concepcion',
-    ],
-    central_naic: ['muzon', 'malainem bago', 'santulan', 'calubcob', 'makina', 'san roque'],
-    sabang: ['sabang'],
-    farm_area: ['molino', 'halang', 'palangue 1'],
-    naic_boundary: ['malainem luma', 'palangue 2 & 3'],
-  };
+  if (!LEGACY_WEATHER_ZONE_KEYS.includes(zone as LegacyWeatherZoneKey)) {
+    return [];
+  }
 
-  return zoneMap[zone] || [];
+  return getBarangaysByLegacyWeatherZone(zone as LegacyWeatherZoneKey);
 }
 
 /**

@@ -1,4 +1,9 @@
 // supabase/functions/_shared/weather-utils.ts
+import {
+  LEGACY_WEATHER_ZONE_COORDINATES,
+  LEGACY_WEATHER_ZONE_KEYS,
+  LEGACY_WEATHER_ZONE_LABELS,
+} from './location-config.ts';
 import type { WeatherLocation } from './types.ts';
 
 // Deno type declaration for Edge Functions
@@ -8,14 +13,11 @@ declare const Deno: {
   };
 };
 
-export const WEATHER_LOCATIONS: WeatherLocation[] = [
-  { key: 'coastal_west', coordinates: '14.311667, 120.751944', name: 'Coastal West' },
-  { key: 'coastal_east', coordinates: '14.333333, 120.771389', name: 'Coastal East' },
-  { key: 'central_naic', coordinates: '14.302222, 120.771944', name: 'Central Naic' },
-  { key: 'sabang', coordinates: '14.320000, 120.805833', name: 'Sabang' },
-  { key: 'farm_area', coordinates: '14.289444, 120.793889', name: 'Farm Area' },
-  { key: 'naic_boundary', coordinates: '14.260278, 120.820278', name: 'Naic Boundary' },
-];
+export const WEATHER_LOCATIONS: WeatherLocation[] = LEGACY_WEATHER_ZONE_KEYS.map(key => ({
+  key,
+  coordinates: LEGACY_WEATHER_ZONE_COORDINATES[key],
+  name: LEGACY_WEATHER_ZONE_LABELS[key],
+}));
 
 export const getWeatherAPIUrl = (coordinates: string, type: 'forecast' | 'realtime'): string => {
   // Access Deno environment variable (works in Supabase Edge Functions)

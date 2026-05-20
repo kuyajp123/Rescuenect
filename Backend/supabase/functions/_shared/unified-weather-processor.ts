@@ -1,5 +1,6 @@
 import { sendFCMNotification } from './fcm-client.ts';
 import { getUserTokens, getWeatherData, getWeatherForecastData, initializeFirebase } from './firestore-client.ts';
+import { LEGACY_WEATHER_ZONE_KEYS } from './location-config.ts';
 import type { WeatherNotificationData } from './notification-schema.ts';
 import { NotificationService } from './notification-service.ts';
 import { WeatherNotificationSystem, type WeatherData, type WeatherNotification } from './weather-notification-core.ts';
@@ -27,7 +28,7 @@ export interface WeatherNotificationResult {
 
 export class UnifiedWeatherProcessor {
   private weatherNotifier: WeatherNotificationSystem;
-  private locations = ['coastal_west', 'coastal_east', 'central_naic', 'sabang', 'farm_area', 'naic_boundary'];
+  private locations = LEGACY_WEATHER_ZONE_KEYS;
 
   constructor() {
     this.weatherNotifier = new WeatherNotificationSystem();
