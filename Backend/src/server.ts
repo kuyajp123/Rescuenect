@@ -1,13 +1,12 @@
+import '@/config/loadEnv';
 import db from '@/db/firestoreConfig';
 import mainRouter from '@/routes';
 import compression from 'compression';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import express, { Application, ErrorRequestHandler, NextFunction, Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import multer from 'multer';
-dotenv.config();
 const app: Application = express();
 
 db;

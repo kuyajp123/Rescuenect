@@ -9,6 +9,9 @@
     "start-backend": "ts-node-dev -r tsconfig-paths/register src/server.ts",
     "start-frontend": "cd .. && cd frontend && npm run dev",
     "dev-backend": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
+    "dev-backend:local": "node scripts/start-backend-env.js local",
+    "dev-backend:staging": "node scripts/start-backend-env.js staging",
+    "dev-backend:production": "node scripts/start-backend-env.js production",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

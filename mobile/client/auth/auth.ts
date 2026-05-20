@@ -87,10 +87,18 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
     }
 
     console.error('❌ Google Sign-In error:', error);
+    const backendError = axios.isAxiosError(error)
+      ? {
+          status: error.response?.status,
+          data: error.response?.data,
+          url: error.config?.url,
+        }
+      : null;
     console.error('❌ Error details:', {
       message: error.message,
       code: error.code,
       toString: error.toString(),
+      backend: backendError,
     });
 
     const isSignedIn = await GoogleSignin.getCurrentUser();
@@ -108,7 +116,14 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
     }
 
     // Show user-friendly error
-    Alert.alert('Sign-In Error', `Failed to sign in: ${error.message || 'Unknown error'}`, [{ text: 'OK' }]);
+    const backendMessage =
+      backendError?.data && typeof backendError.data === 'object' && 'message' in backendError.data
+        ? String(backendError.data.message)
+        : null;
+
+    Alert.alert('Sign-In Error', `Failed to sign in: ${backendMessage || error.message || 'Unknown error'}`, [
+      { text: 'OK' },
+    ]);
   }
 };
 

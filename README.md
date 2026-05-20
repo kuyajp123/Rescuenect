@@ -67,6 +67,9 @@ npm install
 | Command               | Description                                            |
 | --------------------- | ------------------------------------------------------ |
 | `npm run dev-backend` | Start development server with hot-reload (ts-node-dev) |
+| `npm run dev-backend:local` | Start development server with local env config; falls back to staging Firebase |
+| `npm run dev-backend:staging` | Start development server with staging Firebase/env config |
+| `npm run dev-backend:production` | Start development server with production Firebase/env config |
 | `npm run build`       | Compile TypeScript to `dist/`                          |
 | `npm start`           | Run compiled production server (`dist/src/server.js`)  |
 
@@ -75,6 +78,20 @@ npm install
 ```bash
 npm run dev-backend
 ```
+
+For local mobile testing with `mobile/client/.env` set to `APP_ENV=local`, run the matching backend environment:
+
+```bash
+npm run dev-backend:local
+```
+
+Backend environment mapping:
+
+| Environment | Command | Env file behavior |
+| ----------- | ------- | ----------------- |
+| `local` | `npm run dev-backend:local` | Uses `Backend/.env.local` if present, otherwise falls back to `Backend/.env.staging` |
+| `staging` | `npm run dev-backend:staging` | Uses `Backend/.env.staging` |
+| `production` | `npm run dev-backend:production` | Uses `Backend/.env.production` if present, otherwise falls back to `Backend/.env` |
 
 The server runs on `http://localhost:3000` by default.  
 API routes are split into three groups: **admin**, **mobile**, and **unified** (shared).
@@ -174,7 +191,61 @@ APP_ENV=local
 EXPO_PUBLIC_BACKEND_URL=http://<your-computer-lan-ip>:4000
 ```
 
+When the mobile app uses `APP_ENV=local`, it uses the local backend URL and the staging Firebase app. Start the backend with the matching local environment so Google Sign-In and Firebase custom tokens use the same project:
+
+```powershell
+cd Backend
+npm run dev-backend:local
+```
+
 If installation fails with `INSTALL_FAILED_USER_RESTRICTED`, check the phone's Developer options and make sure **Install via USB** is enabled.
+
+### wireless installation step
+
+Use this when Wireless debugging is enabled and the dev client is not installed yet.
+
+1. Connect the computer and phone to the same Wi-Fi/LAN.
+2. On the phone, open **Developer options** -> **Wireless debugging** -> **Pair device with pairing code**.
+3. Pair the phone from PowerShell using the pairing IP, port, and code shown on the phone:
+
+   ```bash
+   adb pair <phone-ip>:<pairing-port>
+   ```
+
+4. Go back to the main **Wireless debugging** screen and connect using the wireless debugging IP and port:
+
+   ```bash
+   adb connect <phone-ip>:<debug-port>
+   ```
+
+5. Confirm ADB can see the wireless device:
+
+   ```bash
+   adb devices -l
+   ```
+
+6. Build and install the local development client on the wireless device:
+
+   ```bash
+   cd mobile/client
+   npx expo run:android --device
+   ```
+
+   If multiple devices are listed, pass the wireless device id:
+
+   ```bash
+   npx expo run:android --device <phone-ip>:<debug-port>
+   ```
+
+7. Start Metro over the local network:
+
+   ```bash
+   npx expo start --dev-client --lan
+   ```
+
+8. Open the installed Rescuenect dev app on the phone or scan the QR code from the terminal.
+
+Keep `EXPO_PUBLIC_BACKEND_URL` pointed at your computer's LAN IP when testing the local backend. Do not use `localhost` on a physical phone because it points to the phone itself, not your computer.
 
 ### Wireless Android testing
 
