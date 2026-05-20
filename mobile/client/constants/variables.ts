@@ -1,4 +1,5 @@
-import { Category } from '@/types/components' 
+import { getBarangayOptionsForClient } from '@/config/locationConfig';
+import { Category } from '@/types/components';
 
 export const formFields = [
   'firstName',
@@ -31,35 +32,5 @@ export const categories: Category[] = [
   'other',
 ];
 
-export const barangays = [
-  { label: 'Labac', value: 'labac' },
-  { label: 'Mabolo', value: 'mabolo' },
-  { label: 'Bancaan', value: 'bancaan' },
-  { label: 'Balsahan', value: 'balsahan' },
-  { label: 'Bagong Karsada', value: 'bagong karsada' },
-  { label: 'Sapa', value: 'sapa' },
-  { label: 'Bucana Sasahan', value: 'bucana sasahan' },
-  { label: 'Capt C. Nazareno', value: 'capt c. nazareno' },
-  { label: 'Gomez-Zamora', value: 'gomez-zamora' },
-  { label: 'Kanluran', value: 'kanluran' },
-  { label: 'Humbac', value: 'humbac' },
-  { label: 'Bucana Malaki', value: 'bucana malaki' },
-  { label: 'Ibayo Estacion', value: 'ibayo estacion' },
-  { label: 'Ibayo Silangan', value: 'ibayo silangan' },
-  { label: 'Latoria', value: 'latoria' },
-  { label: 'Munting Mapino', value: 'munting mapino' },
-  { label: 'Timalan Balsahan', value: 'timalan balsahan' },
-  { label: 'Timalan Concepcion', value: 'timalan concepcion' },
-  { label: 'Muzon', value: 'muzon' },
-  { label: 'Malainem Bago', value: 'malainem bago' },
-  { label: 'Santulan', value: 'santulan' },
-  { label: 'Calubcob', value: 'calubcob' },
-  { label: 'Makina', value: 'makina' },
-  { label: 'San Roque', value: 'san roque' },
-  { label: 'Sabang', value: 'sabang' },
-  { label: 'Molino', value: 'molino' },
-  { label: 'Halang', value: 'halang' },
-  { label: 'Palangue 1', value: 'palangue 1' },
-  { label: 'Malainem Luma', value: 'malainem luma' },
-  { label: 'Palangue 2 & 3', value: 'palangue 2 & 3' },
-];
+// Compatibility export while Phase 1 moves Naic barangays into location config.
+export const barangays = getBarangayOptionsForClient('naic');

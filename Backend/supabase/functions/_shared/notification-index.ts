@@ -73,6 +73,7 @@ export {
 // Export service
 export { NotificationService } from './notification-service.ts';
 import type { NotificationService as NotificationServiceType } from './notification-service.ts';
+import { LEGACY_WEATHER_ZONE_KEYS } from './location-config.ts';
 
 // Export Firestore client functions
 export {
@@ -87,14 +88,7 @@ export {
 export { isValidFCMToken, sendEarthquakeNotification, sendFCMNotification } from './fcm-client.ts';
 
 // Export constants
-export const WEATHER_ZONES = [
-  'coastal_west',
-  'coastal_east',
-  'central_naic',
-  'sabang',
-  'farm_area',
-  'naic_boundary',
-] as const;
+export const WEATHER_ZONES = LEGACY_WEATHER_ZONE_KEYS;
 
 export const NOTIFICATION_TYPES = [
   'weather',

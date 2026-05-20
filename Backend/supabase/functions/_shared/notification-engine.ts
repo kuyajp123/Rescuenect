@@ -1,5 +1,6 @@
 import { sendFCMNotification } from './fcm-client.ts';
 import { getUserTokens, getWeatherData } from './firestore-client.ts';
+import { LEGACY_WEATHER_ZONE_KEYS, LEGACY_WEATHER_ZONE_LABELS } from './location-config.ts';
 import {
   NotificationLevel,
   WeatherData,
@@ -32,7 +33,7 @@ export class NotificationProcessor {
 
     try {
       // Get latest weather data for all locations
-      const locations = ['coastal_west', 'coastal_east', 'central_naic', 'sabang', 'farm_area', 'naic_boundary'];
+      const locations = LEGACY_WEATHER_ZONE_KEYS;
 
       for (const location of locations) {
         try {
@@ -183,15 +184,7 @@ export class NotificationProcessor {
    * Get human-readable location name (fallback for zone names)
    */
   private getLocationDisplayName(locationKey: string): string {
-    const locationNames = {
-      coastal_west: 'Coastal West',
-      coastal_east: 'Coastal East',
-      central_naic: 'Central Naic',
-      sabang: 'Sabang',
-      farm_area: 'Farm Area',
-      naic_boundary: 'Naic Boundary',
-    };
-    return locationNames[locationKey as keyof typeof locationNames] || locationKey;
+    return LEGACY_WEATHER_ZONE_LABELS[locationKey as keyof typeof LEGACY_WEATHER_ZONE_LABELS] || locationKey;
   }
 
   /**

@@ -1,48 +1,21 @@
 import { WeatherLocationKey } from '@/types/types';
+import {
+  LEGACY_WEATHER_ZONE_COORDINATES,
+  LEGACY_WEATHER_ZONE_KEYS,
+  getBarangaysByLegacyWeatherZone,
+} from '@/config/locationConfig';
 
-const coastal_west = [
-  'labac',
-  'mabolo',
-  'bancaan',
-  'balsahan',
-  'bagong karsada',
-  'sapa',
-  'bucana sasahan',
-  'capt c. nazareno',
-  'gomez-zamora',
-  'kanluran',
-  'humbac',
-];
-const coastal_east = [
-  'bucana malaki',
-  'ibayo estacion',
-  'ibayo silangan',
-  'latoria',
-  'munting mapino',
-  'timalan balsahan',
-  'timalan concepcion',
-];
-const central_naic = ['muzon', 'malainem bago', 'santulan', 'calubcob', 'makina', 'san roque'];
+const coastal_west = getBarangaysByLegacyWeatherZone('coastal_west');
+const coastal_east = getBarangaysByLegacyWeatherZone('coastal_east');
+const central_naic = getBarangaysByLegacyWeatherZone('central_naic');
 
 const sabang = 'sabang';
 
-const farm_area = ['molino', 'halang', 'palangue 1'];
-const naic_boundary = ['malainem luma', 'palangue 2 & 3'];
+const farm_area = getBarangaysByLegacyWeatherZone('farm_area');
+const naic_boundary = getBarangaysByLegacyWeatherZone('naic_boundary');
 
-const weatherGroups: WeatherLocationKey[] = [
-  'coastal_west',
-  'coastal_east',
-  'central_naic',
-  'sabang',
-  'farm_area',
-  'naic_boundary',
-];
+const weatherGroups: WeatherLocationKey[] = [...LEGACY_WEATHER_ZONE_KEYS];
 
-const weatherLocations: Record<WeatherLocationKey, string> = {
-  coastal_west: '14.311667, 120.751944',
-  coastal_east: '14.333333, 120.771389',
-  central_naic: '14.302222, 120.771944',
-  sabang: '14.320000, 120.805833',
-  farm_area: '14.289444, 120.793889',
-  naic_boundary: '14.260278, 120.820278',
-};
+const weatherLocations: Record<WeatherLocationKey, string> = LEGACY_WEATHER_ZONE_COORDINATES;
+
+export { central_naic, coastal_east, coastal_west, farm_area, naic_boundary, sabang, weatherGroups, weatherLocations };
