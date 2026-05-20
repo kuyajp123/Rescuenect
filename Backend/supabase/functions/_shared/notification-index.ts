@@ -20,7 +20,7 @@
  * await notificationService.createWeatherNotification({
  *   title: '🔥 Heat Warning',
  *   message: 'High temperature detected',
- *   location: 'central_naic',
+ *   location: 'naic',
  *   audience: 'both',
  *   sentTo: 150,
  *   weatherData: {
@@ -64,6 +64,7 @@ export type {
 export {
   convertLegacyNotification,
   generateNotificationId,
+  getBarangaysFromWeatherLocation,
   getBarangaysFromZone,
   hasUserHidden,
   hasUserRead,
@@ -73,7 +74,7 @@ export {
 // Export service
 export { NotificationService } from './notification-service.ts';
 import type { NotificationService as NotificationServiceType } from './notification-service.ts';
-import { LEGACY_WEATHER_ZONE_KEYS } from './location-config.ts';
+import { ACTIVE_WEATHER_LOCATION_KEYS } from './location-config.ts';
 
 // Export Firestore client functions
 export {
@@ -88,7 +89,8 @@ export {
 export { isValidFCMToken, sendEarthquakeNotification, sendFCMNotification } from './fcm-client.ts';
 
 // Export constants
-export const WEATHER_ZONES = LEGACY_WEATHER_ZONE_KEYS;
+export const WEATHER_LOCATION_KEYS = ACTIVE_WEATHER_LOCATION_KEYS;
+export const WEATHER_ZONES = WEATHER_LOCATION_KEYS;
 
 export const NOTIFICATION_TYPES = [
   'weather',

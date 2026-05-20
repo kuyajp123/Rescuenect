@@ -7,6 +7,7 @@ import {
   initializeFirebase,
   replaceEarthquakesInFirestore,
 } from '../_shared/firestore-client.ts';
+import { ACTIVE_WEATHER_LOCATION_KEYS } from '../_shared/location-config.ts';
 import type { EarthquakeNotificationData } from '../_shared/notification-schema.ts';
 import { NotificationService } from '../_shared/notification-service.ts';
 import type { EarthquakeMonitorResult } from '../_shared/types.ts';
@@ -85,8 +86,8 @@ serve(async (req: Request) => {
     // Step 7: Send notifications for qualifying earthquakes
     for (const earthquake of notifiableEarthquakes) {
       try {
-        // Get all user tokens (both admin and users for earthquake alerts)
-        const { tokens } = await getUserTokens('both');
+        for (const targetLocationKey of ACTIVE_WEATHER_LOCATION_KEYS) {
+          const { tokens } = await getUserTokens('both', targetLocationKey);
 
         if (tokens.length === 0) {
           console.log(`⚠️ No FCM tokens found for earthquake ${earthquake.id}`);
@@ -183,7 +184,7 @@ serve(async (req: Request) => {
             await notificationService.createEarthquakeNotification({
               title: title,
               message: message,
-              location: 'central_naic', // Default location for earthquake (affects all of Naic)
+              location: targetLocationKey,
               audience: 'both',
               sentTo: fcmResult.success + fcmResult.failure,
               earthquakeData: earthquakeData,
@@ -202,13 +203,15 @@ serve(async (req: Request) => {
 
         notificationResults.push({
           earthquake_id: earthquake.id,
+          location: targetLocationKey,
           magnitude: earthquake.magnitude,
           users_notified: fcmResult.success,
           errors: fcmResult.errors,
         });
 
         // Rate limiting between notifications
-        await delay(1000);
+          await delay(1000);
+        }
       } catch (error) {
         console.error(`❌ Failed to send notification for earthquake ${earthquake.id}:`, error);
         notificationResults.push({

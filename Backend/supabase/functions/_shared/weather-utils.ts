@@ -1,8 +1,8 @@
 // supabase/functions/_shared/weather-utils.ts
 import {
-  LEGACY_WEATHER_ZONE_COORDINATES,
-  LEGACY_WEATHER_ZONE_KEYS,
-  LEGACY_WEATHER_ZONE_LABELS,
+  ACTIVE_WEATHER_LOCATION_KEYS,
+  WEATHER_LOCATION_COORDINATES,
+  WEATHER_LOCATION_LABELS,
 } from './location-config.ts';
 import type { WeatherLocation } from './types.ts';
 
@@ -13,10 +13,10 @@ declare const Deno: {
   };
 };
 
-export const WEATHER_LOCATIONS: WeatherLocation[] = LEGACY_WEATHER_ZONE_KEYS.map(key => ({
+export const WEATHER_LOCATIONS: WeatherLocation[] = ACTIVE_WEATHER_LOCATION_KEYS.map(key => ({
   key,
-  coordinates: LEGACY_WEATHER_ZONE_COORDINATES[key],
-  name: LEGACY_WEATHER_ZONE_LABELS[key],
+  coordinates: WEATHER_LOCATION_COORDINATES[key],
+  name: WEATHER_LOCATION_LABELS[key],
 }));
 
 export const getWeatherAPIUrl = (coordinates: string, type: 'forecast' | 'realtime'): string => {
