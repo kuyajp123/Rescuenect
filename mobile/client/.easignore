@@ -47,3 +47,4 @@ ios/
 
 vscode/
 !google-services.json
+!staging-google-services.json

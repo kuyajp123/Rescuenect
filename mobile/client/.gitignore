@@ -48,5 +48,6 @@ app-example
 
 # google
 google-services.json
+staging-google-services.json
 
 .env.production

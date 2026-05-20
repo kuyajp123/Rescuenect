@@ -167,6 +167,42 @@ Then open the development build again on the emulator.
 npx expo start --localhost
 ```
 
+### EAS build profiles
+
+Mobile builds are selected with `eas.json` profiles. The profile decides which environment variables are available during the EAS cloud build, and `app.config.ts` uses `APP_ENV` to choose the Android package name and Firebase `google-services` file.
+
+| Profile | Purpose | Backend | Firebase / package |
+| ------- | ------- | ------- | ------------------ |
+| `development` | Custom dev client for local development | Local `.env` when running Metro | Usually local/staging Firebase, depending on the built client |
+| `staging` | Internal APK for staging QA | `https://rescuenect-staging-api.onrender.com` | Staging Firebase, `com.yajeyps.client.staging` |
+| `preview` | Internal APK for testing production behavior before release | `https://rescuenect-backend.onrender.com` | Production Firebase, `com.yajeyps.client` |
+| `production` | Play Store release build | `https://rescuenect-backend.onrender.com` | Production Firebase, `com.yajeyps.client` |
+
+Recommended commands:
+
+```bash
+cd mobile/client
+
+# Local development with an installed dev client
+npx expo start --dev-client --lan
+
+# Build staging APK
+eas build --platform android --profile staging
+
+# Build production-preview APK
+eas build --platform android --profile preview
+
+# Build production Android App Bundle
+eas build --platform android --profile production
+```
+
+Important notes:
+
+- `env` values inside `eas.json` are used during that EAS build. They do not create permanent Expo dashboard environment variables.
+- Local `.env` values are used by Metro when running `npx expo start --dev-client`.
+- Native Firebase config is baked into the built app. Changing `google-services.json` or `staging-google-services.json` requires a new EAS build.
+- The staging Firebase Android app package name must match `com.yajeyps.client.staging` exactly.
+
 ---
 
 ## Supabase Edge Functions

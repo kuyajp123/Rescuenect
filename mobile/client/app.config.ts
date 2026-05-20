@@ -1,3 +1,6 @@
+const appEnv = process.env.APP_ENV;
+const useStagingFirebase = appEnv === 'staging' || appEnv === 'local';
+
 export default ({ config }: { config: any }) => {
   return {
     ...config,
@@ -19,8 +22,8 @@ export default ({ config }: { config: any }) => {
         backgroundColor: '#ffffff',
       },
       edgeToEdgeEnabled: true,
-      package: 'com.yajeyps.client',
-      googleServicesFile: './google-services.json',
+      package: useStagingFirebase ? 'com.yajeyps.client.staging' : 'com.yajeyps.client',
+      googleServicesFile: useStagingFirebase ? './staging-google-services.json' : './google-services.json',
       userInterfaceStyle: 'automatic',
     },
     web: {
