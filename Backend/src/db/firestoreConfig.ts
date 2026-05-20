@@ -1,8 +1,5 @@
-import dotenv from 'dotenv';
+import '@/config/loadEnv';
 import * as admin from 'firebase-admin';
-
-// Load environment variables
-dotenv.config();
 
 let serviceAccount: any;
 try {

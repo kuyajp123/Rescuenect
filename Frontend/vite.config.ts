@@ -25,6 +25,7 @@ export default defineConfig(({ mode }) => {
       },
       rollupOptions: {
         output: {
+          minifyInternalExports: false,
           manualChunks: {
             'react-vendor': ['react', 'react-dom', 'react-router-dom'],
             'ui-vendor': ['@heroui/react'],

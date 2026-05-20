@@ -1,3 +1,23 @@
+const appEnv = process.env.APP_ENV;
+const useStagingFirebase = appEnv === 'staging' || appEnv === 'local';
+const selectedGoogleServices = useStagingFirebase
+  ? require('./staging-google-services.json')
+  : require('./google-services.json');
+
+const getWebClientId = (googleServices: any) => {
+  const clients = googleServices?.client ?? [];
+  for (const client of clients) {
+    const webClient = client?.oauth_client?.find((oauthClient: any) => oauthClient?.client_type === 3);
+    if (webClient?.client_id) {
+      return webClient.client_id;
+    }
+  }
+
+  return process.env.EXPO_PUBLIC_WEB_CLIENT_ID;
+};
+
+const googleWebClientId = getWebClientId(selectedGoogleServices);
+
 export default ({ config }: { config: any }) => {
   return {
     ...config,
@@ -19,8 +39,8 @@ export default ({ config }: { config: any }) => {
         backgroundColor: '#ffffff',
       },
       edgeToEdgeEnabled: true,
-      package: 'com.yajeyps.client',
-      googleServicesFile: './google-services.json',
+      package: useStagingFirebase ? 'com.yajeyps.client.staging' : 'com.yajeyps.client',
+      googleServicesFile: useStagingFirebase ? './staging-google-services.json' : './google-services.json',
       userInterfaceStyle: 'automatic',
     },
     web: {
@@ -50,7 +70,6 @@ export default ({ config }: { config: any }) => {
       [
         '@react-native-google-signin/google-signin',
         {
-          webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
           iosUrlScheme: 'com.googleusercontent.apps.554379793893',
         },
       ],
@@ -68,6 +87,7 @@ export default ({ config }: { config: any }) => {
     },
     extra: {
       router: {},
+      googleWebClientId,
       eas: {
         projectId: 'b0c098eb-8a7f-4cbd-b1ea-2e6557df75f7',
       },

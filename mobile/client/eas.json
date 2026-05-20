@@ -10,21 +10,33 @@
       "android": {
         "buildType": "apk",
         "developmentClient": true
+      },
+      "env": {
+        "APP_ENV": "local"
+      }
+    },
+    "staging": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": {
+        "APP_ENV": "staging",
+        "EXPO_PUBLIC_BACKEND_URL": "https://rescuenect-staging-api.onrender.com"
       }
     },
     "preview": {
       "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      },
+      "android": { "buildType": "apk" },
       "env": {
+        "APP_ENV": "production-preview",
         "EXPO_PUBLIC_BACKEND_URL": "https://rescuenect-backend.onrender.com"
       }
     },
     "production": {
       "autoIncrement": true,
-      "android": {
-        "buildType": "app-bundle"
+      "android": { "buildType": "app-bundle" },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_BACKEND_URL": "https://rescuenect-backend.onrender.com"
       }
     }
   },

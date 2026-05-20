@@ -3,26 +3,56 @@ import { SignInModel } from '@/models/mobile/SignInModel';
 import { NextFunction, Request, Response } from 'express';
 import { OAuth2Client } from 'google-auth-library';
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client();
+
+const getAllowedGoogleClientIds = () => {
+  const clientIds = process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID || '';
+  return clientIds
+    .split(',')
+    .map(clientId => clientId.trim())
+    .filter(Boolean);
+};
 
 export class SignInController {
   static async signIn(req: Request, res: Response, next: NextFunction): Promise<void> {
     const { idToken, user } = req.body;
+    const googleClientIds = getAllowedGoogleClientIds();
 
     if (!idToken) {
       res.status(400).json({ message: 'Google ID token is required' });
       return;
     }
 
+    if (googleClientIds.length === 0) {
+      res.status(500).json({ message: 'Google Sign-In is not configured on the backend' });
+      return;
+    }
+
     try {
       // Verify Google ID token
-      const ticket = await client.verifyIdToken({
-        idToken: idToken,
-        audience: process.env.GOOGLE_CLIENT_ID,
+      const ticket = await client.verifyIdToken(
+        {
+          idToken: idToken,
+          audience: googleClientIds,
+        },
+      ).catch(error => {
+        console.error('Google token verification failed:', {
+          message: error instanceof Error ? error.message : String(error),
+          allowedAudiences: googleClientIds,
+        });
+        return null;
       });
 
+      if (!ticket) {
+        res.status(401).json({
+          message: 'Invalid Google token',
+          detail: 'The token audience does not match the backend Google client configuration.',
+        });
+        return;
+      }
+
       const payload = ticket.getPayload();
-      if (!payload) {
+      if (!payload || !payload.email) {
         res.status(401).json({ message: 'Invalid Google token' });
         return;
       }
