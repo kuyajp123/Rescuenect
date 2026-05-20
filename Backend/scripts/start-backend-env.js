@@ -1,10 +1,11 @@
 const { spawn } = require('child_process');
 
 const environment = process.argv[2] || 'staging';
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const isEnvFile = environment.startsWith('.env') || environment.includes('/') || environment.includes('\\');
+const command = process.platform === 'win32' ? process.env.ComSpec || 'cmd.exe' : 'npm';
+const args = process.platform === 'win32' ? ['/d', '/s', '/c', 'npm run dev-backend'] : ['run', 'dev-backend'];
 
-const child = spawn(npmCommand, ['run', 'dev-backend'], {
+const child = spawn(command, args, {
   stdio: 'inherit',
   env: {
     ...process.env,

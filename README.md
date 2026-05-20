@@ -64,14 +64,14 @@ npm install
 
 ### Scripts
 
-| Command               | Description                                            |
-| --------------------- | ------------------------------------------------------ |
-| `npm run dev-backend` | Start development server with hot-reload (ts-node-dev) |
-| `npm run dev-backend:local` | Start development server with local env config; falls back to staging Firebase |
-| `npm run dev-backend:staging` | Start development server with staging Firebase/env config |
-| `npm run dev-backend:production` | Start development server with production Firebase/env config |
-| `npm run build`       | Compile TypeScript to `dist/`                          |
-| `npm start`           | Run compiled production server (`dist/src/server.js`)  |
+| Command                          | Description                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------------ |
+| `npm run dev-backend`            | Start development server with hot-reload (ts-node-dev)                         |
+| `npm run dev-backend:local`      | Start development server with local env config; falls back to staging Firebase |
+| `npm run dev-backend:staging`    | Start development server with staging Firebase/env config                      |
+| `npm run dev-backend:production` | Start development server with production Firebase/env config                   |
+| `npm run build`                  | Compile TypeScript to `dist/`                                                  |
+| `npm start`                      | Run compiled production server (`dist/src/server.js`)                          |
 
 ### Development
 
@@ -87,11 +87,11 @@ npm run dev-backend:local
 
 Backend environment mapping:
 
-| Environment | Command | Env file behavior |
-| ----------- | ------- | ----------------- |
-| `local` | `npm run dev-backend:local` | Uses `Backend/.env.local` if present, otherwise falls back to `Backend/.env.staging` |
-| `staging` | `npm run dev-backend:staging` | Uses `Backend/.env.staging` |
-| `production` | `npm run dev-backend:production` | Uses `Backend/.env.production` if present, otherwise falls back to `Backend/.env` |
+| Environment  | Command                          | Env file behavior                                                                    |
+| ------------ | -------------------------------- | ------------------------------------------------------------------------------------ |
+| `local`      | `npm run dev-backend:local`      | Uses `Backend/.env.local` if present, otherwise falls back to `Backend/.env.staging` |
+| `staging`    | `npm run dev-backend:staging`    | Uses `Backend/.env.staging`                                                          |
+| `production` | `npm run dev-backend:production` | Uses `Backend/.env.production` if present, otherwise falls back to `Backend/.env`    |
 
 The server runs on `http://localhost:3000` by default.  
 API routes are split into three groups: **admin**, **mobile**, and **unified** (shared).
@@ -272,40 +272,59 @@ npx expo start --dev-client --localhost
 
 ### Installing staging and production-preview APKs
 
-Use EAS builds when you want a shareable APK that does not depend on your local Metro server.
+Use these commands when Wireless debugging is connected and you want to build/install locally without uploading the project to Expo. These release installs do not need Metro after installation.
 
-There are two ways to create these APKs:
+Confirm ADB can see the wireless device:
 
-- **EAS cloud build** uploads the project to Expo's build servers and returns an install link or QR code. This is the easiest path for staging and production-preview testing.
-- **EAS local build** runs the same EAS build on your computer and does not upload the build job to Expo. This requires a working local Android native build setup.
+```bash
+adb devices -l
+```
 
-Build and install the staging APK:
+Use the device id from `adb devices -l` in the `--device` value below, for example `<phone-ip>:<debug-port>`.
+
+Build and install the dev client app locally:
+
+```powershell
+cd C:\Users\Paul\Rescuenect\mobile\client
+npx expo run:android --device
+"choose network devices"
+```
+
+Build and install the staging app locally:
+
+```powershell
+cd mobile/client
+$env:APP_ENV="staging"
+$env:EXPO_PUBLIC_BACKEND_URL="https://rescuenect-staging-api.onrender.com"
+npx expo prebuild --platform android --clean
+npx expo run:android --variant release --device <phone-ip>:<debug-port>
+```
+
+Build and install the production-preview app locally:
+
+```powershell
+cd mobile/client
+$env:APP_ENV="production-preview"
+$env:EXPO_PUBLIC_BACKEND_URL="https://rescuenect-backend.onrender.com"
+npx expo prebuild --platform android --clean
+npx expo run:android --variant release --device <phone-ip>:<debug-port>
+```
+
+Use EAS cloud builds only when you want Expo to build a shareable install link or APK:
 
 ```bash
 cd mobile/client
 eas build --platform android --profile staging
-```
-
-Build and install the production-preview APK:
-
-```bash
-cd mobile/client
 eas build --platform android --profile preview
 ```
 
-Build the same APKs locally instead of using Expo cloud:
-
-```bash
-cd mobile/client
-eas build --platform android --profile staging --local
-eas build --platform android --profile preview --local
-```
-
-After the build finishes, open the EAS install link on the phone or scan the QR code shown by EAS. You can also download the APK and install it manually:
+If you download an APK from EAS, you can install it over wireless ADB:
 
 ```bash
 adb install -r path/to/app.apk
 ```
+
+Do not use `eas build --local` on Windows. Android local EAS builds require macOS or Linux.
 
 Package behavior:
 
@@ -344,14 +363,14 @@ npx expo start --localhost
 
 Mobile builds are selected with `eas.json` profiles. The profile decides which environment variables are available during the EAS cloud build, and `app.config.ts` uses `APP_ENV` to choose the Android package name and Firebase `google-services` file.
 
-| Profile | Purpose | Backend | Firebase / package |
-| ------- | ------- | ------- | ------------------ |
-| `development` | Custom dev client for local development | Local `.env` when running Metro | Usually local/staging Firebase, depending on the built client |
-| `staging` | Internal APK for staging QA | `https://rescuenect-staging-api.onrender.com` | Staging Firebase, `com.yajeyps.client.staging` |
-| `preview` | Internal APK for testing production behavior before release | `https://rescuenect-backend.onrender.com` | Production Firebase, `com.yajeyps.client` |
-| `production` | Play Store release build | `https://rescuenect-backend.onrender.com` | Production Firebase, `com.yajeyps.client` |
+| Profile       | Purpose                                                     | Backend                                       | Firebase / package                                            |
+| ------------- | ----------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------- |
+| `development` | Custom dev client for local development                     | Local `.env` when running Metro               | Usually local/staging Firebase, depending on the built client |
+| `staging`     | Internal APK for staging QA                                 | `https://rescuenect-staging-api.onrender.com` | Staging Firebase, `com.yajeyps.client.staging`                |
+| `preview`     | Internal APK for testing production behavior before release | `https://rescuenect-backend.onrender.com`     | Production Firebase, `com.yajeyps.client`                     |
+| `production`  | Play Store release build                                    | `https://rescuenect-backend.onrender.com`     | Production Firebase, `com.yajeyps.client`                     |
 
-Recommended commands:
+Recommended EAS cloud commands:
 
 ```bash
 cd mobile/client
@@ -368,6 +387,8 @@ eas build --platform android --profile preview
 # Build production Android App Bundle
 eas build --platform android --profile production
 ```
+
+For local wireless release installs that do not upload to Expo, use the staging and production-preview commands in [Installing staging and production-preview APKs](#installing-staging-and-production-preview-apks).
 
 Important notes:
 
