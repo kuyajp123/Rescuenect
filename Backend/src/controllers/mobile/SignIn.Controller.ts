@@ -1,4 +1,5 @@
 import { admin } from '@/db/firestoreConfig';
+import { getBarangayByValue, normalizeBarangayValue } from '@/config/locationConfig';
 import { SignInModel } from '@/models/mobile/SignInModel';
 import { NextFunction, Request, Response } from 'express';
 import { OAuth2Client } from 'google-auth-library';
@@ -106,14 +107,21 @@ export class SignInController {
 
   static async saveBarangayController(req: Request, res: Response, next: NextFunction): Promise<void> {
     const { uid, barangay } = req.body;
+    const normalizedBarangay = typeof barangay === 'string' ? normalizeBarangayValue(barangay) : '';
 
-    if (!uid || !barangay) {
+    if (!uid || !normalizedBarangay) {
       res.status(400).json({ message: 'User ID and barangay are required' });
       return;
     }
 
+    const matchedBarangay = getBarangayByValue(normalizedBarangay);
+    if (!matchedBarangay) {
+      res.status(400).json({ message: 'Selected barangay is not covered by the active Rescuenect client' });
+      return;
+    }
+
     try {
-      await SignInModel.saveBarangay(uid, barangay);
+      await SignInModel.saveBarangay(uid, matchedBarangay.value);
       res.json({ success: true, message: 'Barangay saved successfully' });
     } catch (error: any) {
       console.error('Error saving barangay:', error);
