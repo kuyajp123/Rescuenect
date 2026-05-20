@@ -132,14 +132,116 @@ npm install
 | `npm run ios`                | Launch on iOS simulator           |
 | `npx expo start --localhost` | Start in offline/localhost mode   |
 
-### Running on a physical device
+### Android phone setup and local dev client
 
-1. Install **App apk** on your device.
-2. Start the dev server:
+Use this flow when testing the mobile app on a real Android phone from your local machine.
+
+1. Connect phone by USB.
+2. Enable **Developer options** on the phone.
+3. Enable **USB debugging**.
+4. Enable **Install via USB** if your phone has that setting.
+5. Keep the phone unlocked and accept the **Allow USB debugging** prompt.
+6. Confirm ADB can see the phone:
+
    ```bash
-   npm start
+   adb devices -l
    ```
-3. Scan the QR code shown in the terminal with Expo Go.
+
+7. Build and install the local development client on the phone:
+
+   ```bash
+   npx expo run:android --device
+   ```
+
+   If multiple devices are listed, pass the device id:
+
+   ```bash
+   npx expo run:android --device <device-id>
+   ```
+
+8. After the dev client is installed, start Metro over the local network:
+
+   ```bash
+   npx expo start --dev-client --lan
+   ```
+
+9. Open the installed Rescuenect dev app on the phone or scan the QR code from the terminal.
+
+For local backend testing, `mobile/client/.env` should point to your computer's LAN IP:
+
+```env
+APP_ENV=local
+EXPO_PUBLIC_BACKEND_URL=http://<your-computer-lan-ip>:4000
+```
+
+If installation fails with `INSTALL_FAILED_USER_RESTRICTED`, check the phone's Developer options and make sure **Install via USB** is enabled.
+
+### Wireless Android testing
+
+Use this after the dev client is already installed on the phone.
+
+1. Connect the computer and phone to the same Wi-Fi/LAN.
+2. Start Metro in LAN mode:
+
+   ```bash
+   npx expo start --dev-client --lan
+   ```
+
+3. Open the Rescuenect dev app on the phone.
+4. Scan the QR code or let the dev client connect to the Metro URL.
+
+Keep `EXPO_PUBLIC_BACKEND_URL` pointed at your computer's LAN IP when testing the local backend. Do not use `localhost` on a physical phone because it points to the phone itself, not your computer.
+
+If LAN discovery does not work, reconnect with USB and run:
+
+```bash
+adb reverse tcp:8081 tcp:8081
+npx expo start --dev-client --localhost
+```
+
+### Installing staging and production-preview APKs
+
+Use EAS builds when you want a shareable APK that does not depend on your local Metro server.
+
+There are two ways to create these APKs:
+
+- **EAS cloud build** uploads the project to Expo's build servers and returns an install link or QR code. This is the easiest path for staging and production-preview testing.
+- **EAS local build** runs the same EAS build on your computer and does not upload the build job to Expo. This requires a working local Android native build setup.
+
+Build and install the staging APK:
+
+```bash
+cd mobile/client
+eas build --platform android --profile staging
+```
+
+Build and install the production-preview APK:
+
+```bash
+cd mobile/client
+eas build --platform android --profile preview
+```
+
+Build the same APKs locally instead of using Expo cloud:
+
+```bash
+cd mobile/client
+eas build --platform android --profile staging --local
+eas build --platform android --profile preview --local
+```
+
+After the build finishes, open the EAS install link on the phone or scan the QR code shown by EAS. You can also download the APK and install it manually:
+
+```bash
+adb install -r path/to/app.apk
+```
+
+Package behavior:
+
+- `staging` installs as `com.yajeyps.client.staging` and points to the staging backend.
+- `preview` installs as `com.yajeyps.client` and points to the production backend.
+- `preview` and `production` use the same package name, so they replace each other on the same phone.
+- `staging` can be installed beside `preview` or `production`.
 
 ### Running on an Android emulator
 

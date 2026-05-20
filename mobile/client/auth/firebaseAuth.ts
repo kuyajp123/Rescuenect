@@ -3,12 +3,28 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useAuth } from '@/store/useAuth';
 import { handleAuthNavigation, handleSignOutNavigation } from '@/components/navigations/navigation';
+import Constants from 'expo-constants';
+
+const getGoogleWebClientId = () => {
+  const configuredClientId = Constants.expoConfig?.extra?.googleWebClientId;
+  if (typeof configuredClientId === 'string' && configuredClientId.length > 0) {
+    return configuredClientId;
+  }
+
+  return process.env.EXPO_PUBLIC_WEB_CLIENT_ID;
+};
 
 // Configure Google Sign-In
 export const configureGoogleSignIn = () => {
   try {
+    const webClientId = getGoogleWebClientId();
+    if (!webClientId) {
+      console.error('Google Sign-In web client ID is missing. Check app.config.ts and google-services.json.');
+      return;
+    }
+
     GoogleSignin.configure({
-      webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
+      webClientId,
       offlineAccess: true,
       hostedDomain: '',
       forceCodeForRefreshToken: true,
