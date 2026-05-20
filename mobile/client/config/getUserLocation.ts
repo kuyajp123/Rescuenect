@@ -2,6 +2,7 @@ import {
   barangayLegacyWeatherZoneMap,
   getBarangaysByLegacyWeatherZone,
   getLegacyWeatherZoneKey,
+  getWeatherLocationKey,
 } from '@/config/locationConfig';
 
 const coastal_west = getBarangaysByLegacyWeatherZone('coastal_west');
@@ -17,7 +18,7 @@ export { central_naic, coastal_east, coastal_west, farm_area, naic_boundary, sab
 export const barangayMap = barangayLegacyWeatherZoneMap;
 
 export const getUsersBarangay = (location: string) => {
-  return getLegacyWeatherZoneKey(location);
+  return getWeatherLocationKey(location);
 };
 
-export { getLegacyWeatherZoneKey };
+export { getLegacyWeatherZoneKey, getWeatherLocationKey };

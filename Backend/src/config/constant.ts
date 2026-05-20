@@ -1,7 +1,7 @@
 import { WeatherLocationKey } from '@/types/types';
 import {
-  LEGACY_WEATHER_ZONE_COORDINATES,
-  LEGACY_WEATHER_ZONE_KEYS,
+  ACTIVE_WEATHER_LOCATION_KEYS,
+  WEATHER_LOCATION_COORDINATES,
   getBarangaysByLegacyWeatherZone,
 } from '@/config/locationConfig';
 
@@ -14,8 +14,8 @@ const sabang = 'sabang';
 const farm_area = getBarangaysByLegacyWeatherZone('farm_area');
 const naic_boundary = getBarangaysByLegacyWeatherZone('naic_boundary');
 
-const weatherGroups: WeatherLocationKey[] = [...LEGACY_WEATHER_ZONE_KEYS];
+const weatherGroups: WeatherLocationKey[] = [...ACTIVE_WEATHER_LOCATION_KEYS];
 
-const weatherLocations: Record<WeatherLocationKey, string> = LEGACY_WEATHER_ZONE_COORDINATES;
+const weatherLocations: Record<WeatherLocationKey, string> = WEATHER_LOCATION_COORDINATES;
 
 export { central_naic, coastal_east, coastal_west, farm_area, naic_boundary, sabang, weatherGroups, weatherLocations };
