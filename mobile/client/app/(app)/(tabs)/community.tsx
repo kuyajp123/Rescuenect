@@ -29,7 +29,7 @@ const community = () => {
           facilities to make informed evacuation decisions.
         </Text>
         <Image
-          source={require('../../assets/images/images/evacuation_map.png')}
+          source={require('../../../assets/images/images/evacuation_map.png')}
           contentFit="contain"
           style={{ width: '100%', height: 300, borderRadius: 12 }}
           accessibilityLabel="Evacuation center map illustration"

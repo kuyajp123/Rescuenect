@@ -6,6 +6,7 @@ import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { storageHelpers } from '@/helper/storage';
+import { useAuth } from '@/store/useAuth';
 import { Checkbox } from 'expo-checkbox';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -16,6 +17,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 const signIn = () => {
   const router = useRouter();
   const { isDark } = useTheme();
+  const setGuestIntent = useAuth(state => state.setGuestIntent);
   const [acceptedTOS, setAcceptedTOS] = React.useState(false);
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -51,6 +53,7 @@ const signIn = () => {
 
   const handleGuestLogin = () => {
     if (handleValidate()) {
+      setGuestIntent(true);
       router.push('/auth/barangayForm');
     }
   };

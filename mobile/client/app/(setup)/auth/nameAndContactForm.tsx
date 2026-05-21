@@ -45,6 +45,9 @@ export const useFormStore = create<FormState>(set => ({
 
 const nameAndContactForm = () => {
   const authUser = useAuth(state => state.authUser);
+  const setHasSignedOut = useAuth(state => state.setHasSignedOut);
+  const setGuestIntent = useAuth(state => state.setGuestIntent);
+  const setShowingSetupComplete = useAuth(state => state.setShowingSetupComplete);
   const [errorMessage, setErrorMessage] = useState({
     firstName: '',
     lastName: '',
@@ -195,6 +198,7 @@ const nameAndContactForm = () => {
               ...newErrors,
               contactNumber: 'Authentication failed. Please try again.',
             });
+            setIsLoading(false);
             return;
           }
 
@@ -222,6 +226,9 @@ const nameAndContactForm = () => {
         await storageHelpers.setField(STORAGE_KEYS.USER, 'lastName', lastName.trim());
         await storageHelpers.setField(STORAGE_KEYS.USER, 'phoneNumber', contactNumber);
         await storageHelpers.setField(STORAGE_KEYS.USER, 'e164PhoneNumber', e164ContactNumber);
+        await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', false);
+        setHasSignedOut(false);
+        setGuestIntent(false);
 
         const getBarangay = await storageHelpers.getField(STORAGE_KEYS.USER, 'barangay');
 
@@ -237,6 +244,7 @@ const nameAndContactForm = () => {
 
         reset();
         setIsLoading(false);
+        setShowingSetupComplete(true);
 
         // Navigate to main app
         router.replace('/auth/setupComplete' as any);

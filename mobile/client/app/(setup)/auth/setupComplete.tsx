@@ -2,12 +2,14 @@ import { PrimaryButton } from '@/components/components/button/Button';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/store/useAuth';
 import { router } from 'expo-router';
 import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
 const setupComplete = () => {
   const { isDark } = useTheme();
+  const setShowingSetupComplete = useAuth(state => state.setShowingSetupComplete);
   const imageSource = isDark
     ? require('@/assets/images/states/done-dark.png')
     : require('@/assets/images/states/done-light.png');
@@ -18,7 +20,14 @@ const setupComplete = () => {
       <Text size="sm">Setup Complete</Text>
       <Text emphasis="light"> You're all set! Welcome to Rescuenect</Text>
       <View style={styles.homeButton}>
-        <PrimaryButton onPress={() => router.replace('(tabs)' as any)}>Continue</PrimaryButton>
+        <PrimaryButton
+          onPress={() => {
+            setShowingSetupComplete(false);
+            router.replace('/(app)/(tabs)' as any);
+          }}
+        >
+          Continue
+        </PrimaryButton>
       </View>
     </Body>
   );

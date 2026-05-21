@@ -38,6 +38,8 @@ const barangayForm = () => {
   const authUser = useAuth(state => state.authUser);
   const [isLoading, setIsLoading] = useState(false);
   const authLoading = useAuth(state => state.isLoading);
+  const setHasSignedOut = useAuth(state => state.setHasSignedOut);
+  const setGuestIntent = useAuth(state => state.setGuestIntent);
   const setUserData = useUserData(state => state.setUserData);
   const userData = useUserData(state => state.userData);
 
@@ -72,9 +74,14 @@ const barangayForm = () => {
         fcmToken = await getFcmToken(messaging);
 
         if (token) {
-          await saveBarangayToBackend(token, fcmToken);
+          const saved = await saveBarangayToBackend(token, fcmToken);
+          if (!saved) {
+            setIsLoading(false);
+            return;
+          }
         } else {
           setErrorMessage('Failed to authenticate. Please try again.');
+          setIsLoading(false);
           return;
         }
 
@@ -87,6 +94,7 @@ const barangayForm = () => {
       }
     } else if (authLoading) {
       setErrorMessage('Please wait for authentication to complete.');
+      return;
     }
 
     // Update userData if it exists, otherwise create a new object with barangay
@@ -101,11 +109,12 @@ const barangayForm = () => {
     await storageHelpers.setField(STORAGE_KEYS.USER, 'barangay', selectedBarangay);
     await storageHelpers.setField(STORAGE_KEYS.USER, 'fcmToken', fcmToken);
     await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', false);
+    setHasSignedOut(false);
+    setGuestIntent(false);
 
     router.push('/auth/nameAndContactForm' as any);
   };
 
-  // ✅ Fix: Extract the backend save logic to a separate function
   const saveBarangayToBackend = async (token: string, fcmToken: string) => {
     if (!fcmToken || fcmToken.length === 0 || fcmToken === '') {
       console.log('Failed to get FCM token. Please try again.');
@@ -127,6 +136,7 @@ const barangayForm = () => {
           timeout: 30000, // 30 seconds timeout
         }
       );
+      return true;
     } catch (error) {
       console.error('❌ Error saving barangay:', error);
       if (axios.isAxiosError(error)) {
@@ -137,6 +147,7 @@ const barangayForm = () => {
         });
       }
       setErrorMessage('Failed to save barangay. Please try again.');
+      return false;
     }
   };
 

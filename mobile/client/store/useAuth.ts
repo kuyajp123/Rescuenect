@@ -4,15 +4,31 @@ import { User } from 'firebase/auth';
 type AuthStore = {
   authUser: User | null;
   isLoading: boolean;     // Firebase auth state loading
+  hasSignedOut: boolean | null;
+  isProfileHydrated: boolean;
+  isGuestIntent: boolean;
+  isShowingSetupComplete: boolean;
   setAuthUser: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
+  setHasSignedOut: (hasSignedOut: boolean | null) => void;
+  setProfileHydrated: (isProfileHydrated: boolean) => void;
+  setGuestIntent: (isGuestIntent: boolean) => void;
+  setShowingSetupComplete: (isShowingSetupComplete: boolean) => void;
 };
 
 export const useAuth = create<AuthStore>((set) => ({
   authUser: null,
   isLoading: true,
+  hasSignedOut: null,
+  isProfileHydrated: false,
+  isGuestIntent: false,
+  isShowingSetupComplete: false,
   setAuthUser: (user) => set({ authUser: user }),
   setLoading: (loading) => set({ isLoading: loading }),
+  setHasSignedOut: (hasSignedOut) => set({ hasSignedOut }),
+  setProfileHydrated: (isProfileHydrated) => set({ isProfileHydrated }),
+  setGuestIntent: (isGuestIntent) => set({ isGuestIntent }),
+  setShowingSetupComplete: (isShowingSetupComplete) => set({ isShowingSetupComplete }),
 }));
 
 // sample stored data:

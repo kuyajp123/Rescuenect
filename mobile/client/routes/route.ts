@@ -9,10 +9,10 @@ const ROUTES = {
   },
   STATUS: {
     CREATE: '/status/createStatus',
-    SETTINGS: '/status/(settings)/statusSettings',
+    SETTINGS: '/status/statusSettings',
     CITY_NEEDS: '/status/cityNeeds',
   },
-  TABS: '/(tabs)',
+  TABS: '/(app)/(tabs)',
   NOTIFICATION: '/notification',
 } as const;
 

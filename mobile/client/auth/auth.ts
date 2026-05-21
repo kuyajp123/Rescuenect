@@ -4,6 +4,7 @@ import { storageHelpers } from '@/helper/storage';
 import { auth } from '@/lib/firebaseConfig';
 import { navigateToSignIn } from '@/routes/route';
 import { FCMTokenService } from '@/services/fcmTokenService';
+import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
 import { useCoords } from '@/store/useCoords';
 import { useImagePickerStore } from '@/store/useImagePicker';
@@ -75,9 +76,12 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
 
     // Clear sign-out flag since user is now signed in
     await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', false);
+    useAuth.getState().setHasSignedOut(false);
+    useAuth.getState().setGuestIntent(false);
+    useAuth.getState().setShowingSetupComplete(false);
 
     setLoading?.(false);
-    // Note: Navigation for complete users will be handled by the auth state listener in firebaseAuth.ts
+    // Route guards decide whether this lands in setup or the main app.
   } catch (error: any) {
     setLoading?.(false);
 
@@ -165,6 +169,9 @@ export const handleLogout = async () => {
     await storageHelpers.removeData(STORAGE_KEYS.USER);
     // Set sign-out flag to indicate intentional sign-out
     await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', true);
+    useAuth.getState().setHasSignedOut(true);
+    useAuth.getState().setGuestIntent(false);
+    useAuth.getState().setShowingSetupComplete(false);
 
     await storageHelpers.removeData(STORAGE_KEYS.SAVED_LOCATIONS);
     clearLocations();
@@ -183,10 +190,11 @@ export const handleLogout = async () => {
     await safeGoogleSignOut();
 
     resetResponse();
+    useAuth.getState().setAuthUser(null);
     setFormData(null);
     setImage(null);
 
-    // Note: Navigation will be handled by the auth state listener in firebaseAuth.ts
+    // Route guards also protect the app group, but this keeps logout feeling immediate.
     navigateToSignIn();
   } catch (error) {
     console.error('❌ Logout error:', error);
@@ -197,6 +205,10 @@ export const handleLogout = async () => {
     // Attempt to clear state and navigate anyway
     resetFormData();
     resetResponse();
+    useAuth.getState().setAuthUser(null);
+    useAuth.getState().setHasSignedOut(true);
+    useAuth.getState().setGuestIntent(false);
+    useAuth.getState().setShowingSetupComplete(false);
     navigateToSignIn();
 
     // Only alert if it's a critical error that prevents logout feeling effective
