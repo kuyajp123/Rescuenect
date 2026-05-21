@@ -1,5 +1,6 @@
 import { db } from '@/db/firestoreConfig';
 import { VersionHistoryItem } from '@/types/types';
+import { getEffectiveClientId } from '@/utils/adminScope';
 import { Timestamp } from 'firebase-admin/firestore';
 
 export class StatusModel {
@@ -91,6 +92,10 @@ export class StatusModel {
     return this.getVersionNumber(next) > this.getVersionNumber(existing);
   }
 
+  private static matchesClientScope(status: any, clientId?: string): boolean {
+    return !clientId || getEffectiveClientId(status) === clientId;
+  }
+
   private static pathRef(userId: string, parentId: string) {
     if (!userId || typeof userId !== 'string' || userId.trim() === '') {
       throw new Error(`Invalid userId provided: ${userId}`);
@@ -108,7 +113,7 @@ export class StatusModel {
       .orderBy('createdAt', 'desc');
   }
 
-  public static async getVersions(userId: string, parentId: string) {
+  public static async getVersions(userId: string, parentId: string, clientId?: string) {
     try {
       const query = this.pathRef(userId, parentId);
 
@@ -143,7 +148,9 @@ export class StatusModel {
           uid: data.uid || userId, // Ensure uid is present
         } as VersionHistoryItem;
 
-        versions.push(versionItem);
+        if (this.matchesClientScope(versionItem, clientId)) {
+          versions.push(versionItem);
+        }
       });
 
       return versions;
@@ -153,7 +160,7 @@ export class StatusModel {
     }
   }
 
-  public static async getAllLatestStatuses() {
+  public static async getAllLatestStatuses(clientId?: string) {
     try {
       // Use collectionGroup to get all statuses from all users
       const allStatusesSnapshot = await db.collectionGroup('statuses').orderBy('createdAt', 'desc').get();
@@ -180,9 +187,11 @@ export class StatusModel {
       });
 
       // Convert to array and sort by the latest meaningful lifecycle time.
-      const allLatestStatuses = Array.from(statusMap.values()).sort((a, b) => {
-        return this.getActivityTimestamp(b) - this.getActivityTimestamp(a);
-      });
+      const allLatestStatuses = Array.from(statusMap.values())
+        .filter(status => this.matchesClientScope(status, clientId))
+        .sort((a, b) => {
+          return this.getActivityTimestamp(b) - this.getActivityTimestamp(a);
+        });
 
       return allLatestStatuses;
     } catch (error) {
@@ -191,7 +200,7 @@ export class StatusModel {
     }
   }
 
-  public static async getStatusHistory() {
+  public static async getStatusHistory(clientId?: string) {
     try {
       // Use collectionGroup to get all statuses from all users
       const allStatusesSnapshot = await db.collectionGroup('statuses').orderBy('createdAt', 'desc').get();
@@ -215,9 +224,11 @@ export class StatusModel {
       });
 
       // Convert to array and sort by the latest meaningful lifecycle time.
-      const latestStatuses = Array.from(latestStatusMap.values()).sort((a, b) => {
-        return this.getActivityTimestamp(b) - this.getActivityTimestamp(a);
-      });
+      const latestStatuses = Array.from(latestStatusMap.values())
+        .filter(status => this.matchesClientScope(status, clientId))
+        .sort((a, b) => {
+          return this.getActivityTimestamp(b) - this.getActivityTimestamp(a);
+        });
 
       return latestStatuses;
     } catch (error) {
@@ -226,7 +237,13 @@ export class StatusModel {
     }
   }
 
-  public static async resolveStatus(uid: string, versionId: string, resolvedNote: string, resolvedBy: { name: string }) {
+  public static async resolveStatus(
+    uid: string,
+    versionId: string,
+    resolvedNote: string,
+    resolvedBy: { name: string },
+    clientId?: string
+  ) {
     try {
       const docRef = db.collection('status').doc(uid).collection('statuses').doc(versionId);
       const doc = await docRef.get();
@@ -240,6 +257,11 @@ export class StatusModel {
 
       if (!data) {
         console.error('❌ Status not found');
+        throw new Error('Status not found');
+      }
+
+      if (!this.matchesClientScope(data, clientId)) {
+        console.error('❌ Status is outside the admin client scope');
         throw new Error('Status not found');
       }
 

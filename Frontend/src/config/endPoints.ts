@@ -7,6 +7,7 @@ if (!BACKEND_URL) {
 export const API_ENDPOINTS = {
   AUTH: {
     SIGNIN: `${BACKEND_URL}/admin/auth/signin`,
+    ME: `${BACKEND_URL}/admin/me`,
     UPDATE_FCM_TOKEN: `${BACKEND_URL}/admin/config/update-fcm-token`,
     UPDATE_PROFILE: `${BACKEND_URL}/admin/auth/update-profile`,
   },
@@ -17,7 +18,7 @@ export const API_ENDPOINTS = {
   },
   EVACUATION: {
     ADD_CENTER: `${BACKEND_URL}/admin/evacuation/addCenter`,
-    GET_CENTERS: `${BACKEND_URL}/unified/getCenters`,
+    GET_CENTERS: `${BACKEND_URL}/admin/evacuation/getCenters`,
     DELETE_CENTER: `${BACKEND_URL}/admin/evacuation/deleteCenter`,
     UPDATE_CENTER: `${BACKEND_URL}/admin/evacuation/updateCenter`,
   },
@@ -34,7 +35,7 @@ export const API_ENDPOINTS = {
   },
   ANNOUNCEMENT: {
     CREATE_ANNOUNCEMENT: `${BACKEND_URL}/admin/announcement/createAnnouncement`,
-    GET_ALL_ANNOUNCEMENTS: `${BACKEND_URL}/unified/announcements`,
+    GET_ALL_ANNOUNCEMENTS: `${BACKEND_URL}/admin/announcement/all`,
     GET_ANNOUNCEMENT_DETAILS: `${BACKEND_URL}/unified/announcementDetails`,
     DELETE_ANNOUNCEMENT: `${BACKEND_URL}/admin/announcement/deleteAnnouncement`,
     UPDATE_ANNOUNCEMENT: `${BACKEND_URL}/admin/announcement/updateAnnouncement`,
@@ -42,5 +43,27 @@ export const API_ENDPOINTS = {
   CONTACTS: {
     GET_CONTACTS: `${BACKEND_URL}/admin/contacts/getContacts`,
     CREATE_CONTACT: `${BACKEND_URL}/admin/contacts/addContact`,
+  },
+  PUBLIC: {
+    PSGC_REGIONS: `${BACKEND_URL}/public/psgc/regions`,
+    PSGC_PROVINCES: (regionCode: string) => `${BACKEND_URL}/public/psgc/regions/${regionCode}/provinces`,
+    PSGC_REGION_MUNICIPALITIES: (regionCode: string) =>
+      `${BACKEND_URL}/public/psgc/regions/${regionCode}/municipalities`,
+    PSGC_MUNICIPALITIES: (provinceCode: string) =>
+      `${BACKEND_URL}/public/psgc/provinces/${provinceCode}/municipalities`,
+    PSGC_BARANGAYS: (municipalityCode: string) =>
+      `${BACKEND_URL}/public/psgc/municipalities/${municipalityCode}/barangays`,
+    LGU_REQUESTS: `${BACKEND_URL}/public/lgu-requests`,
+  },
+  SUPER_ADMIN: {
+    LGU_REQUESTS: `${BACKEND_URL}/admin/super/lgu-requests`,
+    APPROVE_LGU_REQUEST: (id: string) => `${BACKEND_URL}/admin/super/lgu-requests/${id}/approve`,
+    REJECT_LGU_REQUEST: (id: string) => `${BACKEND_URL}/admin/super/lgu-requests/${id}/reject`,
+    CLIENTS: `${BACKEND_URL}/admin/super/clients`,
+    UPDATE_CLIENT: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}`,
+    ACTIVATE_CLIENT: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}/activate`,
+    DEACTIVATE_CLIENT: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}/deactivate`,
+    ADMINS: `${BACKEND_URL}/admin/super/admins`,
+    SYSTEM_STATUS: `${BACKEND_URL}/admin/super/system-status`,
   }
 };

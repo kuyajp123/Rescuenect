@@ -1,9 +1,8 @@
 import { admin } from '@/db/firestoreConfig';
 import {
-  getActiveLocationCoverage,
   normalizeBarangayValue,
-  resolveResidentLocationSelection,
 } from '@/config/locationConfig';
+import { ClientModel } from '@/models/admin/ClientModel';
 import { SignInModel } from '@/models/mobile/SignInModel';
 import { NextFunction, Request, Response } from 'express';
 import { OAuth2Client } from 'google-auth-library';
@@ -110,7 +109,7 @@ export class SignInController {
   }
 
   static async getLocationCoverageController(_req: Request, res: Response): Promise<void> {
-    res.status(200).json(getActiveLocationCoverage());
+    res.status(200).json(await ClientModel.getActiveLocationCoverage());
   }
 
   static async saveBarangayController(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -122,7 +121,7 @@ export class SignInController {
       return;
     }
 
-    const locationSelection = resolveResidentLocationSelection(req.body);
+    const locationSelection = await ClientModel.resolveResidentLocationSelection(req.body);
     if (!locationSelection) {
       res.status(400).json({ message: 'Selected barangay is not covered by the active Rescuenect client' });
       return;

@@ -1,4 +1,5 @@
 import { AnnouncementModel } from '@/models/admin/AnnouncementModel';
+import { getClientScopeFromRequest } from '@/utils/adminScope';
 import createDOMPurify, { type WindowLike } from 'dompurify';
 import { Request, Response } from 'express';
 import { JSDOM } from 'jsdom';
@@ -99,6 +100,18 @@ const isMaxLength = (value: unknown, maxLength: number): boolean => {
 };
 
 export class AnnouncementController {
+  static async getAnnouncements(req: Request, res: Response): Promise<void> {
+    try {
+      const announcements = await AnnouncementModel.getAnnouncements(getClientScopeFromRequest(req));
+      res.status(200).json({ announcements });
+    } catch (error) {
+      res.status(500).json({
+        message: 'Failed to get announcements',
+        error: typeof error === 'string' ? error : (error as Error).message,
+      });
+    }
+  }
+
   static async addAnnouncement(req: Request, res: Response): Promise<void> {
     const userId = (req as any).user?.uid as string | undefined;
     if (!userId) {
@@ -163,7 +176,12 @@ export class AnnouncementController {
       if (subtitle) payload.subtitle = subtitle;
 
       const file = req.file as Express.Multer.File | undefined;
-      const announcementId = await AnnouncementModel.addAnnouncement(payload, file, userId);
+      const announcementId = await AnnouncementModel.addAnnouncement(
+        payload,
+        file,
+        userId,
+        getClientScopeFromRequest(req) || 'naic'
+      );
 
       res.status(201).json({ message: 'Announcement created', id: announcementId });
     } catch (error) {
@@ -247,7 +265,7 @@ export class AnnouncementController {
       };
 
       const file = req.file as Express.Multer.File | undefined;
-      await AnnouncementModel.updateAnnouncement(announcementId, payload, file, userId);
+      await AnnouncementModel.updateAnnouncement(announcementId, payload, file, userId, getClientScopeFromRequest(req));
 
       res.status(200).json({ message: 'Announcement updated', id: announcementId });
     } catch (error) {
@@ -276,7 +294,7 @@ export class AnnouncementController {
     }
 
     try {
-      const success = await AnnouncementModel.deleteAnnouncement(announcementId);
+      await AnnouncementModel.deleteAnnouncement(announcementId, getClientScopeFromRequest(req));
       res.status(200).json({ message: 'Announcement deleted' });
     } catch (error) {
       console.error('❌ Failed to delete announcement:', {

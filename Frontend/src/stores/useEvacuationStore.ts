@@ -32,7 +32,9 @@ export const useEvacuationStore = create<EvacuationStore>((set) => ({
         return;
       }
 
-      const response = await axios.get<EvacuationCenter[]>(API_ENDPOINTS.EVACUATION.GET_CENTERS);
+      const response = await axios.get<EvacuationCenter[]>(API_ENDPOINTS.EVACUATION.GET_CENTERS, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       set({ evacuationCenters: response.data, isLoading: false });
     } catch (error) {
       console.error('Error fetching evacuation centers:', error);

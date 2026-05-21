@@ -41,6 +41,12 @@ export default function ProtectedRoute({ children }: Props) {
       // Redirect to Dashboard if attempting to access onboarding
       return <Navigate to="/" replace />;
     }
+    if (userData.role === 'super_admin' && location.pathname === '/') {
+      return <Navigate to="/super" replace />;
+    }
+    if (userData.role !== 'super_admin' && location.pathname.startsWith('/super')) {
+      return <Navigate to="/" replace />;
+    }
     return children;
   }
 
