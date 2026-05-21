@@ -1,5 +1,5 @@
 import { getAddress } from '@/API/getAddress';
-import { Button } from '@/components/components/button/Button';
+import { Button } from 'heroui-native'
 import CustomImagePicker from '@/components/components/CustomImagePicker';
 import { ImageModal } from '@/components/components/image-modal/ImageModal';
 import Map, { CustomButton, NumberInputField, RadioField, TextInputField } from '@/components/components/Map';
@@ -1155,11 +1155,7 @@ export const createStatus = () => {
                     : isDark
                       ? Colors.border.dark
                       : Colors.border.medium,
-                  backgroundColor: isChecked
-                    ? isDark
-                      ? Colors.brand.dark
-                      : Colors.brand.light
-                    : 'transparent',
+                  backgroundColor: isChecked ? (isDark ? Colors.brand.dark : Colors.brand.light) : 'transparent',
                 },
               ]}
             >
@@ -1250,7 +1246,7 @@ export const createStatus = () => {
     ),
 
     <View>
-      <Button variant="link" width="fit" onPress={() => navigateToStatusSettings()}>
+      <Button variant="ghost" onPress={() => navigateToStatusSettings()}>
         <Text size="xs" emphasis="bold">
           See other Settings
         </Text>

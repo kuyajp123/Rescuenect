@@ -2,8 +2,12 @@ import { getWeatherLocationKey } from '@/config/getUserLocation';
 import { db } from '@/lib/firebaseConfig';
 import { collection, onSnapshot } from 'firebase/firestore';
 
-export const subscribeToWeatherData = (location: string, callback: (data: any) => void) => {
+export const subscribeToWeatherData = (location: string | null | undefined, callback: (data: any) => void) => {
   try {
+    if (typeof location !== 'string' || !location.trim()) {
+      return () => {};
+    }
+
     const weatherLocationKey = getWeatherLocationKey(location);
 
     const realtime = collection(db, 'weather', weatherLocationKey, 'realtime');

@@ -58,6 +58,53 @@ export interface LocationClient {
   barangays: BarangayMetadata[];
 }
 
+export interface LocationCoverageBarangay {
+  barangayCode: string | null;
+  barangayLabel: string;
+  value: string;
+}
+
+export interface LocationCoverageClient {
+  clientId: string;
+  clientName: string;
+  provinceCode: string;
+  provinceName: string;
+  municipalityCode: string;
+  municipalityName: string;
+  municipalityType: ClientType;
+  barangays: LocationCoverageBarangay[];
+  weatherLocationKey: WeatherLocationKey;
+  weatherCoordinates: {
+    latitude: number;
+    longitude: number;
+  };
+  isActive: boolean;
+}
+
+export interface LocationCoverageProvince {
+  provinceCode: string;
+  provinceName: string;
+  clients: LocationCoverageClient[];
+}
+
+export interface LocationCoverageResponse {
+  provinces: LocationCoverageProvince[];
+}
+
+export interface ResidentLocationSelection {
+  barangay: string;
+  clientId: string;
+  clientName: string;
+  provinceCode: string;
+  provinceName: string;
+  municipalityCode: string;
+  municipalityName: string;
+  municipalityType: ClientType;
+  barangayCode: string | null;
+  barangayLabel: string;
+  weatherLocationKey: WeatherLocationKey;
+}
+
 type BarangaySeed = Pick<BarangayMetadata, 'label' | 'value' | 'legacyWeatherZoneKey'>;
 
 export const NAIC_CLIENT_ID = 'naic';
@@ -173,7 +220,8 @@ export const NAIC_LOCATION_CLIENT: LocationClient = {
 
 export const ACTIVE_LOCATION_CLIENTS: LocationClient[] = [NAIC_LOCATION_CLIENT];
 
-export const normalizeBarangayValue = (value: string): string => value.trim().toLowerCase();
+export const normalizeBarangayValue = (value: string | null | undefined): string =>
+  typeof value === 'string' ? value.trim().toLowerCase() : '';
 
 export const getActiveClient = (): LocationClient => NAIC_LOCATION_CLIENT;
 
@@ -186,16 +234,106 @@ export const getBarangaysForClient = (clientId: string = NAIC_CLIENT_ID): Barang
 export const getBarangayOptionsForClient = (clientId: string = NAIC_CLIENT_ID): BarangayOption[] =>
   getBarangaysForClient(clientId).map(({ label, value }) => ({ label, value }));
 
-export const getBarangayByValue = (value: string): BarangayMetadata | undefined => {
+const toLocationCoverageClient = (client: LocationClient): LocationCoverageClient => ({
+  clientId: client.id,
+  clientName: client.name,
+  provinceCode: client.province.psgcCode,
+  provinceName: client.province.name,
+  municipalityCode: client.municipality.psgcCode,
+  municipalityName: client.municipality.name,
+  municipalityType: client.type,
+  barangays: client.barangays
+    .filter(barangay => barangay.isActive)
+    .map(barangay => ({
+      barangayCode: barangay.psgcCode,
+      barangayLabel: barangay.label,
+      value: barangay.value,
+    })),
+  weatherLocationKey: client.weatherLocationKey,
+  weatherCoordinates: {
+    latitude: client.weatherLatitude,
+    longitude: client.weatherLongitude,
+  },
+  isActive: client.status === 'active',
+});
+
+export const getActiveLocationCoverage = (): LocationCoverageResponse => {
+  const provinces = new Map<string, LocationCoverageProvince>();
+
+  ACTIVE_LOCATION_CLIENTS.filter(client => client.status === 'active').forEach(client => {
+    const provinceCode = client.province.psgcCode;
+    const province = provinces.get(provinceCode) ?? {
+      provinceCode,
+      provinceName: client.province.name,
+      clients: [],
+    };
+
+    province.clients.push(toLocationCoverageClient(client));
+    provinces.set(provinceCode, province);
+  });
+
+  return {
+    provinces: Array.from(provinces.values()).map(province => ({
+      ...province,
+      clients: province.clients.sort((left, right) => left.clientName.localeCompare(right.clientName)),
+    })),
+  };
+};
+
+export const getClientForBarangayValue = (value: string | null | undefined): LocationClient | undefined => {
   const normalizedValue = normalizeBarangayValue(value);
+
+  if (!normalizedValue) {
+    return undefined;
+  }
+
+  return ACTIVE_LOCATION_CLIENTS.find(
+    client =>
+      client.status === 'active' &&
+      client.barangays.some(barangay => barangay.value === normalizedValue && barangay.isActive)
+  );
+};
+
+export const getBarangayByValue = (value: string | null | undefined): BarangayMetadata | undefined => {
+  const normalizedValue = normalizeBarangayValue(value);
+
+  if (!normalizedValue) {
+    return undefined;
+  }
+
   return ACTIVE_LOCATION_CLIENTS.flatMap(client => client.barangays).find(
     barangay => barangay.value === normalizedValue && barangay.isActive
   );
 };
 
-export const isCoveredBarangay = (value: string): boolean => !!getBarangayByValue(value);
+export const isCoveredBarangay = (value: string | null | undefined): boolean => !!getBarangayByValue(value);
 
-export const getWeatherLocationKey = (value: string): WeatherLocationKey => {
+export const getResidentLocationSelectionForBarangay = (
+  value: string | null | undefined
+): ResidentLocationSelection | null => {
+  const matchedBarangay = getBarangayByValue(value);
+  const matchedClient = matchedBarangay ? getClientForBarangayValue(matchedBarangay.value) : undefined;
+
+  if (!matchedBarangay || !matchedClient) {
+    return null;
+  }
+
+  return {
+    barangay: matchedBarangay.value,
+    clientId: matchedClient.id,
+    clientName: matchedClient.name,
+    provinceCode: matchedClient.province.psgcCode,
+    provinceName: matchedClient.province.name,
+    municipalityCode: matchedClient.municipality.psgcCode,
+    municipalityName: matchedClient.municipality.name,
+    municipalityType: matchedClient.type,
+    barangayCode: matchedBarangay.psgcCode,
+    barangayLabel: matchedBarangay.label,
+    weatherLocationKey: matchedClient.weatherLocationKey,
+  };
+};
+
+export const getWeatherLocationKey = (value: string | null | undefined): WeatherLocationKey => {
   const barangay = getBarangayByValue(value);
 
   if (!barangay) {
@@ -226,7 +364,7 @@ export const barangayLegacyWeatherZoneMap: Record<string, LegacyWeatherZoneKey> 
   NAIC_BARANGAYS.map(barangay => [barangay.value, barangay.legacyWeatherZoneKey])
 ) as Record<string, LegacyWeatherZoneKey>;
 
-export const getLegacyWeatherZoneKey = (value: string): LegacyWeatherZoneKey => {
+export const getLegacyWeatherZoneKey = (value: string | null | undefined): LegacyWeatherZoneKey => {
   const barangay = getBarangayByValue(value);
 
   if (!barangay) {

@@ -2,6 +2,29 @@ import { UserDataModel } from '@/models/mobile/UserDataModel';
 import { Request, Response } from 'express';
 
 export class UserDataController {
+  static async getProfileController(req: Request, res: Response): Promise<void> {
+    const uid = (req as any).user?.uid || (req.query.uid as string);
+
+    if (!uid) {
+      res.status(401).json({ message: 'Missing user identification' });
+      return;
+    }
+
+    try {
+      const profile = await UserDataModel.getUserProfile(uid);
+
+      if (!profile) {
+        res.status(404).json({ message: 'User profile not found' });
+        return;
+      }
+
+      res.status(200).json({ user: profile });
+    } catch (error: any) {
+      console.error('Error fetching user profile:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+
   static async saveLocationController(req: Request, res: Response): Promise<void> {
     const { uid, id, label, location, lat, lng } = req.body;
 

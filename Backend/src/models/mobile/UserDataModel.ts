@@ -75,6 +75,25 @@ export class UserDataModel {
     }
   }
 
+  static async getUserProfile(uid: string) {
+    try {
+      const ref = this.pathRef(uid);
+      const doc = await ref.get();
+
+      if (!doc.exists) {
+        return null;
+      }
+
+      return {
+        id: doc.id,
+        ...doc.data(),
+      };
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+      throw error;
+    }
+  }
+
   static async saveLocationData(uid: string, id: string, label: string, location: string, lat: number, lng: number) {
     try {
       const ref = this.pathRef(uid);

@@ -1,5 +1,9 @@
 import { admin } from '@/db/firestoreConfig';
-import { getBarangayByValue, normalizeBarangayValue } from '@/config/locationConfig';
+import {
+  getActiveLocationCoverage,
+  normalizeBarangayValue,
+  resolveResidentLocationSelection,
+} from '@/config/locationConfig';
 import { SignInModel } from '@/models/mobile/SignInModel';
 import { NextFunction, Request, Response } from 'express';
 import { OAuth2Client } from 'google-auth-library';
@@ -105,6 +109,10 @@ export class SignInController {
     }
   }
 
+  static async getLocationCoverageController(_req: Request, res: Response): Promise<void> {
+    res.status(200).json(getActiveLocationCoverage());
+  }
+
   static async saveBarangayController(req: Request, res: Response, next: NextFunction): Promise<void> {
     const { uid, barangay } = req.body;
     const normalizedBarangay = typeof barangay === 'string' ? normalizeBarangayValue(barangay) : '';
@@ -114,14 +122,14 @@ export class SignInController {
       return;
     }
 
-    const matchedBarangay = getBarangayByValue(normalizedBarangay);
-    if (!matchedBarangay) {
+    const locationSelection = resolveResidentLocationSelection(req.body);
+    if (!locationSelection) {
       res.status(400).json({ message: 'Selected barangay is not covered by the active Rescuenect client' });
       return;
     }
 
     try {
-      await SignInModel.saveBarangay(uid, matchedBarangay.value);
+      await SignInModel.saveBarangay(uid, locationSelection);
       res.json({ success: true, message: 'Barangay saved successfully' });
     } catch (error: any) {
       console.error('Error saving barangay:', error);

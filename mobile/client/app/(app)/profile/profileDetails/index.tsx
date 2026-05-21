@@ -1,21 +1,26 @@
 import { IconButton } from '@/components/components/button/Button';
 import { Divider } from '@/components/ui/divider';
 import { HStack } from '@/components/ui/hstack';
-import Body from '@/components/ui/layout/Body';
+import { Body } from '@/components/ui/layout/Body';
 import { Modal, ModalBackdrop, ModalBody, ModalCloseButton, ModalContent, ModalHeader } from '@/components/ui/modal';
 import { Text } from '@/components/ui/text';
 import { useAppToast } from '@/components/ui/Toast';
 import { VStack } from '@/components/ui/vstack';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
+import { getBarangayOptionsForClient, getResidentLocationSelectionForBarangay } from '@/config/locationConfig';
 import { Colors } from '@/constants/Colors';
-import { barangays } from '@/constants/variables';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatBarangayLabel, formatContactNumber, sortByLabel } from '@/helper/commonHelpers';
 import { storageHelpers } from '@/helper/storage';
 import { auth } from '@/lib/firebaseConfig';
+import { navigateToSignIn } from '@/routes/route';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
+import { useCoords } from '@/store/useCoords';
+import { useImagePickerStore } from '@/store/useImagePicker';
+import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
+import { useStatusFormStore } from '@/store/useStatusForm';
 import axios from 'axios';
 import { Avatar } from 'heroui-native';
 import { Calendar, ChevronDown, Mail, MapPin, Phone, Trash2, X } from 'lucide-react-native';
@@ -125,6 +130,7 @@ const ProfileDetails = () => {
   const userData = useUserData(state => state.userData);
   const setUserData = useUserData(state => state.setUserData);
   const authUser = useAuth(state => state.authUser);
+
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -137,7 +143,7 @@ const ProfileDetails = () => {
     phoneNumber: userData.phoneNumber,
     barangay: userData.barangay,
   });
-  const sortedBarangays = useMemo(() => sortByLabel(barangays), []);
+  const sortedBarangays = useMemo(() => sortByLabel(getBarangayOptionsForClient(userData.clientId)), [userData.clientId]);
   const selectedBarangayLabel = useMemo(() => {
     if (!formData.barangay) {
       return '';
@@ -145,6 +151,10 @@ const ProfileDetails = () => {
     const match = sortedBarangays.find(item => item.value === formData.barangay);
     return match?.label ?? formatBarangayLabel(formData.barangay);
   }, [formData.barangay, sortedBarangays]);
+  const selectedLocation = useMemo(
+    () => getResidentLocationSelectionForBarangay(formData.barangay),
+    [formData.barangay]
+  );
 
   // Format date
   const formatDate = (dateString?: string | number) => {
@@ -163,6 +173,7 @@ const ProfileDetails = () => {
     try {
       const idToken = await authUser?.getIdToken();
       if (!idToken || !authUser?.uid) throw new Error('Not authenticated');
+      if (!selectedLocation) throw new Error('Selected barangay is not covered');
 
       // 1. Save User Info (Name, Phone)
       await axios.post(
@@ -181,7 +192,7 @@ const ProfileDetails = () => {
         API_ROUTES.DATA.SAVE_BARANGAY_DATA,
         {
           uid: authUser.uid,
-          barangay: formData.barangay,
+          ...selectedLocation,
         },
         { headers: { Authorization: `Bearer ${idToken}` } }
       );
@@ -193,15 +204,19 @@ const ProfileDetails = () => {
           firstName: formData.firstName,
           lastName: formData.lastName,
           phoneNumber: formData.phoneNumber,
-          barangay: formData.barangay,
+          ...selectedLocation,
         },
       });
 
       // 4. Update AsyncStorage
-      await storageHelpers.setField(STORAGE_KEYS.USER, 'firstName', formData.firstName);
-      await storageHelpers.setField(STORAGE_KEYS.USER, 'lastName', formData.lastName);
-      await storageHelpers.setField(STORAGE_KEYS.USER, 'phoneNumber', formData.phoneNumber);
-      await storageHelpers.setField(STORAGE_KEYS.USER, 'barangay', formData.barangay);
+      const currentUserData = await storageHelpers.getData<Record<string, unknown>>(STORAGE_KEYS.USER);
+      await storageHelpers.setData(STORAGE_KEYS.USER, {
+        ...(currentUserData && typeof currentUserData === 'object' ? currentUserData : {}),
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phoneNumber: formData.phoneNumber,
+        ...selectedLocation,
+      });
 
       setIsEditing(false);
 
@@ -232,12 +247,31 @@ const ProfileDetails = () => {
               });
             }
 
-            // Cleanup local data
-            await storageHelpers.clearAll();
-            await auth.signOut();
+            // Cleanup local persisted and in-memory session data.
+            useStatusFormStore.getState().resetFormData();
+            useCoords.getState().resetState?.();
+            useSavedLocationsStore.getState().clearLocations();
+            useImagePickerStore.getState().setImage(null);
+            useUserData.getState().resetResponse();
 
-            // Router will handle auth state change potentially, but let's encourage it
-            // No need to manual push if auth listener handles it, but just in case
+            await storageHelpers.clearAll();
+            await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', true);
+            await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'isGuestMode', false);
+
+            useAuth.getState().setAuthUser(null);
+            useAuth.getState().setHasSignedOut(true);
+            useAuth.getState().setGuest(false);
+            useAuth.getState().setGuestIntent(false);
+            useAuth.getState().setShowingSetupComplete(false);
+
+            try {
+              await auth.signOut();
+            } catch (signOutError) {
+              console.warn('Firebase sign out after account deletion failed:', signOutError);
+            }
+
+            console.log('Account deleted successfully');
+            navigateToSignIn();
           } catch (error) {
             console.error('Error deleting account:', error);
             Alert.alert('Error', 'Failed to delete account. Please try again.');

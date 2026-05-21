@@ -1,7 +1,7 @@
 import Logo from '@/assets/images/logo/logoVerti.svg';
 import { Button } from 'heroui-native/button';
 // import { Input, InputField } from '@/components/ui/input';
-import Body from '@/components/ui/layout/Body';
+import { Body } from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
@@ -11,7 +11,7 @@ import { useIdToken } from '@/hooks/useIdToken';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import axios from 'axios';
+import axios, { isAxiosError } from 'axios';
 import { useRouter } from 'expo-router';
 import { Input } from 'heroui-native';
 import React, { useEffect, useState } from 'react';
@@ -43,7 +43,7 @@ export const useFormStore = create<FormState>(set => ({
   reset: () => set({ firstName: '', lastName: '', contactNumber: '', firstNameTouched: false, lastNameTouched: false }),
 }));
 
-const nameAndContactForm = () => {
+const NameAndContactForm = () => {
   const authUser = useAuth(state => state.authUser);
   const setHasSignedOut = useAuth(state => state.setHasSignedOut);
   const setGuestIntent = useAuth(state => state.setGuestIntent);
@@ -221,24 +221,33 @@ const nameAndContactForm = () => {
           );
         }
 
-        // Save to AsyncStorage using field operations to preserve existing data (like barangay)
-        await storageHelpers.setField(STORAGE_KEYS.USER, 'firstName', firstName.trim());
-        await storageHelpers.setField(STORAGE_KEYS.USER, 'lastName', lastName.trim());
-        await storageHelpers.setField(STORAGE_KEYS.USER, 'phoneNumber', contactNumber);
-        await storageHelpers.setField(STORAGE_KEYS.USER, 'e164PhoneNumber', e164ContactNumber);
+        const storedUserData = await storageHelpers.getData<Partial<typeof userData>>(STORAGE_KEYS.USER);
+        const nextStoredUserData = {
+          ...(storedUserData ?? {}),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          phoneNumber: contactNumber,
+          e164PhoneNumber: e164ContactNumber,
+        };
+
+        await storageHelpers.setData(STORAGE_KEYS.USER, nextStoredUserData);
         await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', false);
+        if (!authUser) {
+          await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'isGuestMode', true);
+        }
         setHasSignedOut(false);
         setGuestIntent(false);
 
-        const getBarangay = await storageHelpers.getField(STORAGE_KEYS.USER, 'barangay');
+        const savedBarangay =
+          typeof nextStoredUserData.barangay === 'string' && nextStoredUserData.barangay.trim()
+            ? nextStoredUserData.barangay
+            : userData.barangay;
 
         setUserData({
           userData: {
             ...userData,
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            phoneNumber: contactNumber,
-            barangay: getBarangay,
+            ...nextStoredUserData,
+            barangay: savedBarangay ?? '',
           },
         });
 
@@ -250,7 +259,7 @@ const nameAndContactForm = () => {
         router.replace('/auth/setupComplete' as any);
       } catch (error) {
         console.error('❌ Error saving user data:', error);
-        if (axios.isAxiosError(error)) {
+        if (isAxiosError(error)) {
           console.error('❌ Axios error details:', {
             status: error.response?.status,
             data: error.response?.data,
@@ -328,7 +337,7 @@ const nameAndContactForm = () => {
   );
 };
 
-export default nameAndContactForm;
+export default NameAndContactForm;
 
 const styles = StyleSheet.create({
   body: {
