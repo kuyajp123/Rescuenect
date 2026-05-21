@@ -1,10 +1,11 @@
 import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { getWeatherLocationKey } from '@/config/locationConfig';
 import { storageHelpers } from '@/helper/storage';
 import { db } from '@/lib/firebaseConfig';
 import { useNotificationStore } from '@/store/useNotificationStore';
 import type { BaseNotification } from '@/types/notification';
 import { collection, doc, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface UseNotificationSubscriberProps {
   userLocation?: string; // User's barangay/location for filtering weather notifications
@@ -22,6 +23,26 @@ export const useNotificationSubscriber = ({
   const [error, setError] = useState<string | null>(null);
   const [globalNotifications, setGlobalNotifications] = useState<BaseNotification[]>([]);
   const [userNotifications, setUserNotifications] = useState<BaseNotification[]>([]);
+
+  const isRelevantLocationNotification = useCallback((notification: BaseNotification) => {
+    if (!userLocation) {
+      return true;
+    }
+
+    let userWeatherLocationKey: string | null = null;
+
+    try {
+      userWeatherLocationKey = getWeatherLocationKey(userLocation);
+    } catch {
+      userWeatherLocationKey = null;
+    }
+
+    return (
+      (userWeatherLocationKey !== null && notification.location === userWeatherLocationKey) ||
+      notification.barangays?.includes(userLocation) ||
+      false
+    );
+  }, [userLocation]);
 
   useEffect(() => {
     // Set userId in store for unread count calculation
@@ -76,21 +97,9 @@ export const useNotificationSubscriber = ({
               };
 
               // Filter logic:
-              if (notification.type === 'earthquake') {
-                allNotifications.push(notification);
-              } else if (notification.type === 'weather') {
-                if (!userLocation) {
+              if (notification.type === 'earthquake' || notification.type === 'weather') {
+                if (isRelevantLocationNotification(notification)) {
                   allNotifications.push(notification);
-                } else {
-                  const isRelevant =
-                    notification.location === userLocation ||
-                    notification.location === 'central_naic' ||
-                    notification.barangays?.includes(userLocation) ||
-                    false;
-
-                  if (isRelevant) {
-                    allNotifications.push(notification);
-                  }
                 }
               } else {
                 allNotifications.push(notification);
@@ -122,7 +131,7 @@ export const useNotificationSubscriber = ({
     }
 
     return () => unsubscribe();
-  }, [userLocation, userId, maxNotifications]);
+  }, [isRelevantLocationNotification, userId, maxNotifications]);
 
   // User-Specific Notifications Subscription
   useEffect(() => {

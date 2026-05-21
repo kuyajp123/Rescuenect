@@ -24,6 +24,8 @@ type BarangaySeed = Pick<BarangayMetadata, 'label' | 'value' | 'legacyWeatherZon
 
 export const NAIC_CLIENT_ID = 'naic';
 export const NAIC_WEATHER_LOCATION_KEY = 'naic';
+export const ACTIVE_WEATHER_LOCATION_KEYS = [NAIC_WEATHER_LOCATION_KEY] as const;
+export type WeatherLocationKey = (typeof ACTIVE_WEATHER_LOCATION_KEYS)[number];
 
 export const CAVITE_PROVINCE = {
   id: 'cavite',
@@ -41,6 +43,7 @@ export const NAIC_MUNICIPALITY = {
   correspondenceCode: '042115000',
 } as const;
 
+// Historical Tomorrow.io zone metadata retained for reference; active weather behavior uses weather location keys.
 export const LEGACY_WEATHER_ZONE_LABELS: Record<LegacyWeatherZoneKey, string> = {
   coastal_west: 'Coastal West',
   coastal_east: 'Coastal East',
@@ -62,6 +65,18 @@ export const LEGACY_WEATHER_ZONE_COORDINATES: Record<LegacyWeatherZoneKey, strin
 export const LEGACY_WEATHER_ZONE_KEYS = Object.keys(
   LEGACY_WEATHER_ZONE_LABELS
 ) as LegacyWeatherZoneKey[];
+
+export const WEATHER_LOCATION_LABELS: Record<WeatherLocationKey, string> = {
+  [NAIC_WEATHER_LOCATION_KEY]: 'Naic',
+};
+
+export const WEATHER_LOCATION_COORDINATES: Record<WeatherLocationKey, string> = {
+  [NAIC_WEATHER_LOCATION_KEY]: '14.2919325, 120.7752839',
+};
+
+const WEATHER_LOCATION_KEY_BY_CLIENT_ID: Record<string, WeatherLocationKey> = {
+  [NAIC_CLIENT_ID]: NAIC_WEATHER_LOCATION_KEY,
+};
 
 const NAIC_BARANGAY_SEEDS: BarangaySeed[] = [
   { label: 'Labac', value: 'labac', legacyWeatherZoneKey: 'coastal_west' },
@@ -111,6 +126,38 @@ export const normalizeBarangayValue = (value: string): string => value.trim().to
 export const getBarangayByValue = (value: string): BarangayMetadata | undefined => {
   const normalizedValue = normalizeBarangayValue(value);
   return NAIC_BARANGAYS.find(barangay => barangay.value === normalizedValue && barangay.isActive);
+};
+
+export const isCoveredBarangay = (value: string): boolean => !!getBarangayByValue(value);
+
+export const getWeatherLocationKey = (value: string): WeatherLocationKey => {
+  const barangay = getBarangayByValue(value);
+
+  if (!barangay) {
+    throw new Error(`Invalid location: ${value}`);
+  }
+
+  const weatherLocationKey = WEATHER_LOCATION_KEY_BY_CLIENT_ID[barangay.municipalityId];
+
+  if (!weatherLocationKey) {
+    throw new Error(`No active weather location configured for: ${value}`);
+  }
+
+  return weatherLocationKey;
+};
+
+export const getBarangaysForWeatherLocationKey = (weatherLocationKey: string): string[] => {
+  const clientId = Object.entries(WEATHER_LOCATION_KEY_BY_CLIENT_ID).find(
+    ([_clientId, activeWeatherLocationKey]) => activeWeatherLocationKey === weatherLocationKey
+  )?.[0];
+
+  if (!clientId) {
+    return [];
+  }
+
+  return NAIC_BARANGAYS.filter(
+    barangay => barangay.isActive && barangay.municipalityId === clientId
+  ).map(barangay => barangay.value);
 };
 
 export const getBarangaysByLegacyWeatherZone = (zoneKey: LegacyWeatherZoneKey): string[] =>

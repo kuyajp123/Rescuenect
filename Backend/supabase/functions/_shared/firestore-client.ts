@@ -7,12 +7,13 @@ declare const Deno: {
 
 import { cert, getApps, initializeApp, type ServiceAccount } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
-import { barangayLegacyWeatherZoneMap } from './location-config.ts';
+import {
+  getBarangaysForWeatherLocationKey,
+  NAIC_WEATHER_LOCATION_KEY,
+  normalizeBarangayValue,
+} from './location-config.ts';
 import type { EarthquakeNotificationData, NotificationType, WeatherNotificationData } from './notification-schema.ts';
 import type { EarthquakeData } from './types.ts';
-
-// barangayMap['barangay name']
-export const barangayMap: Record<string, string> = barangayLegacyWeatherZoneMap;
 
 // Singleton pattern for Firebase initialization
 let firestoreInstance: Firestore | null = null;
@@ -178,17 +179,26 @@ export async function getWeatherForecastData(
 }
 
 /**
- * Get user FCM tokens and barangays based on audience and weather zone
+ * Get user FCM tokens and barangays based on audience and weather location key
  */
 export async function getUserTokens(
   audience: 'admin' | 'users' | 'both',
-  weatherZone?: string
+  weatherLocationKey?: string
 ): Promise<{ tokens: string[]; barangays: string[] }> {
   const db = initializeFirebase();
   const tokens: string[] = [];
-  const barangays: string[] = [];
+  const matchedBarangays: string[] = [];
+  const weatherLocationBarangays = weatherLocationKey
+    ? getBarangaysForWeatherLocationKey(weatherLocationKey).map(normalizeBarangayValue)
+    : [];
+  const coveredBarangays = weatherLocationKey ? new Set(weatherLocationBarangays) : null;
 
   try {
+    if (weatherLocationKey && weatherLocationBarangays.length === 0) {
+      console.warn(`No covered barangays configured for weather location key: ${weatherLocationKey}`);
+      return { tokens: [], barangays: [] };
+    }
+
     const collections = [];
 
     // Determine which collections to query
@@ -209,26 +219,18 @@ export async function getUserTokens(
         // Check if user wants notifications
         // if (userData.notificationsEnabled === false) return; // we send notifications to all users regardless of this setting
 
-        // Check barangay preferences if weather zone is specified
-        if (weatherZone && userData.barangay) {
-          // Ensure barangay is an array
+        if (coveredBarangays) {
           const userBarangays = Array.isArray(userData.barangay) ? userData.barangay : [userData.barangay];
+          const matchingBarangays = userBarangays
+            .filter((userBarangay: unknown): userBarangay is string => typeof userBarangay === 'string')
+            .map(normalizeBarangayValue)
+            .filter((userBarangay: string) => coveredBarangays.has(userBarangay));
 
-          if (userBarangays.length > 0) {
-            // Get user's barangays that match the weather zone
-            const matchingBarangays = userBarangays.filter((userBarangay: string) => {
-              const userBarangayZone = barangayMap[userBarangay.toLowerCase()];
-              return userBarangayZone === weatherZone;
-            });
-
-            if (matchingBarangays.length === 0) {
-              // User has no barangays in affected weather zone - skip this user
-              return;
-            }
-
-            // Add matching barangays to our collection
-            barangays.push(...matchingBarangays);
+          if (matchingBarangays.length === 0) {
+            return;
           }
+
+          matchedBarangays.push(...matchingBarangays);
         }
 
         // Add FCM tokens if valid (supports both fcmTokens array and legacy fcmToken)
@@ -247,7 +249,7 @@ export async function getUserTokens(
     }
 
     const uniqueTokens = [...new Set(tokens)];
-    const uniqueBarangays = [...new Set(barangays)];
+    const uniqueBarangays = weatherLocationKey ? weatherLocationBarangays : [...new Set(matchedBarangays)];
 
     return {
       tokens: uniqueTokens,
@@ -292,8 +294,11 @@ export async function saveNotificationHistory(
     const { NotificationService } = await import('./notification-service');
     const notificationService = new NotificationService(db);
 
-    // Prepare location
-    const location = metadata.weatherZone || metadata.location || 'central_naic';
+    // Prepare location. Weather history now uses the active municipality key.
+    const location =
+      notification.type === 'weather'
+        ? metadata.location || NAIC_WEATHER_LOCATION_KEY
+        : metadata.location || metadata.weatherZone || NAIC_WEATHER_LOCATION_KEY;
     const audience = metadata.audience || 'both';
 
     // Prepare delivery status

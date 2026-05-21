@@ -1,6 +1,6 @@
 import { sendFCMNotification } from './fcm-client.ts';
 import { getUserTokens, getWeatherData } from './firestore-client.ts';
-import { LEGACY_WEATHER_ZONE_KEYS, LEGACY_WEATHER_ZONE_LABELS } from './location-config.ts';
+import { ACTIVE_WEATHER_LOCATION_KEYS, WEATHER_LOCATION_LABELS } from './location-config.ts';
 import {
   NotificationLevel,
   WeatherData,
@@ -32,8 +32,8 @@ export class NotificationProcessor {
     const results = { sent: 0, skipped: 0, errors: 0 };
 
     try {
-      // Get latest weather data for all locations
-      const locations = LEGACY_WEATHER_ZONE_KEYS;
+      // Get latest weather data for all active weather location keys
+      const locations = ACTIVE_WEATHER_LOCATION_KEYS;
 
       for (const location of locations) {
         try {
@@ -134,7 +134,7 @@ export class NotificationProcessor {
     location: string,
     targetAudience: 'admin' | 'users' | 'both'
   ): Promise<void> {
-    // Get user tokens and barangays based on target audience and weather zone
+    // Get user tokens and barangays based on target audience and weather location key
     const { tokens: userTokens, barangays } = await getUserTokens(targetAudience, location);
 
     if (userTokens.length === 0) {
@@ -181,10 +181,10 @@ export class NotificationProcessor {
   }
 
   /**
-   * Get human-readable location name (fallback for zone names)
+   * Get human-readable location name
    */
   private getLocationDisplayName(locationKey: string): string {
-    return LEGACY_WEATHER_ZONE_LABELS[locationKey as keyof typeof LEGACY_WEATHER_ZONE_LABELS] || locationKey;
+    return WEATHER_LOCATION_LABELS[locationKey as keyof typeof WEATHER_LOCATION_LABELS] || locationKey;
   }
 
   /**

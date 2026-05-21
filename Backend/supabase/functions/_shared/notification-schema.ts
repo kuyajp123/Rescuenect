@@ -2,9 +2,9 @@
 // NOTIFICATION SCHEMA - Unified Structure
 // ============================================
 import {
-  LEGACY_WEATHER_ZONE_KEYS,
-  getBarangaysByLegacyWeatherZone,
-  type LegacyWeatherZoneKey,
+  ACTIVE_WEATHER_LOCATION_KEYS,
+  getBarangaysForWeatherLocationKey,
+  type WeatherLocationKey,
 } from './location-config.ts';
 
 /**
@@ -23,7 +23,7 @@ export interface BaseNotification {
   hiddenBy?: string[]; // User IDs who have hidden/deleted from their view
 
   // Location/barangay targeting
-  location: string; // weather zone or specific barangay
+  location: string; // weather location key or specific barangay
   barangays?: string[]; // List of affected barangays
 
   // Audience targeting
@@ -224,7 +224,7 @@ export interface NotificationStats {
  * Helper function to create a notification ID
  */
 export function generateNotificationId(type: NotificationType, timestamp: number, location: string): string {
-  // Format: weather_central_naic_1701513600000
+  // Format: weather_naic_1701513600000
   return `${type}_${location}_${timestamp}`;
 }
 
@@ -258,15 +258,17 @@ export function hasUserHidden(notification: BaseNotification, userId: string): b
 }
 
 /**
- * Helper function to get barangays from weather zone
+ * Helper function to get barangays from active weather location key
  */
-export function getBarangaysFromZone(zone: string): string[] {
-  if (!LEGACY_WEATHER_ZONE_KEYS.includes(zone as LegacyWeatherZoneKey)) {
+export function getBarangaysFromWeatherLocation(weatherLocationKey: string): string[] {
+  if (!ACTIVE_WEATHER_LOCATION_KEYS.includes(weatherLocationKey as WeatherLocationKey)) {
     return [];
   }
 
-  return getBarangaysByLegacyWeatherZone(zone as LegacyWeatherZoneKey);
+  return getBarangaysForWeatherLocationKey(weatherLocationKey);
 }
+
+export const getBarangaysFromZone = getBarangaysFromWeatherLocation;
 
 /**
  * Convert old notification format to new schema

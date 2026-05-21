@@ -1,10 +1,10 @@
-import { getLegacyWeatherZoneKey } from '@/config/getUserLocation';
+import { getWeatherLocationKey } from '@/config/getUserLocation';
 import { db } from '@/lib/firebaseConfig';
 import { collection, onSnapshot } from 'firebase/firestore';
 
 export const subscribeToWeatherData = (location: string, callback: (data: any) => void) => {
   try {
-    const weatherLocationKey = getLegacyWeatherZoneKey(location);
+    const weatherLocationKey = getWeatherLocationKey(location);
 
     const realtime = collection(db, 'weather', weatherLocationKey, 'realtime');
     const hourly = collection(db, 'weather', weatherLocationKey, 'hourly');

@@ -2,6 +2,7 @@ import { serve } from 'serve';
 import { classifyEarthquakeSeverity, determinePriority, estimateEarthquakeRadii } from '../_shared/earthquake-utils.ts';
 import { sendEarthquakeNotification } from '../_shared/fcm-client.ts';
 import { getUserTokens, initializeFirebase, saveEarthquakesToFirestore } from '../_shared/firestore-client.ts';
+import { ACTIVE_WEATHER_LOCATION_KEYS } from '../_shared/location-config.ts';
 import type { EarthquakeNotificationData } from '../_shared/notification-schema.ts';
 import { NotificationService } from '../_shared/notification-service.ts';
 
@@ -155,7 +156,8 @@ serve(async (req: Request) => {
   const saveNotification = body.saveNotification ?? true;
 
   try {
-    const { tokens } = await getUserTokens(audience);
+    const targetLocationKey = ACTIVE_WEATHER_LOCATION_KEYS[0];
+    const { tokens } = await getUserTokens(audience, targetLocationKey);
 
     const fcmResult = sendPush
       ? await sendEarthquakeNotification(earthquake, tokens)
@@ -208,7 +210,7 @@ serve(async (req: Request) => {
       notificationId = await notificationService.createEarthquakeNotification({
         title,
         message,
-        location: 'central_naic',
+        location: targetLocationKey,
         audience,
         sentTo: sendPush ? fcmResult.success + fcmResult.failure : 0,
         earthquakeData,
@@ -226,6 +228,7 @@ serve(async (req: Request) => {
         success: true,
         message: 'Earthquake test notification processed',
         audience,
+        location: targetLocationKey,
         tokens_found: tokens.length,
         push_sent: sendPush,
         notification_saved: saveNotification,
