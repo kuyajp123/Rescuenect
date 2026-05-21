@@ -1,0 +1,182 @@
+import { db } from '@/db/firestoreConfig';
+import { AdminAuthModel } from '@/models/admin/AdminAuthModel';
+import { ClientModel } from '@/models/admin/ClientModel';
+import type { ClientCoverageBarangay, ClientLguType, LguRequest } from '@/types/admin';
+import { FieldValue } from 'firebase-admin/firestore';
+
+const asString = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+const asEmail = (value: unknown): string => asString(value).toLowerCase();
+
+const normalizeBarangay = (value: unknown): ClientCoverageBarangay | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const data = value as Record<string, unknown>;
+  const label = asString(data.barangayLabel || data.name || data.label);
+  const code = asString(data.barangayCode || data.code || data.psgcCode);
+  const rawValue = asString(data.value) || label;
+
+  if (!label || !rawValue) return null;
+
+  return {
+    barangayCode: code || null,
+    barangayLabel: label,
+    value: rawValue.trim().toLowerCase(),
+    isActive: true,
+    latitude: null,
+    longitude: null,
+    verified: true,
+  };
+};
+
+const requireString = (payload: Record<string, unknown>, key: string, errors: Record<string, string>) => {
+  const value = asString(payload[key]);
+  if (!value) errors[key] = `${key} is required`;
+  return value;
+};
+
+const serializeRequest = (id: string, data: FirebaseFirestore.DocumentData): LguRequest => ({
+  id,
+  status: data.status || 'pending',
+  lguName: data.lguName || '',
+  officeDepartment: data.officeDepartment || '',
+  requesterName: data.requesterName || '',
+  requesterPosition: data.requesterPosition || '',
+  requesterEmail: data.requesterEmail || '',
+  requesterPhone: data.requesterPhone || '',
+  regionCode: data.regionCode || '',
+  regionName: data.regionName || '',
+  provinceCode: data.provinceCode || '',
+  provinceName: data.provinceName || '',
+  municipalityCode: data.municipalityCode || '',
+  municipalityName: data.municipalityName || '',
+  municipalityType: data.municipalityType === 'city' ? 'city' : 'municipality',
+  selectedBarangays: Array.isArray(data.selectedBarangays) ? data.selectedBarangays : [],
+  barangaysVerified: Boolean(data.barangaysVerified),
+  notes: data.notes || '',
+  reviewedBy: data.reviewedBy ?? null,
+  reviewedAt: data.reviewedAt,
+  reviewNote: data.reviewNote ?? null,
+  clientId: data.clientId ?? null,
+  createdAt: data.createdAt,
+  updatedAt: data.updatedAt,
+});
+
+export class LguRequestModel {
+  private static collectionRef() {
+    return db.collection('lguRequests');
+  }
+
+  static async createRequest(payload: Record<string, unknown>): Promise<string> {
+    const errors: Record<string, string> = {};
+    const selectedBarangays = Array.isArray(payload.selectedBarangays)
+      ? payload.selectedBarangays.map(normalizeBarangay).filter(Boolean)
+      : [];
+
+    const request = {
+      status: 'pending',
+      lguName: requireString(payload, 'lguName', errors),
+      officeDepartment: requireString(payload, 'officeDepartment', errors),
+      requesterName: requireString(payload, 'requesterName', errors),
+      requesterPosition: requireString(payload, 'requesterPosition', errors),
+      requesterEmail: asEmail(payload.requesterEmail),
+      requesterPhone: requireString(payload, 'requesterPhone', errors),
+      regionCode: requireString(payload, 'regionCode', errors),
+      regionName: requireString(payload, 'regionName', errors),
+      provinceCode: requireString(payload, 'provinceCode', errors),
+      provinceName: requireString(payload, 'provinceName', errors),
+      municipalityCode: requireString(payload, 'municipalityCode', errors),
+      municipalityName: requireString(payload, 'municipalityName', errors),
+      municipalityType: payload.municipalityType === 'city' ? ('city' as ClientLguType) : ('municipality' as const),
+      selectedBarangays,
+      barangaysVerified: payload.barangaysVerified === true,
+      notes: asString(payload.notes),
+      reviewedBy: null,
+      reviewedAt: null,
+      reviewNote: null,
+      clientId: null,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    if (!request.requesterEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(request.requesterEmail)) {
+      errors.requesterEmail = 'Valid requesterEmail is required';
+    }
+    if (!request.barangaysVerified) {
+      errors.barangaysVerified = 'Barangay verification is required';
+    }
+    if (selectedBarangays.length === 0) {
+      errors.selectedBarangays = 'At least one barangay is required';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      const error = new Error('Validation failed') as Error & { fieldErrors?: Record<string, string> };
+      error.fieldErrors = errors;
+      throw error;
+    }
+
+    const docRef = await this.collectionRef().add(request);
+    return docRef.id;
+  }
+
+  static async listRequests(): Promise<LguRequest[]> {
+    const snapshot = await this.collectionRef().orderBy('createdAt', 'desc').get();
+    return snapshot.docs.map(doc => serializeRequest(doc.id, doc.data()));
+  }
+
+  static async getRequest(id: string): Promise<LguRequest | null> {
+    const snap = await this.collectionRef().doc(id).get();
+    return snap.exists ? serializeRequest(snap.id, snap.data() ?? {}) : null;
+  }
+
+  static async approveRequest(id: string, reviewedBy: string, reviewNote?: string): Promise<LguRequest> {
+    const request = await this.getRequest(id);
+    if (!request) throw new Error('LGU request not found');
+    if (request.status !== 'pending') throw new Error('Only pending LGU requests can be approved');
+
+    const client = await ClientModel.createDraftClientFromRequest(request);
+    await AdminAuthModel.createInvitation({
+      email: request.requesterEmail,
+      role: 'lgu_admin',
+      clientId: client.id,
+      clientName: client.name,
+      requestId: request.id,
+      invitedBy: reviewedBy,
+    });
+
+    await this.collectionRef().doc(id).set(
+      {
+        status: 'approved',
+        clientId: client.id,
+        reviewedBy,
+        reviewedAt: FieldValue.serverTimestamp(),
+        reviewNote: reviewNote || null,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    const updated = await this.getRequest(id);
+    if (!updated) throw new Error('LGU request not found after approval');
+    return updated;
+  }
+
+  static async rejectRequest(id: string, reviewedBy: string, reviewNote?: string): Promise<LguRequest> {
+    const request = await this.getRequest(id);
+    if (!request) throw new Error('LGU request not found');
+    if (request.status !== 'pending') throw new Error('Only pending LGU requests can be rejected');
+
+    await this.collectionRef().doc(id).set(
+      {
+        status: 'rejected',
+        reviewedBy,
+        reviewedAt: FieldValue.serverTimestamp(),
+        reviewNote: reviewNote || null,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    const updated = await this.getRequest(id);
+    if (!updated) throw new Error('LGU request not found after rejection');
+    return updated;
+  }
+}

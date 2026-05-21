@@ -3,17 +3,14 @@ import { Request, Response } from 'express';
 
 export class LoginController {
   static async handleLogin(req: Request, res: Response): Promise<void> {
-    const adminEmailsRaw = process.env.ADMIN_EMAILS!;
-    if (!adminEmailsRaw) {
-      throw new Error('ADMIN_EMAILS env variable is not set');
-    }
-
-    const adminEmails = JSON.parse(adminEmailsRaw);
-    const allowedEmails = Object.values(adminEmails);
-
     const { email, uid, fcmToken, barangay } = req.body;
 
-    if (!email || !allowedEmails.includes(email)) {
+    if (!email || !uid) {
+      res.status(400).json({ message: 'Email and uid are required' });
+      return;
+    }
+
+    if (req.user?.uid !== uid) {
       res.status(403).json({ message: 'Access denied' });
       return;
     }

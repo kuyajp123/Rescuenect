@@ -1,17 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
-import {
-  collectionGroup,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  QuerySnapshot,
-  QueryDocumentSnapshot,
-  DocumentData,
-  FirestoreError,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebaseConfig';
+import { API_ENDPOINTS } from '@/config/endPoints';
+import { auth } from '@/lib/firebaseConfig';
 import { StatusData } from '@/types/types';
+import axios from 'axios';
+import { useEffect, useMemo, useState } from 'react';
 
 export const useCurrentStatuses = () => {
   const [statuses, setStatuses] = useState<Array<StatusData>>([]);
@@ -19,34 +10,40 @@ export const useCurrentStatuses = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
+    let isMounted = true;
 
-    const statusQuery = query(
-      collectionGroup(db, 'statuses'),
-      where('statusType', '==', 'current'),
-      orderBy('createdAt', 'desc')
-    );
+    const fetchStatuses = async () => {
+      try {
+        setLoading(true);
+        const token = await auth.currentUser?.getIdToken();
+        if (!token) {
+          if (isMounted) setLoading(false);
+          return;
+        }
 
-    const unsubscribe = onSnapshot(
-      statusQuery,
-      (snapshot: QuerySnapshot<DocumentData>) => {
-        const currentStatuses = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as unknown as StatusData[];
+        const response = await axios.get<{ statuses: StatusData[] }>(API_ENDPOINTS.RESIDENTS.GET_ALL_LATEST_STATUSES, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const currentStatuses = (response.data.statuses || []).filter(status => status.statusType === 'current');
 
+        if (!isMounted) return;
         setStatuses(currentStatuses);
-        setLoading(false);
         setError(null);
-      },
-      (err: FirestoreError) => {
+      } catch (err: any) {
         console.error('Error fetching statuses:', err);
-        setError(err.message);
-        setLoading(false);
+        if (isMounted) setError(err.message || 'Failed to fetch current statuses');
+      } finally {
+        if (isMounted) setLoading(false);
       }
-    );
+    };
 
-    return () => unsubscribe();
+    fetchStatuses();
+    const interval = window.setInterval(fetchStatuses, 30000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(interval);
+    };
   }, []);
 
   // Derived state for easy filtering

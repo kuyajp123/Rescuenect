@@ -42,6 +42,7 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
     try {
       revokeToken();
       await signOut(auth);
+      navigate('/auth/login', { replace: true });
     } catch (error) {
       console.error('Error signing out:', error);
     }

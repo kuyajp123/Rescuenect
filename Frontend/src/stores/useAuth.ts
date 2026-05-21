@@ -9,6 +9,12 @@ export interface UserData {
   uid: string;
   email: string;
   barangay: string;
+  role?: 'super_admin' | 'lgu_admin';
+  clientId?: string | null;
+  clientName?: string | null;
+  status?: 'active' | 'inactive';
+  permissions?: string[];
+  permissionsVersion?: number;
   onboardingComplete: boolean;
   firstName?: string;
   lastName?: string;
@@ -61,7 +67,7 @@ export const useAuth = create<AuthStore>()(
               email: currentUser.email,
               uid: currentUser.uid,
               fcmToken: null,
-              barangay: 'bancaan', // Default/Existing param required by controller
+              barangay: 'bancaan',
             },
             { headers: { Authorization: `Bearer ${idToken}` }, withCredentials: true }
           );
