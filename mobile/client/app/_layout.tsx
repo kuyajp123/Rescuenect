@@ -7,6 +7,7 @@ import { FontSizeProvider, useFontSize } from '@/contexts/FontSizeContext';
 import { HighContrastProvider } from '@/contexts/HighContrastContext';
 import MapContext from '@/contexts/MapContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
+import { storageHelpers } from '@/helper/storage';
 import { useAppBootstrap } from '@/hooks/useAppBootstrap';
 import { useAuthGate } from '@/hooks/useAuthGate';
 import { useIdToken } from '@/hooks/useIdToken';
@@ -17,7 +18,6 @@ import { useStatusFetchBackgroundData } from '@/hooks/useStatusFetchBackgroundDa
 import { useCurrentStatuses } from '@/hooks/useStatusSubscriber';
 import { subscribeToWeatherData } from '@/hooks/useWeatherData';
 import { FCMTokenService } from '@/services/fcmTokenService';
-import { storageHelpers } from '@/helper/storage';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
 import { useCoords } from '@/store/useCoords';
@@ -29,7 +29,7 @@ import axios from 'axios';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { HeroUINativeProvider } from 'heroui-native';
+import { HeroUINativeConfig, HeroUINativeProvider } from 'heroui-native';
 import React, { useEffect, useState } from 'react';
 import { LogBox, StyleSheet } from 'react-native';
 import { SheetProvider } from 'react-native-actions-sheet';
@@ -51,6 +51,24 @@ function RootNavigator() {
   const [isReady, setIsReady] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isServerReady, setIsServerReady] = useState(false);
+  const authUser = useAuth(state => state.authUser);
+  const userData = useUserData((state: any) => state.userData);
+
+  useEffect(() => {
+    const checkStorage = async () => {
+      const getStorage = await storageHelpers.getData(STORAGE_KEYS.USER);
+      console.log('Storage check on app load:', JSON.stringify(getStorage, null, 2));
+    };
+    checkStorage();
+  }, [authUser]);
+
+  useEffect(() => {
+    console.log('Authenticated user on app load:', JSON.stringify(authUser, null, 2));
+  }, [authUser]);
+
+  useEffect(() => {
+    console.log('User data on app load:', JSON.stringify(userData, null, 2));
+  }, [userData]);
 
   const [loaded] = useFonts({
     Poppins: require('../assets/fonts/Poppins-Regular.ttf'),
@@ -111,6 +129,25 @@ function RootNavigator() {
     </>
   );
 }
+
+const config: HeroUINativeConfig = {
+  devInfo: {
+    stylingPrinciples: false,
+  },
+  toast: {
+    defaultProps: {
+      variant: 'accent',
+      placement: 'top',
+      isSwipeable: true,
+    },
+    insets: {
+      top: 80,
+      bottom: 20,
+      left: 20,
+      right: 20,
+    },
+  },
+};
 
 function LayoutContent() {
   useAppBootstrap();
@@ -221,23 +258,7 @@ function LayoutContent() {
       <ThemeProvider>
         <FontSizeProvider>
           <HighContrastProvider>
-            <HeroUINativeProvider
-              config={{
-                toast: {
-                  defaultProps: {
-                    variant: 'accent',
-                    placement: 'top',
-                    isSwipeable: true,
-                  },
-                  insets: {
-                    top: 80,
-                    bottom: 20,
-                    left: 20,
-                    right: 20,
-                  },
-                },
-              }}
-            >
+            <HeroUINativeProvider config={config}>
               <SheetProvider>
                 <MapContext>
                   <RootNavigator />

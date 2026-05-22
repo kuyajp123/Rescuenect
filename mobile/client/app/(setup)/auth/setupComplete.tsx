@@ -1,9 +1,9 @@
-import { PrimaryButton } from '@/components/components/button/Button';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/store/useAuth';
 import { router } from 'expo-router';
+import { Button } from 'heroui-native/button';
 import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
@@ -20,14 +20,15 @@ const setupComplete = () => {
       <Text size="sm">Setup Complete</Text>
       <Text emphasis="light"> You're all set! Welcome to Rescuenect</Text>
       <View style={styles.homeButton}>
-        <PrimaryButton
+        <Button
+          style={{ borderRadius: 10 }}
           onPress={() => {
             setShowingSetupComplete(false);
             router.replace('/(app)/(tabs)' as any);
           }}
         >
           Continue
-        </PrimaryButton>
+        </Button>
       </View>
     </Body>
   );

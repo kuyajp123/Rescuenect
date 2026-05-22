@@ -1,9 +1,8 @@
 import Logo from '@/assets/images/logo/logoVerti.svg';
 import GoogleButton from '@/components/components/button/GoogleButton';
-import Body from '@/components/ui/layout/Body';
+import { Body } from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
-import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { storageHelpers } from '@/helper/storage';
 import { useAuth } from '@/store/useAuth';
@@ -14,7 +13,7 @@ import { Button } from 'heroui-native/button';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-const signIn = () => {
+const SignIn = () => {
   const router = useRouter();
   const { isDark } = useTheme();
   const setGuestIntent = useAuth(state => state.setGuestIntent);
@@ -181,7 +180,7 @@ const signIn = () => {
   );
 };
 
-export default signIn;
+export default SignIn;
 
 const styles = StyleSheet.create({
   container: {

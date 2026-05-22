@@ -5,8 +5,11 @@ import { Router } from 'express';
 
 const useDataRoutes = Router();
 
+useDataRoutes.get('/locationCoverage', SignInController.getLocationCoverageController);
+
 useDataRoutes.use(AuthMiddleware.verifyToken);
 
+useDataRoutes.get('/profile', UserDataController.getProfileController);
 useDataRoutes.post('/saveBarangay', SignInController.saveBarangayController);
 useDataRoutes.post('/saveUserInfo', SignInController.saveUserInfoController);
 useDataRoutes.post('/saveLocation', UserDataController.saveLocationController);

@@ -1,5 +1,4 @@
 import { getAddress } from '@/API/getAddress';
-import { Button } from '@/components/components/button/Button';
 import Dialog from '@/components/ui/Dialog';
 import { Fab } from '@/components/ui/fab';
 import { HStack } from '@/components/ui/hstack';
@@ -21,17 +20,10 @@ import { EvacuationCenter } from '@/types/components';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
+import { Button } from 'heroui-native';
 import { ChevronRight, LocateFixed, MapPin, Plus, Trash } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  BackHandler,
-  Keyboard,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, BackHandler, Keyboard, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 type ItemData = {
   id: string;
@@ -390,7 +382,7 @@ const SaveLocationScreen = () => {
               {savedLocations.length === 0 ? (
                 <View className="py-10 items-center">
                   <Text emphasis="light">No saved locations.</Text>
-                  <Button onPress={handleAddNewLocation} style={{ marginTop: 10 }}>
+                  <Button onPress={handleAddNewLocation} style={{ marginTop: 10, borderRadius: 8 }}>
                     <Text style={{ color: 'white' }}>Add Location</Text>
                   </Button>
                 </View>
@@ -472,7 +464,7 @@ const SaveLocationScreen = () => {
 
                   {errMessage.message ? <Text style={styles.errorText}>{errMessage.message}</Text> : null}
 
-                  <Button onPress={handleSaveLocation} style={{ marginTop: 10 }}>
+                  <Button onPress={handleSaveLocation} style={{ marginTop: 10, borderRadius: 8 }} isDisabled={loading}>
                     {loading ? (
                       <ActivityIndicator color="white" />
                     ) : (
