@@ -2,6 +2,7 @@ import { NAIC_CLIENT_ID, NAIC_LOCATION_CLIENT } from '@/config/locationConfig';
 import { db } from '@/db/firestoreConfig';
 import type { AdminRole, AdminStatus, AdminUser } from '@/types/admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { ClientModel } from './ClientModel';
 
 const PERMISSIONS_VERSION = 1;
 
@@ -91,12 +92,16 @@ export class AdminAuthModel {
       return { role: 'super_admin', clientId: null, clientName: null };
     }
 
+    const invitation = await this.getInvitation(normalizedEmail);
+    if (invitation?.status === 'revoked') {
+      return null;
+    }
+
     if (this.getLguAdminEmails().includes(normalizedEmail)) {
       return { role: 'lgu_admin', clientId: NAIC_CLIENT_ID, clientName: NAIC_LOCATION_CLIENT.name };
     }
 
-    const invitation = await this.getInvitation(normalizedEmail);
-    if (invitation && invitation.status !== 'revoked') {
+    if (invitation) {
       return {
         role: invitation.role === 'super_admin' ? 'super_admin' : 'lgu_admin',
         clientId: invitation.role === 'super_admin' ? null : invitation.clientId || NAIC_CLIENT_ID,
@@ -144,13 +149,13 @@ export class AdminAuthModel {
 
     await docRef.set(payload, { merge: true });
     const updatedSnap = await docRef.get();
-    return toAdminUser(updatedSnap.id, updatedSnap.data() ?? payload);
+    return this.withClientMetadata(toAdminUser(updatedSnap.id, updatedSnap.data() ?? payload));
   }
 
   static async getAdminByUid(uid: string): Promise<AdminUser | null> {
     const snap = await this.adminRef(uid).get();
     if (!snap.exists) return null;
-    return toAdminUser(snap.id, snap.data() ?? {});
+    return this.withClientMetadata(toAdminUser(snap.id, snap.data() ?? {}));
   }
 
   static async createInvitation(data: {
@@ -160,24 +165,134 @@ export class AdminAuthModel {
     clientName?: string | null;
     requestId?: string | null;
     invitedBy: string;
-  }): Promise<void> {
-    await this.invitationRef(data.email).set(
+  }): Promise<Record<string, unknown>> {
+    const payload = {
+      email: normalizeEmail(data.email),
+      role: data.role,
+      clientId: data.clientId,
+      clientName: data.clientName ?? null,
+      requestId: data.requestId ?? null,
+      status: 'pending',
+      invitedBy: data.invitedBy,
+      invitedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    await this.invitationRef(data.email).set(payload, { merge: true });
+
+    return {
+      email: payload.email,
+      role: payload.role,
+      clientId: payload.clientId,
+      clientName: payload.clientName,
+      requestId: payload.requestId,
+      status: payload.status,
+      invitedBy: payload.invitedBy,
+    };
+  }
+
+  static async updateAdminStatus(uid: string, status: AdminStatus): Promise<AdminUser> {
+    if (!['active', 'inactive'].includes(status)) {
+      throw new Error('Invalid admin status');
+    }
+
+    await this.adminRef(uid).set({ status, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    const updated = await this.getAdminByUid(uid);
+    if (!updated) throw new Error('Admin user not found');
+    return updated;
+  }
+
+  static async deleteLguAdmin(uid: string, deletedBy: string): Promise<AdminUser> {
+    const admin = await this.getAdminByUid(uid);
+    if (!admin) throw new Error('Admin user not found');
+    if (admin.role === 'super_admin') throw new Error('Super admins must be managed with SUPER_ADMIN_EMAILS');
+
+    await this.adminRef(uid).delete();
+    await this.invitationRef(admin.email).set(
       {
-        email: normalizeEmail(data.email),
-        role: data.role,
-        clientId: data.clientId,
-        clientName: data.clientName ?? null,
-        requestId: data.requestId ?? null,
-        status: 'pending',
-        invitedBy: data.invitedBy,
-        invitedAt: FieldValue.serverTimestamp(),
+        email: normalizeEmail(admin.email),
+        role: admin.role,
+        clientId: admin.clientId,
+        clientName: admin.clientName ?? null,
+        status: 'revoked',
+        revokedBy: deletedBy,
+        revokedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true }
     );
+
+    return admin;
   }
 
   static async listAdmins(): Promise<AdminUser[]> {
     const snapshot = await db.collection('admin').orderBy('email', 'asc').get();
     return snapshot.docs.map(doc => toAdminUser(doc.id, doc.data()));
+  }
+
+  static async listLguAdmins(): Promise<AdminUser[]> {
+    const admins = await this.listAdmins();
+    return admins.filter(admin => admin.role === 'lgu_admin');
+  }
+
+  static async listAdminsByClient(clientId: string): Promise<AdminUser[]> {
+    const admins = await this.listAdmins();
+    return admins.filter(admin => admin.role === 'lgu_admin' && admin.clientId === clientId);
+  }
+
+  static async deactivateAdminsForClient(clientId: string, updatedBy: string): Promise<number> {
+    const adminSnapshot = await db.collection('admin').where('clientId', '==', clientId).get();
+    const inviteSnapshot = await db.collection('adminInvitations').where('clientId', '==', clientId).get();
+    const batch = db.batch();
+
+    adminSnapshot.docs.forEach(doc => {
+      batch.set(
+        doc.ref,
+        {
+          status: 'inactive',
+          deactivatedBy: updatedBy,
+          deactivatedReason: 'client_deleted',
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    });
+
+    inviteSnapshot.docs.forEach(doc => {
+      batch.set(
+        doc.ref,
+        {
+          status: 'revoked',
+          revokedBy: updatedBy,
+          revokedReason: 'client_deleted',
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    });
+
+    if (adminSnapshot.empty && inviteSnapshot.empty) return 0;
+
+    await batch.commit();
+    return adminSnapshot.size;
+  }
+
+  private static async withClientMetadata(adminUser: AdminUser): Promise<AdminUser> {
+    if (adminUser.role !== 'lgu_admin' || !adminUser.clientId) {
+      return adminUser;
+    }
+
+    const client = await ClientModel.getClientById(adminUser.clientId);
+    if (!client) return adminUser;
+
+    return {
+      ...adminUser,
+      clientName: adminUser.clientName || client.name,
+      municipalityName: client.municipalityName,
+      weatherLocationKey: client.weatherLocationKey,
+      weatherLatitude: client.weatherLatitude,
+      weatherLongitude: client.weatherLongitude,
+      clientBarangays: client.barangays.filter(barangay => barangay.isActive !== false),
+    };
   }
 }

@@ -29,6 +29,10 @@ function App() {
   const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
   const authUser = useAuth(state => state.auth);
   const userData = useAuth(state => state.userData);
+  const lguWeatherLocation =
+    userData?.role === 'lgu_admin' && userData.clientId && userData.clientId !== 'naic'
+      ? userData.weatherLocationKey || userData.clientId
+      : userData?.barangay || CURRENT_USER_LOCATION;
 
   // Fetch all latest statuses once for dashboard analytics
   const { refetch: refetchAllStatuses } = useAllLatestStatuses();
@@ -51,14 +55,14 @@ function App() {
   }, [authUser, fetchStatuses]);
 
   useEffect(() => {
-    const unsubscribe = subscribeToWeatherData(userData?.barangay || CURRENT_USER_LOCATION, weatherData => {
+    const unsubscribe = subscribeToWeatherData(lguWeatherLocation, weatherData => {
       setWeather(weatherData);
     });
 
     return () => {
       unsubscribe();
     };
-  }, [userData?.barangay, setWeather]);
+  }, [lguWeatherLocation, setWeather]);
 
   useEffect(() => {
     const enableNotification = async () => {
@@ -81,6 +85,7 @@ function App() {
   // Subscribe to notifications
   useNotificationSubscriber({
     userLocation: userData?.barangay || CURRENT_USER_LOCATION,
+    clientId: userData?.role === 'lgu_admin' ? userData.clientId || undefined : undefined,
     userId: authUser?.uid,
     maxNotifications: 100,
   });

@@ -10,6 +10,11 @@ export interface AdminUser {
   role: AdminRole;
   clientId: string | null;
   clientName?: string | null;
+  municipalityName?: string | null;
+  weatherLocationKey?: string | null;
+  weatherLatitude?: number | null;
+  weatherLongitude?: number | null;
+  clientBarangays?: ClientCoverageBarangay[];
   status: AdminStatus;
   permissionsVersion: number;
   permissions: string[];

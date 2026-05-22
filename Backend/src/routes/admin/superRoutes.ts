@@ -11,10 +11,15 @@ superRoutes.get('/lgu-requests', SuperAdminController.getLguRequests);
 superRoutes.post('/lgu-requests/:id/approve', SuperAdminController.approveLguRequest);
 superRoutes.post('/lgu-requests/:id/reject', SuperAdminController.rejectLguRequest);
 superRoutes.get('/clients', SuperAdminController.getClients);
+superRoutes.get('/clients/:clientId', SuperAdminController.getClientDetails);
 superRoutes.patch('/clients/:clientId', SuperAdminController.updateClient);
+superRoutes.delete('/clients/:clientId', SuperAdminController.deleteClient);
 superRoutes.post('/clients/:clientId/activate', SuperAdminController.activateClient);
 superRoutes.post('/clients/:clientId/deactivate', SuperAdminController.deactivateClient);
 superRoutes.get('/admins', SuperAdminController.getAdmins);
+superRoutes.post('/admins/invite', SuperAdminController.inviteAdmin);
+superRoutes.patch('/admins/:uid', SuperAdminController.updateAdmin);
+superRoutes.delete('/admins/:uid', SuperAdminController.deleteAdmin);
 superRoutes.get('/system-status', SuperAdminController.getSystemStatus);
 
 export default superRoutes;

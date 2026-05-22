@@ -30,13 +30,13 @@ export const API_ENDPOINTS = {
   },
   RESIDENTS: {
     GET_RESIDENTS: `${BACKEND_URL}/admin/residents/getResidents`,
-    GET_RESIDENTS_STATUS: `${BACKEND_URL}/unified/getResidentStatuses`,
+    GET_RESIDENTS_STATUS: `${BACKEND_URL}/admin/status/getResidentStatuses`,
     GET_ALL_LATEST_STATUSES: `${BACKEND_URL}/admin/status/getAllLatestStatuses`,
   },
   ANNOUNCEMENT: {
     CREATE_ANNOUNCEMENT: `${BACKEND_URL}/admin/announcement/createAnnouncement`,
     GET_ALL_ANNOUNCEMENTS: `${BACKEND_URL}/admin/announcement/all`,
-    GET_ANNOUNCEMENT_DETAILS: `${BACKEND_URL}/unified/announcementDetails`,
+    GET_ANNOUNCEMENT_DETAILS: (id: string) => `${BACKEND_URL}/admin/announcement/details/${id}`,
     DELETE_ANNOUNCEMENT: `${BACKEND_URL}/admin/announcement/deleteAnnouncement`,
     UPDATE_ANNOUNCEMENT: `${BACKEND_URL}/admin/announcement/updateAnnouncement`,
   },
@@ -60,10 +60,15 @@ export const API_ENDPOINTS = {
     APPROVE_LGU_REQUEST: (id: string) => `${BACKEND_URL}/admin/super/lgu-requests/${id}/approve`,
     REJECT_LGU_REQUEST: (id: string) => `${BACKEND_URL}/admin/super/lgu-requests/${id}/reject`,
     CLIENTS: `${BACKEND_URL}/admin/super/clients`,
+    CLIENT_DETAIL: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}`,
     UPDATE_CLIENT: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}`,
+    DELETE_CLIENT: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}`,
     ACTIVATE_CLIENT: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}/activate`,
     DEACTIVATE_CLIENT: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}/deactivate`,
     ADMINS: `${BACKEND_URL}/admin/super/admins`,
+    INVITE_ADMIN: `${BACKEND_URL}/admin/super/admins/invite`,
+    UPDATE_ADMIN: (uid: string) => `${BACKEND_URL}/admin/super/admins/${uid}`,
+    DELETE_ADMIN: (uid: string) => `${BACKEND_URL}/admin/super/admins/${uid}`,
     SYSTEM_STATUS: `${BACKEND_URL}/admin/super/system-status`,
   }
 };

@@ -3,15 +3,12 @@ import { Request, Response } from 'express';
 
 export class LoginController {
   static async handleLogin(req: Request, res: Response): Promise<void> {
-    const { email, uid, fcmToken, barangay } = req.body;
+    const { fcmToken, barangay } = req.body;
+    const email = req.user?.email;
+    const uid = req.user?.uid;
 
     if (!email || !uid) {
-      res.status(400).json({ message: 'Email and uid are required' });
-      return;
-    }
-
-    if (req.user?.uid !== uid) {
-      res.status(403).json({ message: 'Access denied' });
+      res.status(401).json({ message: 'Verified Firebase user is required' });
       return;
     }
 
@@ -33,6 +30,11 @@ export class LoginController {
 
     if (!uid || !firstName || !lastName || !phone || !barangay || !address) {
       res.status(400).json({ message: 'Missing required fields' });
+      return;
+    }
+
+    if (req.user?.uid !== uid) {
+      res.status(403).json({ message: 'You can only update your own profile' });
       return;
     }
 

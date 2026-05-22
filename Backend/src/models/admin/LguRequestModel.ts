@@ -127,6 +127,16 @@ export class LguRequestModel {
     return snap.exists ? serializeRequest(snap.id, snap.data() ?? {}) : null;
   }
 
+  static async getRequestForClient(clientId: string, requestId?: string | null): Promise<LguRequest | null> {
+    if (requestId) {
+      const request = await this.getRequest(requestId);
+      if (request?.clientId === clientId) return request;
+    }
+
+    const snapshot = await this.collectionRef().where('clientId', '==', clientId).limit(1).get();
+    return snapshot.empty ? null : serializeRequest(snapshot.docs[0].id, snapshot.docs[0].data());
+  }
+
   static async approveRequest(id: string, reviewedBy: string, reviewNote?: string): Promise<LguRequest> {
     const request = await this.getRequest(id);
     if (!request) throw new Error('LGU request not found');

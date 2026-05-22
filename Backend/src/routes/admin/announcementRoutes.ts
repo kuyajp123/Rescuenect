@@ -6,9 +6,10 @@ import { Router } from 'express';
 
 const announcementRoutes = Router();
 
-announcementRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin);
+announcementRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin, AdminMiddleware.requireClientAccess);
 
 announcementRoutes.get('/all', AnnouncementController.getAnnouncements);
+announcementRoutes.get('/details/:id', AnnouncementController.getAnnouncementDetails);
 announcementRoutes.post('/createAnnouncement', upload.single('thumbnail'), AnnouncementController.addAnnouncement);
 
 announcementRoutes.put('/updateAnnouncement/:id', upload.single('thumbnail'), AnnouncementController.updateAnnouncement);

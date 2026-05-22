@@ -124,4 +124,24 @@ export class AnnouncementModel {
       throw error;
     }
   }
+
+  public static async getAnnouncementById(
+    announcementId: string,
+    clientId?: string
+  ): Promise<FirebaseFirestore.DocumentData | null> {
+    try {
+      const doc = await this.pathRef().doc(announcementId).get();
+      if (!doc.exists) return null;
+
+      const data = doc.data() ?? {};
+      if (clientId && getEffectiveClientId(data) !== clientId) {
+        return null;
+      }
+
+      return { id: doc.id, ...data, clientId: getEffectiveClientId(data) };
+    } catch (error) {
+      console.error('âŒ Error in AnnouncementModel.getAnnouncementById:', error);
+      throw error;
+    }
+  }
 }

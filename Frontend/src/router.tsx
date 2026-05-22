@@ -32,25 +32,31 @@ const EditAnnouncement = lazy(() => import('@/pages/contents/announcement/edit-a
 const Contacts = lazy(() => import('@/pages/contents/Contacts'));
 const LguRequest = lazy(() => import('@/pages/public/LguRequest'));
 const SuperAdminOverview = lazy(() =>
-  import('@/pages/contents/SuperAdmin').then(module => ({ default: module.SuperAdminOverview }))
+  import('@/pages/contents/SuperAdmin/pages/Overview').then(module => ({ default: module.SuperAdminOverview }))
 );
 const SuperAdminRequests = lazy(() =>
-  import('@/pages/contents/SuperAdmin').then(module => ({ default: module.SuperAdminRequests }))
+  import('@/pages/contents/SuperAdmin/pages/Requests').then(module => ({ default: module.SuperAdminRequests }))
 );
 const SuperAdminClients = lazy(() =>
-  import('@/pages/contents/SuperAdmin').then(module => ({ default: module.SuperAdminClients }))
+  import('@/pages/contents/SuperAdmin/pages/Clients').then(module => ({ default: module.SuperAdminClients }))
+);
+const SuperAdminClientDetails = lazy(() =>
+  import('@/pages/contents/SuperAdmin/pages/ClientDetails').then(module => ({
+    default: module.SuperAdminClientDetails,
+  }))
 );
 const SuperAdminAdmins = lazy(() =>
-  import('@/pages/contents/SuperAdmin').then(module => ({ default: module.SuperAdminAdmins }))
+  import('@/pages/contents/SuperAdmin/pages/Admins').then(module => ({ default: module.SuperAdminAdmins }))
 );
 const SuperAdminSystemStatus = lazy(() =>
-  import('@/pages/contents/SuperAdmin').then(module => ({ default: module.SuperAdminSystemStatus }))
+  import('@/pages/contents/SuperAdmin/pages/SystemStatus').then(module => ({
+    default: module.SuperAdminSystemStatus,
+  }))
 );
 const NotFound = lazy(() => import('@/pages/NotFound').then(module => ({ default: module.NotFound })));
 
 import PrivacyPolicy from './components/ui/legalTerms/PrivacyPolicy';
 import TermsAndCondition from './components/ui/legalTerms/TermsAndCondition';
-import { useAuth } from './stores/useAuth';
 
 const Weather = lazy(() => import('@/pages/contents/Weather/Weather'));
 const Settings = lazy(() => import('./pages/contents/Settings'));
@@ -66,7 +72,6 @@ const AdminProfile = lazy(() => import('./pages/profile/AdminProfile'));
 
 const Router = () => {
   const location = useLocation();
-  const userData = useAuth(state => state.userData);
 
   useEffect(() => {
     const path = location.pathname;
@@ -120,15 +125,12 @@ const Router = () => {
           <Route path="/announcement/details/:id" element={<AnnouncementDetails />} />
           <Route path="/announcement/edit/:id" element={<EditAnnouncement />} />
           <Route path="/contacts" element={<Contacts />} />
-          {userData?.role === 'super_admin' && (
-            <>
-              <Route path="/super" element={<SuperAdminOverview />} />
-              <Route path="/super/requests" element={<SuperAdminRequests />} />
-              <Route path="/super/clients" element={<SuperAdminClients />} />
-              <Route path="/super/admins" element={<SuperAdminAdmins />} />
-              <Route path="/super/system-status" element={<SuperAdminSystemStatus />} />
-            </>
-          )}
+          <Route path="/super" element={<SuperAdminOverview />} />
+          <Route path="/super/requests" element={<SuperAdminRequests />} />
+          <Route path="/super/clients" element={<SuperAdminClients />} />
+          <Route path="/super/clients/:clientId" element={<SuperAdminClientDetails />} />
+          <Route path="/super/admins" element={<SuperAdminAdmins />} />
+          <Route path="/super/system-status" element={<SuperAdminSystemStatus />} />
         </Route>
 
         {/* Onboarding layout */}

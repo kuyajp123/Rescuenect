@@ -5,7 +5,7 @@ import { Router } from 'express';
 
 const residentsRoutes = Router();
 
-residentsRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin);
+residentsRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin, AdminMiddleware.requireClientAccess);
 
 residentsRoutes.get('/getResidents', ResidentController.getResidents);
 

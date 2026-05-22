@@ -160,6 +160,37 @@ export class StatusModel {
     }
   }
 
+  public static async getResidentStatuses(uid: string, clientId?: string) {
+    try {
+      const snapshot = await db.collection('status').doc(uid).collection('statuses').orderBy('createdAt', 'desc').get();
+
+      if (snapshot.empty) {
+        return [];
+      }
+
+      const statusMap = new Map<string, any>();
+      snapshot.docs.forEach(doc => {
+        const data = this.normalizeStatusDoc(doc);
+        const parentId = data.parentId;
+
+        if (!this.matchesClientScope(data, clientId)) {
+          return;
+        }
+
+        if (!statusMap.has(parentId)) {
+          statusMap.set(parentId, data);
+        }
+      });
+
+      return Array.from(statusMap.values()).sort((a, b) => {
+        return this.getActivityTimestamp(b) - this.getActivityTimestamp(a);
+      });
+    } catch (error) {
+      console.error('âŒ Error in StatusModel.getResidentStatuses:', error);
+      throw error;
+    }
+  }
+
   public static async getAllLatestStatuses(clientId?: string) {
     try {
       // Use collectionGroup to get all statuses from all users

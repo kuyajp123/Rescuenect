@@ -1,4 +1,5 @@
 import { AnnouncementModel } from '@/models/admin/AnnouncementModel';
+import { ClientModel } from '@/models/admin/ClientModel';
 import { getClientScopeFromRequest } from '@/utils/adminScope';
 import createDOMPurify, { type WindowLike } from 'dompurify';
 import { Request, Response } from 'express';
@@ -99,7 +100,41 @@ const isMaxLength = (value: unknown, maxLength: number): boolean => {
   return true;
 };
 
+const validateBarangaysForClient = async (clientId: string, barangays: string[]): Promise<string[]> => {
+  const client = await ClientModel.getClientById(clientId);
+  if (!client) return barangays;
+
+  const allowedBarangays = new Set(
+    client.barangays.filter(barangay => barangay.isActive !== false).map(barangay => barangay.value)
+  );
+
+  return barangays.filter(barangay => !allowedBarangays.has(barangay));
+};
+
 export class AnnouncementController {
+  static async getAnnouncementDetails(req: Request, res: Response): Promise<void> {
+    const announcementId = req.params.id;
+    if (!announcementId) {
+      res.status(400).json({ message: 'Announcement ID is required' });
+      return;
+    }
+
+    try {
+      const announcement = await AnnouncementModel.getAnnouncementById(announcementId, getClientScopeFromRequest(req));
+      if (!announcement) {
+        res.status(404).json({ message: 'Announcement not found' });
+        return;
+      }
+
+      res.status(200).json(announcement);
+    } catch (error) {
+      res.status(500).json({
+        message: 'Failed to get announcement details',
+        error: typeof error === 'string' ? error : (error as Error).message,
+      });
+    }
+  }
+
   static async getAnnouncements(req: Request, res: Response): Promise<void> {
     try {
       const announcements = await AnnouncementModel.getAnnouncements(getClientScopeFromRequest(req));
@@ -124,6 +159,7 @@ export class AnnouncementController {
       const category = ALLOWED_CATEGORIES.has(rawCategory) ? rawCategory : '';
       const content = sanitizeHtmlContent(req.body.content);
       const barangays = parseBarangays(req.body.barangays);
+      const clientId = getClientScopeFromRequest(req) || 'naic';
 
       const title = sanitizeText(req.body.title);
       const subtitle = sanitizeText(req.body.subtitle);
@@ -166,6 +202,16 @@ export class AnnouncementController {
         return;
       }
 
+      const invalidBarangays = await validateBarangaysForClient(clientId, barangays);
+      if (invalidBarangays.length > 0) {
+        res.status(400).json({
+          message: 'Selected barangays are outside the client coverage',
+          errors: ['Selected barangays are outside the client coverage'],
+          fieldErrors: { barangays: 'Selected barangays are outside the client coverage' },
+        });
+        return;
+      }
+
       const payload: Record<string, unknown> = {
         content,
         category,
@@ -176,12 +222,7 @@ export class AnnouncementController {
       if (subtitle) payload.subtitle = subtitle;
 
       const file = req.file as Express.Multer.File | undefined;
-      const announcementId = await AnnouncementModel.addAnnouncement(
-        payload,
-        file,
-        userId,
-        getClientScopeFromRequest(req) || 'naic'
-      );
+      const announcementId = await AnnouncementModel.addAnnouncement(payload, file, userId, clientId);
 
       res.status(201).json({ message: 'Announcement created', id: announcementId });
     } catch (error) {
@@ -214,6 +255,7 @@ export class AnnouncementController {
       const category = ALLOWED_CATEGORIES.has(rawCategory) ? rawCategory : '';
       const content = sanitizeHtmlContent(req.body.content);
       const barangays = parseBarangays(req.body.barangays);
+      const clientId = getClientScopeFromRequest(req) || 'naic';
 
       const title = sanitizeText(req.body.title);
       const subtitle = sanitizeText(req.body.subtitle);
@@ -256,6 +298,16 @@ export class AnnouncementController {
         return;
       }
 
+      const invalidBarangays = await validateBarangaysForClient(clientId, barangays);
+      if (invalidBarangays.length > 0) {
+        res.status(400).json({
+          message: 'Selected barangays are outside the client coverage',
+          errors: ['Selected barangays are outside the client coverage'],
+          fieldErrors: { barangays: 'Selected barangays are outside the client coverage' },
+        });
+        return;
+      }
+
       const payload: Record<string, unknown> = {
         title,
         subtitle,
@@ -265,7 +317,7 @@ export class AnnouncementController {
       };
 
       const file = req.file as Express.Multer.File | undefined;
-      await AnnouncementModel.updateAnnouncement(announcementId, payload, file, userId, getClientScopeFromRequest(req));
+      await AnnouncementModel.updateAnnouncement(announcementId, payload, file, userId, clientId);
 
       res.status(200).json({ message: 'Announcement updated', id: announcementId });
     } catch (error) {

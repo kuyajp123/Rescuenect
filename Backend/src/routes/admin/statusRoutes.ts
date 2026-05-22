@@ -5,9 +5,11 @@ import { Router } from 'express';
 
 const statusRoutes = Router();
 
-statusRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin);
+statusRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin, AdminMiddleware.requireClientAccess);
 
 statusRoutes.get('/getVersions', StatusController.getVersions);
+
+statusRoutes.get('/getResidentStatuses', StatusController.getResidentStatuses);
 
 statusRoutes.get('/getAllLatestStatuses', StatusController.getAllLatestStatuses);
 

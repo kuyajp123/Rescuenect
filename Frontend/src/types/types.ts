@@ -506,6 +506,7 @@ export interface BaseNotification {
   hiddenBy?: string[]; // User IDs who have hidden/deleted from their view
 
   // Location/barangay targeting
+  clientId?: string;
   location: string; // weather zone or specific barangay
   barangays?: string[]; // List of affected barangays
 

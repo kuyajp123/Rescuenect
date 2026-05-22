@@ -12,6 +12,19 @@ export interface UserData {
   role?: 'super_admin' | 'lgu_admin';
   clientId?: string | null;
   clientName?: string | null;
+  municipalityName?: string | null;
+  weatherLocationKey?: string | null;
+  weatherLatitude?: number | null;
+  weatherLongitude?: number | null;
+  clientBarangays?: Array<{
+    barangayCode: string | null;
+    barangayLabel: string;
+    value: string;
+    isActive: boolean;
+    latitude?: number | null;
+    longitude?: number | null;
+    verified?: boolean;
+  }>;
   status?: 'active' | 'inactive';
   permissions?: string[];
   permissionsVersion?: number;

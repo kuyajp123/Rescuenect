@@ -322,4 +322,16 @@ export class ClientModel {
     if (!updated) throw new Error('Client not found');
     return updated;
   }
+
+  static async deleteClient(clientId: string): Promise<ClientLgu> {
+    if (clientId === NAIC_CLIENT_ID) {
+      throw new Error('Default Naic client cannot be deleted');
+    }
+
+    const client = await this.getClientById(clientId);
+    if (!client) throw new Error('Client not found');
+
+    await this.collectionRef().doc(clientId).delete();
+    return client;
+  }
 }

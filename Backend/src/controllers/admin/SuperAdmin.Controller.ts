@@ -48,6 +48,25 @@ export class SuperAdminController {
     }
   }
 
+  static async getClientDetails(req: Request, res: Response): Promise<void> {
+    try {
+      const client = await ClientModel.getClientById(req.params.clientId);
+      if (!client) {
+        res.status(404).json({ message: 'Client not found' });
+        return;
+      }
+
+      const [request, admins] = await Promise.all([
+        LguRequestModel.getRequestForClient(client.id, client.requestId),
+        AdminAuthModel.listAdminsByClient(client.id),
+      ]);
+
+      res.status(200).json({ client, request, admins });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch client details' });
+    }
+  }
+
   static async updateClient(req: Request, res: Response): Promise<void> {
     try {
       const client = await ClientModel.updateClient(req.params.clientId, req.body || {});
@@ -75,11 +94,102 @@ export class SuperAdminController {
     }
   }
 
+  static async deleteClient(req: Request, res: Response): Promise<void> {
+    try {
+      if (req.params.clientId === 'naic') {
+        res.status(400).json({ message: 'Default Naic client cannot be deleted' });
+        return;
+      }
+
+      const client = await ClientModel.getClientById(req.params.clientId);
+      if (!client) {
+        res.status(404).json({ message: 'Client not found' });
+        return;
+      }
+
+      const affectedAdmins = await AdminAuthModel.deactivateAdminsForClient(client.id, req.adminUser?.uid || 'system');
+      await ClientModel.deleteClient(client.id);
+      res.status(200).json({ client, affectedAdmins });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : 'Failed to delete client' });
+    }
+  }
+
   static async getAdmins(_req: Request, res: Response): Promise<void> {
     try {
-      res.status(200).json({ admins: await AdminAuthModel.listAdmins() });
+      res.status(200).json({ admins: await AdminAuthModel.listLguAdmins() });
     } catch (error) {
-      res.status(500).json({ message: 'Failed to fetch admin users' });
+      res.status(500).json({ message: 'Failed to fetch LGU admin users' });
+    }
+  }
+
+  static async inviteAdmin(req: Request, res: Response): Promise<void> {
+    try {
+      const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+      const role = req.body?.role === 'super_admin' ? 'super_admin' : 'lgu_admin';
+      const clientId = typeof req.body?.clientId === 'string' ? req.body.clientId.trim() : null;
+
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        res.status(400).json({ message: 'Valid email is required' });
+        return;
+      }
+
+      if (role === 'super_admin') {
+        res.status(400).json({ message: 'Super admins must be configured with SUPER_ADMIN_EMAILS' });
+        return;
+      }
+
+      const client = clientId ? await ClientModel.getClientById(clientId) : null;
+      if (!client) {
+        res.status(400).json({ message: 'Valid clientId is required for LGU admin invites' });
+        return;
+      }
+
+      const invitation = await AdminAuthModel.createInvitation({
+        email,
+        role: 'lgu_admin',
+        clientId,
+        clientName: client.name,
+        invitedBy: req.adminUser?.uid || 'system',
+      });
+
+      res.status(201).json({ invitation });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : 'Failed to create admin invitation' });
+    }
+  }
+
+  static async updateAdmin(req: Request, res: Response): Promise<void> {
+    try {
+      const status = req.body?.status === 'inactive' ? 'inactive' : req.body?.status === 'active' ? 'active' : null;
+      if (!status) {
+        res.status(400).json({ message: 'Valid status is required' });
+        return;
+      }
+
+      if (req.params.uid === req.adminUser?.uid && status === 'inactive') {
+        res.status(400).json({ message: 'You cannot deactivate your own super admin account' });
+        return;
+      }
+
+      const admin = await AdminAuthModel.updateAdminStatus(req.params.uid, status);
+      res.status(200).json({ admin });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : 'Failed to update admin user' });
+    }
+  }
+
+  static async deleteAdmin(req: Request, res: Response): Promise<void> {
+    try {
+      if (req.params.uid === req.adminUser?.uid) {
+        res.status(400).json({ message: 'You cannot delete your own admin account' });
+        return;
+      }
+
+      const admin = await AdminAuthModel.deleteLguAdmin(req.params.uid, req.adminUser?.uid || 'system');
+      res.status(200).json({ admin });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : 'Failed to delete admin user' });
     }
   }
 

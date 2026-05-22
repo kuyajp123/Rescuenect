@@ -46,6 +46,30 @@ export class StatusController {
     }
   }
 
+  static async getResidentStatuses(req: Request, res: Response): Promise<void> {
+    const residentId = req.query.residentId as string;
+
+    if (!residentId) {
+      res.status(400).json({ message: 'Resident ID is required' });
+      return;
+    }
+
+    try {
+      const statuses = await StatusModel.getResidentStatuses(residentId, getClientScopeFromRequest(req));
+      StatusController.setNoStoreHeaders(res);
+      res.status(200).json({ statuses });
+    } catch (error) {
+      console.error('âŒ Failed to get resident statuses:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      res.status(500).json({
+        message: 'Failed to get resident statuses',
+        error: typeof error === 'string' ? error : (error as Error).message,
+      });
+    }
+  }
+
   static async getAllLatestStatuses(req: Request, res: Response): Promise<void> {
     try {
       const statuses = await StatusModel.getAllLatestStatuses(getClientScopeFromRequest(req));

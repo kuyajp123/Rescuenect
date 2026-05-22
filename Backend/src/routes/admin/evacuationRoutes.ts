@@ -6,7 +6,7 @@ import { Router } from 'express';
 
 const evacuationRoutes = Router();
 
-evacuationRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin);
+evacuationRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin, AdminMiddleware.requireClientAccess);
 
 evacuationRoutes.get('/getCenters', EvacuationController.getCenters);
 evacuationRoutes.post('/addCenter', upload.array('images', 3), EvacuationController.addCenter);

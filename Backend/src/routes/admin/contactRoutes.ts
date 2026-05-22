@@ -5,7 +5,7 @@ import { Router } from 'express';
 
 const contactRouter = Router();
 
-contactRouter.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin);
+contactRouter.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin, AdminMiddleware.requireClientAccess);
 
 contactRouter.get('/getContacts', ContactController.getContacts);
 contactRouter.post('/addContact', ContactController.saveContacts);

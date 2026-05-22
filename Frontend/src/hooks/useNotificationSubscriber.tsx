@@ -6,12 +6,14 @@ import { useEffect } from 'react';
 
 interface UseNotificationSubscriberProps {
   userLocation?: string; // User's barangay/location for filtering weather notifications
+  clientId?: string | null; // LGU client scope for admin notifications
   userId?: string; // User ID for read/hidden tracking
   maxNotifications?: number; // Limit number of notifications to fetch
 }
 
 export const useNotificationSubscriber = ({
   userLocation,
+  clientId,
   userId,
   maxNotifications = 50,
 }: UseNotificationSubscriberProps = {}) => {
@@ -40,6 +42,11 @@ export const useNotificationSubscriber = ({
               ...data,
               id: doc.id,
             };
+
+            const notificationClientId = notification.clientId || 'naic';
+            if (clientId && notification.type !== 'earthquake' && notificationClientId !== clientId) {
+              return;
+            }
 
             // Filter logic:
             // 1. Always include earthquake notifications
@@ -97,5 +104,5 @@ export const useNotificationSubscriber = ({
     return () => {
       unsubscribe();
     };
-  }, [userLocation, userId, maxNotifications, setNotifications]);
+  }, [userLocation, clientId, userId, maxNotifications, setNotifications]);
 };

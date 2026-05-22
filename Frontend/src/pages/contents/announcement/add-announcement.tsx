@@ -2,6 +2,7 @@ import { barangays } from '@/config/constant';
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { sortBarangays } from '@/helper/commonHelpers';
 import { auth } from '@/lib/firebaseConfig';
+import { useAuth } from '@/stores/useAuth';
 import { AnnouncementDataCard } from '@/types/types';
 import {
   Button,
@@ -52,7 +53,7 @@ import {
   Underline as UnderlineIcon,
   Undo2,
 } from 'lucide-react';
-import { useEffect, useRef, useState, type ChangeEvent, type ComponentProps } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ComponentProps } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 declare module '@tiptap/core' {
@@ -215,6 +216,7 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
   const [isLoadingAnnouncement, setIsLoadingAnnouncement] = useState(isEditMode);
   const [loadError, setLoadError] = useState('');
   const user = auth.currentUser;
+  const userData = useAuth(state => state.userData);
   const navigate = useNavigate();
   const pageTitle = isEditMode ? 'Edit Announcement' : 'Add Announcement';
   const pageSubtitle = isEditMode
@@ -290,8 +292,11 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
       try {
         setIsLoadingAnnouncement(true);
         setLoadError('');
-        const response = await axios.get(API_ENDPOINTS.ANNOUNCEMENT.GET_ANNOUNCEMENT_DETAILS, {
-          params: { id: announcementId },
+        const token = await user?.getIdToken();
+        const response = await axios.get(API_ENDPOINTS.ANNOUNCEMENT.GET_ANNOUNCEMENT_DETAILS(announcementId), {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
         setInitialAnnouncement(response.data as AnnouncementDataCard);
       } catch (error) {
@@ -335,7 +340,15 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
   const selectedCategoryLabel =
     announcementCategories.find(category => category.key === selectedCategoryKey)?.label ?? 'General';
   const selectedBarangayValues = serializeSelection(selectedBarangays);
-  const sortedBarangays = sortBarangays(barangays);
+  const clientBarangays = useMemo(() => {
+    if (!userData?.clientBarangays?.length) return barangays;
+
+    return userData.clientBarangays.map(barangay => ({
+      value: barangay.value,
+      label: barangay.barangayLabel,
+    }));
+  }, [userData?.clientBarangays]);
+  const sortedBarangays = sortBarangays(clientBarangays);
   const selectedBarangayLabels = selectedBarangayValues.map(
     value => sortedBarangays.find(barangay => barangay.value === value)?.label ?? value
   );
