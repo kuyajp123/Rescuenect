@@ -42,7 +42,7 @@ app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
-app.use(limiter);
+// app.use(limiter); // temporaryly disable rate limiter to prevent issues with mobile app during development, can re-enable later
 app.use('/', mainRouter);
 
 // ... (keep existing code)

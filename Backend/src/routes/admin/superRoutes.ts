@@ -7,6 +7,7 @@ const superRoutes = Router();
 
 superRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin, AdminMiddleware.requireSuperAdmin);
 
+superRoutes.post('/migrations/naic-client-id', SuperAdminController.backfillLegacyNaicData);
 superRoutes.get('/lgu-requests', SuperAdminController.getLguRequests);
 superRoutes.post('/lgu-requests/:id/approve', SuperAdminController.approveLguRequest);
 superRoutes.post('/lgu-requests/:id/reject', SuperAdminController.rejectLguRequest);

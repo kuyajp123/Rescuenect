@@ -4,7 +4,7 @@ import { StatusData } from '@/types/types';
 import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 
-export const useCurrentStatuses = () => {
+export const useCurrentStatuses = (enabled = true) => {
   const [statuses, setStatuses] = useState<Array<StatusData>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -13,6 +13,11 @@ export const useCurrentStatuses = () => {
     let isMounted = true;
 
     const fetchStatuses = async () => {
+      if (!enabled) {
+        if (isMounted) setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         const token = await auth.currentUser?.getIdToken();
@@ -44,7 +49,7 @@ export const useCurrentStatuses = () => {
       isMounted = false;
       window.clearInterval(interval);
     };
-  }, []);
+  }, [enabled]);
 
   // Derived state for easy filtering
   const statusesByCondition = useMemo(() => {

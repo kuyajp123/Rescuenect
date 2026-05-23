@@ -1,10 +1,18 @@
 import { NAIC_CLIENT_ID, NAIC_LOCATION_CLIENT } from '@/config/locationConfig';
 import { db } from '@/db/firestoreConfig';
 import type { AdminRole, AdminStatus, AdminUser } from '@/types/admin';
+import { shouldAllowLegacyAdminEmails } from '@/utils/accessControl';
 import { FieldValue } from 'firebase-admin/firestore';
 import { ClientModel } from './ClientModel';
 
 const PERMISSIONS_VERSION = 1;
+
+type AllowedAdminAccess = {
+  role: AdminRole;
+  clientId: string | null;
+  clientName: string | null;
+  source: 'super_admin_allowlist' | 'invitation' | 'existing_admin' | 'legacy_admin_email';
+};
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
@@ -73,7 +81,17 @@ export class AdminAuthModel {
   }
 
   static getLguAdminEmails(): string[] {
+    if (!shouldAllowLegacyAdminEmails(process.env.ENABLE_LEGACY_ADMIN_EMAILS)) {
+      return [];
+    }
+
     return parseEmailEnv(process.env.ADMIN_EMAILS);
+  }
+
+  private static async getAdminRecordByEmail(email: string): Promise<AdminUser | null> {
+    const snapshot = await db.collection('admin').where('email', '==', normalizeEmail(email)).limit(1).get();
+    if (snapshot.empty) return null;
+    return toAdminUser(snapshot.docs[0].id, snapshot.docs[0].data());
   }
 
   static async getInvitation(email: string): Promise<FirebaseFirestore.DocumentData | null> {
@@ -85,11 +103,12 @@ export class AdminAuthModel {
     role: AdminRole;
     clientId: string | null;
     clientName: string | null;
+    source?: AllowedAdminAccess['source'];
   } | null> {
     const normalizedEmail = normalizeEmail(email);
 
     if (this.getSuperAdminEmails().includes(normalizedEmail)) {
-      return { role: 'super_admin', clientId: null, clientName: null };
+      return { role: 'super_admin', clientId: null, clientName: null, source: 'super_admin_allowlist' };
     }
 
     const invitation = await this.getInvitation(normalizedEmail);
@@ -97,15 +116,39 @@ export class AdminAuthModel {
       return null;
     }
 
-    if (this.getLguAdminEmails().includes(normalizedEmail)) {
-      return { role: 'lgu_admin', clientId: NAIC_CLIENT_ID, clientName: NAIC_LOCATION_CLIENT.name };
+    if (invitation) {
+      if (invitation.role === 'super_admin') {
+        return null;
+      }
+
+      return {
+        role: 'lgu_admin',
+        clientId: invitation.clientId || NAIC_CLIENT_ID,
+        clientName: invitation.clientName ?? null,
+        source: 'invitation',
+      };
     }
 
-    if (invitation) {
+    if (this.getLguAdminEmails().includes(normalizedEmail)) {
       return {
-        role: invitation.role === 'super_admin' ? 'super_admin' : 'lgu_admin',
-        clientId: invitation.role === 'super_admin' ? null : invitation.clientId || NAIC_CLIENT_ID,
-        clientName: invitation.clientName ?? null,
+        role: 'lgu_admin',
+        clientId: NAIC_CLIENT_ID,
+        clientName: NAIC_LOCATION_CLIENT.name,
+        source: 'legacy_admin_email',
+      };
+    }
+
+    const existingAdmin = await this.getAdminRecordByEmail(normalizedEmail);
+    if (existingAdmin) {
+      if (existingAdmin.role === 'super_admin') {
+        return null;
+      }
+
+      return {
+        role: existingAdmin.role,
+        clientId: existingAdmin.clientId || NAIC_CLIENT_ID,
+        clientName: existingAdmin.clientName ?? null,
+        source: 'existing_admin',
       };
     }
 
@@ -148,8 +191,28 @@ export class AdminAuthModel {
     };
 
     await docRef.set(payload, { merge: true });
+    if (allowed.source === 'invitation') {
+      await this.acceptInvitation(params.email, params.uid);
+    }
+
     const updatedSnap = await docRef.get();
     return this.withClientMetadata(toAdminUser(updatedSnap.id, updatedSnap.data() ?? payload));
+  }
+
+  static async acceptInvitation(email: string, uid: string): Promise<void> {
+    const invitationRef = this.invitationRef(email);
+    const invitation = await invitationRef.get();
+    if (!invitation.exists || invitation.data()?.status === 'revoked') return;
+
+    await invitationRef.set(
+      {
+        status: 'accepted',
+        acceptedBy: uid,
+        acceptedAt: invitation.data()?.acceptedAt || FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
   }
 
   static async getAdminByUid(uid: string): Promise<AdminUser | null> {

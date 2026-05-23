@@ -25,7 +25,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export const SuperAdminClients = () => {
-  const { data, loading, refetch } = useSuperFetch<{ clients: ClientLgu[] }>(API_ENDPOINTS.SUPER_ADMIN.CLIENTS, 'clients');
+  const { data, loading, refetch } = useSuperFetch<{ clients: ClientLgu[] }>(
+    API_ENDPOINTS.SUPER_ADMIN.CLIENTS,
+    'clients'
+  );
   const { data: adminData } = useSuperFetch<{ admins: AdminUser[] }>(API_ENDPOINTS.SUPER_ADMIN.ADMINS, 'client admins');
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -111,13 +114,24 @@ export const SuperAdminClients = () => {
   const deleteClient = async () => {
     if (!clientToDelete) return;
 
-    const token = await getToken();
-    await axios.delete(API_ENDPOINTS.SUPER_ADMIN.DELETE_CLIENT(clientToDelete.id), {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    addToast({ title: 'Client deleted', color: 'success' });
-    setClientToDelete(null);
-    refetch();
+    try {
+      const token = await getToken();
+      await axios.delete(API_ENDPOINTS.SUPER_ADMIN.DELETE_CLIENT(clientToDelete.id), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      addToast({ title: 'Client deleted', color: 'success' });
+      setClientToDelete(null);
+      refetch();
+    } catch (error) {
+      let message = 'Failed to delete client';
+      if (axios.isAxiosError(error)) {
+        message = error.response?.data?.message || message;
+      } else if (error instanceof Error) {
+        message = error.message;
+      }
+      addToast({ title: message, color: 'danger' });
+      setClientToDelete(null);
+    }
   };
 
   const bottomContent = (

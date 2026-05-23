@@ -72,12 +72,28 @@ export const SuperAdminClientDetails = () => {
   const deleteClient = async () => {
     if (!client) return;
 
-    const token = await getToken();
-    await axios.delete(API_ENDPOINTS.SUPER_ADMIN.DELETE_CLIENT(client.id), {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    addToast({ title: 'Client deleted', color: 'success' });
-    navigate('/super/clients');
+    try {
+      const token = await getToken();
+
+      await axios.delete(API_ENDPOINTS.SUPER_ADMIN.DELETE_CLIENT(client.id), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      addToast({ title: 'Client deleted', color: 'success' });
+      navigate('/super/clients');
+    } catch (error) {
+      let message = 'Failed to delete client';
+
+      if (axios.isAxiosError(error)) {
+        message = error.response?.data?.message || message;
+        console.log('Failed to delete client:', error.response?.data);
+      } else {
+        console.log('Unexpected error:', error);
+      }
+
+      addToast({ title: message, color: 'danger' });
+      setIsDeleteOpen(false);
+    }
   };
 
   const activeBarangayCount = coverageDraft.filter(barangay => barangay.isActive !== false).length;
@@ -160,7 +176,9 @@ export const SuperAdminClientDetails = () => {
         <CardBody className="gap-4">
           <div>
             <h2 className="text-xl font-semibold">Client Setup</h2>
-            <p className="text-sm text-default-500">Weather settings and active barangay coverage for resident signup.</p>
+            <p className="text-sm text-default-500">
+              Weather settings and active barangay coverage for resident signup.
+            </p>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <Input
@@ -185,12 +203,7 @@ export const SuperAdminClientDetails = () => {
 
       <ClientAdminsTable admins={admins} />
 
-      <ClientDeleteModal
-        client={client}
-        isOpen={isDeleteOpen}
-        onOpenChange={setIsDeleteOpen}
-        onDelete={deleteClient}
-      />
+      <ClientDeleteModal client={client} isOpen={isDeleteOpen} onOpenChange={setIsDeleteOpen} onDelete={deleteClient} />
     </div>
   );
 };

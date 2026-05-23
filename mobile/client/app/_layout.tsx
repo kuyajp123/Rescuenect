@@ -51,24 +51,6 @@ function RootNavigator() {
   const [isReady, setIsReady] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isServerReady, setIsServerReady] = useState(false);
-  const authUser = useAuth(state => state.authUser);
-  const userData = useUserData((state: any) => state.userData);
-
-  useEffect(() => {
-    const checkStorage = async () => {
-      const getStorage = await storageHelpers.getData(STORAGE_KEYS.USER);
-      console.log('Storage check on app load:', JSON.stringify(getStorage, null, 2));
-    };
-    checkStorage();
-  }, [authUser]);
-
-  useEffect(() => {
-    console.log('Authenticated user on app load:', JSON.stringify(authUser, null, 2));
-  }, [authUser]);
-
-  useEffect(() => {
-    console.log('User data on app load:', JSON.stringify(userData, null, 2));
-  }, [userData]);
 
   const [loaded] = useFonts({
     Poppins: require('../assets/fonts/Poppins-Regular.ttf'),

@@ -4,13 +4,18 @@ import { useAllStatusStore } from '@/stores/useAllStatusStore';
 import axios from 'axios';
 import { useEffect } from 'react';
 
-export const useAllLatestStatuses = () => {
+export const useAllLatestStatuses = (enabled = true) => {
   const { allStatuses, loading, error, setAllStatuses, setLoading, setError } = useAllStatusStore();
 
   const fetchAllLatestStatuses = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      if (!enabled) {
+        setLoading(false);
+        return;
+      }
 
       // Wait for auth to be ready
       if (!auth.currentUser) {
@@ -43,10 +48,10 @@ export const useAllLatestStatuses = () => {
 
   useEffect(() => {
     // Only fetch when auth user is available
-    if (auth.currentUser) {
+    if (enabled && auth.currentUser) {
       fetchAllLatestStatuses();
     }
-  }, []);
+  }, [enabled]);
 
   return {
     statuses: allStatuses,

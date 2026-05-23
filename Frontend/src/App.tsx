@@ -22,20 +22,21 @@ function App() {
   const setWeather = useWeatherStore(state => state.setWeather);
   const setStatus = useStatusStore(state => state.setData);
   const fetchStatuses = useStatusHistory(state => state.fetchStatusHistory);
-
-  // Get real-time current statuses for the map and status page
-  const { statuses } = useCurrentStatuses();
-
   const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
   const authUser = useAuth(state => state.auth);
   const userData = useAuth(state => state.userData);
+  const canLoadAdminData = Boolean(authUser && userData?.onboardingComplete);
+
+  // Get real-time current statuses for the map and status page
+  const { statuses } = useCurrentStatuses(canLoadAdminData);
+
   const lguWeatherLocation =
     userData?.role === 'lgu_admin' && userData.clientId && userData.clientId !== 'naic'
       ? userData.weatherLocationKey || userData.clientId
       : userData?.barangay || CURRENT_USER_LOCATION;
 
   // Fetch all latest statuses once for dashboard analytics
-  const { refetch: refetchAllStatuses } = useAllLatestStatuses();
+  const { refetch: refetchAllStatuses } = useAllLatestStatuses(canLoadAdminData);
 
   useEffect(() => {
     setStatus(statuses);
@@ -43,16 +44,16 @@ function App() {
 
   // Fetch all latest statuses when auth is ready
   useEffect(() => {
-    if (authUser) {
+    if (canLoadAdminData) {
       refetchAllStatuses();
     }
-  }, [authUser]);
+  }, [canLoadAdminData]);
 
   useEffect(() => {
-    if (authUser) {
+    if (canLoadAdminData) {
       fetchStatuses();
     }
-  }, [authUser, fetchStatuses]);
+  }, [canLoadAdminData, fetchStatuses]);
 
   useEffect(() => {
     const unsubscribe = subscribeToWeatherData(lguWeatherLocation, weatherData => {
@@ -69,7 +70,7 @@ function App() {
       try {
         const fcmToken = await permissionAllowed(VAPID_KEY);
 
-        if (fcmToken && authUser) {
+        if (fcmToken && authUser && userData?.onboardingComplete) {
           // Update token in backend
           await saveFCMtoken(fcmToken, authUser);
         }
@@ -78,7 +79,7 @@ function App() {
       }
     };
     enableNotification();
-  }, [authUser]);
+  }, [authUser, userData?.onboardingComplete]);
 
   useEarthquakeSnapshot();
 
@@ -94,10 +95,10 @@ function App() {
   const fetchResidents = useResidentsStore(state => state.fetchResidents);
 
   useEffect(() => {
-    if (authUser) {
+    if (canLoadAdminData) {
       fetchResidents();
     }
-  }, [authUser, fetchResidents]);
+  }, [canLoadAdminData, fetchResidents]);
 
   return (
     <BrowserRouter>

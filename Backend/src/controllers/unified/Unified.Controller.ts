@@ -14,7 +14,9 @@ const getAuthenticatedUid = (req: Request, res: Response): string | null => {
 export class UnifiedController {
   static async getCenters(req: Request, res: Response): Promise<void> {
     try {
-      const centers = await UnifiedModel.getCenters();
+      const centers = await UnifiedModel.getCenters(
+        typeof req.query.clientId === 'string' ? req.query.clientId : undefined
+      );
       res.status(200).json(centers);
     } catch (error) {
       console.error('❌ Failed to add evacuation center:', {
@@ -185,9 +187,11 @@ export class UnifiedController {
     }
   }
 
-  static async getAllAnnouncements(_req: Request, res: Response): Promise<void> {
+  static async getAllAnnouncements(req: Request, res: Response): Promise<void> {
     try {
-      const announcements = await UnifiedModel.getAllAnnouncements();
+      const announcements = await UnifiedModel.getAllAnnouncements(
+        typeof req.query.clientId === 'string' ? req.query.clientId : undefined
+      );
       res.status(200).json(announcements);
     } catch (error) {
       console.error('❌ Failed to get all announcements:', {
@@ -208,7 +212,10 @@ export class UnifiedController {
         res.status(400).json({ message: 'Announcement ID is required' });
         return;
       }
-      const announcement = await UnifiedModel.getAnnouncementById(announcementId);
+      const announcement = await UnifiedModel.getAnnouncementById(
+        announcementId,
+        typeof req.query.clientId === 'string' ? req.query.clientId : undefined
+      );
       if (!announcement) {
         res.status(404).json({ message: 'Announcement not found' });
         return;

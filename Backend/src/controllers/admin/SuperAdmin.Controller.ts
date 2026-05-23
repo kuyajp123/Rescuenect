@@ -1,11 +1,25 @@
 import { verifyFirebaseConnection } from '@/db/firestoreConfig';
 import { AdminAuthModel } from '@/models/admin/AdminAuthModel';
 import { ClientModel } from '@/models/admin/ClientModel';
+import { LegacyNaicMigrationModel } from '@/models/admin/LegacyNaicMigrationModel';
 import { LguRequestModel } from '@/models/admin/LguRequestModel';
 import { PsgcService } from '@/services/PsgcService';
 import { Request, Response } from 'express';
 
 export class SuperAdminController {
+  static async backfillLegacyNaicData(req: Request, res: Response): Promise<void> {
+    try {
+      const dryRun = req.query.dryRun === 'true' || req.body?.dryRun === true;
+      const summary = await LegacyNaicMigrationModel.backfillNaicClientId({ dryRun });
+      res.status(200).json({ summary });
+    } catch (error) {
+      res.status(500).json({
+        message: 'Failed to backfill legacy Naic data',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
   static async getLguRequests(_req: Request, res: Response): Promise<void> {
     try {
       res.status(200).json({ requests: await LguRequestModel.listRequests() });
@@ -104,6 +118,11 @@ export class SuperAdminController {
       const client = await ClientModel.getClientById(req.params.clientId);
       if (!client) {
         res.status(404).json({ message: 'Client not found' });
+        return;
+      }
+
+      if (client.status === 'active') {
+        res.status(400).json({ success: false, message: 'Deactivate the client before deleting it' });
         return;
       }
 

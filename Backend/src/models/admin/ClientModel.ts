@@ -7,6 +7,7 @@ import {
 } from '@/config/locationConfig';
 import { db } from '@/db/firestoreConfig';
 import type { ClientCoverageBarangay, ClientLgu, ClientLguStatus, LguRequest } from '@/types/admin';
+import { isClientVisibleInResidentSignup } from '@/utils/accessControl';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export type DynamicResidentLocationSelection = {
@@ -96,6 +97,10 @@ export class ClientModel {
     return db.collection('clients');
   }
 
+  static getNaicClientSeed(): ClientLgu {
+    return toFallbackClient();
+  }
+
   static async listClients(): Promise<ClientLgu[]> {
     const snapshot = await this.collectionRef().get();
     const clients = snapshot.docs.map(doc => normalizeClientDoc(doc.id, doc.data()));
@@ -117,7 +122,11 @@ export class ClientModel {
   }
 
   static async getActiveClients(): Promise<ClientLgu[]> {
-    return (await this.listClients()).filter(client => client.status === 'active');
+    return (await this.listClients()).filter(client => isClientVisibleInResidentSignup(client.status));
+  }
+
+  static async getActiveClientIds(): Promise<Set<string>> {
+    return new Set((await this.getActiveClients()).map(client => client.id));
   }
 
   static async getActiveLocationCoverage(): Promise<Record<string, unknown>> {
@@ -317,6 +326,13 @@ export class ClientModel {
       throw new Error('Invalid client status');
     }
 
+    const client = await this.getClientById(clientId);
+    if (!client) throw new Error('Client not found');
+
+    if (status === 'active' && activeBarangays(client.barangays).length === 0) {
+      throw new Error('Client must have at least one active barangay before activation');
+    }
+
     await this.collectionRef().doc(clientId).set({ status, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     const updated = await this.getClientById(clientId);
     if (!updated) throw new Error('Client not found');
@@ -330,6 +346,9 @@ export class ClientModel {
 
     const client = await this.getClientById(clientId);
     if (!client) throw new Error('Client not found');
+    if (client.status === 'active') {
+      throw new Error('Deactivate the client before deleting it');
+    }
 
     await this.collectionRef().doc(clientId).delete();
     return client;

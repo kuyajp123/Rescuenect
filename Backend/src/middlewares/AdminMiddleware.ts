@@ -1,4 +1,6 @@
 import { AdminAuthModel } from '@/models/admin/AdminAuthModel';
+import { ClientModel } from '@/models/admin/ClientModel';
+import { canAccessClientScope, canLguAdminUseClient } from '@/utils/accessControl';
 import { NextFunction, Request, Response } from 'express';
 
 export class AdminMiddleware {
@@ -45,19 +47,31 @@ export class AdminMiddleware {
     next();
   }
 
-  static requireClientAccess(req: Request, res: Response, next: NextFunction): void {
+  static async requireClientAccess(req: Request, res: Response, next: NextFunction): Promise<void> {
     const requestedClientId =
       (typeof req.params.clientId === 'string' && req.params.clientId) ||
       (typeof req.query.clientId === 'string' && req.query.clientId) ||
       (typeof req.body?.clientId === 'string' && req.body.clientId);
+
+    if (!canAccessClientScope(req.adminUser, requestedClientId || null)) {
+      res.status(403).json({ message: 'Client access denied' });
+      return;
+    }
 
     if (req.adminUser?.role === 'super_admin') {
       next();
       return;
     }
 
-    if (!req.adminUser?.clientId || (requestedClientId && requestedClientId !== req.adminUser.clientId)) {
-      res.status(403).json({ message: 'Client access denied' });
+    try {
+      const client = req.adminUser?.clientId ? await ClientModel.getClientById(req.adminUser.clientId) : null;
+      if (!client || !canLguAdminUseClient(client.status)) {
+        res.status(403).json({ message: 'LGU client is not active' });
+        return;
+      }
+    } catch (error) {
+      console.error('Client authorization failed:', error);
+      res.status(500).json({ message: 'Failed to authorize client access' });
       return;
     }
 
