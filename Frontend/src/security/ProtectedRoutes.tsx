@@ -50,11 +50,5 @@ export default function ProtectedRoute({ children }: Props) {
     return children;
   }
 
-  // Fallback (e.g. userData is null but userAuth is true - shouldn't happen usually if logic is correct)
-  // If userData is still fetching, we might be here. But verified flow usually sets them together?
-  // Actually onAuthStateChanged runs, then GoogleButton sets UserData.
-  // If we refresh, onAuthStateChanged runs, but userData load might be from persist?
-  // Let's assume userData is ready if isLoading is false.
-
-  return children;
+  return <Navigate to="/auth/login" replace />;
 }

@@ -7,7 +7,7 @@ const useDataRoutes = Router();
 
 useDataRoutes.get('/locationCoverage', SignInController.getLocationCoverageController);
 
-useDataRoutes.use(AuthMiddleware.verifyToken);
+useDataRoutes.use(AuthMiddleware.verifyToken, AuthMiddleware.requireOwnUid);
 
 useDataRoutes.get('/profile', UserDataController.getProfileController);
 useDataRoutes.post('/saveBarangay', SignInController.saveBarangayController);

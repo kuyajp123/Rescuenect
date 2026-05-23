@@ -1,6 +1,16 @@
 import { UnifiedModel } from '@/models/unified/index';
 import { Request, Response } from 'express';
 
+const getAuthenticatedUid = (req: Request, res: Response): string | null => {
+  const uid = req.user?.uid;
+  if (!uid) {
+    res.status(401).json({ message: 'Missing user identification' });
+    return null;
+  }
+
+  return uid;
+};
+
 export class UnifiedController {
   static async getCenters(req: Request, res: Response): Promise<void> {
     try {
@@ -42,9 +52,14 @@ export class UnifiedController {
 
   static async markNotificationAsRead(req: Request, res: Response): Promise<void> {
     try {
-      const { notificationId, uid } = req.body;
-      if (!notificationId || !uid) {
-        res.status(400).json({ message: 'Notification ID and User ID are required' });
+      const uid = getAuthenticatedUid(req, res);
+      if (!uid) {
+        return;
+      }
+
+      const { notificationId } = req.body;
+      if (!notificationId) {
+        res.status(400).json({ message: 'Notification ID is required' });
         return;
       }
 
@@ -64,9 +79,14 @@ export class UnifiedController {
 
   static async markNotificationAsHidden(req: Request, res: Response): Promise<void> {
     try {
-      const { notificationId, uid } = req.body;
-      if (!notificationId || !uid) {
-        res.status(400).json({ message: 'Notification ID and User ID are required' });
+      const uid = getAuthenticatedUid(req, res);
+      if (!uid) {
+        return;
+      }
+
+      const { notificationId } = req.body;
+      if (!notificationId) {
+        res.status(400).json({ message: 'Notification ID is required' });
         return;
       }
 
@@ -86,7 +106,12 @@ export class UnifiedController {
 
   static async getResidentStatuses(req: Request, res: Response): Promise<void> {
     try {
-      const residentId = req.query.residentId as string;
+      const uid = getAuthenticatedUid(req, res);
+      if (!uid) {
+        return;
+      }
+
+      const residentId = (req.query.residentId as string) || uid;
       if (!residentId) {
         res.status(400).json({ message: 'Resident ID is required' });
         return;
@@ -108,9 +133,14 @@ export class UnifiedController {
 
   static async markAllNotificationsAsRead(req: Request, res: Response): Promise<void> {
     try {
-      const { uid, notificationIds } = req.body;
-      if (!uid || !notificationIds || !Array.isArray(notificationIds)) {
-        res.status(400).json({ message: 'User ID and Notification IDs array are required' });
+      const uid = getAuthenticatedUid(req, res);
+      if (!uid) {
+        return;
+      }
+
+      const { notificationIds } = req.body;
+      if (!notificationIds || !Array.isArray(notificationIds)) {
+        res.status(400).json({ message: 'Notification IDs array is required' });
         return;
       }
 
@@ -130,9 +160,14 @@ export class UnifiedController {
 
   static async markAllNotificationsAsHidden(req: Request, res: Response): Promise<void> {
     try {
-      const { uid, notificationIds } = req.body;
-      if (!uid || !notificationIds || !Array.isArray(notificationIds)) {
-        res.status(400).json({ message: 'User ID and Notification IDs array are required' });
+      const uid = getAuthenticatedUid(req, res);
+      if (!uid) {
+        return;
+      }
+
+      const { notificationIds } = req.body;
+      if (!notificationIds || !Array.isArray(notificationIds)) {
+        res.status(400).json({ message: 'Notification IDs array is required' });
         return;
       }
 

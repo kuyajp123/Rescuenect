@@ -17,6 +17,16 @@ const getAllowedGoogleClientIds = () => {
     .filter(Boolean);
 };
 
+const getAuthenticatedUid = (req: Request, res: Response): string | null => {
+  const uid = req.user?.uid;
+  if (!uid) {
+    res.status(401).json({ message: 'Missing user identification' });
+    return null;
+  }
+
+  return uid;
+};
+
 export class SignInController {
   static async signIn(req: Request, res: Response, next: NextFunction): Promise<void> {
     const { idToken, user } = req.body;
@@ -113,11 +123,16 @@ export class SignInController {
   }
 
   static async saveBarangayController(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const { uid, barangay } = req.body;
+    const uid = getAuthenticatedUid(req, res);
+    if (!uid) {
+      return;
+    }
+
+    const { barangay } = req.body;
     const normalizedBarangay = typeof barangay === 'string' ? normalizeBarangayValue(barangay) : '';
 
-    if (!uid || !normalizedBarangay) {
-      res.status(400).json({ message: 'User ID and barangay are required' });
+    if (!normalizedBarangay) {
+      res.status(400).json({ message: 'Barangay is required' });
       return;
     }
 
@@ -138,9 +153,14 @@ export class SignInController {
   }
 
   static async saveUserInfoController(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const { uid, firstName, lastName, phoneNumber, e164PhoneNumber } = req.body;
+    const uid = getAuthenticatedUid(req, res);
+    if (!uid) {
+      return;
+    }
 
-    if (!uid || !firstName || !lastName || !phoneNumber || !e164PhoneNumber) {
+    const { firstName, lastName, phoneNumber, e164PhoneNumber } = req.body;
+
+    if (!firstName || !lastName || !phoneNumber || !e164PhoneNumber) {
       res.status(400).json({ message: 'All fields are required' });
       return;
     }
@@ -161,10 +181,8 @@ export class SignInController {
   }
 
   static async deleteUserController(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const { uid } = req.body;
-
+    const uid = getAuthenticatedUid(req, res);
     if (!uid) {
-      res.status(400).json({ message: 'User ID is required' });
       return;
     }
 

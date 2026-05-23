@@ -1,23 +1,31 @@
 import { StatusModel } from '@/models/mobile/StatusModel';
 import { NextFunction, Request, Response } from 'express';
 
+const getAuthenticatedUid = (req: Request, res: Response): string | null => {
+  const uid = req.user?.uid;
+  if (!uid) {
+    res.status(401).json({ message: 'Missing user identification' });
+    return null;
+  }
+
+  return uid;
+};
+
 export class StatusController {
   static async createStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     const data = req.body;
     const file = req.file;
 
     try {
-      const { uid } = data;
-
-      // Validate uid exists
+      const uid = getAuthenticatedUid(req, res);
       if (!uid) {
-        res.status(400).json({ message: 'uid is required in request body' });
         return;
       }
 
       // Parse FormData string values back to proper types
       const statusData = {
         ...data,
+        uid,
         // Parse boolean fields
         shareLocation: data.shareLocation === 'true' || data.shareLocation === true,
         shareContact: data.shareContact === 'true' || data.shareContact === true,
@@ -50,7 +58,10 @@ export class StatusController {
   }
 
   static async getStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const uid = req.params.uid;
+    const uid = getAuthenticatedUid(req, res);
+    if (!uid) {
+      return;
+    }
 
     try {
       const status = await StatusModel.getActiveStatus(uid);
@@ -69,11 +80,15 @@ export class StatusController {
   }
 
   static async deleteStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const uid = req.params.uid;
+    const uid = getAuthenticatedUid(req, res);
+    if (!uid) {
+      return;
+    }
+
     const { parentId } = req.body;
 
     // Clean and validate the inputs
-    const cleanUid = uid?.trim();
+    const cleanUid = uid.trim();
     const cleanParentId = parentId?.trim();
 
     try {

@@ -1,12 +1,20 @@
 import { UserDataModel } from '@/models/mobile/UserDataModel';
 import { Request, Response } from 'express';
 
+const getAuthenticatedUid = (req: Request, res: Response): string | null => {
+  const uid = req.user?.uid;
+  if (!uid) {
+    res.status(401).json({ message: 'Missing user identification' });
+    return null;
+  }
+
+  return uid;
+};
+
 export class UserDataController {
   static async getProfileController(req: Request, res: Response): Promise<void> {
-    const uid = (req as any).user?.uid || (req.query.uid as string);
-
+    const uid = getAuthenticatedUid(req, res);
     if (!uid) {
-      res.status(401).json({ message: 'Missing user identification' });
       return;
     }
 
@@ -26,15 +34,15 @@ export class UserDataController {
   }
 
   static async saveLocationController(req: Request, res: Response): Promise<void> {
-    const { uid, id, label, location, lat, lng } = req.body;
-
-    if (!label || !location || lat === undefined || lng === undefined) {
-      res.status(400).json({ message: 'Missing required fields' });
+    const uid = getAuthenticatedUid(req, res);
+    if (!uid) {
       return;
     }
 
-    if (!uid) {
-      res.status(401).json({ message: 'Missing user identification' });
+    const { id, label, location, lat, lng } = req.body;
+
+    if (!label || !location || lat === undefined || lng === undefined) {
+      res.status(400).json({ message: 'Missing required fields' });
       return;
     }
 
@@ -66,10 +74,8 @@ export class UserDataController {
   }
 
   static async getLocationsController(req: Request, res: Response): Promise<void> {
-    const uid = req.query.uid as string;
-
+    const uid = getAuthenticatedUid(req, res);
     if (!uid) {
-      res.status(401).json({ message: 'Missing user identification' });
       return;
     }
 
@@ -83,9 +89,14 @@ export class UserDataController {
   }
 
   static async deleteLocationController(req: Request, res: Response): Promise<void> {
-    const { uid, id } = req.body;
+    const uid = getAuthenticatedUid(req, res);
+    if (!uid) {
+      return;
+    }
 
-    if (!uid || !id) {
+    const { id } = req.body;
+
+    if (!id) {
       res.status(400).json({ message: 'Missing required fields' });
       return;
     }
@@ -104,9 +115,14 @@ export class UserDataController {
   }
 
   static async markNotificationAsReadInStatusResolvedController(req: Request, res: Response): Promise<void> {
-    const { uid, notificationId } = req.body;
+    const uid = getAuthenticatedUid(req, res);
+    if (!uid) {
+      return;
+    }
 
-    if (!uid || !notificationId) {
+    const { notificationId } = req.body;
+
+    if (!notificationId) {
       res.status(400).json({ message: 'Missing required fields' });
       return;
     }
@@ -125,9 +141,14 @@ export class UserDataController {
   }
 
   static async markNotificationAsDeletedController(req: Request, res: Response): Promise<void> {
-    const { uid, notificationId } = req.body;
+    const uid = getAuthenticatedUid(req, res);
+    if (!uid) {
+      return;
+    }
 
-    if (!uid || !notificationId) {
+    const { notificationId } = req.body;
+
+    if (!notificationId) {
       res.status(400).json({ message: 'Missing required fields' });
       return;
     }
@@ -146,9 +167,14 @@ export class UserDataController {
   }
 
   static async updateFcmTokenController(req: Request, res: Response): Promise<void> {
-    const { uid, fcmToken } = req.body;
+    const uid = getAuthenticatedUid(req, res);
+    if (!uid) {
+      return;
+    }
 
-    if (!uid || !fcmToken) {
+    const { fcmToken } = req.body;
+
+    if (!fcmToken) {
       res.status(400).json({ message: 'Missing required fields' });
       return;
     }
@@ -166,9 +192,14 @@ export class UserDataController {
   }
 
   static async removeFcmTokenController(req: Request, res: Response): Promise<void> {
-    const { uid, fcmToken } = req.body;
+    const uid = getAuthenticatedUid(req, res);
+    if (!uid) {
+      return;
+    }
 
-    if (!uid || !fcmToken) {
+    const { fcmToken } = req.body;
+
+    if (!fcmToken) {
       res.status(400).json({ message: 'Missing required fields' });
       return;
     }
@@ -186,10 +217,8 @@ export class UserDataController {
   }
 
   static async getFcmTokensController(req: Request, res: Response): Promise<void> {
-    const uid = req.query.uid as string;
-
+    const uid = getAuthenticatedUid(req, res);
     if (!uid) {
-      res.status(401).json({ message: 'Missing user identification' });
       return;
     }
 

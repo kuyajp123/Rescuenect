@@ -14,7 +14,7 @@ unifiedRoutes.get('/announcementDetails', UnifiedController.getAnnouncementDetai
 
 // protected routes in the following
 
-unifiedRoutes.use(AuthMiddleware.verifyToken);
+unifiedRoutes.use(AuthMiddleware.verifyToken, AuthMiddleware.requireOwnUid);
 
 unifiedRoutes.post('/markNotificationAsRead', UnifiedController.markNotificationAsRead);
 

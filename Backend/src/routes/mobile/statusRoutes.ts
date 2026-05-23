@@ -5,13 +5,13 @@ import { upload } from '@/config/multer';
 
 const statusRoutes = Router();
 
-// Apply authentication middleware to all status routes starts here
+// Apply authentication to all status routes, then ownership checks per route.
 statusRoutes.use(AuthMiddleware.verifyToken);
 
-statusRoutes.post('/createStatus', upload.single('image'), StatusController.createStatus);
+statusRoutes.post('/createStatus', upload.single('image'), AuthMiddleware.requireOwnUid, StatusController.createStatus);
 
-statusRoutes.get('/getStatus/:uid', StatusController.getStatus);
+statusRoutes.get('/getStatus/:uid', AuthMiddleware.requireOwnUid, StatusController.getStatus);
 
-statusRoutes.delete('/deleteStatus/:uid', StatusController.deleteStatus);
+statusRoutes.delete('/deleteStatus/:uid', AuthMiddleware.requireOwnUid, StatusController.deleteStatus);
 
 export default statusRoutes;
