@@ -9,7 +9,7 @@ import { SecondaryButton } from './';
 export const GoogleButton = () => {
   const isLoading = useAuth(state => state.isLoading);
   const isVerifying = useAuth(state => state.isVerifying);
-  const setUserData = useAuth(state => state.setUserData); // Add this
+  const setUserData = useAuth(state => state.setUserData);
   const setError = useErrorStore(state => state.setError);
   const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
@@ -18,6 +18,7 @@ export const GoogleButton = () => {
 
     setLoading(true);
     setVerifying(true);
+    setUserData(null);
 
     try {
       const provider = new GoogleAuthProvider();

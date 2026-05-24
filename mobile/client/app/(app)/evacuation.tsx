@@ -10,11 +10,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { storageHelpers } from '@/helper/storage';
 import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
+import { useUserData } from '@/store/useBackendResponse';
 
 export const evacuation = () => {
   const insets = useSafeAreaInsets();
   const [evacuationCenters, setEvacuationCenters] = useState<EvacuationCenter[] | null>(null);
   const savedLocations = useSavedLocationsStore(state => state.savedLocations);
+  const clientId = useUserData(state => state.userData.clientId);
 
   useEffect(() => {
     const loadData = async () => {
@@ -30,7 +32,9 @@ export const evacuation = () => {
 
       // 2. Fetch fresh data
       try {
-        const response = await axios.get<EvacuationCenter[]>(API_ROUTES.EVACUATION.GET_CENTERS);
+        const response = await axios.get<EvacuationCenter[]>(API_ROUTES.EVACUATION.GET_CENTERS, {
+          params: clientId ? { clientId } : undefined,
+        });
         if (response.data) {
           setEvacuationCenters(response.data);
           // 3. Update cache
@@ -42,7 +46,7 @@ export const evacuation = () => {
     };
 
     loadData();
-  }, []);
+  }, [clientId]);
 
   return (
     <Body

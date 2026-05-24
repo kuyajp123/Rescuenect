@@ -40,8 +40,7 @@ const Weather = () => {
   const UserData = useAuth(state => state.userData);
   const navigate = useNavigate();
 
-  // Determine loading state based on data availability
-  const loading = !data || !data.realtime || !data.hourly || !data.daily || data.realtime.length === 0;
+  const loading = !data || !data.realtime || !data.hourly || !data.daily;
 
   const hourlyData = useMemo(() => {
     return data && data.hourly ? data.hourly.slice(0, 24) : [];

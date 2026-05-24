@@ -60,6 +60,7 @@ type StatusStore = {
   error: string | null;
   totalCount: number;
   fetchStatusHistory: () => Promise<void>; // this replaces useEffect logic
+  clearStatusHistory: () => void;
 };
 
 const transformStatusData = (dynamicData: StatusData[]): User[] => {
@@ -92,6 +93,7 @@ export const useStatusHistory = create<StatusStore>(set => ({
   loading: false,
   error: null,
   totalCount: 0,
+  clearStatusHistory: () => set({ statuses: [], totalCount: 0, error: null, loading: false }),
 
   fetchStatusHistory: async () => {
     set({ loading: true });

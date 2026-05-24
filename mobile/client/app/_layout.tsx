@@ -156,8 +156,9 @@ function LayoutContent() {
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
 
-    if (userData?.barangay) {
-      unsubscribe = subscribeToWeatherData(userData.barangay, weatherData => {
+    const weatherLocation = userData?.weatherLocationKey || userData?.barangay;
+    if (weatherLocation) {
+      unsubscribe = subscribeToWeatherData(weatherLocation, weatherData => {
         setWeather?.(weatherData);
       });
     }
@@ -167,7 +168,7 @@ function LayoutContent() {
         unsubscribe();
       }
     };
-  }, [userData?.barangay, setWeather]);
+  }, [userData?.barangay, userData?.weatherLocationKey, setWeather]);
 
   useEffect(() => {
     const formDataToSet = statusData ? { ...statusData, uid: authUser ? authUser.uid : '' } : null;

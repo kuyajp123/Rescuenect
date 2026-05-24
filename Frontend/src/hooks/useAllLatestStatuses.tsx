@@ -13,6 +13,7 @@ export const useAllLatestStatuses = (enabled = true) => {
       setError(null);
 
       if (!enabled) {
+        setAllStatuses([]);
         setLoading(false);
         return;
       }
@@ -20,6 +21,7 @@ export const useAllLatestStatuses = (enabled = true) => {
       // Wait for auth to be ready
       if (!auth.currentUser) {
         console.log('No authenticated user yet, skipping fetch');
+        setAllStatuses([]);
         setLoading(false);
         return;
       }
@@ -27,6 +29,7 @@ export const useAllLatestStatuses = (enabled = true) => {
       const idToken = await auth.currentUser.getIdToken();
       if (!idToken) {
         console.log('No authentication token available');
+        setAllStatuses([]);
         setLoading(false);
         return;
       }

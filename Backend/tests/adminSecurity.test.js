@@ -3,7 +3,9 @@ const assert = require('node:assert/strict');
 
 const {
   canAccessClientScope,
+  canLguAdminCompleteOnboarding,
   canLguAdminUseClient,
+  hasUsableWeatherCoordinates,
   isClientVisibleInResidentSignup,
   shouldAllowLegacyAdminEmails,
 } = require('../dist/src/utils/accessControl');
@@ -38,10 +40,23 @@ test('LGU admin operations require an active client', () => {
   assert.equal(canLguAdminUseClient('inactive'), false);
 });
 
+test('LGU admin onboarding is allowed for draft or active clients', () => {
+  assert.equal(canLguAdminCompleteOnboarding('draft'), true);
+  assert.equal(canLguAdminCompleteOnboarding('active'), true);
+  assert.equal(canLguAdminCompleteOnboarding('inactive'), false);
+});
+
 test('resident signup only sees active clients', () => {
   assert.equal(isClientVisibleInResidentSignup('active'), true);
   assert.equal(isClientVisibleInResidentSignup('draft'), false);
   assert.equal(isClientVisibleInResidentSignup('inactive'), false);
+});
+
+test('client activation requires usable weather coordinates', () => {
+  assert.equal(hasUsableWeatherCoordinates(14.2919325, 120.7752839), true);
+  assert.equal(hasUsableWeatherCoordinates(null, 120.7752839), false);
+  assert.equal(hasUsableWeatherCoordinates(14.2919325, null), false);
+  assert.equal(hasUsableWeatherCoordinates(Number.NaN, 120.7752839), false);
 });
 
 test('legacy ADMIN_EMAILS fallback is opt-in only', () => {

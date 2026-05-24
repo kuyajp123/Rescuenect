@@ -1,6 +1,9 @@
 import { db } from '@/db/firestoreConfig';
+import { normalizeBarangayValue } from '@/config/locationConfig';
 import { AdminAuthModel } from './AdminAuthModel';
+import { ClientModel } from './ClientModel';
 import type { AdminUser } from '@/types/admin';
+import { canLguAdminCompleteOnboarding } from '@/utils/accessControl';
 
 export class SignInModel {
   static async SignUser(
@@ -29,17 +32,43 @@ export class SignInModel {
     }
   ): Promise<boolean> {
     try {
+      const adminUser = await AdminAuthModel.getAdminByUid(uid);
+      if (!adminUser) {
+        throw new Error('Admin user not found');
+      }
+
+      const normalizedBarangay = normalizeBarangayValue(data.barangay);
+      const update: Record<string, unknown> = {
+        ...data,
+        barangay: normalizedBarangay,
+        onboardingComplete: true,
+        updatedAt: new Date(),
+      };
+
+      if (adminUser.role === 'lgu_admin') {
+        const client = adminUser.clientId ? await ClientModel.getClientById(adminUser.clientId) : null;
+        const barangay = client?.barangays
+          .filter(item => item.isActive !== false)
+          .find(item => item.value === normalizedBarangay);
+
+        if (!client || !canLguAdminCompleteOnboarding(client.status) || !barangay) {
+          throw new Error('Barangay is not covered by your LGU client');
+        }
+
+        update.clientId = client.id;
+        update.clientName = client.name;
+        update.barangayCode = barangay.barangayCode;
+        update.barangayLabel = barangay.barangayLabel;
+      }
+
       await db
         .collection('admin')
         .doc(uid)
-        .update({
-          ...data,
-          onboardingComplete: true,
-          updatedAt: new Date(),
-        });
+        .update(update);
       return true;
     } catch (error) {
       console.error('Error updating admin profile:', error);
+      if (error instanceof Error) throw error;
       throw new Error('Failed to update profile');
     }
   }

@@ -10,7 +10,19 @@ export const canAccessClientScope = (adminUser: AdminUser | undefined, requested
 
 export const canLguAdminUseClient = (status: ClientLguStatus | undefined): boolean => status === 'active';
 
+export const canLguAdminCompleteOnboarding = (status: ClientLguStatus | undefined): boolean =>
+  status === 'draft' || status === 'active';
+
 export const isClientVisibleInResidentSignup = (status: ClientLguStatus | undefined): boolean => status === 'active';
+
+export const hasUsableWeatherCoordinates = (
+  latitude: number | null | undefined,
+  longitude: number | null | undefined
+): boolean =>
+  typeof latitude === 'number' &&
+  Number.isFinite(latitude) &&
+  typeof longitude === 'number' &&
+  Number.isFinite(longitude);
 
 export const shouldAllowLegacyAdminEmails = (rawValue: string | undefined): boolean => {
   const value = rawValue?.trim().toLowerCase();

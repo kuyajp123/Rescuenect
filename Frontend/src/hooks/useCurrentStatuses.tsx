@@ -14,7 +14,11 @@ export const useCurrentStatuses = (enabled = true) => {
 
     const fetchStatuses = async () => {
       if (!enabled) {
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setStatuses([]);
+          setLoading(false);
+          setError(null);
+        }
         return;
       }
 

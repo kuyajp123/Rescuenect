@@ -3,6 +3,7 @@ import { getWeatherLocationKey } from '@/config/locationConfig';
 import { storageHelpers } from '@/helper/storage';
 import { db } from '@/lib/firebaseConfig';
 import { useNotificationStore } from '@/store/useNotificationStore';
+import { useUserData } from '@/store/useBackendResponse';
 import type { BaseNotification } from '@/types/notification';
 import { collection, doc, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { useCallback, useEffect, useState } from 'react';
@@ -23,6 +24,7 @@ export const useNotificationSubscriber = ({
   const [error, setError] = useState<string | null>(null);
   const [globalNotifications, setGlobalNotifications] = useState<BaseNotification[]>([]);
   const [userNotifications, setUserNotifications] = useState<BaseNotification[]>([]);
+  const userClientId = useUserData(state => state.userData.clientId);
 
   const isRelevantLocationNotification = useCallback((notification: BaseNotification) => {
     if (!userLocation) {
@@ -95,6 +97,10 @@ export const useNotificationSubscriber = ({
                 ...data,
                 id: doc.id,
               };
+              const notificationClientId = notification.clientId || 'naic';
+              if (userClientId && notification.type !== 'earthquake' && notificationClientId !== userClientId) {
+                return;
+              }
 
               // Filter logic:
               if (notification.type === 'earthquake' || notification.type === 'weather') {
@@ -131,7 +137,7 @@ export const useNotificationSubscriber = ({
     }
 
     return () => unsubscribe();
-  }, [isRelevantLocationNotification, userId, maxNotifications]);
+  }, [isRelevantLocationNotification, userClientId, userId, maxNotifications]);
 
   // User-Specific Notifications Subscription
   useEffect(() => {

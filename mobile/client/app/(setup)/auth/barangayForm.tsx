@@ -8,7 +8,6 @@ import type {
   LocationCoverageResponse,
   ResidentLocationSelection,
 } from '@/config/locationConfig';
-import { getActiveLocationCoverage } from '@/config/locationConfig';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { sortByLabel } from '@/helper/commonHelpers';
@@ -28,6 +27,8 @@ type SelectOption = {
   label: string;
   value: string;
 };
+
+const EMPTY_LOCATION_COVERAGE: LocationCoverageResponse = { provinces: [] };
 
 type LocationSelectFieldProps = {
   label: string;
@@ -189,6 +190,8 @@ const toResidentLocationSelection = (
     barangayCode: barangay.barangayCode,
     barangayLabel: barangay.barangayLabel,
     weatherLocationKey: client.weatherLocationKey,
+    weatherLatitude: client.weatherLatitude ?? client.weatherCoordinates.latitude,
+    weatherLongitude: client.weatherLongitude ?? client.weatherCoordinates.longitude,
   };
 };
 
@@ -202,7 +205,7 @@ const BarangayForm = () => {
   const setUserData = useUserData(state => state.setUserData);
   const userData = useUserData(state => state.userData);
 
-  const [locationCoverage, setLocationCoverage] = useState<LocationCoverageResponse>(() => getActiveLocationCoverage());
+  const [locationCoverage, setLocationCoverage] = useState<LocationCoverageResponse>(EMPTY_LOCATION_COVERAGE);
   const [selectedProvinceCode, setSelectedProvinceCode] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedBarangay, setSelectedBarangay] = useState('');
@@ -224,8 +227,8 @@ const BarangayForm = () => {
       if (!isAxiosError(error) || error.response?.status !== 404) {
         console.error('Error loading location coverage:', error);
       }
-      setLocationCoverage(getActiveLocationCoverage());
-      setErrorMessage('');
+      setLocationCoverage(EMPTY_LOCATION_COVERAGE);
+      setErrorMessage('Location coverage is unavailable. Please try again.');
     } finally {
       setCoverageLoading(false);
     }

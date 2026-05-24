@@ -7,7 +7,7 @@ import {
 } from '@/config/locationConfig';
 import { db } from '@/db/firestoreConfig';
 import type { ClientCoverageBarangay, ClientLgu, ClientLguStatus, LguRequest } from '@/types/admin';
-import { isClientVisibleInResidentSignup } from '@/utils/accessControl';
+import { hasUsableWeatherCoordinates, isClientVisibleInResidentSignup } from '@/utils/accessControl';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export type DynamicResidentLocationSelection = {
@@ -22,6 +22,8 @@ export type DynamicResidentLocationSelection = {
   barangayCode: string | null;
   barangayLabel: string;
   weatherLocationKey: string;
+  weatherLatitude: number | null;
+  weatherLongitude: number | null;
 };
 
 const toSlug = (value: string): string =>
@@ -153,6 +155,8 @@ export class ClientModel {
           value: barangay.value,
         })),
         weatherLocationKey: client.weatherLocationKey,
+        weatherLatitude: client.weatherLatitude,
+        weatherLongitude: client.weatherLongitude,
         weatherCoordinates: {
           latitude: client.weatherLatitude,
           longitude: client.weatherLongitude,
@@ -229,6 +233,8 @@ export class ClientModel {
         barangayCode: barangay.barangayCode,
         barangayLabel: barangay.barangayLabel,
         weatherLocationKey: client.weatherLocationKey,
+        weatherLatitude: client.weatherLatitude,
+        weatherLongitude: client.weatherLongitude,
       };
     }
 
@@ -331,6 +337,10 @@ export class ClientModel {
 
     if (status === 'active' && activeBarangays(client.barangays).length === 0) {
       throw new Error('Client must have at least one active barangay before activation');
+    }
+
+    if (status === 'active' && !hasUsableWeatherCoordinates(client.weatherLatitude, client.weatherLongitude)) {
+      throw new Error('Client must have weather coordinates before activation');
     }
 
     await this.collectionRef().doc(clientId).set({ status, updatedAt: FieldValue.serverTimestamp() }, { merge: true });

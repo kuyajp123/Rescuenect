@@ -3,6 +3,7 @@ import { Text } from '@/components/ui/text';
 import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useUserData } from '@/store/useBackendResponse';
 import { AnnouncementDataCard } from '@/types/components';
 import axios from 'axios';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
@@ -138,6 +139,7 @@ export const AnnouncementsScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [webViewHeight, setWebViewHeight] = useState(200);
+  const clientId = useUserData(state => state.userData.clientId);
 
   const parsedAnnouncementId = useMemo(() => {
     if (Array.isArray(announcementId)) {
@@ -158,7 +160,9 @@ export const AnnouncementsScreen = () => {
         setIsLoading(true);
         setErrorMessage(null);
 
-        const response = await axios.get(API_ROUTES.ANNOUNCEMENT.GET_ANNOUNCEMENT_DETAILS(parsedAnnouncementId));
+        const response = await axios.get(API_ROUTES.ANNOUNCEMENT.GET_ANNOUNCEMENT_DETAILS(parsedAnnouncementId), {
+          params: clientId ? { clientId } : undefined,
+        });
         setAnnouncement(response.data);
       } catch (error) {
         console.error('Failed to fetch announcement details', error);
@@ -170,7 +174,7 @@ export const AnnouncementsScreen = () => {
     };
 
     fetchAnnouncementDetails();
-  }, [parsedAnnouncementId]);
+  }, [clientId, parsedAnnouncementId]);
 
   useEffect(() => {
     setWebViewHeight(200);

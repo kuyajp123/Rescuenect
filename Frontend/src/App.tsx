@@ -20,23 +20,28 @@ function App() {
   useTheme();
   const CURRENT_USER_LOCATION = 'bancaan';
   const setWeather = useWeatherStore(state => state.setWeather);
+  const clearWeather = useWeatherStore(state => state.clearWeather);
   const setStatus = useStatusStore(state => state.setData);
   const fetchStatuses = useStatusHistory(state => state.fetchStatusHistory);
+  const clearStatusHistory = useStatusHistory(state => state.clearStatusHistory);
   const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
   const authUser = useAuth(state => state.auth);
   const userData = useAuth(state => state.userData);
   const canLoadAdminData = Boolean(authUser && userData?.onboardingComplete);
+  const canLoadClientScopedData =
+    canLoadAdminData && (userData?.role !== 'lgu_admin' || Boolean(userData.clientId));
 
   // Get real-time current statuses for the map and status page
-  const { statuses } = useCurrentStatuses(canLoadAdminData);
+  const { statuses } = useCurrentStatuses(canLoadClientScopedData);
 
-  const lguWeatherLocation =
-    userData?.role === 'lgu_admin' && userData.clientId && userData.clientId !== 'naic'
-      ? userData.weatherLocationKey || userData.clientId
-      : userData?.barangay || CURRENT_USER_LOCATION;
+  const lguWeatherLocation = canLoadClientScopedData
+    ? userData?.role === 'lgu_admin'
+      ? userData.weatherLocationKey || userData.clientId || userData.barangay
+      : userData?.barangay || CURRENT_USER_LOCATION
+    : null;
 
   // Fetch all latest statuses once for dashboard analytics
-  const { refetch: refetchAllStatuses } = useAllLatestStatuses(canLoadAdminData);
+  const { refetch: refetchAllStatuses } = useAllLatestStatuses(canLoadClientScopedData);
 
   useEffect(() => {
     setStatus(statuses);
@@ -44,18 +49,25 @@ function App() {
 
   // Fetch all latest statuses when auth is ready
   useEffect(() => {
-    if (canLoadAdminData) {
+    if (canLoadClientScopedData) {
       refetchAllStatuses();
     }
-  }, [canLoadAdminData]);
+  }, [canLoadClientScopedData]);
 
   useEffect(() => {
-    if (canLoadAdminData) {
+    if (canLoadClientScopedData) {
       fetchStatuses();
+    } else {
+      clearStatusHistory();
     }
-  }, [canLoadAdminData, fetchStatuses]);
+  }, [canLoadClientScopedData, fetchStatuses, clearStatusHistory]);
 
   useEffect(() => {
+    if (!canLoadClientScopedData || !lguWeatherLocation) {
+      clearWeather();
+      return;
+    }
+
     const unsubscribe = subscribeToWeatherData(lguWeatherLocation, weatherData => {
       setWeather(weatherData);
     });
@@ -63,7 +75,7 @@ function App() {
     return () => {
       unsubscribe();
     };
-  }, [lguWeatherLocation, setWeather]);
+  }, [canLoadClientScopedData, lguWeatherLocation, setWeather, clearWeather]);
 
   useEffect(() => {
     const enableNotification = async () => {
@@ -85,7 +97,8 @@ function App() {
 
   // Subscribe to notifications
   useNotificationSubscriber({
-    userLocation: userData?.barangay || CURRENT_USER_LOCATION,
+    enabled: canLoadClientScopedData,
+    userLocation: userData?.weatherLocationKey || userData?.barangay || undefined,
     clientId: userData?.role === 'lgu_admin' ? userData.clientId || undefined : undefined,
     userId: authUser?.uid,
     maxNotifications: 100,
@@ -93,12 +106,15 @@ function App() {
 
   // Fetch residents when auth is available
   const fetchResidents = useResidentsStore(state => state.fetchResidents);
+  const clearResidents = useResidentsStore(state => state.clearResidents);
 
   useEffect(() => {
-    if (canLoadAdminData) {
+    if (canLoadClientScopedData) {
       fetchResidents();
+    } else {
+      clearResidents();
     }
-  }, [canLoadAdminData, fetchResidents]);
+  }, [canLoadClientScopedData, fetchResidents, clearResidents]);
 
   return (
     <BrowserRouter>

@@ -1,6 +1,7 @@
 import { Text } from '@/components/ui/text';
 import { API_ROUTES } from '@/config/endpoints';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useUserData } from '@/store/useBackendResponse';
 import { AnnouncementDataCard } from '@/types/components';
 import axios from 'axios';
 import { Image } from 'expo-image';
@@ -30,6 +31,7 @@ const Announcement = ({ refreshTrigger }: AnnouncementProps = {}) => {
   const { isDark } = useTheme();
   const router = useRouter();
   const [announcements, setAnnouncements] = useState<AnnouncementDataCard[]>([]);
+  const clientId = useUserData(state => state.userData.clientId);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -39,7 +41,9 @@ const Announcement = ({ refreshTrigger }: AnnouncementProps = {}) => {
         setIsLoading(true);
         setErrorMessage(null);
 
-        const response = await axios.get(API_ROUTES.ANNOUNCEMENT.GET_ANNOUNCEMENTS);
+        const response = await axios.get(API_ROUTES.ANNOUNCEMENT.GET_ANNOUNCEMENTS, {
+          params: clientId ? { clientId } : undefined,
+        });
         const payload = Array.isArray(response.data) ? response.data : [];
 
         setAnnouncements(payload);
@@ -53,7 +57,7 @@ const Announcement = ({ refreshTrigger }: AnnouncementProps = {}) => {
     };
 
     getAnnouncements();
-  }, [refreshTrigger]);
+  }, [clientId, refreshTrigger]);
 
   if (isLoading) {
     return (

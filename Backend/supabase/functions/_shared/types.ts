@@ -6,6 +6,7 @@
 // Weather location interface
 export interface WeatherLocation {
   key: string;
+  clientId?: string;
   coordinates: string;
   name: string;
 }

@@ -35,6 +35,8 @@ export class NotificationService {
     title: string;
     message: string;
     location: string;
+    clientId?: string;
+    barangays?: string[];
     audience: 'admin' | 'users' | 'both';
     sentTo: number;
     weatherData: WeatherNotificationData;
@@ -50,8 +52,9 @@ export class NotificationService {
       message: params.message,
       timestamp,
       createdAt: new Date(timestamp).toISOString(),
+      clientId: params.clientId || params.location,
       location: params.location,
-      barangays: getBarangaysFromZone(params.location),
+      barangays: params.barangays ?? getBarangaysFromZone(params.location),
       audience: params.audience,
       sentTo: params.sentTo,
       deliveryStatus: params.deliveryStatus,

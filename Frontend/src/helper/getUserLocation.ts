@@ -33,7 +33,8 @@ const naic_boundary = ['malainem luma', 'palangue 2 & 3'];
 export { central_naic, coastal_east, coastal_west, farm_area, naic_boundary, sabang };
 
 export const getUsersBarangay = (location: string) => {
-  const normalizedLocation = location.trim().toLowerCase();
+  const trimmedLocation = location.trim();
+  const normalizedLocation = trimmedLocation.toLowerCase();
 
   if (coastal_west.includes(normalizedLocation)) {
     return 'coastal_west';
@@ -48,6 +49,6 @@ export const getUsersBarangay = (location: string) => {
   } else if (naic_boundary.includes(normalizedLocation)) {
     return 'naic_boundary';
   } else {
-    return normalizedLocation;
+    return trimmedLocation;
   }
 };

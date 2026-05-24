@@ -50,6 +50,9 @@ type AuthStore = {
   syncUserData: () => Promise<void>; // Added syncUserData
 };
 
+const isUserDataForCurrentUser = (data: UserData | null, user: User | null): boolean =>
+  Boolean(data && user && data.uid === user.uid);
+
 export const useAuth = create<AuthStore>()(
   persist(
     (set, get) => ({
@@ -57,8 +60,20 @@ export const useAuth = create<AuthStore>()(
       userData: null,
       isLoading: true,
       isVerifying: false,
-      setAuth: user => set({ auth: user }),
-      setUserData: data => set({ userData: data }),
+      setAuth: user =>
+        set(state => ({
+          auth: user,
+          userData: isUserDataForCurrentUser(state.userData, user) ? state.userData : null,
+        })),
+      setUserData: data =>
+        set(state => {
+          if (!data) return { userData: null };
+
+          const currentUid = state.auth?.uid || firebaseAuth.currentUser?.uid;
+          if (currentUid && data.uid !== currentUid) return { userData: null };
+
+          return { userData: data };
+        }),
       setLoading: loading => set({ isLoading: loading }),
       setVerifying: verifying => set({ isVerifying: verifying }),
       updateUserData: data =>
@@ -66,11 +81,18 @@ export const useAuth = create<AuthStore>()(
           userData: state.userData ? { ...state.userData, ...data } : null,
         })),
       syncUserData: async () => {
-        const currentUser = get().auth;
+        const currentUser = get().auth || firebaseAuth.currentUser;
         if (!currentUser) {
           console.warn('Cannot sync user data: No authenticated user');
+          set({ userData: null });
           return;
         }
+
+        if (!isUserDataForCurrentUser(get().userData, currentUser)) {
+          set({ userData: null });
+        }
+
+        set({ isVerifying: true });
 
         try {
           const idToken = await currentUser.getIdToken(true); // Force refresh token
@@ -86,7 +108,10 @@ export const useAuth = create<AuthStore>()(
           );
 
           if (response.data && response.data.user) {
-            set({ userData: response.data.user });
+            const latestUser = get().auth || firebaseAuth.currentUser;
+            if (latestUser?.uid === currentUser.uid && response.data.user.uid === currentUser.uid) {
+              set({ userData: response.data.user });
+            }
           }
         } catch (error: any) {
           console.error('❌ Failed to sync user data:', error);
@@ -107,6 +132,8 @@ export const useAuth = create<AuthStore>()(
             await firebaseAuth.signOut();
             set({ auth: null, userData: null });
           }
+        } finally {
+          set({ isVerifying: false });
         }
       },
     }),
@@ -120,6 +147,7 @@ export const useAuth = create<AuthStore>()(
 
 // Always run this on auth state change
 onAuthStateChanged(firebaseAuth, async user => {
+  useAuth.getState().setLoading(true);
   useAuth.getState().setAuth(user || null);
 
   if (user) {
@@ -130,5 +158,6 @@ onAuthStateChanged(firebaseAuth, async user => {
     useAuth.getState().setUserData(null);
   }
 
+  useAuth.getState().setVerifying(false);
   useAuth.getState().setLoading(false);
 });
