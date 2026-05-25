@@ -216,7 +216,7 @@ export class SuperAdminController {
     try {
       const firebaseConnected = await verifyFirebaseConnection();
       const psgc = PsgcService.getStatus();
-      const weatherConfigured = Boolean(process.env.TOMORROW_API_KEY || process.env.TOMORROW_IO_API_KEY);
+      const weatherConfigured = Boolean(process.env.WEATHER_API_KEY || process.env.TOMORROW_IO_API_KEY);
 
       res.status(firebaseConnected ? 200 : 503).json({
         status: firebaseConnected ? 'healthy' : 'degraded',
