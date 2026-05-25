@@ -9,13 +9,14 @@ export const setupAxiosInterceptors = () => {
       const status = error.response ? error.response.status : null;
       const errorCode = error.code;
 
-      // Check for unauthorized or forbidden status
+      // Check for invalid authentication state.
       // Also check for specific Firebase auth error codes if they bubble up
       if (
         status === 401 ||
-        status === 403 ||
         errorCode === 'auth/user-not-found' ||
-        errorCode === 'auth/user-token-expired'
+        errorCode === 'auth/user-token-expired' ||
+        errorCode === 'auth/invalid-user-token' ||
+        errorCode === 'auth/user-disabled'
       ) {
         // Force Firebase Sign Out
         try {

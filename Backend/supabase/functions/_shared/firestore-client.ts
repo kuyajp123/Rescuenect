@@ -189,7 +189,7 @@ export async function getUserTokens(
   const tokens: string[] = [];
   const matchedBarangays: string[] = [];
   const weatherLocationBarangays = weatherLocationKey
-    ? getBarangaysForWeatherLocationKey(weatherLocationKey).map(normalizeBarangayValue)
+    ? await getCoveredBarangaysForWeatherLocationKey(db, weatherLocationKey)
     : [];
   const coveredBarangays = weatherLocationKey ? new Set(weatherLocationBarangays) : null;
 
@@ -390,6 +390,36 @@ export async function saveNotificationHistory(
  */
 function isValidToken(token: string): boolean {
   return !!(token && token.length > 100 && token.includes(':'));
+}
+
+async function getCoveredBarangaysForWeatherLocationKey(
+  db: Firestore,
+  weatherLocationKey: string
+): Promise<string[]> {
+  const staticBarangays = getBarangaysForWeatherLocationKey(weatherLocationKey);
+
+  try {
+    const snapshot = await db
+      .collection('clients')
+      .where('status', '==', 'active')
+      .where('weatherLocationKey', '==', weatherLocationKey)
+      .limit(1)
+      .get();
+
+    const clientDoc = snapshot.empty ? await db.collection('clients').doc(weatherLocationKey).get() : snapshot.docs[0];
+    const clientData = clientDoc.exists ? clientDoc.data() : null;
+    const barangays = Array.isArray(clientData?.barangays) ? clientData.barangays : [];
+    const dynamicBarangays = barangays
+      .filter((barangay: Record<string, unknown>) => barangay.isActive !== false)
+      .map((barangay: Record<string, unknown>) => barangay.value || barangay.barangayLabel || barangay.name)
+      .filter((value: unknown): value is string => typeof value === 'string' && value.trim().length > 0)
+      .map(normalizeBarangayValue);
+
+    return dynamicBarangays.length > 0 ? dynamicBarangays : staticBarangays;
+  } catch (error) {
+    console.warn(`Unable to load dynamic barangay coverage for weather location ${weatherLocationKey}:`, error);
+    return staticBarangays;
+  }
 }
 
 function normalizeForComparison(value: unknown): unknown {

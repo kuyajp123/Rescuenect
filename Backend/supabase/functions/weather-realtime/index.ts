@@ -1,9 +1,9 @@
 import { serve } from 'serve';
 import { insertWeatherData } from '../_shared/firestore-client.ts';
-import type { RealtimeWeatherData } from '../_shared/types.ts';
-import { WEATHER_LOCATIONS, convertToManilaTime, delay, getWeatherAPIUrl } from '../_shared/weather-utils.ts';
+import type { RealtimeWeatherData, WeatherLocation } from '../_shared/types.ts';
+import { convertToManilaTime, delay, getWeatherAPIUrl, getWeatherLocations } from '../_shared/weather-utils.ts';
 
-const processRealtimeWeather = async (location: (typeof WEATHER_LOCATIONS)[0]) => {
+const processRealtimeWeather = async (location: WeatherLocation) => {
   try {
 
     const realtimeUrl = getWeatherAPIUrl(location.coordinates, 'realtime');
@@ -56,7 +56,9 @@ serve(async req => {
   try {
     console.log('⚡ Starting realtime weather data collection...');
 
-    for (const location of WEATHER_LOCATIONS) {
+    const weatherLocations = await getWeatherLocations();
+
+    for (const location of weatherLocations) {
       await processRealtimeWeather(location);
       await delay(1500);
     }
@@ -67,7 +69,7 @@ serve(async req => {
       JSON.stringify({
         success: true,
         message: 'Realtime weather data collected successfully',
-        processedLocations: WEATHER_LOCATIONS.length,
+        processedLocations: weatherLocations.length,
         timestamp: new Date().toISOString(),
       }),
       {

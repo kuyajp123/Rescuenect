@@ -1,5 +1,6 @@
 import { UnifiedStatusCard } from '@/components/ui/card/StatusCard/UnifiedStatusCard';
 import { API_ENDPOINTS } from '@/config/endPoints';
+import { auth } from '@/lib/firebaseConfig';
 import { AnnouncementDataCard } from '@/types/types';
 import { Button, Card, CardBody, Skeleton } from '@heroui/react';
 import axios from 'axios';
@@ -15,7 +16,10 @@ const Announcement = () => {
     const fetchAnnouncements = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(API_ENDPOINTS.ANNOUNCEMENT.GET_ALL_ANNOUNCEMENTS);
+        const token = await auth.currentUser?.getIdToken();
+        const response = await axios.get(API_ENDPOINTS.ANNOUNCEMENT.GET_ALL_ANNOUNCEMENTS, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         const data = response.data as unknown;
         if (Array.isArray(data)) {
           setAnnouncement(data as AnnouncementDataCard[]);

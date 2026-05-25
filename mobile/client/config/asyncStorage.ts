@@ -37,6 +37,8 @@ export interface User {
   barangayCode?: string | null;
   barangayLabel?: string;
   weatherLocationKey?: string;
+  weatherLatitude?: number | null;
+  weatherLongitude?: number | null;
 }
 
 //

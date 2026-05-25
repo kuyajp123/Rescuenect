@@ -5,6 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { storageHelpers } from '@/helper/storage';
 import { useCoords } from '@/store/useCoords';
 import { useMapSettingsStore } from '@/store/useMapSettings';
+import { useUserData } from '@/store/useBackendResponse';
 import MapboxGL from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, MapIcon } from 'lucide-react-native';
@@ -41,6 +42,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
   const activeStatusCoords = useCoords(state => state.activeStatusCoords);
   const setActiveStatusCoords = useCoords(state => state.setActiveStatusCoords);
   const followUserLocation = useCoords(state => state.followUserLocation);
+  const userData = useUserData(state => state.userData);
 
   const [mapStyle, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
   const [showMapStyles, setShowMapStyles] = useState(false);
@@ -49,6 +51,13 @@ export const MapProvider = ({ children }: MapProviderProps) => {
   const router = useRouter();
   const { isDark } = useTheme();
   const [cameraCenter, setCameraCenterState] = useState<[number, number]>([120.750674, 14.31808]);
+  const cameraBounds = useMemo(() => {
+    const [lng, lat] = cameraCenter;
+    return {
+      ne: [lng + 0.08, lat + 0.08] as [number, number],
+      sw: [lng - 0.08, lat - 0.08] as [number, number],
+    };
+  }, [cameraCenter]);
 
   const setCameraCenter = useCallback((coords: [number, number]) => {
     setCameraCenterState(coords);
@@ -72,6 +81,17 @@ export const MapProvider = ({ children }: MapProviderProps) => {
   }, []);
 
   // Update camera center when active status coords change
+  useEffect(() => {
+    if (
+      typeof userData.weatherLongitude === 'number' &&
+      typeof userData.weatherLatitude === 'number' &&
+      !Number.isNaN(userData.weatherLongitude) &&
+      !Number.isNaN(userData.weatherLatitude)
+    ) {
+      setCameraCenter([userData.weatherLongitude, userData.weatherLatitude]);
+    }
+  }, [setCameraCenter, userData.weatherLatitude, userData.weatherLongitude]);
+
   useEffect(() => {
     if (activeStatusCoords && coords && coords.length === 2) {
       setCameraCenter(coords);
@@ -172,10 +192,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
             maxZoomLevel={19}
             followUserLocation={followUserLocation}
             followZoomLevel={16}
-            maxBounds={{
-              ne: [120.765, 14.33],
-              sw: [120.735, 14.305],
-            }}
+            maxBounds={cameraBounds}
           />
           {mapStyle !== MapboxGL.StyleURL.SatelliteStreet && (
             <MapboxGL.VectorSource id="buildingSource" url="mapbox://mapbox.mapbox-streets-v8">
@@ -289,6 +306,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
     coords,
     oneTimeLocationCoords,
     cameraCenter,
+    cameraBounds,
     mapStyle,
     showMapStyles,
     isDark,

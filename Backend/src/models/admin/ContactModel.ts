@@ -28,14 +28,15 @@ type ContactsPayload = {
 };
 
 export class ContactModel {
-  private static docRef() {
-    return db.collection('contacts').doc('main');
+  private static docRef(clientId: string = 'naic') {
+    return db.collection('contacts').doc(clientId);
   }
 
-  public static async saveContacts(payload: ContactsPayload, userId: string): Promise<void> {
+  public static async saveContacts(payload: ContactsPayload, userId: string, clientId: string = 'naic'): Promise<void> {
     try {
-      await this.docRef().set(
+      await this.docRef(clientId).set(
         {
+          clientId,
           categories: payload.categories ?? [],
           contacts: payload.contacts ?? [],
           updatedAt: FieldValue.serverTimestamp(),
@@ -49,9 +50,15 @@ export class ContactModel {
     }
   }
 
-  public static async getContacts(): Promise<Record<string, unknown>> {
+  public static async getContacts(clientId: string = 'naic'): Promise<Record<string, unknown>> {
     try {
-      const doc = await this.docRef().get();
+      const doc = await this.docRef(clientId).get();
+      if (!doc.exists && clientId === 'naic') {
+        const legacyDoc = await db.collection('contacts').doc('main').get();
+        if (legacyDoc.exists) {
+          return { id: legacyDoc.id, clientId, ...legacyDoc.data() };
+        }
+      }
       if (!doc.exists) {
         return { categories: [], contacts: [] };
       }

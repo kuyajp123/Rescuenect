@@ -5,13 +5,17 @@ import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestor
 import { useEffect } from 'react';
 
 interface UseNotificationSubscriberProps {
+  enabled?: boolean;
   userLocation?: string; // User's barangay/location for filtering weather notifications
+  clientId?: string | null; // LGU client scope for admin notifications
   userId?: string; // User ID for read/hidden tracking
   maxNotifications?: number; // Limit number of notifications to fetch
 }
 
 export const useNotificationSubscriber = ({
+  enabled = true,
   userLocation,
+  clientId,
   userId,
   maxNotifications = 50,
 }: UseNotificationSubscriberProps = {}) => {
@@ -20,6 +24,13 @@ export const useNotificationSubscriber = ({
   const setError = useNotificationStore(state => state.setError);
 
   useEffect(() => {
+    if (!enabled) {
+      setNotifications([]);
+      setIsLoading(false);
+      setError(null);
+      return () => {};
+    }
+
     // Build query for notifications
     let notificationQuery = query(
       collection(db, 'notifications'),
@@ -40,6 +51,11 @@ export const useNotificationSubscriber = ({
               ...data,
               id: doc.id,
             };
+
+            const notificationClientId = notification.clientId || 'naic';
+            if (clientId && notification.type !== 'earthquake' && notificationClientId !== clientId) {
+              return;
+            }
 
             // Filter logic:
             // 1. Always include earthquake notifications
@@ -97,5 +113,5 @@ export const useNotificationSubscriber = ({
     return () => {
       unsubscribe();
     };
-  }, [userLocation, userId, maxNotifications, setNotifications]);
+  }, [enabled, userLocation, clientId, userId, maxNotifications, setNotifications]);
 };

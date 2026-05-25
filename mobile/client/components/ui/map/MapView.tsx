@@ -6,6 +6,7 @@ import { useMap } from '@/contexts/MapContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { storageHelpers } from '@/helper/storage';
 import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
+import { useUserData } from '@/store/useBackendResponse';
 import { CenterType, EvacuationCenter } from '@/types/components';
 import MapboxGL, { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
@@ -188,10 +189,7 @@ export const MapView: React.FC<MapViewProps> = ({
   cameraBounds,
   cameraTriggerKey,
   compassViewMargins = { x: 20, y: 20 },
-  maxBounds = [
-    [120.735, 14.305],
-    [120.765, 14.33],
-  ],
+  maxBounds,
   zoomLevel = 15,
   minZoomLevel = 15,
   maxZoomLevel = 19,
@@ -205,7 +203,23 @@ export const MapView: React.FC<MapViewProps> = ({
   const { isDark } = useTheme();
   const { setMapStyle } = useMap();
   const savedLocationsFromStore = useSavedLocationsStore(state => state.savedLocations);
+  const userData = useUserData(state => state.userData);
   const savedLocationsList = savedLocations ?? savedLocationsFromStore;
+  const scopedCenterCoordinate =
+    typeof userData.weatherLongitude === 'number' &&
+    typeof userData.weatherLatitude === 'number' &&
+    !Number.isNaN(userData.weatherLongitude) &&
+    !Number.isNaN(userData.weatherLatitude)
+      ? ([userData.weatherLongitude, userData.weatherLatitude] as [number, number])
+      : centerCoordinate;
+  const scopedMaxBounds =
+    maxBounds ??
+    (scopedCenterCoordinate
+      ? ([
+          [scopedCenterCoordinate[0] - 0.08, scopedCenterCoordinate[1] - 0.08],
+          [scopedCenterCoordinate[0] + 0.08, scopedCenterCoordinate[1] + 0.08],
+        ] as [[number, number], [number, number]])
+      : null);
   const [showMapStyles, setShowMapStyles] = useState(false);
   const [mapStyleState, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
   const [selectedMarker, setSelectedMarker] = useState<EvacuationCenter | null>(null);
@@ -351,12 +365,12 @@ export const MapView: React.FC<MapViewProps> = ({
         <MapboxGL.Camera
           bounds={cameraBounds}
           zoomLevel={cameraBounds ? undefined : zoomLevel}
-          centerCoordinate={cameraBounds ? undefined : centerCoordinate}
+          centerCoordinate={cameraBounds ? undefined : scopedCenterCoordinate}
           maxBounds={
-            maxBounds
+            scopedMaxBounds
               ? {
-                  ne: [maxBounds[1][0], maxBounds[1][1]],
-                  sw: [maxBounds[0][0], maxBounds[0][1]],
+                  ne: [scopedMaxBounds[1][0], scopedMaxBounds[1][1]],
+                  sw: [scopedMaxBounds[0][0], scopedMaxBounds[0][1]],
                 }
               : undefined
           }

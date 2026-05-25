@@ -49,6 +49,8 @@ export const useAppBootstrap = () => {
               barangayCode: savedUser.barangayCode ?? locationSelection?.barangayCode,
               barangayLabel: savedUser.barangayLabel ?? locationSelection?.barangayLabel,
               weatherLocationKey: savedUser.weatherLocationKey ?? locationSelection?.weatherLocationKey,
+              weatherLatitude: savedUser.weatherLatitude ?? locationSelection?.weatherLatitude,
+              weatherLongitude: savedUser.weatherLongitude ?? locationSelection?.weatherLongitude,
             },
           });
 

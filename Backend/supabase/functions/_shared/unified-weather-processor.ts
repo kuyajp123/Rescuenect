@@ -1,9 +1,9 @@
 import { sendFCMNotification } from './fcm-client.ts';
 import { getUserTokens, getWeatherData, getWeatherForecastData, initializeFirebase } from './firestore-client.ts';
-import { ACTIVE_WEATHER_LOCATION_KEYS } from './location-config.ts';
 import type { WeatherNotificationData } from './notification-schema.ts';
 import { NotificationService } from './notification-service.ts';
 import { WeatherNotificationSystem, type WeatherData, type WeatherNotification } from './weather-notification-core.ts';
+import { getWeatherLocations } from './weather-utils.ts';
 
 export interface WeatherNotificationConfig {
   type: 'current' | 'forecast_3h' | 'forecast_tomorrow';
@@ -28,7 +28,6 @@ export interface WeatherNotificationResult {
 
 export class UnifiedWeatherProcessor {
   private weatherNotifier: WeatherNotificationSystem;
-  private locations = ACTIVE_WEATHER_LOCATION_KEYS;
 
   constructor() {
     this.weatherNotifier = new WeatherNotificationSystem();
@@ -49,15 +48,19 @@ export class UnifiedWeatherProcessor {
     console.log(`🌤️ Processing ${config.type} weather notifications...`);
 
     try {
-      for (const location of this.locations) {
+      const locations = await getWeatherLocations();
+
+      for (const location of locations) {
         try {
-          await this.processLocationWeather(location, config, result);
+          await this.processLocationWeather(location.key, config, result, location.clientId);
           result.locations_processed++;
 
           // Rate limiting between locations
           await this.delay(1000);
         } catch (error) {
-          const errorMsg = `Failed to process ${location}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          const errorMsg = `Failed to process ${location.key}: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`;
           console.error(`❌ ${errorMsg}`);
           result.errors.push(errorMsg);
         }
@@ -76,7 +79,8 @@ export class UnifiedWeatherProcessor {
   private async processLocationWeather(
     location: string,
     config: WeatherNotificationConfig,
-    result: WeatherNotificationResult
+    result: WeatherNotificationResult,
+    clientId?: string
   ): Promise<void> {
     // Get appropriate weather data based on notification type
     const weatherData = await this.getWeatherDataForType(location, config);
@@ -110,7 +114,7 @@ export class UnifiedWeatherProcessor {
     // Send notifications for each condition found
     for (const notification of filteredNotifications) {
       try {
-        await this.sendWeatherNotification(notification, location, config, result);
+        await this.sendWeatherNotification(notification, location, config, result, clientId);
       } catch (error) {
         const errorMsg = `Failed to send notification for ${location}: ${
           error instanceof Error ? error.message : 'Unknown error'
@@ -271,10 +275,11 @@ export class UnifiedWeatherProcessor {
     notification: WeatherNotification,
     location: string,
     config: WeatherNotificationConfig,
-    result: WeatherNotificationResult
+    result: WeatherNotificationResult,
+    clientId?: string
   ): Promise<void> {
     // Get user tokens for the location/audience
-    const { tokens } = await getUserTokens(config.targetAudience, location);
+    const { tokens, barangays } = await getUserTokens(config.targetAudience, location);
 
     if (tokens.length === 0) {
       console.log(`No FCM tokens found for ${location}`);
@@ -343,6 +348,8 @@ export class UnifiedWeatherProcessor {
         title: notificationContent.title,
         message: notificationContent.body,
         location: location,
+        clientId,
+        barangays,
         audience: config.targetAudience,
         sentTo: fcmResult.success + fcmResult.failure,
         weatherData: weatherData,

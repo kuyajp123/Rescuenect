@@ -1,5 +1,6 @@
 import { db } from '@/lib/firebaseConfig';
 import { useStatusStore } from '@/store/useCurrentStatusStore';
+import { useUserData } from '@/store/useBackendResponse';
 import { StatusData } from '@/types/components';
 import {
   collectionGroup,
@@ -17,11 +18,19 @@ import { useEffect, useMemo, useState } from 'react';
 export const useCurrentStatuses = () => {
   const statuses = useStatusStore(state => state.statusData);
   const setStatuses = useStatusStore(state => state.setData);
+  const clientId = useUserData(state => state.userData.clientId);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
+    setError(null);
+
+    if (!clientId) {
+      setStatuses([]);
+      setLoading(false);
+      return () => {};
+    }
 
     let unsubscribe = () => {};
 
@@ -29,6 +38,7 @@ export const useCurrentStatuses = () => {
       const statusQuery = query(
         collectionGroup(db, 'statuses'),
         where('statusType', '==', 'current'),
+        where('clientId', '==', clientId),
         orderBy('createdAt', 'desc')
       );
 
@@ -57,7 +67,7 @@ export const useCurrentStatuses = () => {
     }
 
     return () => unsubscribe();
-  }, []);
+  }, [clientId]);
 
   // Derived state for easy filtering
   const statusesByCondition = useMemo(() => {

@@ -33,19 +33,22 @@ const naic_boundary = ['malainem luma', 'palangue 2 & 3'];
 export { central_naic, coastal_east, coastal_west, farm_area, naic_boundary, sabang };
 
 export const getUsersBarangay = (location: string) => {
-  if (coastal_west.includes(location)) {
+  const trimmedLocation = location.trim();
+  const normalizedLocation = trimmedLocation.toLowerCase();
+
+  if (coastal_west.includes(normalizedLocation)) {
     return 'coastal_west';
-  } else if (coastal_east.includes(location)) {
+  } else if (coastal_east.includes(normalizedLocation)) {
     return 'coastal_east';
-  } else if (central_naic.includes(location)) {
+  } else if (central_naic.includes(normalizedLocation)) {
     return 'central_naic';
-  } else if (location === sabang) {
+  } else if (normalizedLocation === sabang) {
     return 'sabang';
-  } else if (farm_area.includes(location)) {
+  } else if (farm_area.includes(normalizedLocation)) {
     return 'farm_area';
-  } else if (naic_boundary.includes(location)) {
+  } else if (naic_boundary.includes(normalizedLocation)) {
     return 'naic_boundary';
   } else {
-    throw new Error(`Invalid location: ${location}`);
+    return trimmedLocation;
   }
 };

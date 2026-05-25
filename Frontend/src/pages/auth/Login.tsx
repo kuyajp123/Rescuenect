@@ -2,7 +2,7 @@ import { GoogleButton } from '@/components/ui/button';
 import { useAuth } from '@/stores/useAuth';
 import { useErrorStore } from '@/stores/useErrorMessage';
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const userAuth = useAuth(state => state.auth);
@@ -37,6 +37,12 @@ const Login = () => {
             </div>
             <br />
             <div className="text-red-500 flex justify-center">{error && <p>{error}</p>}</div>
+            <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+              LGU client?{' '}
+              <Link className="font-medium text-primary hover:underline" to="/request-access">
+                Request Rescuenect access
+              </Link>
+            </div>
           </div>
         </div>
       </div>

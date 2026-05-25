@@ -16,6 +16,8 @@ type ResidentUserData = {
   barangayCode?: string | null;
   barangayLabel?: string;
   weatherLocationKey?: string;
+  weatherLatitude?: number | null;
+  weatherLongitude?: number | null;
 };
 
 type AuthUser = {

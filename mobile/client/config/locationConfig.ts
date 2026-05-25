@@ -73,7 +73,9 @@ export interface LocationCoverageClient {
   municipalityName: string;
   municipalityType: ClientType;
   barangays: LocationCoverageBarangay[];
-  weatherLocationKey: WeatherLocationKey;
+  weatherLocationKey: string;
+  weatherLatitude: number;
+  weatherLongitude: number;
   weatherCoordinates: {
     latitude: number;
     longitude: number;
@@ -102,7 +104,9 @@ export interface ResidentLocationSelection {
   municipalityType: ClientType;
   barangayCode: string | null;
   barangayLabel: string;
-  weatherLocationKey: WeatherLocationKey;
+  weatherLocationKey: string;
+  weatherLatitude: number;
+  weatherLongitude: number;
 }
 
 type BarangaySeed = Pick<BarangayMetadata, 'label' | 'value' | 'legacyWeatherZoneKey'>;
@@ -250,6 +254,8 @@ const toLocationCoverageClient = (client: LocationClient): LocationCoverageClien
       value: barangay.value,
     })),
   weatherLocationKey: client.weatherLocationKey,
+  weatherLatitude: client.weatherLatitude,
+  weatherLongitude: client.weatherLongitude,
   weatherCoordinates: {
     latitude: client.weatherLatitude,
     longitude: client.weatherLongitude,
@@ -330,6 +336,8 @@ export const getResidentLocationSelectionForBarangay = (
     barangayCode: matchedBarangay.psgcCode,
     barangayLabel: matchedBarangay.label,
     weatherLocationKey: matchedClient.weatherLocationKey,
+    weatherLatitude: matchedClient.weatherLatitude,
+    weatherLongitude: matchedClient.weatherLongitude,
   };
 };
 

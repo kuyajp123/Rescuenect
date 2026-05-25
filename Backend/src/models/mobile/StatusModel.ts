@@ -15,6 +15,25 @@ export class StatusModel {
     return db.collection('status').doc(userId.trim()).collection('statuses');
   }
 
+  private static async getUserClientMetadata(userId: string): Promise<Record<string, unknown>> {
+    const userSnap = await db.collection('users').doc(userId).get();
+    const data = userSnap.exists ? userSnap.data() ?? {} : {};
+
+    return {
+      clientId: data.clientId || 'naic',
+      clientName: data.clientName || 'Naic',
+      provinceCode: data.provinceCode || '0402100000',
+      provinceName: data.provinceName || 'Cavite',
+      municipalityCode: data.municipalityCode || '0402115000',
+      municipalityName: data.municipalityName || 'Naic',
+      municipalityType: data.municipalityType || 'municipality',
+      barangay: data.barangay ?? null,
+      barangayCode: data.barangayCode ?? null,
+      barangayLabel: data.barangayLabel ?? null,
+      weatherLocationKey: data.weatherLocationKey || 'naic',
+    };
+  }
+
   static async createOrUpdateStatus(
     userId: string,
     file: Express.Multer.File | undefined,
@@ -70,9 +89,12 @@ export class StatusModel {
         imageUrl = await ImageUploadService.uploadStatusImage(file, userId, parentId, versionId);
       }
 
+      const clientMetadata = await this.getUserClientMetadata(userId);
+
       // Create the status document - DO NOT include 'id' field, versionId is the document ID
       await statusRef.set({
         ...statusData,
+        ...clientMetadata,
         uid: userId, // Important: always set uid (override any uid in statusData)
         parentId: parentId,
         versionId: versionId,

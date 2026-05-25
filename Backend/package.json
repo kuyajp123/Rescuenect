@@ -12,7 +12,7 @@
     "dev-backend:local": "node scripts/start-backend-env.js local",
     "dev-backend:staging": "node scripts/start-backend-env.js staging",
     "dev-backend:production": "node scripts/start-backend-env.js production",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run build && node --test tests/*.test.js"
   },
   "keywords": [],
   "author": "",

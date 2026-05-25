@@ -1,6 +1,7 @@
-import { Activity, Cloud, HousePlus, LayoutDashboard, MapPin, Megaphone, Phone, UsersRound } from 'lucide-react';
+import { Activity, Building2, Cloud, HeartPulse, HousePlus, LayoutDashboard, MapPin, Megaphone, Phone, Shield, UserCog, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/stores/useAuth';
 
 interface SideBarProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ const SideBar = ({ isOpen }: SideBarProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const role = useAuth(state => state.userData?.role);
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
@@ -24,7 +26,7 @@ const SideBar = ({ isOpen }: SideBarProps) => {
 
   const baseClass = 'flex items-center py-3 transition-all duration-200 ease-in-out cursor-pointer group';
 
-  const navigationItems = [
+  const lguNavigationItems = [
     { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/status', icon: MapPin, label: 'Status' },
     // { path: '/city', icon: Map, label: 'City' },
@@ -35,6 +37,15 @@ const SideBar = ({ isOpen }: SideBarProps) => {
     { path: '/announcement', icon: Megaphone, label: 'Announcement' },
     { path: '/contacts', icon: Phone, label: 'Contacts' },
   ];
+  const superNavigationItems = [
+    { path: '/super', icon: LayoutDashboard, label: 'Overview' },
+    { path: '/super/requests', icon: Building2, label: 'LGU Requests' },
+    { path: '/super/clients', icon: Shield, label: 'Clients' },
+    { path: '/super/admins', icon: UserCog, label: 'LGU Admins' },
+    { path: '/super/system-status', icon: HeartPulse, label: 'System Status' },
+  ];
+
+  const navigationItems = role === 'super_admin' ? superNavigationItems : lguNavigationItems;
 
   return (
     <>

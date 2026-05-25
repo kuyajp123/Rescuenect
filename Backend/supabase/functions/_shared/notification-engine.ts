@@ -1,6 +1,7 @@
 import { sendFCMNotification } from './fcm-client.ts';
 import { getUserTokens, getWeatherData } from './firestore-client.ts';
-import { ACTIVE_WEATHER_LOCATION_KEYS, WEATHER_LOCATION_LABELS } from './location-config.ts';
+import { WEATHER_LOCATION_LABELS } from './location-config.ts';
+import { getWeatherLocations } from './weather-utils.ts';
 import {
   NotificationLevel,
   WeatherData,
@@ -33,7 +34,7 @@ export class NotificationProcessor {
 
     try {
       // Get latest weather data for all active weather location keys
-      const locations = ACTIVE_WEATHER_LOCATION_KEYS;
+      const locations = (await getWeatherLocations()).map(location => location.key);
 
       for (const location of locations) {
         try {

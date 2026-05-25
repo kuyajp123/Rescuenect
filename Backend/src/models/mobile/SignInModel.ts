@@ -1,4 +1,5 @@
 import { resolveResidentLocationSelection, type ResidentLocationSelection } from '@/config/locationConfig';
+import type { DynamicResidentLocationSelection } from '@/models/admin/ClientModel';
 import { db } from '@/db/firestoreConfig';
 
 export class SignInModel {
@@ -57,7 +58,7 @@ export class SignInModel {
     }
   }
 
-  static async saveBarangay(uid: string, locationSelection: ResidentLocationSelection): Promise<void> {
+  static async saveBarangay(uid: string, locationSelection: ResidentLocationSelection | DynamicResidentLocationSelection): Promise<void> {
     try {
       await this.userRef(uid).set(
         {

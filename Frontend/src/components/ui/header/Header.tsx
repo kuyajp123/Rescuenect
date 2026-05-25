@@ -33,6 +33,8 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
   const uid = auth.currentUser?.uid;
   const admin = useAuth(state => state.auth);
   const userData = useAuth(state => state.userData);
+  const setAuth = useAuth(state => state.setAuth);
+  const setUserData = useAuth(state => state.setUserData);
 
   const unreadCount = useMemo(() => getUnreadCount(uid), [notifications, getUnreadCount]);
 
@@ -41,7 +43,10 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
 
     try {
       revokeToken();
+      setUserData(null);
+      setAuth(null);
       await signOut(auth);
+      navigate('/auth/login', { replace: true });
     } catch (error) {
       console.error('Error signing out:', error);
     }

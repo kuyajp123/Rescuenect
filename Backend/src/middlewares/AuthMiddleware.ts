@@ -2,6 +2,10 @@ import { admin } from '@/db/firestoreConfig';
 import { NextFunction, Request, Response } from 'express';
 
 export class AuthMiddleware {
+  private static getStringValue(value: unknown): string | null {
+    return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+  }
+
   static async verifyToken(req: Request, res: Response, next: NextFunction): Promise<void> {
     const authHeader = req.headers.authorization;
 
@@ -48,5 +52,30 @@ export class AuthMiddleware {
       });
       res.status(401).json({ message: 'Invalid or expired token' });
     }
+  }
+
+  static requireOwnUid(req: Request, res: Response, next: NextFunction): void {
+    const authenticatedUid = req.user?.uid;
+
+    if (!authenticatedUid) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const requestUids = [
+      AuthMiddleware.getStringValue(req.params.uid),
+      AuthMiddleware.getStringValue(req.query.uid),
+      AuthMiddleware.getStringValue(req.query.residentId),
+      AuthMiddleware.getStringValue(req.body?.uid),
+      AuthMiddleware.getStringValue(req.body?.residentId),
+    ].filter(Boolean);
+
+    const hasMismatchedUid = requestUids.some(uid => uid !== authenticatedUid);
+    if (hasMismatchedUid) {
+      res.status(403).json({ message: 'You can only access your own user data' });
+      return;
+    }
+
+    next();
   }
 }
