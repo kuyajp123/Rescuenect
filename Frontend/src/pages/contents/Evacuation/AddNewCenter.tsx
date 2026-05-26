@@ -1,6 +1,10 @@
 import EvacuationCenterForm from '@/components/ui/form/EvacuationCenterForm';
 import { Map } from '@/components/ui/Map';
-import { getClientMapBounds, getClientMapCenter } from '@/helper/clientMapScope';
+import {
+  getClientConfiguredMapBounds,
+  getClientMapCenter,
+  getClientMapZoomSettings,
+} from '@/helper/clientMapScope';
 import { useAuth } from '@/stores/useAuth';
 import { Button } from '@heroui/react';
 import { useState } from 'react';
@@ -9,6 +13,7 @@ const Add = () => {
   const [mapClickPosition, setMapClickPosition] = useState<{ lat: number; lng: number } | null>(null);
   const userData = useAuth(state => state.userData);
   const mapCenter = getClientMapCenter(userData);
+  const mapZoom = getClientMapZoomSettings(userData);
 
   const handleMapClick = (latlng: { lat: number; lng: number }) => {
     setMapClickPosition(latlng);
@@ -19,7 +24,10 @@ const Add = () => {
       <div className="h-[45vh] md:h-full min-h-75">
         <Map
           center={mapCenter}
-          maxBounds={getClientMapBounds(mapCenter)}
+          maxBounds={getClientConfiguredMapBounds(userData)}
+          zoom={mapZoom.zoom}
+          minZoom={mapZoom.minZoom}
+          maxZoom={mapZoom.maxZoom}
           data={
             mapClickPosition ? [{ uid: 'clicked-point', lat: mapClickPosition.lat, lng: mapClickPosition.lng }] : []
           }

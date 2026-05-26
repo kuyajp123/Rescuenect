@@ -418,6 +418,14 @@ export interface ProcessedEarthquake {
   tsunami_warning: boolean;
   usgs_url: string;
   distance_km?: number;
+  affectedClientIds?: string[];
+  clientImpacts?: Array<{
+    clientId: string;
+    clientName?: string;
+    weatherLocationKey?: string;
+    distanceKm: number;
+    radiusKm?: number;
+  }>;
   impact_radii: {
     felt_radius_km: number;
     moderate_shaking_radius_km: number;
@@ -626,8 +634,11 @@ export interface EarthquakeNotificationData {
   // Source
   source: 'usgs' | 'phivolcs' | 'manual';
 
-  // Distance from Naic (optional)
-  distanceFromNaic?: number; // in kilometers
+  // Client-relative distance (optional)
+  clientId?: string;
+  clientName?: string;
+  distanceFromClient?: number; // in kilometers
+  distanceFromNaic?: number; // legacy compatibility
 
   // Impact radii for visualization
   impact_radii?: {

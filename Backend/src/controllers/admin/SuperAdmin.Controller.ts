@@ -1,12 +1,119 @@
-import { verifyFirebaseConnection } from '@/db/firestoreConfig';
+import { db, verifyFirebaseConnection } from '@/db/firestoreConfig';
 import { AdminAuthModel } from '@/models/admin/AdminAuthModel';
+import { ClientChangeRequestModel } from '@/models/admin/ClientChangeRequestModel';
 import { ClientModel } from '@/models/admin/ClientModel';
 import { LegacyNaicMigrationModel } from '@/models/admin/LegacyNaicMigrationModel';
 import { LguRequestModel } from '@/models/admin/LguRequestModel';
 import { PsgcService } from '@/services/PsgcService';
+import type {
+  ClientChangeRequestStatus,
+  ClientChangeRequestType,
+  ClientLguStatus,
+  LguRequestStatus,
+  SystemStatus,
+} from '@/types/admin';
 import { Request, Response } from 'express';
 
 export class SuperAdminController {
+  private static async buildSystemStatus(): Promise<SystemStatus> {
+    const firebaseConnected = await verifyFirebaseConnection();
+    const psgc = PsgcService.getStatus();
+    const weatherConfigured = Boolean(process.env.WEATHER_API_KEY || process.env.TOMORROW_IO_API_KEY);
+
+    return {
+      status: firebaseConnected ? 'healthy' : 'degraded',
+      timestamp: new Date().toISOString(),
+      backend: {
+        status: 'ok',
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+      },
+      firebase: {
+        connected: firebaseConnected,
+      },
+      psgc,
+      weather: {
+        configured: weatherConfigured,
+        status: weatherConfigured ? 'configured' : 'missing_key',
+      },
+      earthquake: {
+        status: 'configured',
+      },
+    };
+  }
+
+  static async getOverview(_req: Request, res: Response): Promise<void> {
+    try {
+      const [system, clients, lguRequests, changeRequests, admins, residentSnapshot] = await Promise.all([
+        SuperAdminController.buildSystemStatus(),
+        ClientModel.listClients(),
+        LguRequestModel.listRequests(),
+        ClientChangeRequestModel.listAll(),
+        AdminAuthModel.listLguAdmins(),
+        db.collection('users').get(),
+      ]);
+
+      const clientCounts: Record<ClientLguStatus, number> = { draft: 0, active: 0, inactive: 0 };
+      clients.forEach(client => {
+        clientCounts[client.status] += 1;
+      });
+
+      const requestCounts: Record<LguRequestStatus, number> = {
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+        cancelled: 0,
+      };
+      lguRequests.forEach(request => {
+        requestCounts[request.status] += 1;
+      });
+
+      const changeCounts: Record<ClientChangeRequestStatus, number> = {
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+        cancelled: 0,
+      };
+      const changeTypeCounts = new Map<ClientChangeRequestType, number>();
+      changeRequests.forEach(request => {
+        changeCounts[request.status] += 1;
+        changeTypeCounts.set(request.type, (changeTypeCounts.get(request.type) ?? 0) + 1);
+      });
+
+      const activeClientIds = new Set(clients.filter(client => client.status === 'active').map(client => client.id));
+      const activeResidents = residentSnapshot.docs.filter(doc => {
+        const data = doc.data();
+        return typeof data.clientId === 'string' && activeClientIds.has(data.clientId);
+      }).length;
+
+      res.status(system.firebase.connected ? 200 : 503).json({
+        status: system.status,
+        timestamp: system.timestamp,
+        summary: {
+          clients: clientCounts,
+          lguRequests: requestCounts,
+          changeRequests: changeCounts,
+          lguAdmins: admins.length,
+          activeResidents,
+        },
+        charts: {
+          clientStatus: Object.entries(clientCounts).map(([name, value]) => ({ name, value })),
+          lguRequestStatus: Object.entries(requestCounts).map(([name, value]) => ({ name, value })),
+          changeRequestStatus: Object.entries(changeCounts).map(([name, value]) => ({ name, value })),
+          changeRequestTypes: Array.from(changeTypeCounts.entries()).map(([name, value]) => ({ name, value })),
+        },
+        system,
+      });
+    } catch (error: unknown) {
+      res
+        .status(500)
+        .json({
+          error: error instanceof Error ? error.message : 'Unknown error',
+          message: 'Failed to compute overview',
+        });
+    }
+  }
+
   static async backfillLegacyNaicData(req: Request, res: Response): Promise<void> {
     try {
       const dryRun = req.query.dryRun === 'true' || req.body?.dryRun === true;
@@ -212,32 +319,67 @@ export class SuperAdminController {
     }
   }
 
+  static async getClientChangeRequests(_req: Request, res: Response): Promise<void> {
+    try {
+      res.status(200).json({ requests: await ClientChangeRequestModel.listAll() });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch client change requests' });
+    }
+  }
+
+  static async approveClientChangeRequest(req: Request, res: Response): Promise<void> {
+    try {
+      const request = await ClientChangeRequestModel.approve(
+        req.params.id,
+        req.adminUser?.uid || 'system',
+        typeof req.body?.reviewNote === 'string' ? req.body.reviewNote : undefined
+      );
+      res.status(200).json({ request });
+    } catch (error) {
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Failed to approve client change request',
+      });
+    }
+  }
+
+  static async rejectClientChangeRequest(req: Request, res: Response): Promise<void> {
+    try {
+      const request = await ClientChangeRequestModel.reject(
+        req.params.id,
+        req.adminUser?.uid || 'system',
+        typeof req.body?.reviewNote === 'string' ? req.body.reviewNote : undefined
+      );
+      res.status(200).json({ request });
+    } catch (error) {
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Failed to reject client change request',
+      });
+    }
+  }
+
+  static async uploadClientBoundary(req: Request, res: Response): Promise<void> {
+    try {
+      const geoJson = req.body?.geoJson && typeof req.body.geoJson === 'object' ? req.body.geoJson : req.body;
+      const source = typeof req.body?.source === 'string' ? req.body.source : null;
+      const boundary = await ClientModel.saveBoundary({
+        clientId: req.params.clientId,
+        geoJson,
+        source,
+        uploadedBy: req.adminUser?.uid || 'system',
+      });
+      const client = await ClientModel.getClientById(req.params.clientId);
+      res.status(200).json({ boundary, client });
+    } catch (error) {
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Failed to upload client boundary',
+      });
+    }
+  }
+
   static async getSystemStatus(_req: Request, res: Response): Promise<void> {
     try {
-      const firebaseConnected = await verifyFirebaseConnection();
-      const psgc = PsgcService.getStatus();
-      const weatherConfigured = Boolean(process.env.WEATHER_API_KEY || process.env.TOMORROW_IO_API_KEY);
-
-      res.status(firebaseConnected ? 200 : 503).json({
-        status: firebaseConnected ? 'healthy' : 'degraded',
-        timestamp: new Date().toISOString(),
-        backend: {
-          status: 'ok',
-          uptime: process.uptime(),
-          memory: process.memoryUsage(),
-        },
-        firebase: {
-          connected: firebaseConnected,
-        },
-        psgc,
-        weather: {
-          configured: weatherConfigured,
-          status: weatherConfigured ? 'configured' : 'missing_key',
-        },
-        earthquake: {
-          status: 'configured',
-        },
-      });
+      const status = await SuperAdminController.buildSystemStatus();
+      res.status(status.firebase.connected ? 200 : 503).json(status);
     } catch (error) {
       res.status(500).json({ message: 'Failed to compute system status' });
     }

@@ -305,9 +305,10 @@ export const NotificationDetails = () => {
               <h4 className="font-semibold">Location Details</h4>
             </div>
             <p className="text-default-700">{earthquakeData.place}</p>
-            {earthquakeData.distanceFromNaic && (
+            {(earthquakeData.distanceFromClient ?? earthquakeData.distanceFromNaic) !== undefined && (
               <p className="text-sm text-default-500 mt-2">
-                📍 {earthquakeData.distanceFromNaic.toFixed(1)} km from Naic, Cavite
+                {(earthquakeData.distanceFromClient ?? earthquakeData.distanceFromNaic ?? 0).toFixed(1)} km from{' '}
+                {earthquakeData.clientName || 'the client center'}
               </p>
             )}
           </div>

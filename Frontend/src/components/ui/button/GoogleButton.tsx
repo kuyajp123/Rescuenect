@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
-import { useAuth, UserData } from '@/stores/useAuth';
+import { getAccessIssueFromError, useAuth, UserData } from '@/stores/useAuth';
 import { useErrorStore } from '@/stores/useErrorMessage';
 import axios from 'axios';
 import { GoogleAuthProvider, signInWithCredential, signInWithPopup } from 'firebase/auth';
@@ -14,7 +14,7 @@ export const GoogleButton = () => {
   const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
   const handleGoogleLogin = async () => {
-    const { setVerifying, setLoading } = useAuth.getState();
+    const { setAuth, setVerifying, setLoading, setAccessIssue } = useAuth.getState();
 
     setLoading(true);
     setVerifying(true);
@@ -54,6 +54,16 @@ export const GoogleButton = () => {
       setLoading(false);
 
     } catch (error: any) {
+      const accessIssue = getAccessIssueFromError(error);
+      if (accessIssue) {
+        setAuth(auth.currentUser);
+        setAccessIssue(accessIssue);
+        setError('');
+        setVerifying(false);
+        setLoading(false);
+        return;
+      }
+
       await auth.signOut();
       console.error(error);
       setError(error.response?.data?.message || error.message);

@@ -343,9 +343,15 @@ export const Notification = () => {
                   {notification.type === 'earthquake' && (
                     <div className="mt-2 flex items-center gap-3 text-xs text-default-500">
                       <span>📍 {(notification.data as EarthquakeNotificationData)?.place}</span>
-                      {(notification.data as EarthquakeNotificationData)?.distanceFromNaic && (
+                      {((notification.data as EarthquakeNotificationData)?.distanceFromClient ??
+                        (notification.data as EarthquakeNotificationData)?.distanceFromNaic) !== undefined && (
                         <span>
-                          {(notification.data as EarthquakeNotificationData)?.distanceFromNaic?.toFixed(1)} km away
+                          {(
+                            (notification.data as EarthquakeNotificationData)?.distanceFromClient ??
+                            (notification.data as EarthquakeNotificationData)?.distanceFromNaic ??
+                            0
+                          ).toFixed(1)}{' '}
+                          km away
                         </span>
                       )}
                     </div>

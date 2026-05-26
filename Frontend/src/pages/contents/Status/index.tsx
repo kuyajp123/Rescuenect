@@ -3,7 +3,11 @@ import { StatusCard } from '@/components/ui/card/StatusCard';
 import { Map } from '@/components/ui/Map';
 import { StatusList } from '@/components/ui/status';
 import { API_ENDPOINTS } from '@/config/endPoints';
-import { getClientMapBounds, getClientMapCenter } from '@/helper/clientMapScope';
+import {
+  getClientConfiguredMapBounds,
+  getClientMapCenter,
+  getClientMapZoomSettings,
+} from '@/helper/clientMapScope';
 import { useResidentsStore } from '@/hooks/useFetchResidents';
 import { auth } from '@/lib/firebaseConfig';
 import { useAuth } from '@/stores/useAuth';
@@ -44,6 +48,7 @@ const Status = () => {
   const admin = auth.currentUser;
   const userData = useAuth(state => state.userData);
   const mapCenter = getClientMapCenter(userData);
+  const mapZoom = getClientMapZoomSettings(userData);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -183,7 +188,10 @@ const Status = () => {
       <div className="rounded-lg overflow-hidden w-full h-[45vh] lg:h-full">
         <Map
           center={mapCenter}
-          maxBounds={getClientMapBounds(mapCenter)}
+          maxBounds={getClientConfiguredMapBounds(userData)}
+          zoom={mapZoom.zoom}
+          minZoom={mapZoom.minZoom}
+          maxZoom={mapZoom.maxZoom}
           data={filteredData}
           onMarkerClick={handleMarkerClick}
           popupType="coordinates"

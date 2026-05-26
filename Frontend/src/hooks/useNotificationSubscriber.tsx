@@ -8,6 +8,7 @@ interface UseNotificationSubscriberProps {
   enabled?: boolean;
   userLocation?: string; // User's barangay/location for filtering weather notifications
   clientId?: string | null; // LGU client scope for admin notifications
+  role?: 'super_admin' | 'lgu_admin' | null;
   userId?: string; // User ID for read/hidden tracking
   maxNotifications?: number; // Limit number of notifications to fetch
 }
@@ -16,6 +17,7 @@ export const useNotificationSubscriber = ({
   enabled = true,
   userLocation,
   clientId,
+  role,
   userId,
   maxNotifications = 50,
 }: UseNotificationSubscriberProps = {}) => {
@@ -53,6 +55,12 @@ export const useNotificationSubscriber = ({
             };
 
             const notificationClientId = notification.clientId || 'naic';
+            if (role === 'super_admin') {
+              if (notification.type === 'weather' || notification.audience === 'users') return;
+              allNotifications.push(notification);
+              return;
+            }
+
             if (clientId && notification.type !== 'earthquake' && notificationClientId !== clientId) {
               return;
             }
@@ -63,9 +71,11 @@ export const useNotificationSubscriber = ({
             // 3. Include all other notification types
 
             if (notification.type === 'earthquake') {
-              // Always include earthquake notifications
-              allNotifications.push(notification);
+              if (!clientId || !notification.clientId || notification.clientId === clientId) {
+                allNotifications.push(notification);
+              }
             } else if (notification.type === 'weather') {
+              if (clientId && notificationClientId !== clientId) return;
               // Filter weather by location
               if (!userLocation) {
                 // No location set, include all weather notifications
@@ -113,5 +123,5 @@ export const useNotificationSubscriber = ({
     return () => {
       unsubscribe();
     };
-  }, [enabled, userLocation, clientId, userId, maxNotifications, setNotifications]);
+  }, [enabled, userLocation, clientId, role, userId, maxNotifications, setNotifications]);
 };

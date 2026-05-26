@@ -6,7 +6,9 @@ const {
   canLguAdminCompleteOnboarding,
   canLguAdminUseClient,
   hasUsableWeatherCoordinates,
+  isValidClientMapZoom,
   isClientVisibleInResidentSignup,
+  canAdminReceiveNotification,
   shouldAllowLegacyAdminEmails,
 } = require('../dist/src/utils/accessControl');
 
@@ -57,6 +59,8 @@ test('client activation requires usable weather coordinates', () => {
   assert.equal(hasUsableWeatherCoordinates(null, 120.7752839), false);
   assert.equal(hasUsableWeatherCoordinates(14.2919325, null), false);
   assert.equal(hasUsableWeatherCoordinates(Number.NaN, 120.7752839), false);
+  assert.equal(hasUsableWeatherCoordinates(120.521822, 15.846794), false);
+  assert.equal(hasUsableWeatherCoordinates(15.846794, 120.521822), true);
 });
 
 test('legacy ADMIN_EMAILS fallback is opt-in only', () => {
@@ -64,4 +68,21 @@ test('legacy ADMIN_EMAILS fallback is opt-in only', () => {
   assert.equal(shouldAllowLegacyAdminEmails('false'), false);
   assert.equal(shouldAllowLegacyAdminEmails('true'), true);
   assert.equal(shouldAllowLegacyAdminEmails('1'), true);
+});
+
+test('client map zoom settings stay within configured caps', () => {
+  assert.equal(isValidClientMapZoom({ minZoom: 13, zoom: 15, maxZoom: 18 }), true);
+  assert.equal(isValidClientMapZoom({ minZoom: 14, zoom: 15, maxZoom: 18 }), false);
+  assert.equal(isValidClientMapZoom({ minZoom: 13, zoom: 18, maxZoom: 18 }), false);
+  assert.equal(isValidClientMapZoom({ minZoom: 13, zoom: 15, maxZoom: 19 }), false);
+});
+
+test('role-aware admin notification targeting excludes super admin weather', () => {
+  const superAdmin = { role: 'super_admin', clientId: null };
+  const naicAdmin = { role: 'lgu_admin', clientId: 'naic' };
+
+  assert.equal(canAdminReceiveNotification(superAdmin, { type: 'weather', clientId: 'naic' }), false);
+  assert.equal(canAdminReceiveNotification(superAdmin, { type: 'system' }), true);
+  assert.equal(canAdminReceiveNotification(naicAdmin, { type: 'weather', clientId: 'naic' }), true);
+  assert.equal(canAdminReceiveNotification(naicAdmin, { type: 'weather', clientId: 'gentri' }), false);
 });

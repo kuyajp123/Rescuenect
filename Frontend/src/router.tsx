@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect } from 'react';
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Loading } from './components/ui/LazyLoading/Loading';
 import { AuthLayout, MainLayout, Onboarding } from './layouts';
 import ProtectedRoute from './security/ProtectedRoutes';
@@ -48,11 +48,12 @@ const SuperAdminClientDetails = lazy(() =>
 const SuperAdminAdmins = lazy(() =>
   import('@/pages/contents/SuperAdmin/pages/Admins').then(module => ({ default: module.SuperAdminAdmins }))
 );
-const SuperAdminSystemStatus = lazy(() =>
-  import('@/pages/contents/SuperAdmin/pages/SystemStatus').then(module => ({
-    default: module.SuperAdminSystemStatus,
+const SuperAdminClientRequests = lazy(() =>
+  import('@/pages/contents/SuperAdmin/pages/ClientRequests').then(module => ({
+    default: module.SuperAdminClientRequests,
   }))
 );
+const LguClientRequests = lazy(() => import('@/pages/contents/LguClientRequests'));
 const NotFound = lazy(() => import('@/pages/NotFound').then(module => ({ default: module.NotFound })));
 
 import PrivacyPolicy from './components/ui/legalTerms/PrivacyPolicy';
@@ -125,12 +126,14 @@ const Router = () => {
           <Route path="/announcement/details/:id" element={<AnnouncementDetails />} />
           <Route path="/announcement/edit/:id" element={<EditAnnouncement />} />
           <Route path="/contacts" element={<Contacts />} />
+          <Route path="/client-requests" element={<LguClientRequests />} />
           <Route path="/super" element={<SuperAdminOverview />} />
           <Route path="/super/requests" element={<SuperAdminRequests />} />
+          <Route path="/super/client-requests" element={<SuperAdminClientRequests />} />
           <Route path="/super/clients" element={<SuperAdminClients />} />
           <Route path="/super/clients/:clientId" element={<SuperAdminClientDetails />} />
           <Route path="/super/admins" element={<SuperAdminAdmins />} />
-          <Route path="/super/system-status" element={<SuperAdminSystemStatus />} />
+          <Route path="/super/system-status" element={<Navigate to="/super" replace />} />
         </Route>
 
         {/* Onboarding layout */}

@@ -5,7 +5,7 @@ import { Router } from 'express';
 
 const configRoutes = Router();
 
-configRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin);
+configRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin, AdminMiddleware.requireClientAccess);
 
 configRoutes.put('/update-fcm-token', ConfigController.FCMTokenUpdate);
 

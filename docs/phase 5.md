@@ -6,9 +6,10 @@ Phase 5 should be split into stability-first subphases. The goal is to harden Ph
 
 Key decisions locked:
 - LGU admins submit **proposals**; Super Admin approval applies changes.
-- City map bounds use **external boundary/GeoJSON data**, imported and stored, not guessed from the weather point.
+- City map bounds use **external boundary/GeoJSON data**, imported and stored.
 - Phase 5 order is **stability first**.
-- Admin notifications should be management/system-related only, not client weather alerts.
+- LGU admins still receive weather notifications for their own client.
+- Super admins do not receive client weather notifications.
 
 ## Key Changes
 
@@ -32,9 +33,8 @@ Key decisions locked:
 - Add `clientBoundaries/{clientId}` or a Storage-backed GeoJSON reference for imported city/municipality boundaries.
 - Super Admin imports/reviews external GeoJSON boundary data, and the backend computes the client `maxBounds`.
 - LGU Admin maps use their client `mapSettings`; Super Admin maps can view all clients.
-- If a client has no verified boundary yet, only Super Admin can activate/enforce the fallback; LGU maps should not silently use another client’s bounds.
 
-### 5C: Email Delivery And Management Notifications
+### 5C: Email Delivery And Role-Aware Notifications
 
 - Add backend email service using provider-agnostic SMTP through `nodemailer`.
 - Required env:
@@ -49,9 +49,13 @@ Key decisions locked:
   - LGU admin invitation.
   - LGU change proposal submitted.
   - LGU change proposal approved/rejected.
-- Store delivery attempts in `emailLogs` or `emailOutbox` for debugging.
-- Admin web notifications should exclude `weather`; weather alerts stay for residents/mobile users.
-- Add management notification types for admins: `system`, `client_request`, `client_change_request`, `admin_invite`, `system_health`.
+- Store delivery attempts in `emailLogs` or `emailOutbox`.
+- LGU admins continue receiving weather notifications for their assigned `clientId`.
+- Super admins are excluded from client weather notifications, including Naic weather notifications.
+- Super admins receive only management/system notifications: `system`, `client_request`, `client_change_request`, `admin_invite`, `system_health`.
+- Notification subscription logic should filter by role:
+  - `super_admin`: no `weather`; system-wide management notifications only.
+  - `lgu_admin`: weather and operational notifications where `notification.clientId === admin.clientId`.
 
 ### 5D: LGU Client Communication Module
 
@@ -70,7 +74,7 @@ Key decisions locked:
   - `proposedChanges`
   - `requestedBy`, `requestedAt`
   - review/apply metadata
-- Super Admin reviews proposals from a new tab/page and approval applies the change to the client record or admin invitation record.
+- Super Admin reviews proposals and approval applies the change to the client record or admin invitation record.
 
 ### 5E: Super Admin Analytics And Unified Overview
 
@@ -84,11 +88,7 @@ Key decisions locked:
   - active resident counts by client where available
   - backend/Firebase/PSGC/weather/earthquake status
   - latest scheduled-job timestamps where available
-- Use Recharts for overview visualizations:
-  - client status chart
-  - LGU request/proposal trend
-  - notification/system event chart
-  - health/status cards
+- Use Recharts for overview visualizations.
 - Keep HeroUI layout and current Super Admin visual style.
 
 ### 5F: Dynamic Earthquake Scope
@@ -100,13 +100,10 @@ Key decisions locked:
   - default min magnitude `1.5`
   - notification thresholds from current logic
 - Fetch USGS earthquakes per active client or through a merged query strategy, dedupe by earthquake id, and compute affected clients.
-- Store earthquake records with:
-  - `affectedClientIds`
-  - per-client distance/relevance metadata
-  - existing magnitude, severity, priority, tsunami, coordinates, and impact radius fields
+- Store earthquake records with `affectedClientIds` and per-client distance/relevance metadata.
 - Super Admin sees all earthquake events.
 - LGU Admin sees only earthquakes where `affectedClientIds` contains their `clientId`.
-- Resident earthquake notifications should target affected active clients only.
+- Resident and LGU admin earthquake notifications target affected active clients only.
 - Replace `distanceFromNaic` display with client-relative distance.
 
 ## Public APIs, Types, And Interfaces
@@ -130,7 +127,7 @@ Key decisions locked:
   - `SuperAdminOverview`
   - `ClientEarthquakeImpact`
 - Extend `ClientLgu` with `mapSettings`, boundary status, and optional earthquake settings.
-- Extend notification types so admin management notifications are separate from resident weather notifications.
+- Extend notification types with role-aware targeting metadata.
 
 ## Test Plan
 
@@ -143,7 +140,8 @@ Key decisions locked:
 - Test invalid map zoom settings are rejected.
 - Test map bounds are loaded from verified client boundary data.
 - Test email service logs attempts when SMTP is disabled and sends through mocked SMTP when enabled.
-- Test admin notifications exclude weather notifications.
+- Test Super Admin does not receive weather notifications for Naic or any client.
+- Test LGU Admin receives weather notifications only for their assigned client.
 - Test Super Admin overview returns analytics and health data.
 - Test LGU earthquake view only includes affected client events.
 - Test Super Admin earthquake view includes all events.
@@ -155,5 +153,6 @@ Key decisions locked:
 - External city boundary data is imported and stored by Super Admin; the app should not depend on a live external boundary API at runtime.
 - Naic remains protected until all dynamic client fallback behavior is proven stable.
 - SMTP is provider-agnostic; any free SMTP-capable provider can be used through env settings.
-- Weather alerts remain resident/mobile-facing and should not appear in admin notification lists.
+- LGU admins receive client weather and operational notifications for their own scope.
+- Super admins receive management/system notifications only.
 - Province-wide coverage remains out of scope.

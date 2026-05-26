@@ -1,7 +1,11 @@
 import { Map } from '@/components/ui/Map';
 import { types } from '@/config/constant';
 import { API_ENDPOINTS } from '@/config/endPoints';
-import { getClientMapBounds, getClientMapCenter } from '@/helper/clientMapScope';
+import {
+  getClientConfiguredMapBounds,
+  getClientMapCenter,
+  getClientMapZoomSettings,
+} from '@/helper/clientMapScope';
 import { auth } from '@/lib/firebaseConfig';
 import { usePanelStore } from '@/stores/panelStore';
 import { useAuth } from '@/stores/useAuth';
@@ -36,6 +40,7 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const userData = useAuth(state => state.userData);
   const mapCenter = getClientMapCenter(userData);
+  const mapZoom = getClientMapZoomSettings(userData);
 
   const { onOpenModal } = usePanelStore();
 
@@ -204,12 +209,14 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
                 ? [Number(data.data.coordinates.lat), Number(data.data.coordinates.lng)]
                 : [Number(data.data.lat || mapCenter[0]), Number(data.data.lng || mapCenter[1])]
           }
-          maxBounds={getClientMapBounds(mapCenter)}
+          maxBounds={getClientConfiguredMapBounds(userData)}
           hasMapStyleSelector={false}
           zoomControl={isEditing} // Enable controls when editing
           dragging={true}
           hasMapControl={false}
-          zoom={15}
+          zoom={mapZoom.zoom}
+          minZoom={mapZoom.minZoom}
+          maxZoom={mapZoom.maxZoom}
           onMapClick={isEditing ? coords => setFormData({ ...formData, ...coords }) : undefined}
           markerType="default"
           attribution={''}

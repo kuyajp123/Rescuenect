@@ -40,10 +40,12 @@
     "jsdom": "^27.4.0",
     "lodash": "^4.17.21",
     "multer": "^2.0.2",
+    "nodemailer": "^8.0.8",
     "tsc-alias": "^1.8.16",
     "typescript": "^5.8.2"
   },
   "devDependencies": {
+    "@types/nodemailer": "^8.0.0",
     "concurrently": "^9.1.2",
     "supabase": "^2.51.0",
     "ts-node": "^10.9.2",

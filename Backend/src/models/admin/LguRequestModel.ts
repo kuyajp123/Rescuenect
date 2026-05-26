@@ -1,11 +1,20 @@
 import { db } from '@/db/firestoreConfig';
 import { AdminAuthModel } from '@/models/admin/AdminAuthModel';
 import { ClientModel } from '@/models/admin/ClientModel';
+import { EmailService } from '@/services/EmailService';
 import type { ClientCoverageBarangay, ClientLguType, LguRequest } from '@/types/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const asString = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 const asEmail = (value: unknown): string => asString(value).toLowerCase();
+const asFiniteNumberOrNull = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
 
 const normalizeBarangay = (value: unknown): ClientCoverageBarangay | null => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
@@ -49,6 +58,8 @@ const serializeRequest = (id: string, data: FirebaseFirestore.DocumentData): Lgu
   municipalityCode: data.municipalityCode || '',
   municipalityName: data.municipalityName || '',
   municipalityType: data.municipalityType === 'city' ? 'city' : 'municipality',
+  proposedWeatherLatitude: typeof data.proposedWeatherLatitude === 'number' ? data.proposedWeatherLatitude : null,
+  proposedWeatherLongitude: typeof data.proposedWeatherLongitude === 'number' ? data.proposedWeatherLongitude : null,
   selectedBarangays: Array.isArray(data.selectedBarangays) ? data.selectedBarangays : [],
   barangaysVerified: Boolean(data.barangaysVerified),
   notes: data.notes || '',
@@ -86,6 +97,8 @@ export class LguRequestModel {
       municipalityCode: requireString(payload, 'municipalityCode', errors),
       municipalityName: requireString(payload, 'municipalityName', errors),
       municipalityType: payload.municipalityType === 'city' ? ('city' as ClientLguType) : ('municipality' as const),
+      proposedWeatherLatitude: asFiniteNumberOrNull(payload.proposedWeatherLatitude),
+      proposedWeatherLongitude: asFiniteNumberOrNull(payload.proposedWeatherLongitude),
       selectedBarangays,
       barangaysVerified: payload.barangaysVerified === true,
       notes: asString(payload.notes),
@@ -114,6 +127,29 @@ export class LguRequestModel {
     }
 
     const docRef = await this.collectionRef().add(request);
+    const appUrl = (process.env.APP_BASE_URL || '').replace(/\/$/, '');
+    await Promise.all([
+      EmailService.sendSimple({
+        to: request.requesterEmail,
+        subject: 'Rescuenect access request received',
+        title: 'Request received',
+        message: `We received your Rescuenect access request for ${request.lguName}. A Super Admin will review it soon.`,
+        template: 'lgu_request_received',
+        actionUrl: appUrl ? `${appUrl}/request-access` : undefined,
+        actionLabel: appUrl ? 'View Rescuenect' : undefined,
+      }),
+      ...AdminAuthModel.getSuperAdminEmails().map(email =>
+        EmailService.sendSimple({
+          to: email,
+          subject: 'New Rescuenect LGU access request',
+          title: 'New LGU request',
+          message: `${request.lguName} submitted a request for ${request.municipalityName}, ${request.provinceName}.`,
+          template: 'super_lgu_request_received',
+          actionUrl: appUrl ? `${appUrl}/super/requests` : undefined,
+          actionLabel: appUrl ? 'Review request' : undefined,
+        })
+      ),
+    ]);
     return docRef.id;
   }
 
@@ -166,6 +202,16 @@ export class LguRequestModel {
 
     const updated = await this.getRequest(id);
     if (!updated) throw new Error('LGU request not found after approval');
+    const appUrl = (process.env.APP_BASE_URL || '').replace(/\/$/, '');
+    await EmailService.sendSimple({
+      to: updated.requesterEmail,
+      subject: 'Rescuenect request approved',
+      title: 'Your Rescuenect request was approved',
+      message: `${updated.lguName} has been approved as a draft client. Please sign in with this email to continue onboarding.`,
+      template: 'lgu_request_approved',
+      actionUrl: appUrl ? `${appUrl}/auth/login` : undefined,
+      actionLabel: appUrl ? 'Sign in' : undefined,
+    });
     return updated;
   }
 
@@ -187,6 +233,13 @@ export class LguRequestModel {
 
     const updated = await this.getRequest(id);
     if (!updated) throw new Error('LGU request not found after rejection');
+    await EmailService.sendSimple({
+      to: updated.requesterEmail,
+      subject: 'Rescuenect request update',
+      title: 'Your Rescuenect request was not approved',
+      message: reviewNote || 'A Super Admin reviewed your request and did not approve it at this time.',
+      template: 'lgu_request_rejected',
+    });
     return updated;
   }
 }

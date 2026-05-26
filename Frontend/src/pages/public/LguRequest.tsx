@@ -46,6 +46,8 @@ const LguRequest = () => {
     requesterPosition: '',
     requesterEmail: '',
     requesterPhone: '',
+    proposedWeatherLatitude: '',
+    proposedWeatherLongitude: '',
     notes: '',
   });
 
@@ -196,6 +198,8 @@ const LguRequest = () => {
           value: barangay.name.toLowerCase(),
         })),
         barangaysVerified: isVerified,
+        proposedWeatherLatitude: form.proposedWeatherLatitude ? Number(form.proposedWeatherLatitude) : null,
+        proposedWeatherLongitude: form.proposedWeatherLongitude ? Number(form.proposedWeatherLongitude) : null,
       });
       setIsSubmitted(true);
     } catch (error: any) {
@@ -277,6 +281,18 @@ const LguRequest = () => {
                 label="Phone"
                 value={form.requesterPhone}
                 onValueChange={value => updateForm('requesterPhone', value)}
+              />
+              <Input
+                label="Proposed Weather Latitude"
+                type="number"
+                value={form.proposedWeatherLatitude}
+                onValueChange={value => updateForm('proposedWeatherLatitude', value)}
+              />
+              <Input
+                label="Proposed Weather Longitude"
+                type="number"
+                value={form.proposedWeatherLongitude}
+                onValueChange={value => updateForm('proposedWeatherLongitude', value)}
               />
 
               <Select

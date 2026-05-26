@@ -6,7 +6,16 @@ import {
   type SaveBarangayLocationPayload,
 } from '@/config/locationConfig';
 import { db } from '@/db/firestoreConfig';
-import type { ClientCoverageBarangay, ClientLgu, ClientLguStatus, LguRequest } from '@/types/admin';
+import type {
+  ClientBoundary,
+  ClientCoverageBarangay,
+  ClientEarthquakeSettings,
+  ClientLgu,
+  ClientLguStatus,
+  ClientMapBounds,
+  ClientMapSettings,
+  LguRequest,
+} from '@/types/admin';
 import { hasUsableWeatherCoordinates, isClientVisibleInResidentSignup } from '@/utils/accessControl';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -36,6 +45,145 @@ const toSlug = (value: string): string =>
 const activeBarangays = (barangays: ClientCoverageBarangay[]) =>
   barangays.filter(barangay => barangay.isActive !== false);
 
+export const DEFAULT_EARTHQUAKE_SETTINGS: ClientEarthquakeSettings = {
+  radiusKm: 150,
+  minMagnitude: 1.5,
+};
+
+export const DEFAULT_MAP_SETTINGS: ClientMapSettings = {
+  centerLatitude: NAIC_LOCATION_CLIENT.weatherLatitude,
+  centerLongitude: NAIC_LOCATION_CLIENT.weatherLongitude,
+  minZoom: 13,
+  zoom: 15,
+  maxZoom: 18,
+  maxBounds: {
+    north: NAIC_LOCATION_CLIENT.weatherLatitude + 0.08,
+    south: NAIC_LOCATION_CLIENT.weatherLatitude - 0.08,
+    east: NAIC_LOCATION_CLIENT.weatherLongitude + 0.08,
+    west: NAIC_LOCATION_CLIENT.weatherLongitude - 0.08,
+  },
+  boundarySource: 'naic_default',
+  boundaryVerified: false,
+};
+
+const toNumberOrNull = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null;
+
+const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+
+const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+
+const normalizeBounds = (value: unknown): ClientMapBounds | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const data = value as Record<string, unknown>;
+  const north = data.north;
+  const south = data.south;
+  const east = data.east;
+  const west = data.west;
+
+  if (![north, south, east, west].every(isFiniteNumber)) return null;
+  if ((south as number) >= (north as number) || (west as number) >= (east as number)) return null;
+
+  return { north: north as number, south: south as number, east: east as number, west: west as number };
+};
+
+export const normalizeMapSettings = (
+  rawSettings: unknown,
+  fallbackLatitude: number | null,
+  fallbackLongitude: number | null
+): ClientMapSettings => {
+  const settings =
+    rawSettings && typeof rawSettings === 'object' && !Array.isArray(rawSettings)
+      ? (rawSettings as Record<string, unknown>)
+      : {};
+  const centerLatitude = toNumberOrNull(settings.centerLatitude) ?? fallbackLatitude;
+  const centerLongitude = toNumberOrNull(settings.centerLongitude) ?? fallbackLongitude;
+  const minZoom = clamp(isFiniteNumber(settings.minZoom) ? settings.minZoom : 13, 12, 13);
+  const zoom = clamp(isFiniteNumber(settings.zoom) ? settings.zoom : 15, minZoom, 17);
+  const maxZoom = clamp(isFiniteNumber(settings.maxZoom) ? settings.maxZoom : 18, zoom, 18);
+  const fallbackBounds =
+    centerLatitude !== null && centerLongitude !== null
+      ? {
+          north: centerLatitude + 0.08,
+          south: centerLatitude - 0.08,
+          east: centerLongitude + 0.08,
+          west: centerLongitude - 0.08,
+        }
+      : null;
+
+  return {
+    centerLatitude,
+    centerLongitude,
+    minZoom,
+    zoom,
+    maxZoom,
+    maxBounds: normalizeBounds(settings.maxBounds) ?? fallbackBounds,
+    boundarySource: typeof settings.boundarySource === 'string' ? settings.boundarySource : null,
+    boundaryVerified: settings.boundaryVerified === true,
+    boundaryUpdatedAt: settings.boundaryUpdatedAt,
+  };
+};
+
+const normalizeEarthquakeSettings = (rawSettings: unknown): ClientEarthquakeSettings => {
+  const settings =
+    rawSettings && typeof rawSettings === 'object' && !Array.isArray(rawSettings)
+      ? (rawSettings as Record<string, unknown>)
+      : {};
+
+  return {
+    radiusKm: clamp(isFiniteNumber(settings.radiusKm) ? settings.radiusKm : DEFAULT_EARTHQUAKE_SETTINGS.radiusKm, 25, 500),
+    minMagnitude: clamp(
+      isFiniteNumber(settings.minMagnitude) ? settings.minMagnitude : DEFAULT_EARTHQUAKE_SETTINGS.minMagnitude,
+      0,
+      9
+    ),
+  };
+};
+
+export const computeGeoJsonBounds = (geoJson: unknown): ClientMapBounds => {
+  const coordinates: Array<[number, number]> = [];
+
+  const walk = (value: unknown): void => {
+    if (!Array.isArray(value)) return;
+    if (value.length >= 2 && isFiniteNumber(value[0]) && isFiniteNumber(value[1])) {
+      coordinates.push([value[0], value[1]]);
+      return;
+    }
+    value.forEach(walk);
+  };
+
+  if (!geoJson || typeof geoJson !== 'object') {
+    throw new Error('Valid GeoJSON object is required');
+  }
+
+  walk((geoJson as Record<string, unknown>).coordinates);
+  const features = (geoJson as Record<string, unknown>).features;
+  if (Array.isArray(features)) {
+    features.forEach(feature => {
+      if (feature && typeof feature === 'object') {
+        walk((feature as Record<string, unknown>).geometry && (feature as any).geometry.coordinates);
+      }
+    });
+  }
+  const geometry = (geoJson as Record<string, unknown>).geometry;
+  if (geometry && typeof geometry === 'object') {
+    walk((geometry as Record<string, unknown>).coordinates);
+  }
+
+  if (coordinates.length === 0) {
+    throw new Error('GeoJSON must include polygon or multipolygon coordinates');
+  }
+
+  const lngValues = coordinates.map(([lng]) => lng);
+  const latValues = coordinates.map(([, lat]) => lat);
+  return {
+    north: Math.max(...latValues),
+    south: Math.min(...latValues),
+    east: Math.max(...lngValues),
+    west: Math.min(...lngValues),
+  };
+};
+
 const toFallbackClient = (): ClientLgu => ({
   id: NAIC_LOCATION_CLIENT.id,
   name: NAIC_LOCATION_CLIENT.name,
@@ -51,6 +199,8 @@ const toFallbackClient = (): ClientLgu => ({
   weatherLocationKey: NAIC_LOCATION_CLIENT.weatherLocationKey,
   weatherLatitude: NAIC_LOCATION_CLIENT.weatherLatitude,
   weatherLongitude: NAIC_LOCATION_CLIENT.weatherLongitude,
+  mapSettings: DEFAULT_MAP_SETTINGS,
+  earthquakeSettings: DEFAULT_EARTHQUAKE_SETTINGS,
   barangays: NAIC_LOCATION_CLIENT.barangays.map(barangay => ({
     barangayCode: barangay.psgcCode,
     barangayLabel: barangay.label,
@@ -65,6 +215,8 @@ const toFallbackClient = (): ClientLgu => ({
 const normalizeClientDoc = (id: string, data: FirebaseFirestore.DocumentData): ClientLgu => {
   const type = data.type === 'city' ? 'city' : 'municipality';
   const rawBarangays = Array.isArray(data.barangays) ? data.barangays : [];
+  const weatherLatitude = typeof data.weatherLatitude === 'number' ? data.weatherLatitude : null;
+  const weatherLongitude = typeof data.weatherLongitude === 'number' ? data.weatherLongitude : null;
 
   return {
     id,
@@ -79,8 +231,10 @@ const normalizeClientDoc = (id: string, data: FirebaseFirestore.DocumentData): C
     municipalityName: data.municipalityName || data.name || id,
     municipalityType: type,
     weatherLocationKey: data.weatherLocationKey || toSlug(data.municipalityName || data.name || id),
-    weatherLatitude: typeof data.weatherLatitude === 'number' ? data.weatherLatitude : null,
-    weatherLongitude: typeof data.weatherLongitude === 'number' ? data.weatherLongitude : null,
+    weatherLatitude,
+    weatherLongitude,
+    mapSettings: normalizeMapSettings(data.mapSettings, weatherLatitude, weatherLongitude),
+    earthquakeSettings: normalizeEarthquakeSettings(data.earthquakeSettings),
     barangays: rawBarangays.map((barangay: any) => ({
       barangayCode: barangay.barangayCode ?? barangay.psgcCode ?? null,
       barangayLabel: barangay.barangayLabel ?? barangay.label ?? barangay.name ?? barangay.value ?? '',
@@ -254,6 +408,14 @@ export class ClientModel {
     }
 
     const weatherLocationKey = clientId;
+    const weatherLatitude =
+      typeof request.proposedWeatherLatitude === 'number' && Number.isFinite(request.proposedWeatherLatitude)
+        ? request.proposedWeatherLatitude
+        : null;
+    const weatherLongitude =
+      typeof request.proposedWeatherLongitude === 'number' && Number.isFinite(request.proposedWeatherLongitude)
+        ? request.proposedWeatherLongitude
+        : null;
     const client: ClientLgu = {
       id: clientId,
       name: request.lguName || request.municipalityName,
@@ -267,8 +429,23 @@ export class ClientModel {
       municipalityName: request.municipalityName,
       municipalityType: request.municipalityType,
       weatherLocationKey,
-      weatherLatitude: null,
-      weatherLongitude: null,
+      weatherLatitude,
+      weatherLongitude,
+      mapSettings: normalizeMapSettings(
+        {
+          centerLatitude: weatherLatitude,
+          centerLongitude: weatherLongitude,
+          minZoom: 13,
+          zoom: 15,
+          maxZoom: 18,
+          maxBounds: null,
+          boundarySource: null,
+          boundaryVerified: false,
+        },
+        weatherLatitude,
+        weatherLongitude
+      ),
+      earthquakeSettings: DEFAULT_EARTHQUAKE_SETTINGS,
       barangays: request.selectedBarangays.map(barangay => ({
         barangayCode: barangay.barangayCode,
         barangayLabel: barangay.barangayLabel,
@@ -310,7 +487,39 @@ export class ClientModel {
       'provinceName',
       'municipalityCode',
       'municipalityName',
+      'mapSettings',
+      'earthquakeSettings',
     ].forEach(copyIfPresent);
+
+    if (Object.prototype.hasOwnProperty.call(allowed, 'mapSettings')) {
+      const existing = await this.getClientById(clientId);
+      allowed.mapSettings = normalizeMapSettings(
+        allowed.mapSettings,
+        typeof allowed.weatherLatitude === 'number' ? allowed.weatherLatitude : existing?.weatherLatitude ?? null,
+        typeof allowed.weatherLongitude === 'number' ? allowed.weatherLongitude : existing?.weatherLongitude ?? null
+      );
+    }
+
+    if (Object.prototype.hasOwnProperty.call(allowed, 'earthquakeSettings')) {
+      allowed.earthquakeSettings = normalizeEarthquakeSettings(allowed.earthquakeSettings);
+    }
+
+    if (
+      Object.prototype.hasOwnProperty.call(allowed, 'weatherLatitude') ||
+      Object.prototype.hasOwnProperty.call(allowed, 'weatherLongitude')
+    ) {
+      const latitude = allowed.weatherLatitude;
+      const longitude = allowed.weatherLongitude;
+      const hasLatitude = latitude !== null && latitude !== undefined;
+      const hasLongitude = longitude !== null && longitude !== undefined;
+
+      if (
+        hasLatitude !== hasLongitude ||
+        (hasLatitude && !hasUsableWeatherCoordinates(latitude as number, longitude as number))
+      ) {
+        throw new Error('Weather latitude and longitude must be valid coordinates');
+      }
+    }
 
     await this.collectionRef()
       .doc(clientId)
@@ -340,7 +549,7 @@ export class ClientModel {
     }
 
     if (status === 'active' && !hasUsableWeatherCoordinates(client.weatherLatitude, client.weatherLongitude)) {
-      throw new Error('Client must have weather coordinates before activation');
+      throw new Error('Client must have valid weather coordinates before activation');
     }
 
     await this.collectionRef().doc(clientId).set({ status, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
@@ -362,5 +571,69 @@ export class ClientModel {
 
     await this.collectionRef().doc(clientId).delete();
     return client;
+  }
+
+  static async saveBoundary(params: {
+    clientId: string;
+    geoJson: Record<string, unknown>;
+    source?: string | null;
+    uploadedBy: string;
+  }): Promise<ClientBoundary> {
+    const client = await this.getClientById(params.clientId);
+    if (!client) throw new Error('Client not found');
+
+    const bounds = computeGeoJsonBounds(params.geoJson);
+    const source = typeof params.source === 'string' && params.source.trim() ? params.source.trim() : null;
+    const boundary: Omit<ClientBoundary, 'uploadedAt'> = {
+      clientId: client.id,
+      source,
+      geoJson: params.geoJson,
+      bounds,
+      uploadedBy: params.uploadedBy,
+    };
+
+    await db.collection('clientBoundaries').doc(client.id).set(
+      {
+        ...boundary,
+        uploadedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    const currentMapSettings = normalizeMapSettings(client.mapSettings, client.weatherLatitude, client.weatherLongitude);
+    await this.collectionRef()
+      .doc(client.id)
+      .set(
+        {
+          mapSettings: {
+            ...currentMapSettings,
+            maxBounds: bounds,
+            boundarySource: source,
+            boundaryVerified: true,
+            boundaryUpdatedAt: FieldValue.serverTimestamp(),
+          },
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+    return boundary;
+  }
+
+  static async getBoundary(clientId: string): Promise<ClientBoundary | null> {
+    const snap = await db.collection('clientBoundaries').doc(clientId).get();
+    if (!snap.exists) return null;
+    const data = snap.data() ?? {};
+    const bounds = normalizeBounds(data.bounds);
+    if (!bounds) return null;
+
+    return {
+      clientId,
+      source: typeof data.source === 'string' ? data.source : null,
+      geoJson: data.geoJson && typeof data.geoJson === 'object' ? (data.geoJson as Record<string, unknown>) : null,
+      bounds,
+      uploadedBy: typeof data.uploadedBy === 'string' ? data.uploadedBy : 'unknown',
+      uploadedAt: data.uploadedAt,
+    };
   }
 }

@@ -1,5 +1,6 @@
 import { NAIC_CLIENT_ID, NAIC_LOCATION_CLIENT } from '@/config/locationConfig';
 import { db } from '@/db/firestoreConfig';
+import { EmailService } from '@/services/EmailService';
 import type { AdminRole, AdminStatus, AdminUser } from '@/types/admin';
 import { shouldAllowLegacyAdminEmails } from '@/utils/accessControl';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -242,6 +243,16 @@ export class AdminAuthModel {
     };
 
     await this.invitationRef(data.email).set(payload, { merge: true });
+    const appUrl = (process.env.APP_BASE_URL || '').replace(/\/$/, '');
+    await EmailService.sendSimple({
+      to: payload.email,
+      subject: `Rescuenect ${payload.clientName || 'LGU'} admin invitation`,
+      title: 'You have been invited to Rescuenect',
+      message: `You were invited as an LGU admin${payload.clientName ? ` for ${payload.clientName}` : ''}. Sign in with this email to accept the invitation.`,
+      template: 'lgu_admin_invitation',
+      actionUrl: appUrl ? `${appUrl}/auth/login` : undefined,
+      actionLabel: appUrl ? 'Accept invitation' : undefined,
+    });
 
     return {
       email: payload.email,
@@ -355,6 +366,7 @@ export class AdminAuthModel {
       weatherLocationKey: client.weatherLocationKey,
       weatherLatitude: client.weatherLatitude,
       weatherLongitude: client.weatherLongitude,
+      mapSettings: client.mapSettings,
       clientBarangays: client.barangays.filter(barangay => barangay.isActive !== false),
     };
   }

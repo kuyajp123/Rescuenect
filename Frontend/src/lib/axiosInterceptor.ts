@@ -1,5 +1,5 @@
 import { auth } from '@/lib/firebaseConfig';
-import { useAuth } from '@/stores/useAuth';
+import { getAccessIssueFromError, useAuth } from '@/stores/useAuth';
 import axios from 'axios';
 
 export const setupAxiosInterceptors = () => {
@@ -8,6 +8,12 @@ export const setupAxiosInterceptors = () => {
     async error => {
       const status = error.response ? error.response.status : null;
       const errorCode = error.code;
+      const accessIssue = getAccessIssueFromError(error);
+
+      if ((status === 403 || status === 404) && accessIssue) {
+        useAuth.getState().setAccessIssue(accessIssue);
+        return Promise.reject(error);
+      }
 
       // Check for invalid authentication state.
       // Also check for specific Firebase auth error codes if they bubble up
