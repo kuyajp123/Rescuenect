@@ -97,6 +97,13 @@ export const useNotificationSubscriber = ({
                 ...data,
                 id: doc.id,
               };
+              if (
+                notification.audience === 'admin' ||
+                notification.targetRole === 'super_admin' ||
+                notification.targetRole === 'lgu_admin'
+              ) {
+                return;
+              }
               const notificationClientId = notification.clientId || 'naic';
               if (userClientId && notification.type !== 'earthquake' && notificationClientId !== userClientId) {
                 return;

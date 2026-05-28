@@ -2,6 +2,7 @@ import { db } from '@/db/firestoreConfig';
 import { AdminAuthModel } from '@/models/admin/AdminAuthModel';
 import { ClientModel } from '@/models/admin/ClientModel';
 import { EmailService } from '@/services/EmailService';
+import { ManagementNotificationService } from '@/services/ManagementNotificationService';
 import type { ClientCoverageBarangay, ClientLguType, LguRequest } from '@/types/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -128,7 +129,23 @@ export class LguRequestModel {
 
     const docRef = await this.collectionRef().add(request);
     const appUrl = (process.env.APP_BASE_URL || '').replace(/\/$/, '');
+    const superAdminEmails = AdminAuthModel.getSuperAdminEmails();
     await Promise.all([
+      ManagementNotificationService.notifySuperAdmins({
+        type: 'client_request',
+        title: 'New LGU access request',
+        message: `${request.lguName} requested Rescuenect access for ${request.municipalityName}, ${request.provinceName}.`,
+        sentTo: superAdminEmails.length,
+        data: {
+          requestId: docRef.id,
+          status: request.status,
+          lguName: request.lguName,
+          requesterEmail: request.requesterEmail,
+          municipalityName: request.municipalityName,
+          provinceName: request.provinceName,
+          actionPath: '/super/requests',
+        },
+      }),
       EmailService.sendSimple({
         to: request.requesterEmail,
         subject: 'Rescuenect access request received',
@@ -138,7 +155,7 @@ export class LguRequestModel {
         actionUrl: appUrl ? `${appUrl}/request-access` : undefined,
         actionLabel: appUrl ? 'View Rescuenect' : undefined,
       }),
-      ...AdminAuthModel.getSuperAdminEmails().map(email =>
+      ...superAdminEmails.map(email =>
         EmailService.sendSimple({
           to: email,
           subject: 'New Rescuenect LGU access request',
@@ -241,5 +258,16 @@ export class LguRequestModel {
       template: 'lgu_request_rejected',
     });
     return updated;
+  }
+
+  static async deleteFinalizedRequest(id: string): Promise<LguRequest> {
+    const request = await this.getRequest(id);
+    if (!request) throw new Error('LGU request not found');
+    if (request.status !== 'approved' && request.status !== 'rejected') {
+      throw new Error('Only approved or rejected LGU requests can be deleted');
+    }
+
+    await this.collectionRef().doc(id).delete();
+    return request;
   }
 }

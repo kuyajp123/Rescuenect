@@ -82,6 +82,9 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
       barangayCode: responseUser.barangayCode ?? locationSelection?.barangayCode,
       barangayLabel: responseUser.barangayLabel ?? locationSelection?.barangayLabel,
       weatherLocationKey: responseUser.weatherLocationKey ?? locationSelection?.weatherLocationKey,
+      weatherLatitude: responseUser.weatherLatitude ?? locationSelection?.weatherLatitude,
+      weatherLongitude: responseUser.weatherLongitude ?? locationSelection?.weatherLongitude,
+      mapSettings: responseUser.mapSettings ?? locationSelection?.mapSettings ?? userData.mapSettings ?? null,
     };
 
     // Store backend response BEFORE Firebase auth state changes

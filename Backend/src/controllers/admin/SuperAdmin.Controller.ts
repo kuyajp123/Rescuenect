@@ -1,18 +1,106 @@
 import { db, verifyFirebaseConnection } from '@/db/firestoreConfig';
 import { AdminAuthModel } from '@/models/admin/AdminAuthModel';
 import { ClientChangeRequestModel } from '@/models/admin/ClientChangeRequestModel';
-import { ClientModel } from '@/models/admin/ClientModel';
+import { ClientModel, parseGeoJsonFromStorage } from '@/models/admin/ClientModel';
 import { LegacyNaicMigrationModel } from '@/models/admin/LegacyNaicMigrationModel';
 import { LguRequestModel } from '@/models/admin/LguRequestModel';
+import { OperationLogService } from '@/services/OperationLogService';
 import { PsgcService } from '@/services/PsgcService';
 import type {
+  AdminUser,
+  ClientChangeRequest,
   ClientChangeRequestStatus,
   ClientChangeRequestType,
+  ClientLgu,
   ClientLguStatus,
+  LguRequest,
   LguRequestStatus,
   SystemStatus,
 } from '@/types/admin';
 import { Request, Response } from 'express';
+
+const REVIEW_NOTE_WORD_LIMIT = 300;
+
+const getReviewNote = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const note = value.trim();
+  if (!note) return undefined;
+  const wordCount = note.split(/\s+/).filter(Boolean).length;
+  if (wordCount > REVIEW_NOTE_WORD_LIMIT) {
+    throw new Error(`Review note must be ${REVIEW_NOTE_WORD_LIMIT} words or fewer`);
+  }
+  return note;
+};
+
+const activeBarangayCount = (client: ClientLgu): number =>
+  client.barangays.filter(barangay => barangay.isActive !== false).length;
+
+const clientLogSnapshot = (client: ClientLgu | null | undefined): Record<string, unknown> | null => {
+  if (!client) return null;
+
+  return {
+    name: client.name,
+    status: client.status,
+    provinceName: client.provinceName,
+    municipalityName: client.municipalityName,
+    weatherLocationKey: client.weatherLocationKey,
+    centerLatitude: client.weatherLatitude,
+    centerLongitude: client.weatherLongitude,
+    activeBarangays: activeBarangayCount(client),
+    totalBarangays: client.barangays.length,
+    mapSettings: {
+      centerLatitude: client.mapSettings?.centerLatitude ?? null,
+      centerLongitude: client.mapSettings?.centerLongitude ?? null,
+      minZoom: client.mapSettings?.minZoom ?? null,
+      zoom: client.mapSettings?.zoom ?? null,
+      maxZoom: client.mapSettings?.maxZoom ?? null,
+      maxBounds: client.mapSettings?.maxBounds ?? null,
+      boundarySource: client.mapSettings?.boundarySource ?? null,
+      boundaryVerified: client.mapSettings?.boundaryVerified ?? false,
+    },
+  };
+};
+
+const adminLogSnapshot = (admin: AdminUser | null | undefined): Record<string, unknown> | null => {
+  if (!admin) return null;
+
+  return {
+    email: admin.email,
+    role: admin.role,
+    status: admin.status,
+    clientId: admin.clientId,
+    clientName: admin.clientName ?? null,
+  };
+};
+
+const lguRequestLogSnapshot = (request: LguRequest | null | undefined): Record<string, unknown> | null => {
+  if (!request) return null;
+
+  return {
+    status: request.status,
+    lguName: request.lguName,
+    requesterEmail: request.requesterEmail,
+    municipalityName: request.municipalityName,
+    provinceName: request.provinceName,
+    selectedBarangays: request.selectedBarangays.length,
+    clientId: request.clientId ?? null,
+    reviewNote: request.reviewNote ?? null,
+  };
+};
+
+const clientChangeLogSnapshot = (
+  request: ClientChangeRequest | null | undefined
+): Record<string, unknown> | null => {
+  if (!request) return null;
+
+  return {
+    status: request.status,
+    clientName: request.clientName ?? request.clientId,
+    type: request.type,
+    requestedByEmail: request.requestedByEmail ?? null,
+    reviewNote: request.reviewNote ?? null,
+  };
+};
 
 export class SuperAdminController {
   private static async buildSystemStatus(): Promise<SystemStatus> {
@@ -114,10 +202,33 @@ export class SuperAdminController {
     }
   }
 
+  static async getOperationLogs(req: Request, res: Response): Promise<void> {
+    try {
+      const limit = typeof req.query.limit === 'string' ? Number(req.query.limit) : 300;
+      res.status(200).json({ logs: await OperationLogService.list(limit) });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch operation logs' });
+    }
+  }
+
   static async backfillLegacyNaicData(req: Request, res: Response): Promise<void> {
     try {
       const dryRun = req.query.dryRun === 'true' || req.body?.dryRun === true;
       const summary = await LegacyNaicMigrationModel.backfillNaicClientId({ dryRun });
+      if (!dryRun) {
+        await OperationLogService.create({
+          actor: req.adminUser,
+          action: 'migration.naic_client_id',
+          actionLabel: 'Ran Naic client migration',
+          targetType: 'migration',
+          targetId: 'naic-client-id',
+          clientId: 'naic',
+          clientName: 'Naic',
+          message: 'Legacy Naic records were backfilled with clientId.',
+          before: null,
+          after: { summary },
+        });
+      }
       res.status(200).json({ summary });
     } catch (error) {
       res.status(500).json({
@@ -137,11 +248,25 @@ export class SuperAdminController {
 
   static async approveLguRequest(req: Request, res: Response): Promise<void> {
     try {
+      const before = await LguRequestModel.getRequest(req.params.id);
       const request = await LguRequestModel.approveRequest(
         req.params.id,
         req.adminUser?.uid || 'system',
         typeof req.body?.reviewNote === 'string' ? req.body.reviewNote : undefined
       );
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'lgu_request.approve',
+        actionLabel: 'Approved LGU request',
+        targetType: 'lgu_request',
+        targetId: request.id,
+        targetName: request.lguName,
+        clientId: request.clientId ?? null,
+        clientName: request.lguName,
+        message: `${request.lguName} was approved as a draft client.`,
+        before: lguRequestLogSnapshot(before),
+        after: lguRequestLogSnapshot(request),
+      });
       res.status(200).json({ request });
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : 'Failed to approve request' });
@@ -150,14 +275,50 @@ export class SuperAdminController {
 
   static async rejectLguRequest(req: Request, res: Response): Promise<void> {
     try {
+      const before = await LguRequestModel.getRequest(req.params.id);
       const request = await LguRequestModel.rejectRequest(
         req.params.id,
         req.adminUser?.uid || 'system',
         typeof req.body?.reviewNote === 'string' ? req.body.reviewNote : undefined
       );
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'lgu_request.reject',
+        actionLabel: 'Rejected LGU request',
+        targetType: 'lgu_request',
+        targetId: request.id,
+        targetName: request.lguName,
+        clientId: request.clientId ?? null,
+        clientName: request.lguName,
+        message: `${request.lguName} access request was rejected.`,
+        before: lguRequestLogSnapshot(before),
+        after: lguRequestLogSnapshot(request),
+      });
       res.status(200).json({ request });
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : 'Failed to reject request' });
+    }
+  }
+
+  static async deleteLguRequest(req: Request, res: Response): Promise<void> {
+    try {
+      const request = await LguRequestModel.deleteFinalizedRequest(req.params.id);
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'lgu_request.delete',
+        actionLabel: 'Deleted LGU request',
+        targetType: 'lgu_request',
+        targetId: request.id,
+        targetName: request.lguName,
+        clientId: request.clientId ?? null,
+        clientName: request.lguName,
+        message: `${request.lguName} ${request.status} request was deleted from the review list.`,
+        before: lguRequestLogSnapshot(request),
+        after: { deleted: true },
+      });
+      res.status(200).json({ request });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : 'Failed to delete LGU request' });
     }
   }
 
@@ -190,7 +351,21 @@ export class SuperAdminController {
 
   static async updateClient(req: Request, res: Response): Promise<void> {
     try {
+      const before = await ClientModel.getClientById(req.params.clientId);
       const client = await ClientModel.updateClient(req.params.clientId, req.body || {});
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'client.update',
+        actionLabel: 'Updated client',
+        targetType: 'client',
+        targetId: client.id,
+        targetName: client.name,
+        clientId: client.id,
+        clientName: client.name,
+        message: `${client.name} client settings were updated.`,
+        before: clientLogSnapshot(before),
+        after: clientLogSnapshot(client),
+      });
       res.status(200).json({ client });
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : 'Failed to update client' });
@@ -199,7 +374,21 @@ export class SuperAdminController {
 
   static async activateClient(req: Request, res: Response): Promise<void> {
     try {
+      const before = await ClientModel.getClientById(req.params.clientId);
       const client = await ClientModel.setClientStatus(req.params.clientId, 'active');
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'client.activate',
+        actionLabel: 'Activated client',
+        targetType: 'client',
+        targetId: client.id,
+        targetName: client.name,
+        clientId: client.id,
+        clientName: client.name,
+        message: `${client.name} is now active for resident signup and LGU admin operations.`,
+        before: clientLogSnapshot(before),
+        after: clientLogSnapshot(client),
+      });
       res.status(200).json({ client });
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : 'Failed to activate client' });
@@ -208,7 +397,21 @@ export class SuperAdminController {
 
   static async deactivateClient(req: Request, res: Response): Promise<void> {
     try {
+      const before = await ClientModel.getClientById(req.params.clientId);
       const client = await ClientModel.setClientStatus(req.params.clientId, 'inactive');
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'client.deactivate',
+        actionLabel: 'Deactivated client',
+        targetType: 'client',
+        targetId: client.id,
+        targetName: client.name,
+        clientId: client.id,
+        clientName: client.name,
+        message: `${client.name} is now inactive.`,
+        before: clientLogSnapshot(before),
+        after: clientLogSnapshot(client),
+      });
       res.status(200).json({ client });
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : 'Failed to deactivate client' });
@@ -235,6 +438,19 @@ export class SuperAdminController {
 
       const affectedAdmins = await AdminAuthModel.deactivateAdminsForClient(client.id, req.adminUser?.uid || 'system');
       await ClientModel.deleteClient(client.id);
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'client.delete',
+        actionLabel: 'Deleted client',
+        targetType: 'client',
+        targetId: client.id,
+        targetName: client.name,
+        clientId: client.id,
+        clientName: client.name,
+        message: `${client.name} was deleted and ${affectedAdmins} LGU admin account(s) were deactivated.`,
+        before: clientLogSnapshot(client),
+        after: { deleted: true, affectedAdmins },
+      });
       res.status(200).json({ client, affectedAdmins });
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : 'Failed to delete client' });
@@ -278,6 +494,19 @@ export class SuperAdminController {
         clientName: client.name,
         invitedBy: req.adminUser?.uid || 'system',
       });
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'admin.invite',
+        actionLabel: 'Invited LGU admin',
+        targetType: 'admin_invitation',
+        targetId: email,
+        targetName: email,
+        clientId: client.id,
+        clientName: client.name,
+        message: `${email} was invited as an LGU admin for ${client.name}.`,
+        before: null,
+        after: invitation,
+      });
 
       res.status(201).json({ invitation });
     } catch (error) {
@@ -298,7 +527,21 @@ export class SuperAdminController {
         return;
       }
 
+      const before = await AdminAuthModel.getAdminByUid(req.params.uid);
       const admin = await AdminAuthModel.updateAdminStatus(req.params.uid, status);
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'admin.update_status',
+        actionLabel: 'Updated LGU admin status',
+        targetType: 'admin',
+        targetId: admin.uid,
+        targetName: admin.email,
+        clientId: admin.clientId,
+        clientName: admin.clientName ?? null,
+        message: `${admin.email} was set to ${admin.status}.`,
+        before: adminLogSnapshot(before),
+        after: adminLogSnapshot(admin),
+      });
       res.status(200).json({ admin });
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : 'Failed to update admin user' });
@@ -312,7 +555,21 @@ export class SuperAdminController {
         return;
       }
 
+      const before = await AdminAuthModel.getAdminByUid(req.params.uid);
       const admin = await AdminAuthModel.deleteLguAdmin(req.params.uid, req.adminUser?.uid || 'system');
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'admin.delete',
+        actionLabel: 'Deleted LGU admin',
+        targetType: 'admin',
+        targetId: admin.uid,
+        targetName: admin.email,
+        clientId: admin.clientId,
+        clientName: admin.clientName ?? null,
+        message: `${admin.email} was removed from ${admin.clientName || admin.clientId}.`,
+        before: adminLogSnapshot(before ?? admin),
+        after: { deleted: true, invitationStatus: 'revoked' },
+      });
       res.status(200).json({ admin });
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : 'Failed to delete admin user' });
@@ -329,11 +586,25 @@ export class SuperAdminController {
 
   static async approveClientChangeRequest(req: Request, res: Response): Promise<void> {
     try {
+      const before = await ClientChangeRequestModel.getById(req.params.id);
       const request = await ClientChangeRequestModel.approve(
         req.params.id,
         req.adminUser?.uid || 'system',
-        typeof req.body?.reviewNote === 'string' ? req.body.reviewNote : undefined
+        getReviewNote(req.body?.reviewNote)
       );
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'client_change_request.approve',
+        actionLabel: 'Approved client request',
+        targetType: 'client_change_request',
+        targetId: request.id,
+        targetName: request.type,
+        clientId: request.clientId,
+        clientName: request.clientName ?? null,
+        message: `${request.clientName || request.clientId} ${request.type.replace(/_/g, ' ')} proposal was approved.`,
+        before: clientChangeLogSnapshot(before),
+        after: clientChangeLogSnapshot(request),
+      });
       res.status(200).json({ request });
     } catch (error) {
       res.status(400).json({
@@ -344,11 +615,25 @@ export class SuperAdminController {
 
   static async rejectClientChangeRequest(req: Request, res: Response): Promise<void> {
     try {
+      const before = await ClientChangeRequestModel.getById(req.params.id);
       const request = await ClientChangeRequestModel.reject(
         req.params.id,
         req.adminUser?.uid || 'system',
-        typeof req.body?.reviewNote === 'string' ? req.body.reviewNote : undefined
+        getReviewNote(req.body?.reviewNote)
       );
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'client_change_request.reject',
+        actionLabel: 'Rejected client request',
+        targetType: 'client_change_request',
+        targetId: request.id,
+        targetName: request.type,
+        clientId: request.clientId,
+        clientName: request.clientName ?? null,
+        message: `${request.clientName || request.clientId} ${request.type.replace(/_/g, ' ')} proposal was rejected.`,
+        before: clientChangeLogSnapshot(before),
+        after: clientChangeLogSnapshot(request),
+      });
       res.status(200).json({ request });
     } catch (error) {
       res.status(400).json({
@@ -357,10 +642,38 @@ export class SuperAdminController {
     }
   }
 
+  static async deleteClientChangeRequest(req: Request, res: Response): Promise<void> {
+    try {
+      const request = await ClientChangeRequestModel.delete(req.params.id);
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'client_change_request.delete',
+        actionLabel: 'Deleted client request',
+        targetType: 'client_change_request',
+        targetId: request.id,
+        targetName: request.type,
+        clientId: request.clientId,
+        clientName: request.clientName ?? null,
+        message: `${request.clientName || request.clientId} ${request.type.replace(/_/g, ' ')} proposal was deleted.`,
+        before: clientChangeLogSnapshot(request),
+        after: { deleted: true },
+      });
+      res.status(200).json({ request });
+    } catch (error) {
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Failed to delete client change request',
+      });
+    }
+  }
+
   static async uploadClientBoundary(req: Request, res: Response): Promise<void> {
     try {
-      const geoJson = req.body?.geoJson && typeof req.body.geoJson === 'object' ? req.body.geoJson : req.body;
+      const rawGeoJson = req.body?.geoJson ?? req.body;
+      const geoJson = parseGeoJsonFromStorage(rawGeoJson);
+      if (!geoJson) throw new Error('Valid GeoJSON object is required');
+
       const source = typeof req.body?.source === 'string' ? req.body.source : null;
+      const before = await ClientModel.getClientById(req.params.clientId);
       const boundary = await ClientModel.saveBoundary({
         clientId: req.params.clientId,
         geoJson,
@@ -368,6 +681,22 @@ export class SuperAdminController {
         uploadedBy: req.adminUser?.uid || 'system',
       });
       const client = await ClientModel.getClientById(req.params.clientId);
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'client_boundary.upload',
+        actionLabel: 'Uploaded client boundary',
+        targetType: 'client_boundary',
+        targetId: req.params.clientId,
+        targetName: `${client?.name || req.params.clientId} boundary`,
+        clientId: req.params.clientId,
+        clientName: client?.name ?? null,
+        message: `${client?.name || req.params.clientId} boundary GeoJSON was uploaded and map bounds were recalculated.`,
+        before: clientLogSnapshot(before),
+        after: {
+          ...clientLogSnapshot(client),
+          bounds: boundary.bounds,
+        },
+      });
       res.status(200).json({ boundary, client });
     } catch (error) {
       res.status(400).json({

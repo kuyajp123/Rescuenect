@@ -12,6 +12,8 @@ export type ClientChangeRequestType =
   | 'admin_invite'
   | 'boundary_update';
 export type EmailDeliveryStatus = 'disabled' | 'sent' | 'failed';
+export type OperationLogStatus = 'success' | 'failed';
+export type OperationLogActorRole = AdminRole | 'system';
 
 export interface ClientMapBounds {
   north: number;
@@ -36,6 +38,7 @@ export interface ClientBoundary {
   clientId: string;
   source: string | null;
   geoJson?: Record<string, unknown> | null;
+  geoJsonText?: string | null;
   bounds: ClientMapBounds;
   uploadedBy: string;
   uploadedAt?: unknown;
@@ -189,6 +192,27 @@ export interface EmailDeliveryLog {
   template: string;
   status: EmailDeliveryStatus;
   error?: string | null;
+  createdAt?: unknown;
+}
+
+export interface OperationLog {
+  id: string;
+  action: string;
+  actionLabel: string;
+  targetType: string;
+  targetId?: string | null;
+  targetName?: string | null;
+  clientId?: string | null;
+  clientName?: string | null;
+  actorUid: string;
+  actorEmail?: string | null;
+  actorRole: OperationLogActorRole;
+  status: OperationLogStatus;
+  message: string;
+  before?: Record<string, unknown> | null;
+  after?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown>;
+  timestamp: number;
   createdAt?: unknown;
 }
 

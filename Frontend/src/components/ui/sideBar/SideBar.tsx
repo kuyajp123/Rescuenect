@@ -9,6 +9,7 @@ import {
   Megaphone,
   MessageSquareText,
   Phone,
+  ScrollText,
   Shield,
   UserCog,
   UsersRound,
@@ -28,6 +29,7 @@ const SideBar = ({ isOpen }: SideBarProps) => {
   const role = useAuth(state => state.userData?.role);
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
+    if (path === '/super') return location.pathname === '/super';
     return location.pathname.startsWith(path);
   };
 
@@ -58,6 +60,7 @@ const SideBar = ({ isOpen }: SideBarProps) => {
     { path: '/super/client-requests', icon: ClipboardList, label: 'Client Requests' },
     { path: '/super/clients', icon: Shield, label: 'Clients' },
     { path: '/super/admins', icon: UserCog, label: 'LGU Admins' },
+    { path: '/super/logs', icon: ScrollText, label: 'Logs' },
   ];
 
   const navigationItems = role === 'super_admin' ? superNavigationItems : lguNavigationItems;

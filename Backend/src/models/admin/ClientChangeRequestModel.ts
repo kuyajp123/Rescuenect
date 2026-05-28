@@ -1,5 +1,6 @@
 import { db } from '@/db/firestoreConfig';
 import { EmailService } from '@/services/EmailService';
+import { ManagementNotificationService } from '@/services/ManagementNotificationService';
 import type {
   ClientChangeRequest,
   ClientChangeRequestType,
@@ -8,7 +9,7 @@ import type {
 } from '@/types/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { AdminAuthModel } from './AdminAuthModel';
-import { ClientModel, normalizeMapSettings } from './ClientModel';
+import { ClientModel, normalizeMapSettings, parseGeoJsonFromStorage, stringifyGeoJsonForStorage } from './ClientModel';
 
 const allowedTypes: ClientChangeRequestType[] = [
   'weather_coordinates',
@@ -133,7 +134,7 @@ const sanitizeProposal = (
       throw new Error('GeoJSON boundary is required');
     }
     return {
-      geoJson: proposedChanges.geoJson,
+      geoJsonText: stringifyGeoJsonForStorage(proposedChanges.geoJson as Record<string, unknown>),
       source: asString(proposedChanges.source) || null,
     };
   }
@@ -201,8 +202,27 @@ export class ClientChangeRequestModel {
     if (!request) throw new Error('Change request not found after creation');
 
     const appUrl = (process.env.APP_BASE_URL || '').replace(/\/$/, '');
-    await Promise.all(
-      AdminAuthModel.getSuperAdminEmails().map(email =>
+    const superAdminEmails = AdminAuthModel.getSuperAdminEmails();
+    await Promise.all([
+      ManagementNotificationService.notifySuperAdmins({
+        type: 'client_change_request',
+        title: 'Client change request submitted',
+        message: `${client.name} submitted a ${params.type.replace(/_/g, ' ')} proposal.`,
+        clientId: client.id,
+        clientName: client.name,
+        sentTo: superAdminEmails.length,
+        data: {
+          requestId: request.id,
+          clientId: client.id,
+          clientName: client.name,
+          requestType: params.type,
+          requestedBy: params.requestedBy,
+          requestedByEmail: params.requestedByEmail ?? null,
+          status: request.status,
+          actionPath: '/super/client-requests',
+        },
+      }),
+      ...superAdminEmails.map(email =>
         EmailService.sendSimple({
           to: email,
           subject: 'New Rescuenect client change request',
@@ -212,8 +232,8 @@ export class ClientChangeRequestModel {
           actionUrl: appUrl ? `${appUrl}/super/client-requests` : undefined,
           actionLabel: appUrl ? 'Review proposal' : undefined,
         })
-      )
-    );
+      ),
+    ]);
 
     return request;
   }
@@ -254,9 +274,12 @@ export class ClientChangeRequestModel {
         invitedBy: reviewedBy,
       });
     } else if (request.type === 'boundary_update') {
+      const geoJson = parseGeoJsonFromStorage(request.proposedChanges.geoJsonText ?? request.proposedChanges.geoJson);
+      if (!geoJson) throw new Error('GeoJSON boundary is required');
+
       await ClientModel.saveBoundary({
         clientId: request.clientId,
-        geoJson: request.proposedChanges.geoJson as Record<string, unknown>,
+        geoJson,
         source: typeof request.proposedChanges.source === 'string' ? request.proposedChanges.source : null,
         uploadedBy: reviewedBy,
       });
@@ -302,6 +325,14 @@ export class ClientChangeRequestModel {
     if (!updated) throw new Error('Change request not found after rejection');
     await this.notifyRequester(updated, false, reviewNote);
     return updated;
+  }
+
+  static async delete(id: string): Promise<ClientChangeRequest> {
+    const request = await this.getById(id);
+    if (!request) throw new Error('Change request not found');
+
+    await this.collectionRef().doc(id).delete();
+    return request;
   }
 
   private static async notifyRequester(

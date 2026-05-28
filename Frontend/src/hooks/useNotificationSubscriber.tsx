@@ -56,8 +56,37 @@ export const useNotificationSubscriber = ({
 
             const notificationClientId = notification.clientId || 'naic';
             if (role === 'super_admin') {
-              if (notification.type === 'weather' || notification.audience === 'users') return;
+              if (notification.type === 'weather') return;
+              const actionableTypes = new Set(['client_request', 'client_change_request', 'earthquake', 'system_health']);
+              if (!actionableTypes.has(notification.type)) return;
+              if (notification.audience === 'users' && notification.type !== 'earthquake') return;
+              const status =
+                notification.data && typeof (notification.data as Record<string, unknown>).status === 'string'
+                  ? (notification.data as Record<string, string>).status
+                  : null;
+              if (
+                (notification.type === 'client_request' || notification.type === 'client_change_request') &&
+                status &&
+                status !== 'pending'
+              ) {
+                return;
+              }
+              if (
+                notification.targetRole &&
+                notification.targetRole !== 'super_admin' &&
+                notification.targetRole !== 'all_admins'
+              ) {
+                return;
+              }
               allNotifications.push(notification);
+              return;
+            }
+
+            if (notification.targetRole === 'super_admin') {
+              return;
+            }
+
+            if (notification.audience === 'users' && notification.type !== 'weather') {
               return;
             }
 

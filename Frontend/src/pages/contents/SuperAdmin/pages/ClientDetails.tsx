@@ -3,6 +3,7 @@ import { ClientAdminsTable } from '@/pages/contents/SuperAdmin/components/Client
 import { ClientCoverageEditor } from '@/pages/contents/SuperAdmin/components/ClientCoverageEditor';
 import { ClientDeleteModal } from '@/pages/contents/SuperAdmin/components/ClientDeleteModal';
 import { MapSettingsHelpModal } from '@/pages/contents/SuperAdmin/components/MapSettingsHelpModal';
+import { MapSettingsPreview } from '@/pages/contents/SuperAdmin/components/MapSettingsPreview';
 import { ClientRequestDetails } from '@/pages/contents/SuperAdmin/components/ClientRequestDetails';
 import { useSuperFetch } from '@/pages/contents/SuperAdmin/hooks/useSuperFetch';
 import type { ClientCoverageBarangay, ClientDetailResponse } from '@/pages/contents/SuperAdmin/types';
@@ -83,10 +84,16 @@ export const SuperAdminClientDetails = () => {
     setCoordinateErrors(validateWeatherCoordinateDraft(nextDraft));
   };
 
+  const updateMapDraftPatch = (patch: Partial<typeof mapDraft>) => {
+    setMapDraft(prev => {
+      const nextDraft = { ...prev, ...patch };
+      setMapErrors(validateMapSettingsDraft(nextDraft));
+      return nextDraft;
+    });
+  };
+
   const updateMapDraft = (key: keyof typeof mapDraft, value: string) => {
-    const nextDraft = { ...mapDraft, [key]: value };
-    setMapDraft(nextDraft);
-    setMapErrors(validateMapSettingsDraft(nextDraft));
+    updateMapDraftPatch({ [key]: value });
   };
 
   const saveClient = async (options: { showToast?: boolean; refetchAfter?: boolean } = {}) => {
@@ -99,7 +106,7 @@ export const SuperAdminClientDetails = () => {
     setMapErrors(errors);
     if (hasWeatherCoordinateErrors(coordinateValidation)) {
       addToast({
-        title: 'Review weather coordinates',
+        title: 'Review center coordinates',
         description: Object.values(coordinateValidation)[0],
         color: 'warning',
       });
@@ -300,7 +307,7 @@ export const SuperAdminClientDetails = () => {
           <div>
             <h2 className="text-xl font-semibold">Client Setup</h2>
             <p className="text-sm text-default-500">
-              Weather settings and active barangay coverage for resident signup.
+              Center coordinate settings and active barangay coverage for resident signup.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -313,7 +320,7 @@ export const SuperAdminClientDetails = () => {
               onValueChange={value => updateCoordinateDraft('key', value)}
             />
             <Input
-              label="Weather Latitude"
+              label="Center Latitude"
               type="number"
               step="any"
               placeholder={weatherCoordinatePlaceholders.lat}
@@ -323,7 +330,7 @@ export const SuperAdminClientDetails = () => {
               onValueChange={value => updateCoordinateDraft('lat', value)}
             />
             <Input
-              label="Weather Longitude"
+              label="Center Longitude"
               type="number"
               step="any"
               placeholder={weatherCoordinatePlaceholders.lng}
@@ -349,6 +356,14 @@ export const SuperAdminClientDetails = () => {
             <MapSettingsHelpModal />
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="md:col-span-3">
+              <MapSettingsPreview
+                draft={mapDraft}
+                onDraftChange={updateMapDraft}
+                onDraftPatch={updateMapDraftPatch}
+                description="Click the map or drag the marker to update the client map center before saving."
+              />
+            </div>
             <Input
               label="Center Latitude"
               type="number"

@@ -3,11 +3,8 @@ import { Body } from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
-import type {
-  LocationCoverageClient,
-  LocationCoverageResponse,
-  ResidentLocationSelection,
-} from '@/config/locationConfig';
+import { toResidentLocationSelectionFromCoverageClient } from '@/config/locationConfig';
+import type { LocationCoverageResponse, ResidentLocationSelection } from '@/config/locationConfig';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { sortByLabel } from '@/helper/commonHelpers';
@@ -168,33 +165,6 @@ const LocationSelectField = ({
   );
 };
 
-const toResidentLocationSelection = (
-  client: LocationCoverageClient | undefined,
-  barangayValue: string
-): ResidentLocationSelection | null => {
-  const barangay = client?.barangays.find(item => item.value === barangayValue);
-
-  if (!client || !barangay) {
-    return null;
-  }
-
-  return {
-    barangay: barangay.value,
-    clientId: client.clientId,
-    clientName: client.clientName,
-    provinceCode: client.provinceCode,
-    provinceName: client.provinceName,
-    municipalityCode: client.municipalityCode,
-    municipalityName: client.municipalityName,
-    municipalityType: client.municipalityType,
-    barangayCode: barangay.barangayCode,
-    barangayLabel: barangay.barangayLabel,
-    weatherLocationKey: client.weatherLocationKey,
-    weatherLatitude: client.weatherLatitude ?? client.weatherCoordinates.latitude,
-    weatherLongitude: client.weatherLongitude ?? client.weatherCoordinates.longitude,
-  };
-};
-
 const BarangayForm = () => {
   const router = useRouter();
   const { isDark } = useTheme();
@@ -272,7 +242,7 @@ const BarangayForm = () => {
   );
 
   const selectedLocation = useMemo(
-    () => toResidentLocationSelection(selectedClient, selectedBarangay),
+    () => toResidentLocationSelectionFromCoverageClient(selectedClient, selectedBarangay),
     [selectedClient, selectedBarangay]
   );
 

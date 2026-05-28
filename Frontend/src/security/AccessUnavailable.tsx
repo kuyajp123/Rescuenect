@@ -4,7 +4,8 @@ import { useAuth } from '@/stores/useAuth';
 import { LogOut, RefreshCw, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import notFoundImage from '../../public/images/empty-page/404-image.png';
+
+const notFoundImage = '/images/empty-page/404-image.png';
 
 type AccessUnavailableProps = {
   issue: NonNullable<AuthAccessIssue>;

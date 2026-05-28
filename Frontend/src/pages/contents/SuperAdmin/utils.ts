@@ -22,7 +22,9 @@ export const formatDateTime = (value: unknown) => {
 
   const timestamp = value as { _seconds?: number; seconds?: number; toDate?: () => Date };
   const date =
-    typeof timestamp.toDate === 'function'
+    typeof value === 'number'
+      ? new Date(value)
+      : typeof timestamp.toDate === 'function'
       ? timestamp.toDate()
       : typeof timestamp._seconds === 'number'
         ? new Date(timestamp._seconds * 1000)
@@ -32,7 +34,29 @@ export const formatDateTime = (value: unknown) => {
             ? new Date(value)
             : null;
 
-  return date && !Number.isNaN(date.getTime()) ? date.toLocaleString() : 'Not recorded';
+  return date && !Number.isNaN(date.getTime())
+    ? date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+    : 'Not recorded';
+};
+
+export const formatClientChangeRequestType = (type: string) => {
+  const labels: Record<string, string> = {
+    weather_coordinates: 'Center Coordinates',
+    map_settings: 'Map Settings',
+    barangay_coverage: 'Barangay Coverage',
+    client_info: 'Client Info',
+    admin_invite: 'Admin Invite',
+    boundary_update: 'Boundary Update',
+  };
+
+  return labels[type] || type.replace(/_/g, ' ');
 };
 
 export type MapSettingsDraft = {

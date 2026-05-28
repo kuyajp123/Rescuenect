@@ -57,16 +57,35 @@ export const isValidClientMapZoom = (settings: {
 
 export const canAdminReceiveNotification = (
   adminUser: Pick<AdminUser, 'role' | 'clientId'> | undefined,
-  notification: { type?: string; clientId?: string | null; audience?: string }
+  notification: {
+    type?: string;
+    clientId?: string | null;
+    audience?: string;
+    targetRole?: string | null;
+    data?: Record<string, unknown>;
+  }
 ): boolean => {
   if (!adminUser) return false;
 
   if (adminUser.role === 'super_admin') {
-    return notification.type !== 'weather' && notification.audience !== 'users';
+    if (notification.type === 'weather') return false;
+    const actionableTypes = new Set(['client_request', 'client_change_request', 'earthquake', 'system_health']);
+    if (!actionableTypes.has(notification.type || '')) return false;
+    if (notification.audience === 'users' && notification.type !== 'earthquake') return false;
+    const status = typeof notification.data?.status === 'string' ? notification.data.status : null;
+    if (
+      (notification.type === 'client_request' || notification.type === 'client_change_request') &&
+      status &&
+      status !== 'pending'
+    ) {
+      return false;
+    }
+    return !notification.targetRole || notification.targetRole === 'super_admin' || notification.targetRole === 'all_admins';
   }
 
   if (adminUser.role !== 'lgu_admin' || !adminUser.clientId) return false;
-  if (notification.audience === 'users') return false;
+  if (notification.targetRole === 'super_admin') return false;
   if (notification.type === 'weather') return notification.clientId === adminUser.clientId;
+  if (notification.audience === 'users') return false;
   return !notification.clientId || notification.clientId === adminUser.clientId;
 };

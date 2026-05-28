@@ -1,7 +1,16 @@
 import { AdminAuthModel } from '@/models/admin/AdminAuthModel';
 import { ClientChangeRequestModel } from '@/models/admin/ClientChangeRequestModel';
 import { ClientModel } from '@/models/admin/ClientModel';
+import { OperationLogService } from '@/services/OperationLogService';
 import { Request, Response } from 'express';
+
+const summarizeProposalForLog = (value: Record<string, unknown>): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => {
+      if (key === 'geoJson' || key === 'geoJsonText') return [key, entry ? 'Boundary GeoJSON file' : null];
+      return [key, entry];
+    })
+  );
 
 export class LguAdminController {
   static async getClient(req: Request, res: Response): Promise<void> {
@@ -55,6 +64,19 @@ export class LguAdminController {
         requestedBy: req.adminUser?.uid || 'system',
         requestedByEmail: req.adminUser?.email ?? null,
       });
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'client_change_request.submit',
+        actionLabel: 'Submitted client request',
+        targetType: 'client_change_request',
+        targetId: request.id,
+        targetName: request.type,
+        clientId: request.clientId,
+        clientName: request.clientName ?? null,
+        message: `${request.clientName || request.clientId} submitted a ${request.type.replace(/_/g, ' ')} proposal.`,
+        before: request.currentSnapshot,
+        after: summarizeProposalForLog(request.proposedChanges),
+      });
 
       res.status(201).json({ request });
     } catch (error) {
@@ -73,6 +95,19 @@ export class LguAdminController {
       }
 
       const request = await ClientChangeRequestModel.cancel(req.params.id, clientId);
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'client_change_request.cancel',
+        actionLabel: 'Cancelled client request',
+        targetType: 'client_change_request',
+        targetId: request.id,
+        targetName: request.type,
+        clientId: request.clientId,
+        clientName: request.clientName ?? null,
+        message: `${request.clientName || request.clientId} cancelled a ${request.type.replace(/_/g, ' ')} proposal.`,
+        before: { status: 'pending' },
+        after: { status: request.status },
+      });
       res.status(200).json({ request });
     } catch (error) {
       res.status(400).json({

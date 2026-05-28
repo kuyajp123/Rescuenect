@@ -253,7 +253,6 @@ export class AdminAuthModel {
       actionUrl: appUrl ? `${appUrl}/auth/login` : undefined,
       actionLabel: appUrl ? 'Accept invitation' : undefined,
     });
-
     return {
       email: payload.email,
       role: payload.role,

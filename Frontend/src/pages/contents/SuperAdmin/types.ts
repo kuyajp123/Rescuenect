@@ -127,6 +127,27 @@ export type ClientChangeRequest = {
   updatedAt?: unknown;
 };
 
+export type OperationLog = {
+  id: string;
+  action: string;
+  actionLabel: string;
+  targetType: string;
+  targetId?: string | null;
+  targetName?: string | null;
+  clientId?: string | null;
+  clientName?: string | null;
+  actorUid: string;
+  actorEmail?: string | null;
+  actorRole: 'super_admin' | 'lgu_admin' | 'system';
+  status: 'success' | 'failed';
+  message: string;
+  before?: Record<string, unknown> | null;
+  after?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown>;
+  timestamp: number;
+  createdAt?: unknown;
+};
+
 export type SuperAdminOverview = {
   status: 'healthy' | 'degraded';
   timestamp: string;

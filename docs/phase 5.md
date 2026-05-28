@@ -1,158 +1,363 @@
-# Phase 5 Plan: Stability, Client Settings, Email, Analytics, And Dynamic Earthquake Scope
+# Phase 5 Closeout: Stability, Client Settings, Email, Analytics, Earthquake Scope, And Logs
+
+Status: Completed and verified
+Completed: 2026-05-29
 
 ## Summary
 
-Phase 5 should be split into stability-first subphases. The goal is to harden Phase 4, then add LGU client configuration workflows, email delivery, Super Admin analytics, and finally make the earthquake module client-aware.
+Phase 5 has been implemented as the stability and client-configuration layer after Phase 4. The system now supports stronger tenant isolation, LGU client proposals, client map settings and GeoJSON boundaries, SMTP email delivery, role-aware notifications, Super Admin analytics, dynamic earthquake scope, and a dedicated operation logs module.
 
-Key decisions locked:
-- LGU admins submit **proposals**; Super Admin approval applies changes.
-- City map bounds use **external boundary/GeoJSON data**, imported and stored.
-- Phase 5 order is **stability first**.
-- LGU admins still receive weather notifications for their own client.
+The major Phase 5 goal was to move Rescuenect from a working multi-client foundation into a safer multi-client operating model. That goal is complete for municipality/city clients.
+
+Important transition note: Naic is still intentionally retained as a protected fallback client. Full removal of the Naic default behavior is not part of the completed Phase 5 scope. That should be handled first in Phase 6A before province-level work or other large enhancements.
+
+## Final Decisions
+
+- LGU admins submit proposals; Super Admin approval applies changes.
+- City/municipality map bounds use imported GeoJSON boundary data.
+- Super Admin can import/review boundaries and the backend computes `maxBounds`.
+- LGU admins receive weather notifications for their own `clientId`.
 - Super admins do not receive client weather notifications.
+- Super Admin notifications are reserved for actionable items.
+- Operation logs are stored separately from notifications.
+- Naic remains protected until all fallback paths are fully removed.
+- Province-wide coverage remains out of scope.
 
-## Key Changes
+## Completed Work
 
 ### 5A: Stability And Tenant Hardening
 
-- Add stronger tenant isolation checks for all LGU-scoped CRUD routes, Firestore reads, notifications, and frontend data subscriptions.
-- Keep Super Admin access system-wide; keep LGU Admin access limited to `admin.clientId`.
-- Remove remaining temporary Naic behavior only where safe; keep Naic protected until all fallback paths are replaced.
-- Add audit fields for Super Admin actions and approved LGU proposals: `createdBy`, `reviewedBy`, `reviewedAt`, `reviewNote`, `appliedAt`.
-- Add backend tests for Super Admin versus LGU Admin access, inactive clients, deleted clients, and cross-client denial.
+Completed.
+
+- Added stronger role and client-scope checks across protected admin routes.
+- Kept Super Admin access system-wide.
+- Kept LGU Admin access limited to `admin.clientId`.
+- Blocked inactive admin accounts from protected routes.
+- Blocked LGU admin access when their client is inactive or deleted.
+- Preserved Naic fallback only where still needed for transition safety.
+- Added and verified backend tests for role access, active client requirements, resident signup visibility, legacy admin fallback, map zoom constraints, and role-aware notification filtering.
+- Added proper unavailable-access UI behavior for inactive/deleted client access.
 
 ### 5B: Client Map Settings And Boundaries
 
-- Add `clients/{clientId}.mapSettings`:
-  - `centerLatitude`, `centerLongitude`
-  - `minZoom`, default `13`, allowed `12..13`
-  - `zoom`, default `15`, allowed `minZoom..17`
-  - `maxZoom`, default `18`, allowed `zoom..18`
-  - `maxBounds: { north, south, east, west }`
-  - `boundarySource`, `boundaryVerified`, `boundaryUpdatedAt`
-- Add `clientBoundaries/{clientId}` or a Storage-backed GeoJSON reference for imported city/municipality boundaries.
-- Super Admin imports/reviews external GeoJSON boundary data, and the backend computes the client `maxBounds`.
-- LGU Admin maps use their client `mapSettings`; Super Admin maps can view all clients.
+Completed.
+
+- Added client map settings:
+  - `centerLatitude`
+  - `centerLongitude`
+  - `minZoom`
+  - `zoom`
+  - `maxZoom`
+  - `maxBounds`
+  - `boundarySource`
+  - `boundaryVerified`
+  - `boundaryUpdatedAt`
+- Added map setting validation.
+- Added map setting help documentation inside Super Admin and LGU Admin UI.
+- Added map previews for Super Admin and LGU Admin workflows.
+- Added marker-based center coordinate selection.
+- Added Super Admin GeoJSON boundary upload.
+- Backend computes `maxBounds` from uploaded GeoJSON.
+- Boundary upload also updates the client map center from the boundary center.
+- LGU Admin maps use their client map settings.
+- Mobile map modules use client map settings for scoped map behavior.
 
 ### 5C: Email Delivery And Role-Aware Notifications
 
-- Add backend email service using provider-agnostic SMTP through `nodemailer`.
-- Required env:
-  - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`
-  - `SMTP_USER`, `SMTP_PASS`
-  - `SMTP_FROM`
-  - `APP_BASE_URL`
-  - `EMAIL_DELIVERY_ENABLED`
-- Send email for:
+Completed.
+
+- Added provider-agnostic SMTP email service using `nodemailer`.
+- Added support for:
   - LGU access request received.
   - LGU request approved/rejected.
   - LGU admin invitation.
-  - LGU change proposal submitted.
-  - LGU change proposal approved/rejected.
-- Store delivery attempts in `emailLogs` or `emailOutbox`.
-- LGU admins continue receiving weather notifications for their assigned `clientId`.
-- Super admins are excluded from client weather notifications, including Naic weather notifications.
-- Super admins receive only management/system notifications: `system`, `client_request`, `client_change_request`, `admin_invite`, `system_health`.
-- Notification subscription logic should filter by role:
-  - `super_admin`: no `weather`; system-wide management notifications only.
-  - `lgu_admin`: weather and operational notifications where `notification.clientId === admin.clientId`.
+  - LGU proposal submitted.
+  - LGU proposal approved/rejected.
+- Email attempts are logged.
+- SMTP can be disabled while still recording email attempts.
+- LGU admins continue receiving weather notifications for their own client.
+- Super admins are excluded from client weather notifications, including Naic.
+- Notification filtering now separates actionable notifications from audit logs.
+- Super Admin notification bell is now reserved for:
+  - new LGU request,
+  - new client request/proposal,
+  - earthquake alerts,
+  - system-health style alerts.
 
 ### 5D: LGU Client Communication Module
 
-- Add LGU Admin module: **Client Requests** or **LGU Coordination**.
-- LGU admins can submit proposals for their own client only:
-  - Weather latitude/longitude change.
-  - Map settings change.
-  - Barangay coverage enable/disable.
-  - Submitted client information changes.
-  - Invite another LGU admin.
-- Store proposals in `clientChangeRequests/{requestId}`:
-  - `clientId`
-  - `type: weather_coordinates | map_settings | barangay_coverage | client_info | admin_invite | boundary_update`
-  - `status: pending | approved | rejected | cancelled`
-  - `currentSnapshot`
-  - `proposedChanges`
-  - `requestedBy`, `requestedAt`
-  - review/apply metadata
-- Super Admin reviews proposals and approval applies the change to the client record or admin invitation record.
+Completed.
+
+- Added LGU Admin module: LGU Coordination.
+- LGU admins can submit own-client proposals for:
+  - center/weather coordinates,
+  - map settings,
+  - barangay coverage,
+  - submitted client information,
+  - additional LGU admin invitations.
+- Proposals are stored in `clientChangeRequests/{requestId}`.
+- Super Admin reviews proposals.
+- Approval applies the change to the client record or creates the admin invitation.
+- Rejection stores review metadata.
+- LGU admins can cancel pending own-client proposals.
+- Super Admin Client Requests page includes:
+  - search,
+  - status filter,
+  - pagination,
+  - review notes,
+  - approval/rejection,
+  - deletion,
+  - Git-style current/proposed change summaries.
 
 ### 5E: Super Admin Analytics And Unified Overview
 
-- Merge **System Status** into the Super Admin **Overview** page.
-- Replace `/super/system-status` with a redirect or remove it from the sidebar.
-- Add backend `GET /admin/super/overview` returning analytics plus health:
-  - client counts by status
-  - LGU request counts by status
-  - client proposal counts by status/type
-  - LGU admin counts
-  - active resident counts by client where available
-  - backend/Firebase/PSGC/weather/earthquake status
-  - latest scheduled-job timestamps where available
-- Use Recharts for overview visualizations.
-- Keep HeroUI layout and current Super Admin visual style.
+Completed.
+
+- Merged system status into the Super Admin Overview.
+- `/super/system-status` redirects to `/super`.
+- Added `GET /admin/super/overview`.
+- Overview includes:
+  - client counts by status,
+  - LGU request counts by status,
+  - client proposal counts by status/type,
+  - LGU admin counts,
+  - active resident count,
+  - backend status,
+  - Firebase status,
+  - PSGC status,
+  - weather status,
+  - earthquake status.
+- Added Recharts visualizations.
+- Preserved the Super Admin visual style and HeroUI layout.
 
 ### 5F: Dynamic Earthquake Scope
 
-- Replace Naic-only earthquake logic with active-client earthquake scope.
-- Load active clients and their earthquake settings:
-  - center from client/map settings
-  - default radius `150km`
-  - default min magnitude `1.5`
-  - notification thresholds from current logic
-- Fetch USGS earthquakes per active client or through a merged query strategy, dedupe by earthquake id, and compute affected clients.
-- Store earthquake records with `affectedClientIds` and per-client distance/relevance metadata.
-- Super Admin sees all earthquake events.
-- LGU Admin sees only earthquakes where `affectedClientIds` contains their `clientId`.
-- Resident and LGU admin earthquake notifications target affected active clients only.
-- Replace `distanceFromNaic` display with client-relative distance.
+Completed.
 
-## Public APIs, Types, And Interfaces
+- Earthquake scope now uses active clients instead of Naic-only assumptions.
+- Active clients provide earthquake scope using client/map settings.
+- Earthquake records include affected client metadata.
+- Super Admin can view all earthquake records.
+- LGU Admin sees only earthquakes relevant to their assigned client.
+- Earthquake notifications target affected active clients.
+- Resident earthquake notification targeting uses affected client coverage.
+- Client-relative distance replaces Naic-relative distance for dynamic clients.
+- Earthquake map uses client map settings and improved default viewing behavior.
 
-- Add backend LGU endpoints:
-  - `GET /admin/lgu/client`
-  - `GET /admin/lgu/change-requests`
-  - `POST /admin/lgu/change-requests`
-  - `POST /admin/lgu/change-requests/:id/cancel`
-- Add Super Admin endpoints:
-  - `GET /admin/super/overview`
-  - `GET /admin/super/client-change-requests`
-  - `POST /admin/super/client-change-requests/:id/approve`
-  - `POST /admin/super/client-change-requests/:id/reject`
-  - `POST /admin/super/clients/:clientId/boundary`
-- Extend shared types:
-  - `ClientMapSettings`
-  - `ClientBoundary`
-  - `ClientChangeRequest`
-  - `EmailDeliveryLog`
-  - `SuperAdminOverview`
-  - `ClientEarthquakeImpact`
-- Extend `ClientLgu` with `mapSettings`, boundary status, and optional earthquake settings.
-- Extend notification types with role-aware targeting metadata.
+### 5G: Operation Logs
 
-## Test Plan
+Completed.
 
-- Backend: `npm test` from `Backend`.
-- Backend build: `npm run build` from `Backend`.
-- Frontend build: `npm run build` from `Frontend`.
-- Mobile type check: `npx tsc --noEmit` from `mobile/client`.
-- Test LGU admins cannot create/read/update proposals for another `clientId`.
-- Test proposal approval applies changes only after Super Admin approval.
-- Test invalid map zoom settings are rejected.
-- Test map bounds are loaded from verified client boundary data.
-- Test email service logs attempts when SMTP is disabled and sends through mocked SMTP when enabled.
-- Test Super Admin does not receive weather notifications for Naic or any client.
-- Test LGU Admin receives weather notifications only for their assigned client.
-- Test Super Admin overview returns analytics and health data.
-- Test LGU earthquake view only includes affected client events.
-- Test Super Admin earthquake view includes all events.
-- Test resident signup still shows only active clients.
+- Added a dedicated Super Admin Logs module.
+- Added backend `operationLogs` collection.
+- Added protected `GET /admin/super/logs`.
+- Moved log-style events out of the notification bell.
+- Operation logs record actions such as:
+  - LGU request approval/rejection/deletion,
+  - client update/activation/deactivation/deletion,
+  - LGU admin invite/status/delete,
+  - client request approval/rejection/deletion,
+  - LGU proposal submit/cancel,
+  - boundary upload,
+  - Naic migration run.
+- Logs include:
+  - actor,
+  - role,
+  - target,
+  - client,
+  - status,
+  - timestamp,
+  - before/after change snapshots.
+- Logs UI includes search, filters, pagination, refresh, and red/green Git-style diff summaries.
+- Verbose actions such as deleted requests and invitations are summarized to avoid repeating fields already visible in the table.
 
-## Assumptions And Defaults
+## Current Data Additions
 
-- LGU client changes are proposal-first for Phase 5 stability.
-- External city boundary data is imported and stored by Super Admin; the app should not depend on a live external boundary API at runtime.
-- Naic remains protected until all dynamic client fallback behavior is proven stable.
-- SMTP is provider-agnostic; any free SMTP-capable provider can be used through env settings.
-- LGU admins receive client weather and operational notifications for their own scope.
-- Super admins receive management/system notifications only.
-- Province-wide coverage remains out of scope.
+### `clients/{clientId}.mapSettings`
+
+```text
+centerLatitude
+centerLongitude
+minZoom
+zoom
+maxZoom
+maxBounds: { north, south, east, west }
+boundarySource
+boundaryVerified
+boundaryUpdatedAt
+```
+
+### `clientBoundaries/{clientId}`
+
+```text
+clientId
+source
+geoJsonText
+bounds
+uploadedBy
+uploadedAt
+```
+
+### `clientChangeRequests/{requestId}`
+
+```text
+clientId
+clientName
+type
+status
+currentSnapshot
+proposedChanges
+requestedBy
+requestedByEmail
+requestedAt
+reviewedBy
+reviewedAt
+reviewNote
+appliedAt
+cancelledAt
+createdAt
+updatedAt
+```
+
+### `operationLogs/{logId}`
+
+```text
+action
+actionLabel
+targetType
+targetId
+targetName
+clientId
+clientName
+actorUid
+actorEmail
+actorRole
+status
+message
+before
+after
+metadata
+timestamp
+createdAt
+```
+
+### `emailLogs/{logId}`
+
+```text
+to
+subject
+template
+status
+error
+createdAt
+```
+
+## Backend Endpoints Added Or Finalized
+
+### LGU Admin
+
+```text
+GET /admin/lgu/client
+GET /admin/lgu/change-requests
+POST /admin/lgu/change-requests
+POST /admin/lgu/change-requests/:id/cancel
+```
+
+### Super Admin
+
+```text
+GET /admin/super/overview
+GET /admin/super/logs
+GET /admin/super/client-change-requests
+POST /admin/super/client-change-requests/:id/approve
+POST /admin/super/client-change-requests/:id/reject
+DELETE /admin/super/client-change-requests/:id
+POST /admin/super/clients/:clientId/boundary
+```
+
+## Verification Status
+
+The Phase 5 checklist was manually validated during development.
+
+Verified areas:
+
+- Super Admin and LGU Admin auth behavior.
+- Protected route access.
+- Tenant-scoped LGU Admin modules.
+- Resident signup shows active clients only.
+- Super Admin Overview and health analytics.
+- Client map settings.
+- GeoJSON boundary upload and computed bounds.
+- LGU Coordination proposals.
+- Super Admin Client Requests review flow.
+- Email delivery through SMTP.
+- Role-aware notifications.
+- Super Admin operation logs.
+- Dynamic client weather.
+- Dynamic client earthquake scope.
+- Mobile map settings integration.
+
+Commands verified during the Phase 5 work:
+
+```text
+Backend: npm test
+Backend: npm run build
+Frontend: npm run build
+mobile/client: npx tsc --noEmit
+```
+
+Known build warnings:
+
+- Frontend still reports existing Recharts circular chunk warnings.
+- Frontend still reports existing large chunk warnings.
+
+These warnings do not block Phase 5 functionality, but they should be addressed during production readiness work.
+
+## Remaining Transition Limitation
+
+Naic is still a protected default/fallback client.
+
+This is intentional for Phase 5 because the system still contains some transition paths that assume Naic when legacy records or fallback values are missing. Naic should not be deleted yet.
+
+Examples of remaining transition behavior:
+
+- Some legacy data handling still falls back missing `clientId` values to `naic`.
+- Naic can still be seeded as the initial client if missing.
+- Some admin/mobile location fallback code still contains static Naic assumptions.
+- Naic deletion is explicitly blocked in Super Admin UI and backend.
+
+This does not invalidate Phase 5. It means full no-default-client behavior should be the first Phase 6 task.
+
+## Recommended Next Phase
+
+### Phase 6A: Full Dynamic Client Cutover
+
+Before province-wide support or larger production enhancements, remove Naic as a runtime system default.
+
+Recommended scope:
+
+- Require `clientId` where LGU-scoped operations need client context.
+- Remove `|| 'naic'` runtime fallbacks from backend LGU-scoped modules.
+- Remove automatic Naic seeding from runtime client lookups.
+- Keep Naic creation as an explicit seed/migration script only.
+- Replace static mobile/admin Naic location fallbacks with active client coverage from backend.
+- Confirm all existing production data has valid `clientId`.
+- Make Naic deletable under the same safety rules as other inactive clients.
+- Add tests proving the system works without any Naic default dependency.
+
+After Phase 6A, continue with production readiness:
+
+- Firestore/security rules review.
+- E2E tests for Super Admin and LGU Admin flows.
+- Log retention/export.
+- Backup and restore strategy.
+- Monitoring for scheduled weather and earthquake jobs.
+- Performance review for large clients, logs, notifications, and map data.
+
+## Final Phase 5 Decision
+
+Phase 5 is complete and verified for municipality/city clients.
+
+The system now has a stable multi-client operating layer with LGU proposals, Super Admin review, email delivery, dynamic maps, dynamic weather, dynamic earthquake scope, analytics, and operation logs.
+
+Naic remains a protected transition fallback until Phase 6A completes the full dynamic client cutover.

@@ -6,13 +6,27 @@ const DEFAULT_BOUNDS: [[number, number], [number, number]] = [
   [DEFAULT_CENTER[0] + 0.08, DEFAULT_CENTER[1] + 0.08],
 ];
 
+const isUsableLatitude = (latitude: unknown): latitude is number =>
+  typeof latitude === 'number' &&
+  Number.isFinite(latitude) &&
+  latitude >= -90 &&
+  latitude <= 90;
+
+const isUsableLongitude = (longitude: unknown): longitude is number =>
+  typeof longitude === 'number' &&
+  Number.isFinite(longitude) &&
+  longitude >= -180 &&
+  longitude <= 180;
+
 export const getClientMapCenter = (userData: UserData | null): [number, number] => {
   if (
-    typeof userData?.weatherLatitude === 'number' &&
-    typeof userData.weatherLongitude === 'number' &&
-    !Number.isNaN(userData.weatherLatitude) &&
-    !Number.isNaN(userData.weatherLongitude)
+    isUsableLatitude(userData?.mapSettings?.centerLatitude) &&
+    isUsableLongitude(userData?.mapSettings?.centerLongitude)
   ) {
+    return [userData.mapSettings.centerLatitude, userData.mapSettings.centerLongitude];
+  }
+
+  if (isUsableLatitude(userData?.weatherLatitude) && isUsableLongitude(userData?.weatherLongitude)) {
     return [userData.weatherLatitude, userData.weatherLongitude];
   }
 
@@ -46,5 +60,17 @@ export const getClientMapZoomSettings = (userData: UserData | null) => {
     minZoom: settings?.minZoom ?? 13,
     zoom: settings?.zoom ?? 15,
     maxZoom: settings?.maxZoom ?? 18,
+  };
+};
+
+export const getClientEarthquakeMapZoomSettings = (userData: UserData | null) => {
+  const settings = userData?.mapSettings;
+  const maxZoom = Math.max(10);
+  const minZoom = Math.min(settings?.minZoom ?? 13, 7);
+
+  return {
+    minZoom,
+    zoom: Math.min(Math.max(8, minZoom), maxZoom),
+    maxZoom,
   };
 };

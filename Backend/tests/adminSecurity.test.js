@@ -82,7 +82,37 @@ test('role-aware admin notification targeting excludes super admin weather', () 
   const naicAdmin = { role: 'lgu_admin', clientId: 'naic' };
 
   assert.equal(canAdminReceiveNotification(superAdmin, { type: 'weather', clientId: 'naic' }), false);
-  assert.equal(canAdminReceiveNotification(superAdmin, { type: 'system' }), true);
+  assert.equal(canAdminReceiveNotification(superAdmin, { type: 'system' }), false);
+  assert.equal(canAdminReceiveNotification(superAdmin, { type: 'admin_invite', targetRole: 'super_admin' }), false);
+  assert.equal(
+    canAdminReceiveNotification(superAdmin, {
+      type: 'client_request',
+      targetRole: 'super_admin',
+      data: { status: 'pending' },
+    }),
+    true
+  );
+  assert.equal(
+    canAdminReceiveNotification(superAdmin, {
+      type: 'client_request',
+      targetRole: 'super_admin',
+      data: { status: 'approved' },
+    }),
+    false
+  );
+  assert.equal(
+    canAdminReceiveNotification(superAdmin, {
+      type: 'client_change_request',
+      targetRole: 'super_admin',
+      data: { status: 'pending' },
+    }),
+    true
+  );
+  assert.equal(canAdminReceiveNotification(superAdmin, { type: 'earthquake', audience: 'users' }), true);
+  assert.equal(canAdminReceiveNotification(superAdmin, { type: 'system_health', targetRole: 'super_admin' }), true);
+  assert.equal(canAdminReceiveNotification(superAdmin, { type: 'system', audience: 'users' }), false);
   assert.equal(canAdminReceiveNotification(naicAdmin, { type: 'weather', clientId: 'naic' }), true);
+  assert.equal(canAdminReceiveNotification(naicAdmin, { type: 'weather', clientId: 'naic', audience: 'users' }), true);
   assert.equal(canAdminReceiveNotification(naicAdmin, { type: 'weather', clientId: 'gentri' }), false);
+  assert.equal(canAdminReceiveNotification(naicAdmin, { type: 'client_request', targetRole: 'super_admin' }), false);
 });

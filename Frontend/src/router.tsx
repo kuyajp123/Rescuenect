@@ -53,6 +53,9 @@ const SuperAdminClientRequests = lazy(() =>
     default: module.SuperAdminClientRequests,
   }))
 );
+const SuperAdminLogs = lazy(() =>
+  import('@/pages/contents/SuperAdmin/pages/Logs').then(module => ({ default: module.SuperAdminLogs }))
+);
 const LguClientRequests = lazy(() => import('@/pages/contents/LguClientRequests'));
 const NotFound = lazy(() => import('@/pages/NotFound').then(module => ({ default: module.NotFound })));
 
@@ -130,6 +133,7 @@ const Router = () => {
           <Route path="/super" element={<SuperAdminOverview />} />
           <Route path="/super/requests" element={<SuperAdminRequests />} />
           <Route path="/super/client-requests" element={<SuperAdminClientRequests />} />
+          <Route path="/super/logs" element={<SuperAdminLogs />} />
           <Route path="/super/clients" element={<SuperAdminClients />} />
           <Route path="/super/clients/:clientId" element={<SuperAdminClientDetails />} />
           <Route path="/super/admins" element={<SuperAdminAdmins />} />

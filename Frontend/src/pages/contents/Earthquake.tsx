@@ -5,9 +5,9 @@ import { CustomLegend, getEarthquakeSeverityColor, severityLevels } from '@/conf
 import earthquakesJson from '@/data/earthquakeData.json'; // temporary
 import statusDataJson from '@/data/statusData.json'; // temporary
 import {
+  getClientEarthquakeMapZoomSettings,
   getClientConfiguredMapBounds,
   getClientMapCenter,
-  getClientMapZoomSettings,
 } from '@/helper/clientMapScope';
 import { getSelectedStatusText } from '@/helper/commonHelpers';
 import { useEarthquakeStore } from '@/stores/useEarthquakeStore';
@@ -49,7 +49,7 @@ const Earthquake = () => {
   const allstatusData = useStatusStore(state => state.statusData);
   const userData = useAuth(state => state.userData);
   const mapCenter = getClientMapCenter(userData);
-  const mapZoom = getClientMapZoomSettings(userData);
+  const mapZoom = getClientEarthquakeMapZoomSettings(userData);
 
   const statusData = allstatusData.filter(item => item.category.includes('earthquake'));
 

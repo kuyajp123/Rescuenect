@@ -1,5 +1,6 @@
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { ClientCoverageEditor } from '@/pages/contents/SuperAdmin/components/ClientCoverageEditor';
+import { MapSettingsPreview } from '@/pages/contents/SuperAdmin/components/MapSettingsPreview';
 import { MapSettingsHelpModal } from '@/pages/contents/SuperAdmin/components/MapSettingsHelpModal';
 import { useSuperFetch } from '@/pages/contents/SuperAdmin/hooks/useSuperFetch';
 import type {
@@ -10,6 +11,7 @@ import type {
 } from '@/pages/contents/SuperAdmin/types';
 import {
   formatDateTime,
+  formatClientChangeRequestType,
   getToken,
   hasMapSettingsErrors,
   mapSettingPlaceholders,
@@ -75,10 +77,16 @@ export const LguClientRequests = () => {
     setMapErrors({});
   }, [client]);
 
+  const updateMapDraftPatch = (patch: Partial<typeof mapDraft>) => {
+    setMapDraft(prev => {
+      const nextDraft = { ...prev, ...patch };
+      setMapErrors(validateMapSettingsDraft(nextDraft));
+      return nextDraft;
+    });
+  };
+
   const updateMapDraft = (key: keyof typeof mapDraft, value: string) => {
-    const nextDraft = { ...mapDraft, [key]: value };
-    setMapDraft(nextDraft);
-    setMapErrors(validateMapSettingsDraft(nextDraft));
+    updateMapDraftPatch({ [key]: value });
   };
 
   const submitProposal = async (type: ClientChangeRequest['type'], proposedChanges: Record<string, unknown>) => {
@@ -151,7 +159,7 @@ export const LguClientRequests = () => {
           <div className="grid gap-4 pt-4 xl:grid-cols-2">
             <Card className="border border-default-200">
               <CardBody className="gap-4">
-                <h2 className="text-xl font-semibold">Weather Coordinates</h2>
+                <h2 className="text-xl font-semibold">Center Coordinates</h2>
                 <div className="grid gap-3 md:grid-cols-3">
                   <Input label="Weather Key" value={weatherDraft.key} onValueChange={key => setWeatherDraft(prev => ({ ...prev, key }))} />
                   <Input label="Latitude" value={weatherDraft.lat} onValueChange={lat => setWeatherDraft(prev => ({ ...prev, lat }))} />
@@ -168,7 +176,7 @@ export const LguClientRequests = () => {
                     })
                   }
                 >
-                  Submit Weather Proposal
+                  Submit Center Proposal
                 </Button>
               </CardBody>
             </Card>
@@ -195,6 +203,13 @@ export const LguClientRequests = () => {
                   <MapSettingsHelpModal />
                 </div>
                 <div className="grid gap-3 md:grid-cols-3">
+                  <div className="md:col-span-3">
+                    <MapSettingsPreview
+                      draft={mapDraft}
+                      onDraftChange={updateMapDraft}
+                      onDraftPatch={updateMapDraftPatch}
+                    />
+                  </div>
                   <Input
                     label="Center Latitude"
                     type="number"
@@ -328,7 +343,7 @@ export const LguClientRequests = () => {
                 <TableBody emptyContent={loading ? 'Loading requests...' : 'No proposals yet.'}>
                   {(requestData?.requests ?? []).map(request => (
                     <TableRow key={request.id}>
-                      <TableCell className="capitalize">{request.type.replace(/_/g, ' ')}</TableCell>
+                      <TableCell>{formatClientChangeRequestType(request.type)}</TableCell>
                       <TableCell>
                         <Chip size="sm" color={statusColor(request.status) as any}>
                           {request.status}

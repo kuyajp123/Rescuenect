@@ -64,6 +64,25 @@ export interface LocationCoverageBarangay {
   value: string;
 }
 
+export interface ClientMapBounds {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+}
+
+export interface ClientMapSettings {
+  centerLatitude: number | null;
+  centerLongitude: number | null;
+  minZoom: number;
+  zoom: number;
+  maxZoom: number;
+  maxBounds: ClientMapBounds | null;
+  boundarySource?: string | null;
+  boundaryVerified: boolean;
+  boundaryUpdatedAt?: unknown;
+}
+
 export interface LocationCoverageClient {
   clientId: string;
   clientName: string;
@@ -80,6 +99,7 @@ export interface LocationCoverageClient {
     latitude: number;
     longitude: number;
   };
+  mapSettings?: ClientMapSettings | null;
   isActive: boolean;
 }
 
@@ -107,6 +127,7 @@ export interface ResidentLocationSelection {
   weatherLocationKey: string;
   weatherLatitude: number;
   weatherLongitude: number;
+  mapSettings?: ClientMapSettings | null;
 }
 
 type BarangaySeed = Pick<BarangayMetadata, 'label' | 'value' | 'legacyWeatherZoneKey'>;
@@ -262,6 +283,34 @@ const toLocationCoverageClient = (client: LocationClient): LocationCoverageClien
   },
   isActive: client.status === 'active',
 });
+
+export const toResidentLocationSelectionFromCoverageClient = (
+  client: LocationCoverageClient | undefined,
+  barangayValue: string
+): ResidentLocationSelection | null => {
+  const barangay = client?.barangays.find(item => item.value === barangayValue);
+
+  if (!client || !barangay) {
+    return null;
+  }
+
+  return {
+    barangay: barangay.value,
+    clientId: client.clientId,
+    clientName: client.clientName,
+    provinceCode: client.provinceCode,
+    provinceName: client.provinceName,
+    municipalityCode: client.municipalityCode,
+    municipalityName: client.municipalityName,
+    municipalityType: client.municipalityType,
+    barangayCode: barangay.barangayCode,
+    barangayLabel: barangay.barangayLabel,
+    weatherLocationKey: client.weatherLocationKey,
+    weatherLatitude: client.weatherLatitude ?? client.weatherCoordinates.latitude,
+    weatherLongitude: client.weatherLongitude ?? client.weatherCoordinates.longitude,
+    mapSettings: client.mapSettings ?? null,
+  };
+};
 
 export const getActiveLocationCoverage = (): LocationCoverageResponse => {
   const provinces = new Map<string, LocationCoverageProvince>();

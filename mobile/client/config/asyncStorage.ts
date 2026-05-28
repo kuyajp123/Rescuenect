@@ -1,4 +1,5 @@
 import { storageHelpers } from '@/helper/storage';
+import type { ClientMapSettings } from './locationConfig';
 
 //
 //  --------------------------------------------
@@ -39,6 +40,7 @@ export interface User {
   weatherLocationKey?: string;
   weatherLatitude?: number | null;
   weatherLongitude?: number | null;
+  mapSettings?: ClientMapSettings | null;
 }
 
 //

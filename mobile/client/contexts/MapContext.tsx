@@ -2,6 +2,7 @@ import { HoveredButton } from '@/components/components/button/Button';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { getClientMapBounds, getClientMapCenter, getClientMapZoomSettings } from '@/helper/clientMapScope';
 import { storageHelpers } from '@/helper/storage';
 import { useCoords } from '@/store/useCoords';
 import { useMapSettingsStore } from '@/store/useMapSettings';
@@ -50,14 +51,16 @@ export const MapProvider = ({ children }: MapProviderProps) => {
   const fastTapEnabled = useMapSettingsStore(state => state.fastTapEnabled);
   const router = useRouter();
   const { isDark } = useTheme();
-  const [cameraCenter, setCameraCenterState] = useState<[number, number]>([120.750674, 14.31808]);
+  const [cameraCenter, setCameraCenterState] = useState<[number, number]>(() => getClientMapCenter(userData));
   const cameraBounds = useMemo(() => {
-    const [lng, lat] = cameraCenter;
+    const bounds = getClientMapBounds(userData, cameraCenter);
+
     return {
-      ne: [lng + 0.08, lat + 0.08] as [number, number],
-      sw: [lng - 0.08, lat - 0.08] as [number, number],
+      ne: bounds[1],
+      sw: bounds[0],
     };
-  }, [cameraCenter]);
+  }, [cameraCenter, userData]);
+  const scopedZoom = useMemo(() => getClientMapZoomSettings(userData), [userData]);
 
   const setCameraCenter = useCallback((coords: [number, number]) => {
     setCameraCenterState(coords);
@@ -80,17 +83,10 @@ export const MapProvider = ({ children }: MapProviderProps) => {
     loadMapStyle();
   }, []);
 
-  // Update camera center when active status coords change
+  // Update camera center when the user's LGU map scope changes.
   useEffect(() => {
-    if (
-      typeof userData.weatherLongitude === 'number' &&
-      typeof userData.weatherLatitude === 'number' &&
-      !Number.isNaN(userData.weatherLongitude) &&
-      !Number.isNaN(userData.weatherLatitude)
-    ) {
-      setCameraCenter([userData.weatherLongitude, userData.weatherLatitude]);
-    }
-  }, [setCameraCenter, userData.weatherLatitude, userData.weatherLongitude]);
+    setCameraCenter(getClientMapCenter(userData));
+  }, [setCameraCenter, userData]);
 
   useEffect(() => {
     if (activeStatusCoords && coords && coords.length === 2) {
@@ -187,11 +183,11 @@ export const MapProvider = ({ children }: MapProviderProps) => {
             centerCoordinate={cameraCenter} // [lng, lat]
             animationDuration={300}
             animationMode="flyTo"
-            zoomLevel={16}
-            minZoomLevel={15}
-            maxZoomLevel={19}
+            zoomLevel={scopedZoom.zoomLevel}
+            minZoomLevel={scopedZoom.minZoomLevel}
+            maxZoomLevel={scopedZoom.maxZoomLevel}
             followUserLocation={followUserLocation}
-            followZoomLevel={16}
+            followZoomLevel={scopedZoom.zoomLevel}
             maxBounds={cameraBounds}
           />
           {mapStyle !== MapboxGL.StyleURL.SatelliteStreet && (
@@ -307,6 +303,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
     oneTimeLocationCoords,
     cameraCenter,
     cameraBounds,
+    scopedZoom,
     mapStyle,
     showMapStyles,
     isDark,

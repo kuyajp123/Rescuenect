@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from '@/config/endPoints';
+import { CenterCoordinatePicker } from '@/pages/public/components/CenterCoordinatePicker';
 import {
   Button,
   Card,
@@ -24,18 +25,36 @@ type PsgcOption = {
 
 const sortByName = (items: PsgcOption[]) => [...items].sort((left, right) => left.name.localeCompare(right.name));
 
+const hasValidCoordinatePair = (latitude: string, longitude: string) => {
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+
+  return Boolean(
+    latitude.trim() &&
+      longitude.trim() &&
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180
+  );
+};
+
 const LguRequest = () => {
   const [regions, setRegions] = useState<PsgcOption[]>([]);
   const [provinces, setProvinces] = useState<PsgcOption[]>([]);
   const [municipalities, setMunicipalities] = useState<PsgcOption[]>([]);
   const [barangays, setBarangays] = useState<PsgcOption[]>([]);
   const [selectedBarangayCodes, setSelectedBarangayCodes] = useState<Set<string>>(new Set());
+  const [barangayScopeMunicipalityCode, setBarangayScopeMunicipalityCode] = useState('');
 
   const [selectedRegion, setSelectedRegion] = useState('');
   const [selectedProvince, setSelectedProvince] = useState('');
   const [selectedMunicipality, setSelectedMunicipality] = useState('');
   const [regionHasNoProvinces, setRegionHasNoProvinces] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
+  const [isBarangaysLoading, setIsBarangaysLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -63,6 +82,10 @@ const LguRequest = () => {
     () => municipalities.find(item => item.code === selectedMunicipality),
     [municipalities, selectedMunicipality]
   );
+  const barangayScopeMunicipalityData = useMemo(
+    () => municipalities.find(item => item.code === barangayScopeMunicipalityCode),
+    [municipalities, barangayScopeMunicipalityCode]
+  );
 
   useEffect(() => {
     axios
@@ -87,6 +110,9 @@ const LguRequest = () => {
     setMunicipalities([]);
     setBarangays([]);
     setSelectedBarangayCodes(new Set());
+    setBarangayScopeMunicipalityCode('');
+    setIsBarangaysLoading(false);
+    setIsVerified(false);
     if (!selectedRegion) {
       return () => {
         isActive = false;
@@ -117,26 +143,78 @@ const LguRequest = () => {
 
   useEffect(() => {
     if (regionHasNoProvinces) return;
+    let isActive = true;
+    const provinceCode = selectedProvince;
 
     setSelectedMunicipality('');
     setMunicipalities([]);
     setBarangays([]);
     setSelectedBarangayCodes(new Set());
-    if (!selectedProvince) return;
+    setBarangayScopeMunicipalityCode('');
+    setIsBarangaysLoading(false);
+    setIsVerified(false);
+    if (!provinceCode) {
+      return () => {
+        isActive = false;
+      };
+    }
 
     axios
-      .get<{ municipalities: PsgcOption[] }>(API_ENDPOINTS.PUBLIC.PSGC_MUNICIPALITIES(selectedProvince))
-      .then(response => setMunicipalities(sortByName(response.data.municipalities || [])));
+      .get<{ municipalities: PsgcOption[] }>(API_ENDPOINTS.PUBLIC.PSGC_MUNICIPALITIES(provinceCode))
+      .then(response => {
+        if (!isActive) return;
+        setMunicipalities(sortByName(response.data.municipalities || []));
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, [selectedProvince, regionHasNoProvinces]);
 
   useEffect(() => {
+    let isActive = true;
+    const municipalityCode = selectedMunicipality;
+
     setBarangays([]);
     setSelectedBarangayCodes(new Set());
-    if (!selectedMunicipality) return;
+    setBarangayScopeMunicipalityCode('');
+    setIsVerified(false);
+    setForm(prev => ({
+      ...prev,
+      proposedWeatherLatitude: '',
+      proposedWeatherLongitude: '',
+    }));
+    if (!municipalityCode) {
+      setIsBarangaysLoading(false);
+      return () => {
+        isActive = false;
+      };
+    }
 
+    setIsBarangaysLoading(true);
     axios
-      .get<{ barangays: PsgcOption[] }>(API_ENDPOINTS.PUBLIC.PSGC_BARANGAYS(selectedMunicipality))
-      .then(response => setBarangays(sortByName(response.data.barangays || [])));
+      .get<{ barangays: PsgcOption[] }>(API_ENDPOINTS.PUBLIC.PSGC_BARANGAYS(municipalityCode))
+      .then(response => {
+        if (!isActive) return;
+        setBarangays(sortByName(response.data.barangays || []));
+        setBarangayScopeMunicipalityCode(municipalityCode);
+      })
+      .catch(() => {
+        if (!isActive) return;
+        addToast({
+          title: 'Barangays unavailable',
+          description: 'Barangay data could not be loaded for the selected municipality or city.',
+          color: 'danger',
+        });
+      })
+      .finally(() => {
+        if (!isActive) return;
+        setIsBarangaysLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, [selectedMunicipality]);
 
   const updateForm = (key: keyof typeof form, value: string) => {
@@ -168,12 +246,13 @@ const LguRequest = () => {
       !selectedRegionData ||
       (!regionHasNoProvinces && !selectedProvinceData) ||
       !selectedMunicipalityData ||
+      !hasValidCoordinatePair(form.proposedWeatherLatitude, form.proposedWeatherLongitude) ||
       selectedBarangays.length === 0 ||
       !isVerified
     ) {
       addToast({
         title: 'Incomplete request',
-        description: 'Complete the LGU information, location scope, barangays, and verification checkbox.',
+        description: 'Complete the LGU information, location scope, proposed center, barangays, and verification checkbox.',
         color: 'warning',
       });
       return;
@@ -282,18 +361,6 @@ const LguRequest = () => {
                 value={form.requesterPhone}
                 onValueChange={value => updateForm('requesterPhone', value)}
               />
-              <Input
-                label="Proposed Weather Latitude"
-                type="number"
-                value={form.proposedWeatherLatitude}
-                onValueChange={value => updateForm('proposedWeatherLatitude', value)}
-              />
-              <Input
-                label="Proposed Weather Longitude"
-                type="number"
-                value={form.proposedWeatherLongitude}
-                onValueChange={value => updateForm('proposedWeatherLongitude', value)}
-              />
 
               <Select
                 label="Region"
@@ -325,6 +392,19 @@ const LguRequest = () => {
                   <SelectItem key={item.code}>{item.name}</SelectItem>
                 ))}
               </Select>
+              <CenterCoordinatePicker
+                latitude={form.proposedWeatherLatitude}
+                longitude={form.proposedWeatherLongitude}
+                municipalityName={selectedMunicipalityData?.name}
+                isDisabled={!selectedMunicipalityData}
+                onChange={(latitude, longitude) => {
+                  setForm(prev => ({
+                    ...prev,
+                    proposedWeatherLatitude: latitude,
+                    proposedWeatherLongitude: longitude,
+                  }));
+                }}
+              />
               <Textarea
                 label="Notes"
                 value={form.notes}
@@ -339,16 +419,35 @@ const LguRequest = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="font-semibold">Barangay Scope</h2>
-                  <p className="text-xs text-default-500">{selectedBarangayCodes.size} selected</p>
+                  <p className="text-xs text-default-500">
+                    {isBarangaysLoading
+                      ? `Loading ${selectedMunicipalityData?.name || 'municipality'} barangays`
+                      : barangayScopeMunicipalityData
+                        ? `${selectedBarangayCodes.size} selected from ${barangayScopeMunicipalityData.name}`
+                        : `${selectedBarangayCodes.size} selected`}
+                  </p>
                 </div>
-                <Button size="sm" variant="flat" onPress={handleSelectAllBarangays} isDisabled={barangays.length === 0}>
+                <Button
+                  size="sm"
+                  variant="flat"
+                  onPress={handleSelectAllBarangays}
+                  isDisabled={isBarangaysLoading || barangays.length === 0}
+                >
                   Select all
                 </Button>
               </div>
 
               <div className="max-h-[420px] overflow-auto rounded-lg border border-default-200 p-3">
-                {barangays.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-default-500">Select a municipality or city first.</p>
+                {isBarangaysLoading ? (
+                  <p className="py-8 text-center text-sm text-default-500">
+                    Loading barangays for {selectedMunicipalityData?.name || 'the selected municipality'}...
+                  </p>
+                ) : barangays.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-default-500">
+                    {selectedMunicipalityData
+                      ? `No barangays found for ${selectedMunicipalityData.name}.`
+                      : 'Select a municipality or city first.'}
+                  </p>
                 ) : (
                   <div className="flex flex-col gap-2">
                     {barangays.map(barangay => (

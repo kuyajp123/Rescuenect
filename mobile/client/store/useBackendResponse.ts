@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { ClientMapSettings } from '@/config/locationConfig';
 
 type ResidentUserData = {
   firstName: string;
@@ -18,6 +19,7 @@ type ResidentUserData = {
   weatherLocationKey?: string;
   weatherLatitude?: number | null;
   weatherLongitude?: number | null;
+  mapSettings?: ClientMapSettings | null;
 };
 
 type AuthUser = {

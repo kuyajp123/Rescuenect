@@ -33,6 +33,7 @@ export type DynamicResidentLocationSelection = {
   weatherLocationKey: string;
   weatherLatitude: number | null;
   weatherLongitude: number | null;
+  mapSettings: ClientMapSettings;
 };
 
 const toSlug = (value: string): string =>
@@ -184,6 +185,26 @@ export const computeGeoJsonBounds = (geoJson: unknown): ClientMapBounds => {
   };
 };
 
+export const stringifyGeoJsonForStorage = (geoJson: Record<string, unknown>): string => {
+  try {
+    return JSON.stringify(geoJson);
+  } catch {
+    throw new Error('GeoJSON must be serializable');
+  }
+};
+
+export const parseGeoJsonFromStorage = (value: unknown): Record<string, unknown> | null => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
+  if (typeof value !== 'string' || !value.trim()) return null;
+
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+};
+
 const toFallbackClient = (): ClientLgu => ({
   id: NAIC_LOCATION_CLIENT.id,
   name: NAIC_LOCATION_CLIENT.name,
@@ -315,6 +336,7 @@ export class ClientModel {
           latitude: client.weatherLatitude,
           longitude: client.weatherLongitude,
         },
+        mapSettings: client.mapSettings,
         isActive: client.status === 'active',
       });
 
@@ -337,14 +359,17 @@ export class ClientModel {
     }
 
     const normalizedBarangay = normalizeBarangayValue(payload.barangay);
+    const requestedClientId =
+      typeof payload.clientId === 'string' && payload.clientId.trim().length > 0 ? payload.clientId : null;
 
     for (const client of await this.getActiveClients()) {
+      if (requestedClientId && requestedClientId !== client.id) {
+        continue;
+      }
+
       const barangay = activeBarangays(client.barangays).find(item => item.value === normalizedBarangay);
       if (!barangay) continue;
 
-      if (typeof payload.clientId === 'string' && payload.clientId.trim() && payload.clientId !== client.id) {
-        return null;
-      }
       if (
         typeof payload.provinceCode === 'string' &&
         payload.provinceCode.trim() &&
@@ -389,6 +414,7 @@ export class ClientModel {
         weatherLocationKey: client.weatherLocationKey,
         weatherLatitude: client.weatherLatitude,
         weatherLongitude: client.weatherLongitude,
+        mapSettings: client.mapSettings,
       };
     }
 
@@ -583,18 +609,26 @@ export class ClientModel {
     if (!client) throw new Error('Client not found');
 
     const bounds = computeGeoJsonBounds(params.geoJson);
+    const centerLatitude = (bounds.north + bounds.south) / 2;
+    const centerLongitude = (bounds.east + bounds.west) / 2;
+    const geoJsonText = stringifyGeoJsonForStorage(params.geoJson);
     const source = typeof params.source === 'string' && params.source.trim() ? params.source.trim() : null;
     const boundary: Omit<ClientBoundary, 'uploadedAt'> = {
       clientId: client.id,
       source,
       geoJson: params.geoJson,
+      geoJsonText,
       bounds,
       uploadedBy: params.uploadedBy,
     };
 
     await db.collection('clientBoundaries').doc(client.id).set(
       {
-        ...boundary,
+        clientId: boundary.clientId,
+        source: boundary.source,
+        geoJsonText,
+        bounds,
+        uploadedBy: boundary.uploadedBy,
         uploadedAt: FieldValue.serverTimestamp(),
       },
       { merge: true }
@@ -607,6 +641,8 @@ export class ClientModel {
         {
           mapSettings: {
             ...currentMapSettings,
+            centerLatitude,
+            centerLongitude,
             maxBounds: bounds,
             boundarySource: source,
             boundaryVerified: true,
@@ -630,7 +666,8 @@ export class ClientModel {
     return {
       clientId,
       source: typeof data.source === 'string' ? data.source : null,
-      geoJson: data.geoJson && typeof data.geoJson === 'object' ? (data.geoJson as Record<string, unknown>) : null,
+      geoJson: parseGeoJsonFromStorage(data.geoJsonText) ?? parseGeoJsonFromStorage(data.geoJson),
+      geoJsonText: typeof data.geoJsonText === 'string' ? data.geoJsonText : null,
       bounds,
       uploadedBy: typeof data.uploadedBy === 'string' ? data.uploadedBy : 'unknown',
       uploadedAt: data.uploadedAt,

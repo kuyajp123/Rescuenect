@@ -18,12 +18,13 @@ export interface BaseNotification {
   hiddenBy?: string[]; // User IDs who have hidden/deleted from their view
 
   // Location/barangay targeting
-  clientId?: string;
+  clientId?: string | null;
   location?: string; // weather location key or specific barangay
   barangays?: string[]; // List of affected barangays
 
   // Audience targeting
   audience: 'admin' | 'users' | 'both';
+  targetRole?: 'super_admin' | 'lgu_admin' | 'all_admins' | null;
 
   // Delivery tracking
   sentTo: number; // Number of recipients
@@ -46,6 +47,10 @@ export type NotificationType =
   | 'announcement'
   | 'emergency'
   | 'system'
+  | 'client_request'
+  | 'client_change_request'
+  | 'admin_invite'
+  | 'system_health'
   | 'evacuation'
   | 'flood'
   | 'typhoon'
