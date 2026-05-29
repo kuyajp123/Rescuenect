@@ -342,7 +342,8 @@ Recommended scope:
 - Keep Naic creation as an explicit seed/migration script only.
 - Replace static mobile/admin Naic location fallbacks with active client coverage from backend.
 - Confirm all existing production data has valid `clientId`.
-- Make Naic deletable under the same safety rules as other inactive clients.
+- Make Naic use the same scheduled decommissioning flow as other clients.
+- Add 30-day deletion warnings, resident account disable/delete, and scheduled cascade cleanup.
 - Add tests proving the system works without any Naic default dependency.
 
 After Phase 6A, continue with production readiness:
@@ -351,7 +352,7 @@ After Phase 6A, continue with production readiness:
 - E2E tests for Super Admin and LGU Admin flows.
 - Log retention/export.
 - Backup and restore strategy.
-- Monitoring for scheduled weather and earthquake jobs.
+- Monitoring for scheduled weather, earthquake, and client deletion jobs.
 - Performance review for large clients, logs, notifications, and map data.
 
 ## Final Phase 5 Decision

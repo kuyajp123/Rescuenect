@@ -2,9 +2,9 @@
 
 ## Summary
 
-Phase 6 removes Naic as Rescuenect’s runtime default client and makes all municipality/city clients fully dynamic. Province-wide client support remains out of scope.
+Phase 6 removes Naic as Rescuenect's runtime default client and makes all municipality/city clients fully dynamic. Province-wide client support remains out of scope.
 
-Phase 6 will use **strict-after-audit rollout**: first scan and fix missing `clientId` data, then remove runtime Naic fallbacks. Naic becomes a normal client and can be deleted only when inactive/draft and free of blocking operational dependencies.
+Phase 6 will use **strict-after-audit rollout**: first scan and fix missing `clientId` data, then remove runtime Naic fallbacks. Naic becomes a normal client and uses the same scheduled decommissioning flow as every other municipality/city client.
 
 ## Key Changes
 
@@ -38,17 +38,42 @@ Phase 6 will use **strict-after-audit rollout**: first scan and fix missing `cli
 - Remove old `central_naic` / Naic-zone special-case behavior from active notification and weather matching paths.
 - Keep static Naic constants only if needed for legacy migration scripts or inactive compatibility code, not user-facing runtime behavior.
 
-### 6D: Naic Becomes A Normal Client
+### 6D: Scheduled Client Decommissioning
 
 - Remove backend and frontend hard blocks that say Naic cannot be deleted.
-- Apply the same deletion rules to Naic as every other client.
-- Client deletion policy:
-  - Client must be `draft` or `inactive`.
-  - Delete is blocked if operational data still exists: residents, statuses, evacuation centers, announcements, contacts, active weather/earthquake notifications, or pending client requests.
-  - LGU admin accounts/invitations may be deactivated/revoked during deletion.
-  - Historical logs, finalized LGU requests, finalized client requests, and email logs may remain for audit history.
-- Add `GET /admin/super/clients/:clientId/deletion-preview` so the UI can show why deletion is blocked.
-- `DELETE /admin/super/clients/:clientId` should return `409` with dependency counts when deletion is blocked.
+- Apply the same decommissioning rules to Naic as every other client.
+- Replace instant hard-delete with scheduled cascade deletion:
+  - Super Admin schedules deletion only after the client is inactive or draft.
+  - Client becomes `deletion_scheduled`.
+  - Store `deletionScheduledAt`, `deletionEffectiveAt`, `deletionRequestedBy`, `deletionReason`, and `deletionStatus`.
+  - Default grace period is 30 days.
+  - Super Admin can cancel deletion before `deletionEffectiveAt`.
+- During the grace period:
+  - LGU admins see a persistent dashboard banner with the deletion date.
+  - Residents under that client see a home-screen warning banner.
+  - Resident signup for that client remains disabled.
+  - LGU admin write operations are blocked; read/export access can remain until deletion.
+  - Resident write operations are blocked where they depend on the client, including status creation and client notifications.
+- On the effective date:
+  - Disable resident accounts under the client before deleting data.
+  - Revoke or clear resident FCM tokens.
+  - Delete Firebase Auth resident users where supported by the backend job.
+  - Delete Firestore user docs and client-scoped resident data/history for that client.
+  - Delete or archive client operational data: statuses, evacuation centers, announcements, contacts, active client notifications, client boundaries, pending proposals, pending invitations, and runtime client config.
+  - Deactivate or revoke LGU admin accounts/invitations for the client.
+  - Mark the client as `deleted` or remove the client document after cleanup succeeds.
+- Keep audit/system history:
+  - operation logs,
+  - email logs,
+  - finalized LGU request summaries,
+  - finalized client request summaries,
+  - deletion job records.
+- Add `GET /admin/super/clients/:clientId/deletion-preview` so the UI can show affected data counts before scheduling deletion.
+- Add `POST /admin/super/clients/:clientId/schedule-deletion`.
+- Add `POST /admin/super/clients/:clientId/cancel-deletion`.
+- Keep `DELETE /admin/super/clients/:clientId` unavailable for normal Super Admin use or reserve it for internal scheduled cleanup only.
+- Use a Supabase scheduled function to process due deletion jobs daily through a protected backend internal endpoint.
+- Deletion jobs must be idempotent and batch-based so they can resume safely if interrupted.
 
 ### 6E: Production Readiness
 
@@ -62,6 +87,7 @@ Phase 6 will use **strict-after-audit rollout**: first scan and fix missing `cli
 - Add monitoring checks for:
   - Supabase scheduled weather job.
   - Supabase earthquake monitor job.
+  - Supabase scheduled client deletion job.
   - SMTP/email failures.
   - Backend health and Firebase health.
 - Address existing frontend Recharts circular chunk warnings and large chunk warnings where practical.
@@ -76,12 +102,25 @@ Phase 6 will use **strict-after-audit rollout**: first scan and fix missing `cli
   - `GET /admin/super/migrations/dynamic-client-cutover-audit`
   - `POST /admin/super/migrations/dynamic-client-cutover`
   - `GET /admin/super/clients/:clientId/deletion-preview`
-- Extend client deletion response shape with dependency counts:
+  - `POST /admin/super/clients/:clientId/schedule-deletion`
+  - `POST /admin/super/clients/:clientId/cancel-deletion`
+  - `POST /internal/scheduled/client-deletions/process`
+- Extend client deletion preview response shape with affected data counts:
   - `canDelete`
-  - `blockingReasons`
+  - `canScheduleDeletion`
+  - `warnings`
   - `dependencies`
-- Add shared type:
+- Add deletion scheduling fields to `clients/{clientId}`:
+  - `status: 'deletion_scheduled' | 'deleting' | 'deleted'`
+  - `deletionScheduledAt`
+  - `deletionEffectiveAt`
+  - `deletionRequestedBy`
+  - `deletionCancelledAt`
+  - `deletionStatus`
+- Add `clientDeletionJobs/{jobId}` for scheduled cleanup progress.
+- Add shared types:
   - `ClientDeletionPreview`
+  - `ClientDeletionJob`
   - `DynamicClientCutoverAudit`
 - Existing `/mobile/data/locationCoverage` remains the active source for mobile/resident location choices.
 
@@ -102,8 +141,15 @@ Phase 6 will use **strict-after-audit rollout**: first scan and fix missing `cli
   - Super Admin can still access all clients explicitly.
   - Resident signup shows only active clients and handles zero active clients.
   - Naic appears as a normal client in Super Admin UI.
-  - Naic delete is allowed only when inactive/draft and dependency preview passes.
-  - Deleting any client with operational dependencies returns `409`.
+  - Naic can be scheduled for deletion only when inactive or draft.
+  - Deletion preview shows affected residents, admins, statuses, centers, announcements, contacts, notifications, requests, and boundaries.
+  - Scheduled deletion can be cancelled before the effective date.
+  - LGU admins see deletion warning banner during the grace period.
+  - Residents see deletion warning banner during the grace period.
+  - Resident and LGU admin write operations are blocked during scheduled deletion.
+  - Due deletion job disables/deletes resident accounts before deleting client-scoped data.
+  - Due deletion job revokes FCM tokens and removes client-scoped notifications.
+  - Due deletion job is safe to retry after partial failure.
   - Mobile map/location/weather flows work for non-Naic clients without Naic fallback.
   - Super Admin notifications and Logs still work after strict client cutover.
 
@@ -111,7 +157,10 @@ Phase 6 will use **strict-after-audit rollout**: first scan and fix missing `cli
 
 - Province-wide clients remain out of scope for Phase 6.
 - Strict-after-audit rollout is required; no immediate strict cutover.
-- Block delete is the chosen deletion policy for clients with operational dependencies.
+- Scheduled cascade deletion is the chosen client deletion policy.
+- Default deletion grace period is 30 days.
+- Resident accounts tied to the deleted client are disabled/deleted on the effective date; residents must create a new account for another active LGU client.
+- Audit/system history remains after client operational data is deleted.
 - Naic remains protected until the Phase 6 audit/migration passes.
 - After Phase 6 cutover, Naic is just another municipality/city client.
 - Super Admin access remains controlled by `SUPER_ADMIN_EMAILS`.
