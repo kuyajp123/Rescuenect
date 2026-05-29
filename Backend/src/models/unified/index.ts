@@ -18,6 +18,7 @@ export class UnifiedModel {
     requestedClientId?: string
   ): boolean {
     const clientId = getEffectiveClientId(data);
+    if (!clientId) return false;
     if (!activeClientIds.has(clientId)) return false;
     return !requestedClientId || requestedClientId === clientId;
   }

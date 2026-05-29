@@ -10,10 +10,24 @@ announcementRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin,
 
 announcementRoutes.get('/all', AnnouncementController.getAnnouncements);
 announcementRoutes.get('/details/:id', AnnouncementController.getAnnouncementDetails);
-announcementRoutes.post('/createAnnouncement', upload.single('thumbnail'), AnnouncementController.addAnnouncement);
+announcementRoutes.post(
+  '/createAnnouncement',
+  AdminMiddleware.blockLguWritesWhenClientDeletionScheduled,
+  upload.single('thumbnail'),
+  AnnouncementController.addAnnouncement
+);
 
-announcementRoutes.put('/updateAnnouncement/:id', upload.single('thumbnail'), AnnouncementController.updateAnnouncement);
+announcementRoutes.put(
+  '/updateAnnouncement/:id',
+  AdminMiddleware.blockLguWritesWhenClientDeletionScheduled,
+  upload.single('thumbnail'),
+  AnnouncementController.updateAnnouncement
+);
 
-announcementRoutes.delete('/deleteAnnouncement/:id', AnnouncementController.deleteAnnouncement);
+announcementRoutes.delete(
+  '/deleteAnnouncement/:id',
+  AdminMiddleware.blockLguWritesWhenClientDeletionScheduled,
+  AnnouncementController.deleteAnnouncement
+);
 
 export default announcementRoutes;

@@ -8,12 +8,15 @@ export const canAccessClientScope = (adminUser: AdminUser | undefined, requested
   return !requestedClientId || requestedClientId === adminUser.clientId;
 };
 
-export const canLguAdminUseClient = (status: ClientLguStatus | undefined): boolean => status === 'active';
+export const canLguAdminUseClient = (status: ClientLguStatus | undefined): boolean =>
+  status === 'active' || status === 'deletion_scheduled';
 
 export const canLguAdminCompleteOnboarding = (status: ClientLguStatus | undefined): boolean =>
   status === 'draft' || status === 'active';
 
 export const isClientVisibleInResidentSignup = (status: ClientLguStatus | undefined): boolean => status === 'active';
+
+export const isClientWritableByLguAdmin = (status: ClientLguStatus | undefined): boolean => status === 'active';
 
 export const hasUsableWeatherCoordinates = (
   latitude: number | null | undefined,

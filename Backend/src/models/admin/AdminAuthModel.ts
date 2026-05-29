@@ -1,8 +1,6 @@
-import { NAIC_CLIENT_ID, NAIC_LOCATION_CLIENT } from '@/config/locationConfig';
 import { db } from '@/db/firestoreConfig';
 import { EmailService } from '@/services/EmailService';
 import type { AdminRole, AdminStatus, AdminUser } from '@/types/admin';
-import { shouldAllowLegacyAdminEmails } from '@/utils/accessControl';
 import { FieldValue } from 'firebase-admin/firestore';
 import { ClientModel } from './ClientModel';
 
@@ -46,14 +44,19 @@ const buildPermissions = (role: AdminRole): string[] =>
 
 const toAdminUser = (id: string, data: FirebaseFirestore.DocumentData): AdminUser => {
   const role = data.role === 'super_admin' ? 'super_admin' : 'lgu_admin';
-  const clientId = role === 'super_admin' ? null : (data.clientId as string | undefined) || NAIC_CLIENT_ID;
+  const clientId =
+    role === 'super_admin'
+      ? null
+      : typeof data.clientId === 'string' && data.clientId.trim()
+        ? data.clientId.trim()
+        : null;
 
   return {
     uid: data.uid || id,
     email: data.email,
     role,
     clientId,
-    clientName: data.clientName ?? (clientId === NAIC_CLIENT_ID ? NAIC_LOCATION_CLIENT.name : null),
+    clientName: data.clientName ?? null,
     status: data.status === 'inactive' ? 'inactive' : 'active',
     permissionsVersion: data.permissionsVersion || PERMISSIONS_VERSION,
     permissions: Array.isArray(data.permissions) ? data.permissions : buildPermissions(role),
@@ -82,11 +85,7 @@ export class AdminAuthModel {
   }
 
   static getLguAdminEmails(): string[] {
-    if (!shouldAllowLegacyAdminEmails(process.env.ENABLE_LEGACY_ADMIN_EMAILS)) {
-      return [];
-    }
-
-    return parseEmailEnv(process.env.ADMIN_EMAILS);
+    return [];
   }
 
   private static async getAdminRecordByEmail(email: string): Promise<AdminUser | null> {
@@ -122,20 +121,15 @@ export class AdminAuthModel {
         return null;
       }
 
+      if (typeof invitation.clientId !== 'string' || !invitation.clientId.trim()) {
+        return null;
+      }
+
       return {
         role: 'lgu_admin',
-        clientId: invitation.clientId || NAIC_CLIENT_ID,
+        clientId: invitation.clientId.trim(),
         clientName: invitation.clientName ?? null,
         source: 'invitation',
-      };
-    }
-
-    if (this.getLguAdminEmails().includes(normalizedEmail)) {
-      return {
-        role: 'lgu_admin',
-        clientId: NAIC_CLIENT_ID,
-        clientName: NAIC_LOCATION_CLIENT.name,
-        source: 'legacy_admin_email',
       };
     }
 
@@ -147,7 +141,7 @@ export class AdminAuthModel {
 
       return {
         role: existingAdmin.role,
-        clientId: existingAdmin.clientId || NAIC_CLIENT_ID,
+        clientId: existingAdmin.clientId,
         clientName: existingAdmin.clientName ?? null,
         source: 'existing_admin',
       };
@@ -170,9 +164,11 @@ export class AdminAuthModel {
     const existing = snap.exists ? snap.data() ?? {} : {};
 
     const role = allowed.role;
-    const clientId = role === 'super_admin' ? null : existing.clientId || allowed.clientId || NAIC_CLIENT_ID;
-    const clientName =
-      role === 'super_admin' ? null : existing.clientName || allowed.clientName || NAIC_LOCATION_CLIENT.name;
+    const clientId = role === 'super_admin' ? null : existing.clientId || allowed.clientId || null;
+    if (role === 'lgu_admin' && !clientId) {
+      return null;
+    }
+    const clientName = role === 'super_admin' ? null : existing.clientName || allowed.clientName || null;
     const status = (existing.status as AdminStatus | undefined) || 'active';
 
     const payload = {
@@ -361,6 +357,8 @@ export class AdminAuthModel {
     return {
       ...adminUser,
       clientName: adminUser.clientName || client.name,
+      clientStatus: client.status,
+      clientDeletionEffectiveAt: client.deletionEffectiveAt,
       municipalityName: client.municipalityName,
       weatherLocationKey: client.weatherLocationKey,
       weatherLatitude: client.weatherLatitude,

@@ -18,7 +18,6 @@ import { useWeatherStore } from './stores/useWeatherStores';
 
 function App() {
   useTheme();
-  const CURRENT_USER_LOCATION = 'bancaan';
   const setWeather = useWeatherStore(state => state.setWeather);
   const clearWeather = useWeatherStore(state => state.clearWeather);
   const setStatus = useStatusStore(state => state.setData);
@@ -37,8 +36,8 @@ function App() {
 
   const lguWeatherLocation = canLoadClientScopedData
     ? userData?.role === 'lgu_admin'
-      ? userData.weatherLocationKey || userData.clientId || userData.barangay
-      : userData?.barangay || CURRENT_USER_LOCATION
+      ? userData.weatherLocationKey || null
+      : userData?.weatherLocationKey || null
     : null;
 
   // Fetch all latest statuses once for dashboard analytics

@@ -156,7 +156,7 @@ function LayoutContent() {
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
 
-    const weatherLocation = userData?.weatherLocationKey || userData?.barangay;
+    const weatherLocation = userData?.weatherLocationKey;
     if (weatherLocation) {
       unsubscribe = subscribeToWeatherData(weatherLocation, weatherData => {
         setWeather?.(weatherData);

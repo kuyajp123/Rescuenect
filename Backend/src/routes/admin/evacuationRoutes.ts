@@ -9,10 +9,24 @@ const evacuationRoutes = Router();
 evacuationRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin, AdminMiddleware.requireClientAccess);
 
 evacuationRoutes.get('/getCenters', EvacuationController.getCenters);
-evacuationRoutes.post('/addCenter', upload.array('images', 3), EvacuationController.addCenter);
+evacuationRoutes.post(
+  '/addCenter',
+  AdminMiddleware.blockLguWritesWhenClientDeletionScheduled,
+  upload.array('images', 3),
+  EvacuationController.addCenter
+);
 
-evacuationRoutes.put('/updateCenter', upload.array('images', 3), EvacuationController.updateCenter);
+evacuationRoutes.put(
+  '/updateCenter',
+  AdminMiddleware.blockLguWritesWhenClientDeletionScheduled,
+  upload.array('images', 3),
+  EvacuationController.updateCenter
+);
 
-evacuationRoutes.delete('/deleteCenter', EvacuationController.deleteCenter);
+evacuationRoutes.delete(
+  '/deleteCenter',
+  AdminMiddleware.blockLguWritesWhenClientDeletionScheduled,
+  EvacuationController.deleteCenter
+);
 
 export default evacuationRoutes;

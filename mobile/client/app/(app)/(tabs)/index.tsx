@@ -4,7 +4,9 @@ import StatusIndicator from '@/components/components/data-display/StatusIndicato
 import QuickActions from '@/components/components/home/QuickActions';
 import { CardWeather } from '@/components/components/weather/CardWeather';
 import { Body } from '@/components/ui/layout/Body';
+import { Text } from '@/components/ui/text';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { Colors } from '@/constants/Colors';
 import { storageHelpers } from '@/helper/storage';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
@@ -20,6 +22,7 @@ export default function HomeScreen() {
   const formData = useStatusFormStore(state => state.formData);
   const userPhotoURL = userAuth?.photoURL || '';
   const userDataBackend = useUserData(state => state.userData);
+  const deletionScheduled = userDataBackend.clientStatus === 'deletion_scheduled';
   const [refreshing, setRefreshing] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -63,6 +66,24 @@ export default function HomeScreen() {
 
   return (
     <Body style={{ paddingBottom: 110 }} gap={20} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+      {deletionScheduled && (
+        <View
+          style={{
+            borderWidth: 1,
+            borderColor: Colors.semantic.warning,
+            backgroundColor: '#FFF7E6',
+            borderRadius: 12,
+            padding: 14,
+          }}
+        >
+          <Text size="sm" bold style={{ color: Colors.semantic.warning }}>
+            Client deletion scheduled
+          </Text>
+          <Text size="xs" style={{ color: Colors.semantic.warning, marginTop: 4 }}>
+            Resident updates are read-only until deletion is cancelled or processed.
+          </Text>
+        </View>
+      )}
       <StatusIndicator userStatus={userStatus as User | undefined} loggedInUser={userData || undefined} />
       <CardWeather />
 

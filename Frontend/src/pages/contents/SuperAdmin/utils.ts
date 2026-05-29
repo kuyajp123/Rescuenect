@@ -9,10 +9,18 @@ export const getToken = async () => {
 
 export const statusColor = (status: string) => {
   if (status === 'active' || status === 'approved' || status === 'healthy') return 'success';
-  if (status === 'pending' || status === 'draft') return 'warning';
-  if (status === 'inactive' || status === 'rejected' || status === 'degraded') return 'danger';
+  if (status === 'pending' || status === 'draft' || status === 'deletion_scheduled') return 'warning';
+  if (status === 'inactive' || status === 'rejected' || status === 'degraded' || status === 'deleting') return 'danger';
+  if (status === 'deleted') return 'default';
   return 'default';
 };
+
+export const formatStatusLabel = (status: string) =>
+  status
+    .split('_')
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 
 export const barangayKey = (barangay: ClientCoverageBarangay) =>
   barangay.barangayCode || barangay.value || barangay.barangayLabel;

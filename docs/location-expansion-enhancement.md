@@ -1,6 +1,6 @@
 # Location Expansion Enhancement
 
-Status: Phase 5 Completed; Phase 6A Planning Next
+Status: Phase 6A Implemented; Phase 6B Production Readiness Next
 Date: 2026-05-20
 Last Updated: 2026-05-29
 
@@ -8,11 +8,11 @@ Last Updated: 2026-05-29
 
 Rescuenect started as a Naic-focused system, with barangays, weather keys, and several admin assumptions tied to one municipality. The location expansion enhancement turns that into a municipality or city client model so Rescuenect can onboard multiple LGU clients without code changes for every new location.
 
-Phase 1 to Phase 3 prepared the location model, simplified weather to a municipality/city key, and made resident signup use active coverage. Phase 4 added the Super Admin layer, LGU request onboarding, client management, LGU admin management, protected admin authorization, Naic legacy migration support, and dynamic client-based weather configuration. Phase 5 completed the stability layer with client proposals, map settings, boundary imports, SMTP email delivery, Super Admin analytics, dynamic earthquake scope, role-aware notifications, and operation logs.
+Phase 1 to Phase 3 prepared the location model, simplified weather to a municipality/city key, and made resident signup use active coverage. Phase 4 added the Super Admin layer, LGU request onboarding, client management, LGU admin management, protected admin authorization, Naic legacy migration support, and dynamic client-based weather configuration. Phase 5 completed the stability layer with client proposals, map settings, boundary imports, SMTP email delivery, Super Admin analytics, dynamic earthquake scope, role-aware notifications, and operation logs. Phase 6A removed Naic as the runtime default client and added scheduled client decommissioning.
 
 The current MVP direction remains municipality or city-level deployments only. Province-wide coverage is still a future roadmap item.
 
-Earthquake data is now client-aware for active municipality/city clients. Naic is still retained as a protected transition fallback until Phase 6A removes default-client behavior.
+Earthquake data is now client-aware for active municipality/city clients. Naic is retained only as an explicit configured or migration-seeded client, not as a runtime fallback.
 
 ## Current Implementation Status
 
@@ -25,7 +25,7 @@ The current system supports:
 
 - `admin/{uid}` role metadata with `super_admin` and `lgu_admin`.
 - Super admin allowlist through `SUPER_ADMIN_EMAILS`.
-- Optional legacy admin fallback through `ENABLE_LEGACY_ADMIN_EMAILS`.
+- Super Admin access through `SUPER_ADMIN_EMAILS`; LGU admins are created through approved requests or invitations.
 - Protected admin middleware for super admin routes, LGU admin routes, active client checks, and client access checks.
 - Public LGU request form using backend PSGC proxy endpoints.
 - Official PSA PSGC API priority when `PSGC_API_TOKEN` is available.
@@ -35,8 +35,8 @@ The current system supports:
 - Client table view, search, details page, request snapshot display, admin list, coverage management, weather key and coordinate management.
 - LGU admin table view, sorting, pagination, invite modal, and delete support.
 - Resident signup visibility limited to active clients.
-- Naic legacy data migration to `clientId: 'naic'`.
-- Naic retained as the protected initial/default client during transition.
+- Dynamic client cutover audit and migration endpoints for missing tenant `clientId` data.
+- Naic legacy data migration to `clientId: 'naic'` through explicit migration utilities.
 - Dynamic weather loading from active clients in Supabase weather functions.
 - Weather notifications using client-aware weather configuration.
 - Dynamic earthquake scoping using active clients.
@@ -45,12 +45,15 @@ The current system supports:
 - SMTP email delivery and email logging.
 - Super Admin analytics with system health.
 - Super Admin operation logs with Git-style before/after changes.
+- Scheduled client deletion preview, schedule, cancel, and protected internal processing.
+- Deletion grace-period banners for LGU admins and residents.
+- Read-only enforcement for LGU and resident writes while deletion is scheduled.
 
 Known transition limitations:
 
-- Naic is still protected from deletion as the initial fallback client.
-- Some legacy fallback paths still treat missing `clientId` data as Naic.
-- Full removal of Naic as a runtime default is planned for Phase 6A.
+- Firestore/security rules still need production-readiness review.
+- E2E/integration coverage for full Super Admin, LGU Admin, and resident scenarios is still planned.
+- Scheduled job monitoring and retention/export planning are still planned.
 - Province-wide clients remain out of scope.
 
 ## Problem
@@ -479,24 +482,22 @@ Phase 5 retained Naic as a protected transition fallback. This is expected. Naic
 
 ### Phase 6A: Full Dynamic Client Cutover
 
-Status: Planned Next
+Status: Implemented
 
-Phase 6A should remove Naic as the system's runtime default client.
+Phase 6A removed Naic as the system's runtime default client and introduced scheduled client decommissioning.
 
-Planned work:
+Implemented work:
 
-- Require `clientId` in LGU-scoped backend operations instead of defaulting missing values to `naic`.
-- Confirm all production and staging records have valid `clientId`.
-- Remove runtime `|| 'naic'` fallbacks where safe.
-- Remove automatic Naic seeding from normal client lookups.
-- Keep Naic creation as an explicit seed or migration script only.
-- Replace static Naic fallback data in admin and mobile with active client coverage from the backend.
-- Replace instant client deletion with scheduled cascade decommissioning.
-- Make Naic use the same scheduled decommissioning flow as other clients.
-- Add 30-day deletion warnings for LGU admins and residents.
-- Disable/delete resident accounts tied to the client on the deletion effective date.
-- Delete client-scoped operational data through a scheduled Supabase cleanup job.
-- Add tests proving the system works without Naic as a default dependency.
+- Added dynamic client cutover audit and migration endpoints.
+- Removed runtime `clientId || 'naic'` behavior from tenant-scoped backend, admin, and mobile flows.
+- Removed automatic Naic seeding/returning from normal client list/get operations.
+- Kept Naic creation only as an explicit migration seed utility.
+- Replaced instant client deletion with scheduled preview, schedule, cancel, and internal due-job processing.
+- Made Naic follow the same scheduled decommissioning flow as other clients.
+- Added deletion warning banners for LGU admins and residents.
+- Blocked LGU and resident client-dependent writes during scheduled deletion.
+- Added a Supabase scheduled function wrapper for protected deletion processing.
+- Verified backend, frontend, and mobile builds/tests for the cutover.
 
 ### Phase 6B: Production Readiness
 
@@ -552,4 +553,4 @@ Naic remains the initial protected client during transition, but it should conti
 
 Province-level coverage remains on the roadmap, but it should not be implemented until multiple municipality/city clients are stable and Phase 6A removes Naic as a runtime default.
 
-The next enhancement move should be Phase 6A: full dynamic client cutover.
+The next enhancement move should be Phase 6B: production readiness, monitoring, rules review, and broader E2E coverage.

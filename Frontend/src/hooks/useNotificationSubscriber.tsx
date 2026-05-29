@@ -54,7 +54,10 @@ export const useNotificationSubscriber = ({
               id: doc.id,
             };
 
-            const notificationClientId = notification.clientId || 'naic';
+            const notificationClientId =
+              typeof notification.clientId === 'string' && notification.clientId.trim()
+                ? notification.clientId.trim()
+                : null;
             if (role === 'super_admin') {
               if (notification.type === 'weather') return;
               const actionableTypes = new Set(['client_request', 'client_change_request', 'earthquake', 'system_health']);
@@ -113,7 +116,6 @@ export const useNotificationSubscriber = ({
                 // Check if notification is relevant to user's location
                 const isRelevant =
                   notification.location === userLocation ||
-                  notification.location === 'central_naic' || // Central location affects everyone
                   notification.barangays?.includes(userLocation) ||
                   false;
 

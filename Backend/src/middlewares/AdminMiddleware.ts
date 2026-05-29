@@ -1,6 +1,6 @@
 import { AdminAuthModel } from '@/models/admin/AdminAuthModel';
 import { ClientModel } from '@/models/admin/ClientModel';
-import { canAccessClientScope, canLguAdminUseClient } from '@/utils/accessControl';
+import { canAccessClientScope, canLguAdminUseClient, isClientWritableByLguAdmin } from '@/utils/accessControl';
 import { NextFunction, Request, Response } from 'express';
 
 export class AdminMiddleware {
@@ -72,6 +72,38 @@ export class AdminMiddleware {
     } catch (error) {
       console.error('Client authorization failed:', error);
       res.status(500).json({ message: 'Failed to authorize client access' });
+      return;
+    }
+
+    next();
+  }
+
+  static async blockLguWritesWhenClientDeletionScheduled(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    if (req.adminUser?.role !== 'lgu_admin') {
+      next();
+      return;
+    }
+
+    try {
+      const client = req.adminUser.clientId ? await ClientModel.getClientById(req.adminUser.clientId) : null;
+      if (!client || !isClientWritableByLguAdmin(client.status)) {
+        res.status(423).json({
+          message:
+            client?.status === 'deletion_scheduled'
+              ? 'LGU write operations are locked because this client is scheduled for deletion'
+              : 'LGU client is not writable',
+          clientStatus: client?.status ?? null,
+          deletionEffectiveAt: client?.deletionEffectiveAt ?? null,
+        });
+        return;
+      }
+    } catch (error) {
+      console.error('Client write authorization failed:', error);
+      res.status(500).json({ message: 'Failed to authorize client write access' });
       return;
     }
 

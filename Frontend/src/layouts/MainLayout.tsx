@@ -3,6 +3,7 @@ import Header from '@/components/ui/header/Header';
 import { EvacuationPanel, StatusPanel } from '@/components/ui/panel';
 import SideBar from '@/components/ui/sideBar/SideBar';
 import { NotificationToast } from '@/components/ui/toast/NotificationToast';
+import { useAuth } from '@/stores/useAuth';
 import { Button } from '@heroui/react';
 import { useEffect, useState } from 'react';
 import { usePanelStore } from '../stores/panelStore.ts';
@@ -21,6 +22,9 @@ const MainLayout = () => {
 
   // Get panel state from Zustand store
   const { isOpen: isPanelOpen, selectedUser: data, closePanel } = usePanelStore();
+  const userData = useAuth(state => state.userData);
+  const isClientDeletionScheduled = userData?.role === 'lgu_admin' && userData.clientStatus === 'deletion_scheduled';
+  const deletionDate = formatDateTime(userData?.clientDeletionEffectiveAt);
 
   return (
     <div className="relative flex h-screen overflow-hidden">
@@ -36,6 +40,11 @@ const MainLayout = () => {
       <div className={`flex flex-col h-full w-full md:mx-4 ${sidebarOpen ? 'lg:ml-5' : 'lg:ml-16'}`}>
         <div className="shrink-0 ">
           <Header isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+          {isClientDeletionScheduled && (
+            <div className="mx-4 mb-3 rounded-md border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800">
+              Client deletion is scheduled for {deletionDate}. LGU admin changes are read-only during the grace period.
+            </div>
+          )}
         </div>
         <div className="flex-1 flex justify-between overflow-auto py-4 relative">
           {/* Main content area - adjusts width based on panel state */}
@@ -95,3 +104,22 @@ const MainLayout = () => {
 };
 
 export default MainLayout;
+
+const formatDateTime = (value: unknown) => {
+  if (!value) return 'the scheduled effective date';
+  const timestamp = value as { _seconds?: number; seconds?: number; toDate?: () => Date };
+  const date =
+    typeof value === 'number'
+      ? new Date(value)
+      : typeof timestamp.toDate === 'function'
+        ? timestamp.toDate()
+        : typeof timestamp._seconds === 'number'
+          ? new Date(timestamp._seconds * 1000)
+          : typeof timestamp.seconds === 'number'
+            ? new Date(timestamp.seconds * 1000)
+            : typeof value === 'string'
+              ? new Date(value)
+              : null;
+
+  return date && !Number.isNaN(date.getTime()) ? date.toLocaleString() : 'the scheduled effective date';
+};

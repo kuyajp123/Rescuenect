@@ -10,6 +10,8 @@ superRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin, AdminM
 superRoutes.get('/overview', SuperAdminController.getOverview);
 superRoutes.get('/logs', SuperAdminController.getOperationLogs);
 superRoutes.post('/migrations/naic-client-id', SuperAdminController.backfillLegacyNaicData);
+superRoutes.get('/migrations/dynamic-client-cutover-audit', SuperAdminController.getDynamicClientCutoverAudit);
+superRoutes.post('/migrations/dynamic-client-cutover', SuperAdminController.runDynamicClientCutover);
 superRoutes.get('/lgu-requests', SuperAdminController.getLguRequests);
 superRoutes.delete('/lgu-requests/:id', SuperAdminController.deleteLguRequest);
 superRoutes.post('/lgu-requests/:id/approve', SuperAdminController.approveLguRequest);
@@ -22,6 +24,9 @@ superRoutes.get('/clients', SuperAdminController.getClients);
 superRoutes.get('/clients/:clientId', SuperAdminController.getClientDetails);
 superRoutes.patch('/clients/:clientId', SuperAdminController.updateClient);
 superRoutes.delete('/clients/:clientId', SuperAdminController.deleteClient);
+superRoutes.get('/clients/:clientId/deletion-preview', SuperAdminController.getClientDeletionPreview);
+superRoutes.post('/clients/:clientId/schedule-deletion', SuperAdminController.scheduleClientDeletion);
+superRoutes.post('/clients/:clientId/cancel-deletion', SuperAdminController.cancelClientDeletion);
 superRoutes.post('/clients/:clientId/activate', SuperAdminController.activateClient);
 superRoutes.post('/clients/:clientId/deactivate', SuperAdminController.deactivateClient);
 superRoutes.post('/clients/:clientId/boundary', SuperAdminController.uploadClientBoundary);

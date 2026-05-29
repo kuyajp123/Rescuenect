@@ -1,7 +1,9 @@
 import { db, verifyFirebaseConnection } from '@/db/firestoreConfig';
 import { AdminAuthModel } from '@/models/admin/AdminAuthModel';
 import { ClientChangeRequestModel } from '@/models/admin/ClientChangeRequestModel';
+import { ClientDeletionModel } from '@/models/admin/ClientDeletionModel';
 import { ClientModel, parseGeoJsonFromStorage } from '@/models/admin/ClientModel';
+import { DynamicClientCutoverMigrationModel } from '@/models/admin/DynamicClientCutoverMigrationModel';
 import { LegacyNaicMigrationModel } from '@/models/admin/LegacyNaicMigrationModel';
 import { LguRequestModel } from '@/models/admin/LguRequestModel';
 import { OperationLogService } from '@/services/OperationLogService';
@@ -58,6 +60,9 @@ const clientLogSnapshot = (client: ClientLgu | null | undefined): Record<string,
       boundarySource: client.mapSettings?.boundarySource ?? null,
       boundaryVerified: client.mapSettings?.boundaryVerified ?? false,
     },
+    deletionScheduledAt: client.deletionScheduledAt ?? null,
+    deletionEffectiveAt: client.deletionEffectiveAt ?? null,
+    deletionStatus: client.deletionStatus ?? null,
   };
 };
 
@@ -141,7 +146,14 @@ export class SuperAdminController {
         db.collection('users').get(),
       ]);
 
-      const clientCounts: Record<ClientLguStatus, number> = { draft: 0, active: 0, inactive: 0 };
+      const clientCounts: Record<ClientLguStatus, number> = {
+        draft: 0,
+        active: 0,
+        inactive: 0,
+        deletion_scheduled: 0,
+        deleting: 0,
+        deleted: 0,
+      };
       clients.forEach(client => {
         clientCounts[client.status] += 1;
       });
@@ -233,6 +245,43 @@ export class SuperAdminController {
     } catch (error) {
       res.status(500).json({
         message: 'Failed to backfill legacy Naic data',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  static async getDynamicClientCutoverAudit(_req: Request, res: Response): Promise<void> {
+    try {
+      const summary = await DynamicClientCutoverMigrationModel.audit({ dryRun: true });
+      res.status(200).json({ summary });
+    } catch (error) {
+      res.status(500).json({
+        message: 'Failed to audit dynamic client cutover readiness',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  static async runDynamicClientCutover(req: Request, res: Response): Promise<void> {
+    try {
+      const dryRun = req.query.dryRun === 'true' || req.body?.dryRun === true;
+      const summary = await DynamicClientCutoverMigrationModel.run({ dryRun });
+      if (!dryRun) {
+        await OperationLogService.create({
+          actor: req.adminUser,
+          action: 'migration.dynamic_client_cutover',
+          actionLabel: 'Ran dynamic client cutover',
+          targetType: 'migration',
+          targetId: 'dynamic-client-cutover',
+          message: 'Legacy client-scoped records were prepared for strict dynamic client routing.',
+          before: null,
+          after: { summary },
+        });
+      }
+      res.status(200).json({ summary });
+    } catch (error) {
+      res.status(500).json({
+        message: 'Failed to run dynamic client cutover',
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
@@ -419,41 +468,93 @@ export class SuperAdminController {
   }
 
   static async deleteClient(req: Request, res: Response): Promise<void> {
+    res.status(405).json({
+      message: 'Immediate client deletion is disabled. Use scheduled deletion with preview and grace period.',
+    });
+  }
+
+  static async getClientDeletionPreview(req: Request, res: Response): Promise<void> {
     try {
-      if (req.params.clientId === 'naic') {
-        res.status(400).json({ message: 'Default Naic client cannot be deleted' });
-        return;
-      }
+      const preview = await ClientDeletionModel.getDeletionPreview(req.params.clientId);
+      res.status(200).json({ preview });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to build deletion preview';
+      res.status(message === 'Client not found' ? 404 : 400).json({ message });
+    }
+  }
 
-      const client = await ClientModel.getClientById(req.params.clientId);
-      if (!client) {
-        res.status(404).json({ message: 'Client not found' });
-        return;
-      }
+  static async scheduleClientDeletion(req: Request, res: Response): Promise<void> {
+    try {
+      const before = await ClientModel.getClientById(req.params.clientId);
+      const reason = typeof req.body?.reason === 'string' ? req.body.reason : null;
+      const graceDays =
+        typeof req.body?.graceDays === 'number'
+          ? req.body.graceDays
+          : typeof req.body?.graceDays === 'string'
+            ? Number(req.body.graceDays)
+            : undefined;
 
-      if (client.status === 'active') {
-        res.status(400).json({ success: false, message: 'Deactivate the client before deleting it' });
-        return;
-      }
+      const result = await ClientDeletionModel.scheduleDeletion({
+        clientId: req.params.clientId,
+        requestedBy: req.adminUser?.uid || 'system',
+        reason,
+        graceDays,
+      });
 
-      const affectedAdmins = await AdminAuthModel.deactivateAdminsForClient(client.id, req.adminUser?.uid || 'system');
-      await ClientModel.deleteClient(client.id);
       await OperationLogService.create({
         actor: req.adminUser,
-        action: 'client.delete',
-        actionLabel: 'Deleted client',
+        action: 'client.schedule_deletion',
+        actionLabel: 'Scheduled client deletion',
         targetType: 'client',
-        targetId: client.id,
-        targetName: client.name,
-        clientId: client.id,
-        clientName: client.name,
-        message: `${client.name} was deleted and ${affectedAdmins} LGU admin account(s) were deactivated.`,
-        before: clientLogSnapshot(client),
-        after: { deleted: true, affectedAdmins },
+        targetId: result.client.id,
+        targetName: result.client.name,
+        clientId: result.client.id,
+        clientName: result.client.name,
+        message: `${result.client.name} deletion was scheduled with a grace period.`,
+        before: clientLogSnapshot(before),
+        after: {
+          client: clientLogSnapshot(result.client),
+          job: result.job,
+          preview: result.preview,
+        },
       });
-      res.status(200).json({ client, affectedAdmins });
+
+      res.status(200).json(result);
     } catch (error) {
-      res.status(400).json({ message: error instanceof Error ? error.message : 'Failed to delete client' });
+      const message = error instanceof Error ? error.message : 'Failed to schedule client deletion';
+      res.status(message === 'Client not found' ? 404 : 400).json({ message });
+    }
+  }
+
+  static async cancelClientDeletion(req: Request, res: Response): Promise<void> {
+    try {
+      const before = await ClientModel.getClientById(req.params.clientId);
+      const result = await ClientDeletionModel.cancelDeletion({
+        clientId: req.params.clientId,
+        cancelledBy: req.adminUser?.uid || 'system',
+      });
+
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'client.cancel_deletion',
+        actionLabel: 'Cancelled client deletion',
+        targetType: 'client',
+        targetId: result.client.id,
+        targetName: result.client.name,
+        clientId: result.client.id,
+        clientName: result.client.name,
+        message: `${result.client.name} scheduled deletion was cancelled.`,
+        before: clientLogSnapshot(before),
+        after: {
+          client: clientLogSnapshot(result.client),
+          job: result.job,
+        },
+      });
+
+      res.status(200).json(result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to cancel client deletion';
+      res.status(message === 'Client not found' ? 404 : 400).json({ message });
     }
   }
 

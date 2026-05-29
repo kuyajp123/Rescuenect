@@ -1,5 +1,8 @@
 # Phase 6 Plan: Full Dynamic Client Cutover And Production Readiness
 
+Status: Phase 6A implemented; Phase 6B production readiness remains.
+Implemented: 2026-05-29
+
 ## Summary
 
 Phase 6 removes Naic as Rescuenect's runtime default client and makes all municipality/city clients fully dynamic. Province-wide client support remains out of scope.

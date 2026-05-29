@@ -36,6 +36,7 @@ export const LguClientRequests = () => {
   );
 
   const client = clientData?.client;
+  const isWriteLocked = client?.status === 'deletion_scheduled' || client?.status === 'deleting' || client?.status === 'deleted';
   const [clientName, setClientName] = useState('');
   const [weatherDraft, setWeatherDraft] = useState({ key: '', lat: '', lng: '' });
   const [mapDraft, setMapDraft] = useState({
@@ -90,6 +91,11 @@ export const LguClientRequests = () => {
   };
 
   const submitProposal = async (type: ClientChangeRequest['type'], proposedChanges: Record<string, unknown>) => {
+    if (isWriteLocked) {
+      addToast({ title: 'Client changes are locked', description: 'Deletion is scheduled for this client.', color: 'warning' });
+      return;
+    }
+
     const token = await getToken();
     await axios.post(
       API_ENDPOINTS.LGU_ADMIN.CREATE_CHANGE_REQUEST,
@@ -102,6 +108,11 @@ export const LguClientRequests = () => {
   };
 
   const cancelProposal = async (request: ClientChangeRequest) => {
+    if (isWriteLocked) {
+      addToast({ title: 'Client changes are locked', description: 'Deletion is scheduled for this client.', color: 'warning' });
+      return;
+    }
+
     const token = await getToken();
     await axios.post(
       API_ENDPOINTS.LGU_ADMIN.CANCEL_CHANGE_REQUEST(request.id),
@@ -154,6 +165,13 @@ export const LguClientRequests = () => {
         </p>
       </div>
 
+      {isWriteLocked && (
+        <div className="rounded-md border border-warning-200 bg-warning-50 p-4 text-sm text-warning-800">
+          Client deletion is scheduled for {formatDateTime(client?.deletionEffectiveAt)}. LGU proposals are read-only
+          during the deletion grace period.
+        </div>
+      )}
+
       <Tabs aria-label="LGU coordination tabs">
         <Tab key="settings" title="Client Settings">
           <div className="grid gap-4 pt-4 xl:grid-cols-2">
@@ -161,13 +179,29 @@ export const LguClientRequests = () => {
               <CardBody className="gap-4">
                 <h2 className="text-xl font-semibold">Center Coordinates</h2>
                 <div className="grid gap-3 md:grid-cols-3">
-                  <Input label="Weather Key" value={weatherDraft.key} onValueChange={key => setWeatherDraft(prev => ({ ...prev, key }))} />
-                  <Input label="Latitude" value={weatherDraft.lat} onValueChange={lat => setWeatherDraft(prev => ({ ...prev, lat }))} />
-                  <Input label="Longitude" value={weatherDraft.lng} onValueChange={lng => setWeatherDraft(prev => ({ ...prev, lng }))} />
+                  <Input
+                    label="Weather Key"
+                    value={weatherDraft.key}
+                    isDisabled={isWriteLocked}
+                    onValueChange={key => setWeatherDraft(prev => ({ ...prev, key }))}
+                  />
+                  <Input
+                    label="Latitude"
+                    value={weatherDraft.lat}
+                    isDisabled={isWriteLocked}
+                    onValueChange={lat => setWeatherDraft(prev => ({ ...prev, lat }))}
+                  />
+                  <Input
+                    label="Longitude"
+                    value={weatherDraft.lng}
+                    isDisabled={isWriteLocked}
+                    onValueChange={lng => setWeatherDraft(prev => ({ ...prev, lng }))}
+                  />
                 </div>
                 <Button
                   color="primary"
                   startContent={<Send size={16} />}
+                  isDisabled={isWriteLocked}
                   onPress={() =>
                     submitProposal('weather_coordinates', {
                       weatherLocationKey: weatherDraft.key,
@@ -184,8 +218,13 @@ export const LguClientRequests = () => {
             <Card className="border border-default-200">
               <CardBody className="gap-4">
                 <h2 className="text-xl font-semibold">Client Information</h2>
-                <Input label="LGU Name" value={clientName} onValueChange={setClientName} />
-                <Button color="primary" startContent={<Send size={16} />} onPress={() => submitProposal('client_info', { name: clientName })}>
+                <Input label="LGU Name" value={clientName} isDisabled={isWriteLocked} onValueChange={setClientName} />
+                <Button
+                  color="primary"
+                  startContent={<Send size={16} />}
+                  isDisabled={isWriteLocked}
+                  onPress={() => submitProposal('client_info', { name: clientName })}
+                >
                   Submit Info Proposal
                 </Button>
               </CardBody>
@@ -216,6 +255,7 @@ export const LguClientRequests = () => {
                     step="any"
                     placeholder={mapSettingPlaceholders.centerLatitude}
                     value={mapDraft.centerLatitude}
+                    isDisabled={isWriteLocked}
                     isInvalid={Boolean(mapErrors.centerLatitude)}
                     errorMessage={mapErrors.centerLatitude}
                     onValueChange={centerLatitude => updateMapDraft('centerLatitude', centerLatitude)}
@@ -226,6 +266,7 @@ export const LguClientRequests = () => {
                     step="any"
                     placeholder={mapSettingPlaceholders.centerLongitude}
                     value={mapDraft.centerLongitude}
+                    isDisabled={isWriteLocked}
                     isInvalid={Boolean(mapErrors.centerLongitude)}
                     errorMessage={mapErrors.centerLongitude}
                     onValueChange={centerLongitude => updateMapDraft('centerLongitude', centerLongitude)}
@@ -236,6 +277,7 @@ export const LguClientRequests = () => {
                     step="1"
                     placeholder={mapSettingPlaceholders.minZoom}
                     value={mapDraft.minZoom}
+                    isDisabled={isWriteLocked}
                     isInvalid={Boolean(mapErrors.minZoom)}
                     errorMessage={mapErrors.minZoom}
                     onValueChange={minZoom => updateMapDraft('minZoom', minZoom)}
@@ -246,6 +288,7 @@ export const LguClientRequests = () => {
                     step="1"
                     placeholder={mapSettingPlaceholders.zoom}
                     value={mapDraft.zoom}
+                    isDisabled={isWriteLocked}
                     isInvalid={Boolean(mapErrors.zoom)}
                     errorMessage={mapErrors.zoom}
                     onValueChange={zoom => updateMapDraft('zoom', zoom)}
@@ -256,6 +299,7 @@ export const LguClientRequests = () => {
                     step="1"
                     placeholder={mapSettingPlaceholders.maxZoom}
                     value={mapDraft.maxZoom}
+                    isDisabled={isWriteLocked}
                     isInvalid={Boolean(mapErrors.maxZoom)}
                     errorMessage={mapErrors.maxZoom}
                     onValueChange={maxZoom => updateMapDraft('maxZoom', maxZoom)}
@@ -266,6 +310,7 @@ export const LguClientRequests = () => {
                     step="any"
                     placeholder={mapSettingPlaceholders.north}
                     value={mapDraft.north}
+                    isDisabled={isWriteLocked}
                     isInvalid={Boolean(mapErrors.north)}
                     errorMessage={mapErrors.north}
                     onValueChange={north => updateMapDraft('north', north)}
@@ -276,6 +321,7 @@ export const LguClientRequests = () => {
                     step="any"
                     placeholder={mapSettingPlaceholders.south}
                     value={mapDraft.south}
+                    isDisabled={isWriteLocked}
                     isInvalid={Boolean(mapErrors.south)}
                     errorMessage={mapErrors.south}
                     onValueChange={south => updateMapDraft('south', south)}
@@ -286,6 +332,7 @@ export const LguClientRequests = () => {
                     step="any"
                     placeholder={mapSettingPlaceholders.east}
                     value={mapDraft.east}
+                    isDisabled={isWriteLocked}
                     isInvalid={Boolean(mapErrors.east)}
                     errorMessage={mapErrors.east}
                     onValueChange={east => updateMapDraft('east', east)}
@@ -296,12 +343,13 @@ export const LguClientRequests = () => {
                     step="any"
                     placeholder={mapSettingPlaceholders.west}
                     value={mapDraft.west}
+                    isDisabled={isWriteLocked}
                     isInvalid={Boolean(mapErrors.west)}
                     errorMessage={mapErrors.west}
                     onValueChange={west => updateMapDraft('west', west)}
                   />
                 </div>
-                <Button color="primary" startContent={<Send size={16} />} onPress={submitMapSettings}>
+                <Button color="primary" startContent={<Send size={16} />} isDisabled={isWriteLocked} onPress={submitMapSettings}>
                   Submit Map Proposal
                 </Button>
               </CardBody>
@@ -310,8 +358,18 @@ export const LguClientRequests = () => {
             <Card className="border border-default-200 xl:col-span-2">
               <CardBody className="gap-4">
                 <h2 className="text-xl font-semibold">Barangay Coverage</h2>
-                <ClientCoverageEditor coverage={coverageDraft} onCoverageChange={setCoverageDraft} />
-                <Button color="primary" startContent={<Send size={16} />} onPress={() => submitProposal('barangay_coverage', { barangays: coverageDraft })}>
+                <ClientCoverageEditor
+                  coverage={coverageDraft}
+                  onCoverageChange={nextCoverage => {
+                    if (!isWriteLocked) setCoverageDraft(nextCoverage);
+                  }}
+                />
+                <Button
+                  color="primary"
+                  startContent={<Send size={16} />}
+                  isDisabled={isWriteLocked}
+                  onPress={() => submitProposal('barangay_coverage', { barangays: coverageDraft })}
+                >
                   Submit Coverage Proposal
                 </Button>
               </CardBody>
@@ -320,8 +378,13 @@ export const LguClientRequests = () => {
             <Card className="border border-default-200">
               <CardBody className="gap-4">
                 <h2 className="text-xl font-semibold">Invite LGU Admin</h2>
-                <Input label="Email" type="email" value={inviteEmail} onValueChange={setInviteEmail} />
-                <Button color="primary" startContent={<Send size={16} />} onPress={() => submitProposal('admin_invite', { email: inviteEmail })}>
+                <Input label="Email" type="email" value={inviteEmail} isDisabled={isWriteLocked} onValueChange={setInviteEmail} />
+                <Button
+                  color="primary"
+                  startContent={<Send size={16} />}
+                  isDisabled={isWriteLocked}
+                  onPress={() => submitProposal('admin_invite', { email: inviteEmail })}
+                >
                   Submit Invite Proposal
                 </Button>
               </CardBody>
@@ -358,7 +421,7 @@ export const LguClientRequests = () => {
                           variant="flat"
                           color="danger"
                           aria-label="Cancel proposal"
-                          isDisabled={request.status !== 'pending'}
+                          isDisabled={request.status !== 'pending' || isWriteLocked}
                           onPress={() => cancelProposal(request)}
                         >
                           <X size={16} />

@@ -104,7 +104,13 @@ const validateContactsPayload = (payload: unknown): ContactsFieldErrors => {
 export class ContactController {
   static async getContacts(req: Request, res: Response): Promise<void> {
     try {
-      const data = await ContactModel.getContacts(getClientScopeFromRequest(req) || 'naic');
+      const clientId = getClientScopeFromRequest(req);
+      if (!clientId) {
+        res.status(400).json({ message: 'clientId is required for contacts' });
+        return;
+      }
+
+      const data = await ContactModel.getContacts(clientId);
       res.status(200).json({ data });
     } catch (error) {
       console.error('❌ Failed to fetch contacts:', {
@@ -133,7 +139,13 @@ export class ContactController {
       }
 
       const userId = (req as any).user?.uid || 'system';
-      await ContactModel.saveContacts(payload, userId, getClientScopeFromRequest(req) || 'naic');
+      const clientId = getClientScopeFromRequest(req);
+      if (!clientId) {
+        res.status(400).json({ message: 'clientId is required for contacts' });
+        return;
+      }
+
+      await ContactModel.saveContacts(payload, userId, clientId);
       res.status(200).json({ message: 'Contacts saved successfully' });
     } catch (error) {
       console.error('❌ Failed to save contacts:', {
