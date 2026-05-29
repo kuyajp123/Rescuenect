@@ -165,13 +165,6 @@ export const LguClientRequests = () => {
         </p>
       </div>
 
-      {isWriteLocked && (
-        <div className="rounded-md border border-warning-200 bg-warning-50 p-4 text-sm text-warning-800">
-          Client deletion is scheduled for {formatDateTime(client?.deletionEffectiveAt)}. LGU proposals are read-only
-          during the deletion grace period.
-        </div>
-      )}
-
       <Tabs aria-label="LGU coordination tabs">
         <Tab key="settings" title="Client Settings">
           <div className="grid gap-4 pt-4 xl:grid-cols-2">

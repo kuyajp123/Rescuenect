@@ -27,33 +27,16 @@ useDataRoutes.post(
   UserDataController.saveLocationController
 );
 useDataRoutes.get('/getLocations', UserDataController.getLocationsController);
-useDataRoutes.delete(
-  '/deleteLocation',
-  ResidentClientMiddleware.blockWritesWhenClientUnavailable,
-  UserDataController.deleteLocationController
-);
+useDataRoutes.delete('/deleteLocation', UserDataController.deleteLocationController);
 useDataRoutes.post(
   '/markNotificationAsReadInStatusResolved',
-  ResidentClientMiddleware.blockWritesWhenClientUnavailable,
   UserDataController.markNotificationAsReadInStatusResolvedController
 );
-useDataRoutes.post(
-  '/markNotificationAsDeleted',
-  ResidentClientMiddleware.blockWritesWhenClientUnavailable,
-  UserDataController.markNotificationAsDeletedController
-);
+useDataRoutes.post('/markNotificationAsDeleted', UserDataController.markNotificationAsDeletedController);
 
 // FCM Token Management Routes
-useDataRoutes.post(
-  '/updateFcmToken',
-  ResidentClientMiddleware.blockWritesWhenClientUnavailable,
-  UserDataController.updateFcmTokenController
-);
-useDataRoutes.post(
-  '/removeFcmToken',
-  ResidentClientMiddleware.blockWritesWhenClientUnavailable,
-  UserDataController.removeFcmTokenController
-);
+useDataRoutes.post('/updateFcmToken', UserDataController.updateFcmTokenController);
+useDataRoutes.post('/removeFcmToken', UserDataController.removeFcmTokenController);
 useDataRoutes.get('/getFcmTokens', UserDataController.getFcmTokensController);
 
 useDataRoutes.delete('/deleteUser', SignInController.deleteUserController);

@@ -8,6 +8,7 @@ import { Text } from '@/components/ui/text';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { Colors } from '@/constants/Colors';
 import { storageHelpers } from '@/helper/storage';
+import { syncAuthenticatedUserProfile } from '@/services/userProfileSync';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
 import { useStatusFormStore } from '@/store/useStatusForm';
@@ -29,13 +30,17 @@ export default function HomeScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
+      if (userAuth) {
+        await syncAuthenticatedUserProfile(userAuth);
+      }
       const data = await storageHelpers.getData(STORAGE_KEYS.USER);
-      setUserData({ photoURL: userPhotoURL, ...data, ...userDataBackend });
+      const latestUserData = useUserData.getState().userData;
+      setUserData({ photoURL: userPhotoURL, ...data, ...latestUserData });
       setRefreshTrigger(prev => prev + 1);
     } finally {
       setTimeout(() => setRefreshing(false), 1000);
     }
-  }, [userPhotoURL, userDataBackend]);
+  }, [userAuth, userPhotoURL]);
 
   useEffect(() => {
     const getUser = async () => {

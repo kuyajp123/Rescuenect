@@ -45,6 +45,9 @@ const SuperAdminClientDetails = lazy(() =>
     default: module.SuperAdminClientDetails,
   }))
 );
+const SuperAdminArchive = lazy(() =>
+  import('@/pages/contents/SuperAdmin/pages/Archive').then(module => ({ default: module.SuperAdminArchive }))
+);
 const SuperAdminAdmins = lazy(() =>
   import('@/pages/contents/SuperAdmin/pages/Admins').then(module => ({ default: module.SuperAdminAdmins }))
 );
@@ -135,6 +138,7 @@ const Router = () => {
           <Route path="/super/client-requests" element={<SuperAdminClientRequests />} />
           <Route path="/super/logs" element={<SuperAdminLogs />} />
           <Route path="/super/clients" element={<SuperAdminClients />} />
+          <Route path="/super/clients/archive" element={<SuperAdminArchive />} />
           <Route path="/super/clients/:clientId" element={<SuperAdminClientDetails />} />
           <Route path="/super/admins" element={<SuperAdminAdmins />} />
           <Route path="/super/system-status" element={<Navigate to="/super" replace />} />

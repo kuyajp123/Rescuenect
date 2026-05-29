@@ -1,5 +1,6 @@
 import { db, verifyFirebaseConnection } from '@/db/firestoreConfig';
 import { AdminAuthModel } from '@/models/admin/AdminAuthModel';
+import { ClientArchiveModel } from '@/models/admin/ClientArchiveModel';
 import { ClientChangeRequestModel } from '@/models/admin/ClientChangeRequestModel';
 import { ClientDeletionModel } from '@/models/admin/ClientDeletionModel';
 import { ClientModel, parseGeoJsonFromStorage } from '@/models/admin/ClientModel';
@@ -12,6 +13,8 @@ import type {
   AdminUser,
   ClientChangeRequest,
   ClientChangeRequestStatus,
+  ClientArchiveSummary,
+  ClientDeletionPreview,
   ClientChangeRequestType,
   ClientLgu,
   ClientLguStatus,
@@ -65,6 +68,49 @@ const clientLogSnapshot = (client: ClientLgu | null | undefined): Record<string,
     deletionStatus: client.deletionStatus ?? null,
   };
 };
+
+const clientDeletionStatusSnapshot = (client: ClientLgu | null | undefined): Record<string, unknown> | null => {
+  if (!client) return null;
+
+  return {
+    status: client.status,
+    deletionEffectiveAt: client.deletionEffectiveAt ?? null,
+    deletionReason: client.deletionReason ?? null,
+    deletionStatus: client.deletionStatus ?? null,
+  };
+};
+
+const summarizeDeletionDependencies = (
+  dependencies: ClientDeletionPreview['dependencies'] | Record<string, number> | null | undefined
+): Record<string, number> => {
+  const counts = dependencies ?? {};
+  const operationalRecords =
+    (counts.statuses ?? 0) +
+    (counts.evacuationCenters ?? 0) +
+    (counts.announcements ?? 0) +
+    (counts.contacts ?? 0) +
+    (counts.clientBoundaries ?? 0) +
+    (counts.clientChangeRequests ?? 0);
+
+  return {
+    residents: counts.residents ?? 0,
+    lguAdmins: counts.lguAdmins ?? 0,
+    adminInvitations: counts.adminInvitations ?? 0,
+    notifications: counts.notifications ?? 0,
+    operationalRecords,
+  };
+};
+
+const clientArchiveLogSnapshot = (archive: ClientArchiveSummary): Record<string, unknown> => ({
+  id: archive.id,
+  clientId: archive.clientId,
+  clientName: archive.clientName,
+  status: archive.status,
+  archivedAt: archive.archivedAt ?? null,
+  deletionEffectiveAt: archive.deletionEffectiveAt ?? null,
+  deletionReason: archive.deletionReason ?? null,
+  counts: archive.counts ?? {},
+});
 
 const adminLogSnapshot = (admin: AdminUser | null | undefined): Record<string, unknown> | null => {
   if (!admin) return null;
@@ -511,11 +557,14 @@ export class SuperAdminController {
         clientId: result.client.id,
         clientName: result.client.name,
         message: `${result.client.name} deletion was scheduled with a grace period.`,
-        before: clientLogSnapshot(before),
+        before: clientDeletionStatusSnapshot(before),
         after: {
-          client: clientLogSnapshot(result.client),
-          job: result.job,
-          preview: result.preview,
+          status: result.client.status,
+          deletionEffectiveAt: result.client.deletionEffectiveAt ?? result.job.deletionEffectiveAt,
+          deletionReason: result.client.deletionReason ?? result.job.deletionReason ?? null,
+          deletionStatus: result.client.deletionStatus ?? result.job.status,
+          jobStatus: result.job.status,
+          affectedRecords: summarizeDeletionDependencies(result.preview.dependencies),
         },
       });
 
@@ -544,10 +593,11 @@ export class SuperAdminController {
         clientId: result.client.id,
         clientName: result.client.name,
         message: `${result.client.name} scheduled deletion was cancelled.`,
-        before: clientLogSnapshot(before),
+        before: clientDeletionStatusSnapshot(before),
         after: {
-          client: clientLogSnapshot(result.client),
-          job: result.job,
+          status: result.client.status,
+          deletionStatus: result.client.deletionStatus ?? 'cancelled',
+          jobStatus: result.job?.status ?? 'cancelled',
         },
       });
 
@@ -555,6 +605,50 @@ export class SuperAdminController {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to cancel client deletion';
       res.status(message === 'Client not found' ? 404 : 400).json({ message });
+    }
+  }
+
+  static async getClientArchives(_req: Request, res: Response): Promise<void> {
+    try {
+      res.status(200).json({ archives: await ClientArchiveModel.listArchives() });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch client archives' });
+    }
+  }
+
+  static async getClientArchive(req: Request, res: Response): Promise<void> {
+    try {
+      const archive = await ClientArchiveModel.getArchive(req.params.archiveId);
+      if (!archive) {
+        res.status(404).json({ message: 'Client archive not found' });
+        return;
+      }
+      res.status(200).json({ archive });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch client archive' });
+    }
+  }
+
+  static async deleteClientArchive(req: Request, res: Response): Promise<void> {
+    try {
+      const archive = await ClientArchiveModel.deleteArchive(req.params.archiveId);
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'client_archive.permanent_delete',
+        actionLabel: 'Permanently deleted client archive',
+        targetType: 'client_archive',
+        targetId: archive.id,
+        targetName: archive.clientName,
+        clientId: archive.clientId,
+        clientName: archive.clientName,
+        message: `${archive.clientName} archive was permanently removed.`,
+        before: clientArchiveLogSnapshot(archive),
+        after: { deleted: true },
+      });
+      res.status(200).json({ archive });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete client archive';
+      res.status(message === 'Client archive not found' ? 404 : 400).json({ message });
     }
   }
 
@@ -585,6 +679,10 @@ export class SuperAdminController {
       const client = clientId ? await ClientModel.getClientById(clientId) : null;
       if (!client) {
         res.status(400).json({ message: 'Valid clientId is required for LGU admin invites' });
+        return;
+      }
+      if (['deletion_scheduled', 'deleting', 'deleted'].includes(client.status)) {
+        res.status(400).json({ message: 'LGU admin invites are disabled for clients pending deletion or already deleted' });
         return;
       }
 

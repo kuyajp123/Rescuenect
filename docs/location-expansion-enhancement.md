@@ -8,7 +8,7 @@ Last Updated: 2026-05-29
 
 Rescuenect started as a Naic-focused system, with barangays, weather keys, and several admin assumptions tied to one municipality. The location expansion enhancement turns that into a municipality or city client model so Rescuenect can onboard multiple LGU clients without code changes for every new location.
 
-Phase 1 to Phase 3 prepared the location model, simplified weather to a municipality/city key, and made resident signup use active coverage. Phase 4 added the Super Admin layer, LGU request onboarding, client management, LGU admin management, protected admin authorization, Naic legacy migration support, and dynamic client-based weather configuration. Phase 5 completed the stability layer with client proposals, map settings, boundary imports, SMTP email delivery, Super Admin analytics, dynamic earthquake scope, role-aware notifications, and operation logs. Phase 6A removed Naic as the runtime default client and added scheduled client decommissioning.
+Phase 1 to Phase 3 prepared the location model, simplified weather to a municipality/city key, and made resident signup use active coverage. Phase 4 added the Super Admin layer, LGU request onboarding, client management, LGU admin management, protected admin authorization, Naic legacy migration support, and dynamic client-based weather configuration. Phase 5 completed the stability layer with client proposals, map settings, boundary imports, SMTP email delivery, Super Admin analytics, dynamic earthquake scope, role-aware notifications, and operation logs. Phase 6A removed Naic as the runtime default client and added scheduled client decommissioning with archive retention, processed directly by a Supabase Edge Function using Firebase credentials.
 
 The current MVP direction remains municipality or city-level deployments only. Province-wide coverage is still a future roadmap item.
 
@@ -18,7 +18,7 @@ Earthquake data is now client-aware for active municipality/city clients. Naic i
 
 The system is now configured around two admin levels:
 
-- Super Admin: manages LGU requests, clients, LGU admins, activation, protected client deletion/deactivation, and system status.
+- Super Admin: manages LGU requests, clients, archived clients, LGU admins, activation, protected client deletion/deactivation, and system status.
 - LGU Admin: uses the existing admin dashboard modules, scoped to one client municipality/city.
 
 The current system supports:
@@ -45,7 +45,9 @@ The current system supports:
 - SMTP email delivery and email logging.
 - Super Admin analytics with system health.
 - Super Admin operation logs with Git-style before/after changes.
-- Scheduled client deletion preview, schedule, cancel, and protected internal processing.
+- Scheduled client deletion preview, schedule, cancel, and Supabase/Firebase direct processing.
+- Client archive snapshots for completed scheduled deletions, with permanent archive removal controlled by Super Admin.
+- Friendly LGU admin email notice when a client deletion is scheduled.
 - Deletion grace-period banners for LGU admins and residents.
 - Read-only enforcement for LGU and resident writes while deletion is scheduled.
 
@@ -114,7 +116,8 @@ Current Super Admin responsibilities:
 - Reject requests with review notes.
 - Manage client records.
 - Activate or deactivate clients.
-- Delete eligible clients.
+- Schedule deletion for inactive or draft clients.
+- Review and permanently remove archived client snapshots.
 - Manage LGU admin accounts.
 - View system status and API health.
 - Access all client scopes when needed.
@@ -187,7 +190,8 @@ The Clients page supports:
 - Status display.
 - Basic client metadata.
 - Manage action to open the client details page.
-- Delete action for eligible clients.
+- Schedule deletion action for eligible inactive or draft clients.
+- Archive entry point for completed deleted-client snapshots.
 
 The client details page supports:
 
@@ -199,9 +203,26 @@ The client details page supports:
 - Barangay coverage enable/disable.
 - Activation and deactivation.
 - Client admin list.
-- Protected deletion when safe.
+- Deletion preview, scheduled deletion, and cancellation before the effective date.
 
-Naic is intentionally non-deletable for now because it is the initial migrated client and transition fallback.
+Naic now follows the same client lifecycle rules as every other municipality/city client. It is no longer a runtime fallback and no longer has a special deletion block.
+
+## Client Decommissioning And Archive
+
+Client deletion is intentionally delayed and archive-first.
+
+Current flow:
+
+1. Super Admin schedules deletion for an inactive or draft client.
+2. The client status becomes `deletion_scheduled`, and `clientDeletionJobs/{clientId}` stores the due job.
+3. LGU admins and invited admins tied to the client receive a friendly deletion-scheduled email immediately.
+4. During the grace period, LGU admins and residents keep read access where allowed, but client-dependent writes are blocked.
+5. When the effective date arrives, the Supabase `client-deletions-process` function connects directly to Firebase/Firestore and processes due jobs.
+6. The processor snapshots the live client and related client-scoped data into `clientArchives/{clientId}` before cleanup.
+7. The processor removes live client-scoped data, LGU admin docs, relevant Firebase Auth users where supported, and the live `clients/{clientId}` document.
+8. Super Admin can review the archived client from the Archive module and choose whether to permanently delete the archive snapshot.
+
+Archive is the long-term review area for deleted clients. It preserves the client setup, settings, barangay coverage, LGU admin snapshots, dependency counts, and captured client-scoped records even if those records are later removed from live collections.
 
 ## LGU Admin Management
 
@@ -294,7 +315,7 @@ Old zone documents can be left in Firestore during rollout and deleted later aft
 
 ## Current Data Model
 
-The current Phase 4 model uses these main collections.
+The current Phase 6A model uses these main collections.
 
 ### `clients/{clientId}`
 
@@ -306,7 +327,7 @@ Important fields:
 id
 name
 type: municipality | city
-status: draft | active | inactive
+status: draft | active | inactive | deletion_scheduled | deleting
 provinceCode
 provinceName
 municipalityCode
@@ -322,9 +343,81 @@ createdAt
 updatedAt
 activatedAt
 deactivatedAt
+deletionScheduledAt
+deletionEffectiveAt
+deletionRequestedBy
+deletionReason
+deletionCancelledAt
+deletionStatus
 ```
 
 Barangay coverage is currently embedded in the client record. A separate `clientCoverage` collection can still be added later if coverage data becomes too large or needs independent history.
+
+Completed deletions remove the live `clients/{clientId}` document after the archive snapshot and cleanup succeed.
+
+### `clientDeletionJobs/{clientId}`
+
+Tracks scheduled cleanup work for deleted clients.
+
+Important fields:
+
+```text
+clientId
+clientName
+status: scheduled | running | completed | failed | cancelled
+deletionScheduledAt
+deletionEffectiveAt
+deletionRequestedBy
+deletionReason
+progress
+errors[]
+createdAt
+updatedAt
+```
+
+The Supabase `client-deletions-process` function is the primary scheduled processor. It reads due jobs directly from Firestore and does not require the Render backend to be awake.
+
+### `clientArchives/{clientId}`
+
+Stores the retained snapshot for a completed client deletion.
+
+Important fields:
+
+```text
+id
+clientId
+clientName
+clientStatus
+client
+request
+deletionJob
+deletionReason
+deletionRequestedBy
+deletionScheduledAt
+deletionEffectiveAt
+archivedAt
+snapshotCounts
+createdAt
+updatedAt
+```
+
+Archive subcollections preserve captured client-scoped records:
+
+```text
+lguRequests
+lguAdmins
+adminInvitations
+residents
+statuses
+evacuationCenters
+announcements
+contacts
+notifications
+clientBoundaries
+clientChangeRequests
+```
+
+Super Admin can permanently delete the archive document and its subcollections from the Archive module.
 
 ### `admin/{uid}`
 
@@ -341,7 +434,7 @@ createdAt
 updatedAt
 ```
 
-Existing non-super admins are treated as Naic LGU admins during transition when needed.
+LGU admins must have an explicit `clientId`. Missing client context is treated as an access problem instead of falling back to Naic.
 
 ### `lguRequests/{requestId}`
 
@@ -370,7 +463,7 @@ updatedAt
 
 ### Admin Invitations Or Pending Admin Records
 
-Used to prepare LGU admin onboarding for requester emails and additional invited LGU admins. Full email delivery can be added later.
+Used to prepare LGU admin onboarding for requester emails and additional invited LGU admins. Invitation and deletion-scheduled notifications are delivered through the email service and recorded in email logs.
 
 ## Coordinate Strategy
 
@@ -478,7 +571,7 @@ Completed work:
 - Applied client map settings to admin and mobile map modules.
 - Verified the Phase 5 checklist after implementation.
 
-Phase 5 retained Naic as a protected transition fallback. This is expected. Naic should not be deleted until Phase 6A removes the remaining runtime default-client assumptions.
+Phase 5 retained Naic as a protected fallback client at that time. Phase 6A has since removed the runtime default-client assumptions, so Naic now follows the same lifecycle as any other configured municipality/city client.
 
 ### Phase 6A: Full Dynamic Client Cutover
 
@@ -492,11 +585,12 @@ Implemented work:
 - Removed runtime `clientId || 'naic'` behavior from tenant-scoped backend, admin, and mobile flows.
 - Removed automatic Naic seeding/returning from normal client list/get operations.
 - Kept Naic creation only as an explicit migration seed utility.
-- Replaced instant client deletion with scheduled preview, schedule, cancel, and internal due-job processing.
+- Replaced instant client deletion with scheduled preview, schedule, cancel, archive-first cleanup, and due-job processing.
 - Made Naic follow the same scheduled decommissioning flow as other clients.
 - Added deletion warning banners for LGU admins and residents.
 - Blocked LGU and resident client-dependent writes during scheduled deletion.
-- Added a Supabase scheduled function wrapper for protected deletion processing.
+- Added Archive for completed deleted clients, including client setup, settings, LGU admins, and captured client-scoped data.
+- Added a Supabase scheduled function that processes due deletion jobs directly through Firebase/Firestore, avoiding Render free-plan uptime dependency.
 - Verified backend, frontend, and mobile builds/tests for the cutover.
 
 ### Phase 6B: Production Readiness

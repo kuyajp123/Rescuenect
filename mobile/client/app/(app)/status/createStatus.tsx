@@ -858,8 +858,17 @@ export const createStatus = () => {
     } catch (error: any) {
       console.error('Error submitting form:', error);
 
-      const title = error.response?.data?.error || 'Submission Failed';
-      const message = error.response?.data?.message || error.message || 'An unexpected error occurred.';
+      const responseMessage = error.response?.data?.message;
+      const responseError = error.response?.data?.error;
+      const title = responseMessage || 'Submission Failed';
+      const message =
+        responseError && responseError !== responseMessage
+          ? responseError
+          : responseMessage
+            ? 'Please try again later or contact your LGU admin if this continues.'
+            : error.message
+            ? error.message
+            : 'We could not submit your status right now.';
 
       setSubmitError({ title, message });
       toggleModal('submitFailure', true);

@@ -18,6 +18,7 @@ import { useStatusFetchBackgroundData } from '@/hooks/useStatusFetchBackgroundDa
 import { useCurrentStatuses } from '@/hooks/useStatusSubscriber';
 import { subscribeToWeatherData } from '@/hooks/useWeatherData';
 import { FCMTokenService } from '@/services/fcmTokenService';
+import { syncAuthenticatedUserProfile } from '@/services/userProfileSync';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
 import { useCoords } from '@/store/useCoords';
@@ -188,6 +189,10 @@ function LayoutContent() {
 
   useEffect(() => {
     if (!authUser) return;
+
+    syncAuthenticatedUserProfile(authUser).catch(error => {
+      console.error('Failed to refresh resident profile on app start:', error);
+    });
 
     FCMTokenService.updateUserFcmToken(authUser).catch(error => {
       console.error('Failed to register FCM token on login:', error);

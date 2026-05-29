@@ -123,6 +123,39 @@ export type ClientDeletionJob = {
   updatedAt?: unknown;
 };
 
+export type ArchivedClientDocument = {
+  id: string;
+  originalId: string;
+  originalPath: string;
+  data: Record<string, unknown>;
+};
+
+export type ClientArchiveSummary = {
+  id: string;
+  clientId: string;
+  clientName: string;
+  provinceName?: string | null;
+  municipalityName?: string | null;
+  status: 'archived';
+  counts: Record<string, number>;
+  deletionReason?: string | null;
+  deletionRequestedBy?: string | null;
+  deletionScheduledAt?: unknown;
+  deletionEffectiveAt?: unknown;
+  archivedAt?: unknown;
+  permanentlyDeletedAt?: unknown;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+};
+
+export type ClientArchive = ClientArchiveSummary & {
+  client: Partial<ClientLgu> & Record<string, unknown>;
+  request: Record<string, unknown> | null;
+  deletion: Record<string, unknown>;
+  job: Record<string, unknown>;
+  collections: Record<string, ArchivedClientDocument[]>;
+};
+
 export type SystemStatus = {
   status: 'healthy' | 'degraded';
   timestamp: string;

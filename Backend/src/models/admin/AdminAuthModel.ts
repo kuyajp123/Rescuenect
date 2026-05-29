@@ -1,4 +1,4 @@
-import { db } from '@/db/firestoreConfig';
+import { admin, db } from '@/db/firestoreConfig';
 import { EmailService } from '@/services/EmailService';
 import type { AdminRole, AdminStatus, AdminUser } from '@/types/admin';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -265,6 +265,23 @@ export class AdminAuthModel {
       throw new Error('Invalid admin status');
     }
 
+    const current = await this.getAdminByUid(uid);
+    if (!current) throw new Error('Admin user not found');
+
+    if (status === 'active' && current.role === 'lgu_admin') {
+      if (!current.clientId) {
+        throw new Error('Cannot activate LGU admin without an assigned client');
+      }
+
+      const client = await ClientModel.getClientById(current.clientId);
+      if (!client) {
+        throw new Error('Cannot activate LGU admin because the assigned client was not found');
+      }
+      if (client.status !== 'active') {
+        throw new Error('Cannot activate LGU admin because the assigned client is not active');
+      }
+    }
+
     await this.adminRef(uid).set({ status, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     const updated = await this.getAdminByUid(uid);
     if (!updated) throw new Error('Admin user not found');
@@ -296,7 +313,7 @@ export class AdminAuthModel {
 
   static async listAdmins(): Promise<AdminUser[]> {
     const snapshot = await db.collection('admin').orderBy('email', 'asc').get();
-    return snapshot.docs.map(doc => toAdminUser(doc.id, doc.data()));
+    return Promise.all(snapshot.docs.map(doc => this.withClientMetadata(toAdminUser(doc.id, doc.data()))));
   }
 
   static async listLguAdmins(): Promise<AdminUser[]> {
@@ -341,6 +358,36 @@ export class AdminAuthModel {
     });
 
     if (adminSnapshot.empty && inviteSnapshot.empty) return 0;
+
+    await batch.commit();
+    return adminSnapshot.size;
+  }
+
+  static async removeAdminsForClient(clientId: string): Promise<number> {
+    const adminSnapshot = await db.collection('admin').where('clientId', '==', clientId).get();
+    if (adminSnapshot.empty) return 0;
+
+    const batch = db.batch();
+    for (const doc of adminSnapshot.docs) {
+      const uid = doc.id;
+      try {
+        await admin.auth().updateUser(uid, { disabled: true });
+      } catch (error: any) {
+        if (error?.code !== 'auth/user-not-found') {
+          console.error(`Failed to disable LGU admin auth user ${uid}:`, error);
+        }
+      }
+
+      try {
+        await admin.auth().deleteUser(uid);
+      } catch (error: any) {
+        if (error?.code !== 'auth/user-not-found') {
+          console.error(`Failed to delete LGU admin auth user ${uid}:`, error);
+        }
+      }
+
+      batch.delete(doc.ref);
+    }
 
     await batch.commit();
     return adminSnapshot.size;

@@ -288,7 +288,7 @@ export class ClientModel {
 
   static async listClients(): Promise<ClientLgu[]> {
     const snapshot = await this.collectionRef().get();
-    const clients = snapshot.docs.map(doc => normalizeClientDoc(doc.id, doc.data()));
+    const clients = snapshot.docs.map(doc => normalizeClientDoc(doc.id, doc.data())).filter(client => client.status !== 'deleted');
     return clients.sort((left, right) => left.name.localeCompare(right.name));
   }
 

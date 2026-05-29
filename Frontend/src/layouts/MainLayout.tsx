@@ -121,5 +121,13 @@ const formatDateTime = (value: unknown) => {
               ? new Date(value)
               : null;
 
-  return date && !Number.isNaN(date.getTime()) ? date.toLocaleString() : 'the scheduled effective date';
+  return date && !Number.isNaN(date.getTime())
+    ? date.toLocaleString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : 'the scheduled effective date';
 };

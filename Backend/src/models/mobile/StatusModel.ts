@@ -132,7 +132,7 @@ export class StatusModel {
       return { parentId, versionId, createdAt: admin.firestore.Timestamp.now() };
     } catch (error) {
       console.error('❌ Error creating status:', error);
-      throw new Error('Failed to create status');
+      throw new Error(error instanceof Error ? error.message : 'Failed to create status');
     }
   }
 

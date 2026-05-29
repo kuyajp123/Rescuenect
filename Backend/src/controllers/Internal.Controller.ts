@@ -13,6 +13,23 @@ const extractBearerToken = (headerValue: string | undefined): string | null => {
   return match?.[1]?.trim() || null;
 };
 
+type DueDeletionResult = Awaited<ReturnType<typeof ClientDeletionModel.processDueDeletionJobs>>;
+
+const summarizeDueDeletionResult = (result: DueDeletionResult): Record<string, unknown> => ({
+  processed: result.processed,
+  completed: result.completed,
+  failed: result.failed,
+  jobs: result.jobs.map(job => ({
+    id: job.id,
+    clientId: job.clientId,
+    clientName: job.clientName,
+    status: job.status,
+    progress: job.progress ?? {},
+    errorsCount: job.errors?.length ?? 0,
+    latestError: job.errors?.[0] ?? null,
+  })),
+});
+
 export class InternalController {
   static async processClientDeletions(req: Request, res: Response): Promise<void> {
     const expectedSecret = getCronSecret();
@@ -36,7 +53,7 @@ export class InternalController {
         actorUid: 'scheduled_client_deletion',
         actorRole: 'system',
         message: `Processed ${result.processed} due client deletion job(s).`,
-        after: result,
+        after: summarizeDueDeletionResult(result),
       });
       res.status(200).json(result);
     } catch (error) {

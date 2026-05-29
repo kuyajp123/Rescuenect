@@ -19,7 +19,7 @@ import {
   addToast,
 } from '@heroui/react';
 import axios from 'axios';
-import { Building2, RefreshCcw, Search, Settings, Trash2 } from 'lucide-react';
+import { Archive as ArchiveIcon, Building2, RefreshCcw, Search, Settings, Trash2 } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -203,11 +203,16 @@ export const SuperAdminClients = () => {
           <h1 className="text-3xl font-bold">Clients</h1>
           <p className="text-sm text-default-500">Search LGU clients, review their status, and open detailed setup.</p>
         </div>
-        <Tooltip content="Refresh clients">
-          <Button isIconOnly variant="flat" aria-label="Refresh clients" onPress={refetch} isLoading={loading}>
-            <RefreshCcw size={18} />
+        <div className="flex items-center gap-2">
+          <Button variant="flat" startContent={<ArchiveIcon size={16} />} onPress={() => navigate('/super/clients/archive')}>
+            Archive
           </Button>
-        </Tooltip>
+          <Tooltip content="Refresh clients">
+            <Button isIconOnly variant="flat" aria-label="Refresh clients" onPress={refetch} isLoading={loading}>
+              <RefreshCcw size={18} />
+            </Button>
+          </Tooltip>
+        </div>
       </div>
 
       <Input

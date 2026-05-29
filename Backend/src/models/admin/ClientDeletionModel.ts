@@ -1,6 +1,8 @@
 import { admin, db } from '@/db/firestoreConfig';
 import { AdminAuthModel } from '@/models/admin/AdminAuthModel';
+import { ClientArchiveModel } from '@/models/admin/ClientArchiveModel';
 import { ClientModel } from '@/models/admin/ClientModel';
+import { EmailService } from '@/services/EmailService';
 import type { ClientDeletionJob, ClientDeletionPreview, ClientLgu } from '@/types/admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 
@@ -32,6 +34,16 @@ const addDays = (date: Date, days: number): Date => {
   next.setDate(next.getDate() + days);
   return next;
 };
+
+const formatManilaDateTime = (date: Date): string =>
+  date.toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 
 const emptyPreview = (): ClientDeletionPreview => ({
   canDelete: false,
@@ -81,6 +93,52 @@ export class ClientDeletionModel {
   private static async countOptionalDoc(collectionName: string, documentId: string): Promise<number> {
     const snap = await db.collection(collectionName).doc(documentId).get();
     return snap.exists ? 1 : 0;
+  }
+
+  private static async getLguAdminNotificationEmails(clientId: string): Promise<string[]> {
+    const [adminSnapshot, invitationSnapshot] = await Promise.all([
+      db.collection('admin').where('clientId', '==', clientId).get(),
+      db.collection('adminInvitations').where('clientId', '==', clientId).get(),
+    ]);
+    const emails = new Set<string>();
+
+    adminSnapshot.docs.forEach(doc => {
+      const email = doc.data().email;
+      if (typeof email === 'string' && email.trim()) emails.add(email.trim().toLowerCase());
+    });
+
+    invitationSnapshot.docs.forEach(doc => {
+      const email = doc.data().email;
+      if (typeof email === 'string' && email.trim()) emails.add(email.trim().toLowerCase());
+    });
+
+    return Array.from(emails);
+  }
+
+  private static async notifyLguAdminsDeletionScheduled(params: {
+    client: ClientLgu;
+    effectiveAt: Date;
+    reason: string | null;
+  }): Promise<void> {
+    const emails = await this.getLguAdminNotificationEmails(params.client.id);
+    if (emails.length === 0) return;
+
+    const effectiveAt = formatManilaDateTime(params.effectiveAt);
+    const reasonLine = params.reason ? ` Reason noted by the Super Admin: ${params.reason}` : '';
+    await Promise.all(
+      emails.map(email =>
+        EmailService.sendSimple({
+          to: email,
+          subject: `Rescuenect access update for ${params.client.name}`,
+          title: 'Thank you for working with Rescuenect',
+          message:
+            `Your LGU client, ${params.client.name}, has been scheduled for removal from Rescuenect. ` +
+            `Your admin account will stay available during the grace period and will be removed when the client is archived after ${effectiveAt}. ` +
+            `Thank you for the time and care you shared with the Rescuenect community.${reasonLine}`,
+          template: 'lgu_client_deletion_scheduled',
+        })
+      )
+    );
   }
 
   static async getDeletionPreview(clientId: string): Promise<ClientDeletionPreview> {
@@ -203,6 +261,8 @@ export class ClientDeletionModel {
       },
       { merge: true }
     );
+
+    await this.notifyLguAdminsDeletionScheduled({ client, effectiveAt, reason });
 
     const [updatedClient, jobSnap] = await Promise.all([
       ClientModel.getClientById(client.id),
@@ -353,6 +413,13 @@ export class ClientDeletionModel {
     );
 
     const progress: CleanupProgress = {};
+    progress.clientArchive = (await ClientArchiveModel.archiveClientSnapshot({
+      client,
+      job,
+      archivedBy: 'scheduled_client_deletion',
+    }))
+      ? 1
+      : 0;
     progress.statuses = await this.deleteStatuses(client.id);
     progress.residents = await this.deleteResidents(client.id);
     progress.evacuationCenters = await this.deleteCollectionWhere('centers', client.id);
@@ -361,18 +428,12 @@ export class ClientDeletionModel {
     progress.clientChangeRequests = await this.deleteCollectionWhere('clientChangeRequests', client.id);
     progress.contacts = await this.deleteOptionalDoc('contacts', client.id);
     progress.clientBoundaries = await this.deleteOptionalDoc('clientBoundaries', client.id);
-    progress.lguAdmins = await AdminAuthModel.deactivateAdminsForClient(client.id, 'scheduled_client_deletion');
+    progress.lguAdmins = await AdminAuthModel.removeAdminsForClient(client.id);
     progress.adminInvitations = await this.deleteCollectionWhere('adminInvitations', client.id);
 
-    await db.collection('clients').doc(client.id).set(
-      {
-        status: 'deleted',
-        deletionStatus: 'completed',
-        deletedAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
+    await db.collection('clients').doc(client.id).delete();
+    progress.clientRecord = 1;
+    await ClientArchiveModel.updateCleanupProgress(client.id, progress);
 
     return progress;
   }

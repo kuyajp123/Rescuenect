@@ -21,6 +21,9 @@ superRoutes.delete('/client-change-requests/:id', SuperAdminController.deleteCli
 superRoutes.post('/client-change-requests/:id/approve', SuperAdminController.approveClientChangeRequest);
 superRoutes.post('/client-change-requests/:id/reject', SuperAdminController.rejectClientChangeRequest);
 superRoutes.get('/clients', SuperAdminController.getClients);
+superRoutes.get('/client-archives', SuperAdminController.getClientArchives);
+superRoutes.get('/client-archives/:archiveId', SuperAdminController.getClientArchive);
+superRoutes.delete('/client-archives/:archiveId', SuperAdminController.deleteClientArchive);
 superRoutes.get('/clients/:clientId', SuperAdminController.getClientDetails);
 superRoutes.patch('/clients/:clientId', SuperAdminController.updateClient);
 superRoutes.delete('/clients/:clientId', SuperAdminController.deleteClient);
