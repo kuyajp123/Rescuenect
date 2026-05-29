@@ -14,7 +14,9 @@ import {
   CloudFog,
   CloudLightning,
   EllipsisVertical,
+  FileText,
   Megaphone,
+  UserPlus,
   Shield,
   Sun,
   Thermometer,
@@ -102,6 +104,11 @@ export const Notification = () => {
       }
       case 'announcement':
         return <Megaphone size={20} className="text-purple-500 flex-shrink-0" />;
+      case 'client_request':
+      case 'client_change_request':
+        return <FileText size={20} className="text-sky-500 flex-shrink-0" />;
+      case 'admin_invite':
+        return <UserPlus size={20} className="text-emerald-500 flex-shrink-0" />;
       case 'emergency':
         return <Shield size={20} className="text-red-600 flex-shrink-0" />;
       case 'typhoon':
@@ -131,6 +138,14 @@ export const Notification = () => {
     }
 
     if (notification.type === 'emergency') return 'danger';
+    if (
+      notification.type === 'client_request' ||
+      notification.type === 'client_change_request' ||
+      notification.type === 'admin_invite' ||
+      notification.type === 'system_health'
+    ) {
+      return 'primary';
+    }
     return 'primary';
   };
 
@@ -343,9 +358,15 @@ export const Notification = () => {
                   {notification.type === 'earthquake' && (
                     <div className="mt-2 flex items-center gap-3 text-xs text-default-500">
                       <span>📍 {(notification.data as EarthquakeNotificationData)?.place}</span>
-                      {(notification.data as EarthquakeNotificationData)?.distanceFromNaic && (
+                      {((notification.data as EarthquakeNotificationData)?.distanceFromClient ??
+                        (notification.data as EarthquakeNotificationData)?.distanceFromNaic) !== undefined && (
                         <span>
-                          {(notification.data as EarthquakeNotificationData)?.distanceFromNaic?.toFixed(1)} km away
+                          {(
+                            (notification.data as EarthquakeNotificationData)?.distanceFromClient ??
+                            (notification.data as EarthquakeNotificationData)?.distanceFromNaic ??
+                            0
+                          ).toFixed(1)}{' '}
+                          km away
                         </span>
                       )}
                     </div>

@@ -1,6 +1,7 @@
 import { Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import notFoundImage from '../../public/images/empty-page/404-image.png';
+
+const notFoundImage = '/images/empty-page/404-image.png';
 
 export const NotFound = () => {
   return (

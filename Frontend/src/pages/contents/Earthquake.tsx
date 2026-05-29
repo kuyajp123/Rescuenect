@@ -4,7 +4,11 @@ import { StatusCard } from '@/components/ui/card/StatusCard';
 import { CustomLegend, getEarthquakeSeverityColor, severityLevels } from '@/config/constant';
 import earthquakesJson from '@/data/earthquakeData.json'; // temporary
 import statusDataJson from '@/data/statusData.json'; // temporary
-import { getClientMapBounds, getClientMapCenter } from '@/helper/clientMapScope';
+import {
+  getClientEarthquakeMapZoomSettings,
+  getClientConfiguredMapBounds,
+  getClientMapCenter,
+} from '@/helper/clientMapScope';
 import { getSelectedStatusText } from '@/helper/commonHelpers';
 import { useEarthquakeStore } from '@/stores/useEarthquakeStore';
 import { useMapStyleStore } from '@/stores/useMapStyleStore';
@@ -45,6 +49,7 @@ const Earthquake = () => {
   const allstatusData = useStatusStore(state => state.statusData);
   const userData = useAuth(state => state.userData);
   const mapCenter = getClientMapCenter(userData);
+  const mapZoom = getClientEarthquakeMapZoomSettings(userData);
 
   const statusData = allstatusData.filter(item => item.category.includes('earthquake'));
 
@@ -176,10 +181,10 @@ const Earthquake = () => {
           earthquakeData={filteredEarthquakeData}
           statusData={filteredStatusData}
           center={mapCenter}
-          maxBounds={getClientMapBounds(mapCenter, 1)}
-          zoom={9}
-          minZoom={8}
-          maxZoom={15}
+          maxBounds={getClientConfiguredMapBounds(userData)}
+          zoom={mapZoom.zoom}
+          minZoom={mapZoom.minZoom}
+          maxZoom={mapZoom.maxZoom}
           height="100%"
           // Custom circle styling
           circleRadius={10}

@@ -8,12 +8,13 @@ declare const Deno: {
 import { cert, getApps, initializeApp, type ServiceAccount } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import {
+  NAIC_CLIENT_ID,
   getBarangaysForWeatherLocationKey,
   NAIC_WEATHER_LOCATION_KEY,
   normalizeBarangayValue,
 } from './location-config.ts';
 import type { EarthquakeNotificationData, NotificationType, WeatherNotificationData } from './notification-schema.ts';
-import type { EarthquakeData } from './types.ts';
+import type { EarthquakeClientScope, EarthquakeData } from './types.ts';
 
 // Singleton pattern for Firebase initialization
 let firestoreInstance: Firestore | null = null;
@@ -181,6 +182,102 @@ export async function getWeatherForecastData(
 /**
  * Get user FCM tokens and barangays based on audience and weather location key
  */
+type ClientCoverage = {
+  clientId: string;
+  clientName: string;
+  weatherLocationKey: string;
+  barangays: string[];
+};
+
+const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+
+function getTokensFromData(userData: Record<string, unknown>): string[] {
+  const tokens: string[] = [];
+
+  if (Array.isArray(userData.fcmTokens)) {
+    userData.fcmTokens.forEach(token => {
+      if (typeof token === 'string' && isValidToken(token)) tokens.push(token);
+    });
+  }
+
+  if (typeof userData.fcmToken === 'string' && isValidToken(userData.fcmToken)) {
+    tokens.push(userData.fcmToken);
+  }
+
+  return tokens;
+}
+
+function getActiveBarangaysFromClientData(data: Record<string, unknown> | undefined | null): string[] {
+  const barangays = Array.isArray(data?.barangays) ? data.barangays : [];
+  return barangays
+    .filter((barangay: Record<string, unknown>) => barangay.isActive !== false)
+    .map((barangay: Record<string, unknown>) => barangay.value || barangay.barangayLabel || barangay.name)
+    .filter((value: unknown): value is string => typeof value === 'string' && value.trim().length > 0)
+    .map(normalizeBarangayValue);
+}
+
+async function getClientCoverageByWeatherLocationKey(
+  db: Firestore,
+  weatherLocationKey: string
+): Promise<ClientCoverage | null> {
+  const staticBarangays = getBarangaysForWeatherLocationKey(weatherLocationKey);
+
+  const snapshot = await db
+    .collection('clients')
+    .where('status', '==', 'active')
+    .where('weatherLocationKey', '==', weatherLocationKey)
+    .limit(1)
+    .get();
+
+  const clientDoc = snapshot.empty ? await db.collection('clients').doc(weatherLocationKey).get() : snapshot.docs[0];
+  const clientData = clientDoc.exists ? clientDoc.data() : null;
+
+  if (!clientDoc.exists && staticBarangays.length === 0) return null;
+
+  return {
+    clientId: clientDoc.exists ? clientDoc.id : weatherLocationKey,
+    clientName:
+      typeof clientData?.name === 'string' && clientData.name.trim()
+        ? clientData.name.trim()
+        : weatherLocationKey === NAIC_WEATHER_LOCATION_KEY
+        ? 'Naic'
+        : weatherLocationKey,
+    weatherLocationKey,
+    barangays: getActiveBarangaysFromClientData(clientData).length
+      ? getActiveBarangaysFromClientData(clientData)
+      : staticBarangays,
+  };
+}
+
+async function getClientCoverageById(db: Firestore, clientId: string): Promise<ClientCoverage | null> {
+  const doc = await db.collection('clients').doc(clientId).get();
+  const data = doc.exists ? doc.data() : null;
+
+  if (!doc.exists && clientId !== NAIC_CLIENT_ID) return null;
+
+  const weatherLocationKey =
+    typeof data?.weatherLocationKey === 'string' && data.weatherLocationKey.trim()
+      ? data.weatherLocationKey.trim()
+      : clientId;
+
+  const staticBarangays = getBarangaysForWeatherLocationKey(weatherLocationKey);
+
+  return {
+    clientId,
+    clientName:
+      typeof data?.name === 'string' && data.name.trim()
+        ? data.name.trim()
+        : clientId === NAIC_CLIENT_ID
+        ? 'Naic'
+        : clientId,
+    weatherLocationKey,
+    barangays: getActiveBarangaysFromClientData(data).length
+      ? getActiveBarangaysFromClientData(data)
+      : staticBarangays,
+  };
+}
+
 export async function getUserTokens(
   audience: 'admin' | 'users' | 'both',
   weatherLocationKey?: string
@@ -188,9 +285,10 @@ export async function getUserTokens(
   const db = initializeFirebase();
   const tokens: string[] = [];
   const matchedBarangays: string[] = [];
-  const weatherLocationBarangays = weatherLocationKey
-    ? await getCoveredBarangaysForWeatherLocationKey(db, weatherLocationKey)
-    : [];
+  const targetClient = weatherLocationKey
+    ? await getClientCoverageByWeatherLocationKey(db, weatherLocationKey)
+    : null;
+  const weatherLocationBarangays = targetClient?.barangays ?? [];
   const coveredBarangays = weatherLocationKey ? new Set(weatherLocationBarangays) : null;
 
   try {
@@ -219,6 +317,15 @@ export async function getUserTokens(
         // Check if user wants notifications
         // if (userData.notificationsEnabled === false) return; // we send notifications to all users regardless of this setting
 
+        if (collectionName === 'admin') {
+          if (userData.role === 'super_admin') return;
+          if (userData.status === 'inactive') return;
+          if (targetClient && userData.clientId !== targetClient.clientId) return;
+
+          tokens.push(...getTokensFromData(userData));
+          return;
+        }
+
         if (coveredBarangays) {
           const userBarangays = Array.isArray(userData.barangay) ? userData.barangay : [userData.barangay];
           const matchingBarangays = userBarangays
@@ -233,18 +340,7 @@ export async function getUserTokens(
           matchedBarangays.push(...matchingBarangays);
         }
 
-        // Add FCM tokens if valid (supports both fcmTokens array and legacy fcmToken)
-        if (userData.fcmTokens && Array.isArray(userData.fcmTokens)) {
-          // New format: fcmTokens array
-          userData.fcmTokens.forEach((token: string) => {
-            if (isValidToken(token)) {
-              tokens.push(token);
-            }
-          });
-        } else if (userData.fcmToken && isValidToken(userData.fcmToken)) {
-          // Legacy format: single fcmToken (for backward compatibility)
-          tokens.push(userData.fcmToken);
-        }
+        tokens.push(...getTokensFromData(userData));
       });
     }
 
@@ -259,6 +355,122 @@ export async function getUserTokens(
     console.error('Error fetching user tokens:', error);
     return { tokens: [], barangays: [] };
   }
+}
+
+export async function getUserTokensByClientId(
+  audience: 'admin' | 'users' | 'both',
+  clientId: string
+): Promise<{ tokens: string[]; barangays: string[]; clientName: string; weatherLocationKey: string }> {
+  const db = initializeFirebase();
+  const client = await getClientCoverageById(db, clientId);
+  if (!client) return { tokens: [], barangays: [], clientName: clientId, weatherLocationKey: clientId };
+
+  const tokens: string[] = [];
+  const matchedBarangays: string[] = [];
+  const coveredBarangays = new Set(client.barangays);
+  const collections = [];
+
+  if (audience === 'admin' || audience === 'both') collections.push('admin');
+  if (audience === 'users' || audience === 'both') collections.push('users');
+
+  for (const collectionName of collections) {
+    const snapshot = await db.collection(collectionName).get();
+    snapshot.forEach(doc => {
+      const userData = doc.data();
+
+      if (collectionName === 'admin') {
+        if (userData.role === 'super_admin') return;
+        if (userData.status === 'inactive') return;
+        if (userData.clientId !== client.clientId) return;
+        tokens.push(...getTokensFromData(userData));
+        return;
+      }
+
+      const directClientMatch = userData.clientId === client.clientId;
+      const userBarangays = Array.isArray(userData.barangay) ? userData.barangay : [userData.barangay];
+      const matchingBarangays = userBarangays
+        .filter((userBarangay: unknown): userBarangay is string => typeof userBarangay === 'string')
+        .map(normalizeBarangayValue)
+        .filter((userBarangay: string) => coveredBarangays.has(userBarangay));
+
+      if (!directClientMatch && matchingBarangays.length === 0) return;
+
+      matchedBarangays.push(...matchingBarangays);
+      tokens.push(...getTokensFromData(userData));
+    });
+  }
+
+  return {
+    tokens: [...new Set(tokens)],
+    barangays: client.barangays.length ? client.barangays : [...new Set(matchedBarangays)],
+    clientName: client.clientName,
+    weatherLocationKey: client.weatherLocationKey,
+  };
+}
+
+export async function getActiveEarthquakeClientScopes(): Promise<EarthquakeClientScope[]> {
+  const db = initializeFirebase();
+  const scopes: EarthquakeClientScope[] = [];
+
+  const snapshot = await db.collection('clients').where('status', '==', 'active').get();
+  snapshot.docs.forEach(doc => {
+    const data = doc.data();
+    const mapSettings =
+      data.mapSettings && typeof data.mapSettings === 'object'
+        ? (data.mapSettings as Record<string, unknown>)
+        : {};
+    const earthquakeSettings =
+      data.earthquakeSettings && typeof data.earthquakeSettings === 'object'
+        ? (data.earthquakeSettings as Record<string, unknown>)
+        : {};
+    const fallbackLatitude = isFiniteNumber(data.weatherLatitude) ? data.weatherLatitude : null;
+    const fallbackLongitude = isFiniteNumber(data.weatherLongitude) ? data.weatherLongitude : null;
+    const centerLatitude = isFiniteNumber(mapSettings.centerLatitude) ? mapSettings.centerLatitude : fallbackLatitude;
+    const centerLongitude = isFiniteNumber(mapSettings.centerLongitude)
+      ? mapSettings.centerLongitude
+      : fallbackLongitude;
+
+    if (!isFiniteNumber(centerLatitude) || !isFiniteNumber(centerLongitude)) {
+      console.warn(`Skipping earthquake scope for client ${doc.id}: missing coordinates`);
+      return;
+    }
+
+    scopes.push({
+      clientId: doc.id,
+      clientName:
+        typeof data.name === 'string' && data.name.trim()
+          ? data.name.trim()
+          : typeof data.municipalityName === 'string' && data.municipalityName.trim()
+          ? data.municipalityName.trim()
+          : doc.id,
+      weatherLocationKey:
+        typeof data.weatherLocationKey === 'string' && data.weatherLocationKey.trim()
+          ? data.weatherLocationKey.trim()
+          : doc.id,
+      centerLatitude,
+      centerLongitude,
+      radiusKm: clamp(isFiniteNumber(earthquakeSettings.radiusKm) ? earthquakeSettings.radiusKm : 150, 25, 500),
+      minMagnitude: clamp(
+        isFiniteNumber(earthquakeSettings.minMagnitude) ? earthquakeSettings.minMagnitude : 1.5,
+        0,
+        9
+      ),
+    });
+  });
+
+  if (scopes.length === 0) {
+    scopes.push({
+      clientId: NAIC_CLIENT_ID,
+      clientName: 'Naic',
+      weatherLocationKey: NAIC_WEATHER_LOCATION_KEY,
+      centerLatitude: 14.2919325,
+      centerLongitude: 120.7752839,
+      radiusKm: 150,
+      minMagnitude: 1.5,
+    });
+  }
+
+  return scopes;
 }
 
 /**

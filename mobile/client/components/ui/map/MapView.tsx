@@ -4,6 +4,12 @@ import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { Colors } from '@/constants/Colors';
 import { useMap } from '@/contexts/MapContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import {
+  DEFAULT_CLIENT_MAP_CENTER,
+  getClientMapBounds,
+  getClientMapCenter,
+  getClientMapZoomSettings,
+} from '@/helper/clientMapScope';
 import { storageHelpers } from '@/helper/storage';
 import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import { useUserData } from '@/store/useBackendResponse';
@@ -185,14 +191,14 @@ export const MapView: React.FC<MapViewProps> = ({
   mapStyleButtonTop = 80,
   mapStyleSelectorTop = 130,
   interactive = true,
-  centerCoordinate = [120.750674, 14.31808],
+  centerCoordinate,
   cameraBounds,
   cameraTriggerKey,
   compassViewMargins = { x: 20, y: 20 },
   maxBounds,
-  zoomLevel = 15,
-  minZoomLevel = 15,
-  maxZoomLevel = 19,
+  zoomLevel,
+  minZoomLevel,
+  maxZoomLevel,
   followUserLocation = false,
   hasAnimation = true,
   show3DBuildings = true,
@@ -205,21 +211,13 @@ export const MapView: React.FC<MapViewProps> = ({
   const savedLocationsFromStore = useSavedLocationsStore(state => state.savedLocations);
   const userData = useUserData(state => state.userData);
   const savedLocationsList = savedLocations ?? savedLocationsFromStore;
-  const scopedCenterCoordinate =
-    typeof userData.weatherLongitude === 'number' &&
-    typeof userData.weatherLatitude === 'number' &&
-    !Number.isNaN(userData.weatherLongitude) &&
-    !Number.isNaN(userData.weatherLatitude)
-      ? ([userData.weatherLongitude, userData.weatherLatitude] as [number, number])
-      : centerCoordinate;
-  const scopedMaxBounds =
-    maxBounds ??
-    (scopedCenterCoordinate
-      ? ([
-          [scopedCenterCoordinate[0] - 0.08, scopedCenterCoordinate[1] - 0.08],
-          [scopedCenterCoordinate[0] + 0.08, scopedCenterCoordinate[1] + 0.08],
-        ] as [[number, number], [number, number]])
-      : null);
+  const scopedCenterCoordinate = centerCoordinate ?? getClientMapCenter(userData, DEFAULT_CLIENT_MAP_CENTER);
+  const scopedMaxBounds = maxBounds !== undefined ? maxBounds : getClientMapBounds(userData, scopedCenterCoordinate);
+  const scopedZoom = getClientMapZoomSettings(userData, {
+    zoomLevel,
+    minZoomLevel,
+    maxZoomLevel,
+  });
   const [showMapStyles, setShowMapStyles] = useState(false);
   const [mapStyleState, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
   const [selectedMarker, setSelectedMarker] = useState<EvacuationCenter | null>(null);
@@ -364,7 +362,7 @@ export const MapView: React.FC<MapViewProps> = ({
       >
         <MapboxGL.Camera
           bounds={cameraBounds}
-          zoomLevel={cameraBounds ? undefined : zoomLevel}
+          zoomLevel={cameraBounds ? undefined : scopedZoom.zoomLevel}
           centerCoordinate={cameraBounds ? undefined : scopedCenterCoordinate}
           maxBounds={
             scopedMaxBounds
@@ -376,8 +374,8 @@ export const MapView: React.FC<MapViewProps> = ({
           }
           animationDuration={300}
           animationMode={hasAnimation ? 'flyTo' : 'none'}
-          minZoomLevel={minZoomLevel}
-          maxZoomLevel={maxZoomLevel}
+          minZoomLevel={scopedZoom.minZoomLevel}
+          maxZoomLevel={scopedZoom.maxZoomLevel}
           followUserLocation={followUserLocation}
           followZoomLevel={16}
           triggerKey={cameraTriggerKey}

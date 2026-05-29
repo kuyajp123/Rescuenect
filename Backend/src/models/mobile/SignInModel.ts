@@ -1,16 +1,29 @@
-import { resolveResidentLocationSelection, type ResidentLocationSelection } from '@/config/locationConfig';
-import type { DynamicResidentLocationSelection } from '@/models/admin/ClientModel';
+import { ClientModel, type DynamicResidentLocationSelection } from '@/models/admin/ClientModel';
 import { db } from '@/db/firestoreConfig';
 
 export class SignInModel {
   private static userRef = (uid: string) => db.collection('users').doc(uid);
 
-  private static getLocationUpgrade(data: any): ResidentLocationSelection | null {
+  private static async getLocationUpgrade(data: any): Promise<DynamicResidentLocationSelection | null> {
     if (!data?.barangay || data?.clientId || data?.weatherLocationKey) {
       return null;
     }
 
-    return resolveResidentLocationSelection({ barangay: data.barangay });
+    return ClientModel.resolveResidentLocationSelection({ barangay: data.barangay });
+  }
+
+  private static async getLocationRefresh(data: any): Promise<DynamicResidentLocationSelection | null> {
+    if (!data?.barangay || !data?.clientId) {
+      return null;
+    }
+
+    return ClientModel.resolveResidentLocationSelection({
+      barangay: data.barangay,
+      clientId: data.clientId,
+      provinceCode: data.provinceCode,
+      municipalityCode: data.municipalityCode,
+      barangayCode: data.barangayCode,
+    });
   }
 
   static async signInUser(uid: string, data: any): Promise<any | null> {
@@ -18,12 +31,13 @@ export class SignInModel {
       const userDoc = await this.userRef(uid).get();
       if (userDoc.exists) {
         const existingData = userDoc.data() ?? {};
-        const locationUpgrade = this.getLocationUpgrade(existingData);
+        const locationUpdate =
+          (await this.getLocationRefresh(existingData)) ?? (await this.getLocationUpgrade(existingData));
 
-        if (locationUpgrade) {
+        if (locationUpdate) {
           await this.userRef(uid).set(
             {
-              ...locationUpgrade,
+              ...locationUpdate,
               updatedAt: new Date(),
             },
             { merge: true }
@@ -33,7 +47,7 @@ export class SignInModel {
         return {
           id: userDoc.id,
           ...existingData,
-          ...(locationUpgrade ?? {}),
+          ...(locationUpdate ?? {}),
         };
       } else {
         const userData = {
@@ -58,7 +72,7 @@ export class SignInModel {
     }
   }
 
-  static async saveBarangay(uid: string, locationSelection: ResidentLocationSelection | DynamicResidentLocationSelection): Promise<void> {
+  static async saveBarangay(uid: string, locationSelection: DynamicResidentLocationSelection): Promise<void> {
     try {
       await this.userRef(uid).set(
         {
@@ -77,12 +91,13 @@ export class SignInModel {
     try {
       const userDoc = await this.userRef(uid).get();
       const existingData = userDoc.exists ? userDoc.data() ?? {} : {};
-      const locationUpgrade = this.getLocationUpgrade(existingData);
+      const locationUpdate =
+        (await this.getLocationRefresh(existingData)) ?? (await this.getLocationUpgrade(existingData));
 
       await this.userRef(uid).set(
         {
           ...data,
-          ...(locationUpgrade ?? {}),
+          ...(locationUpdate ?? {}),
         },
         { merge: true }
       );

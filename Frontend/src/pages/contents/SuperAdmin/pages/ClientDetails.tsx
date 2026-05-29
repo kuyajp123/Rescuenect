@@ -2,13 +2,24 @@ import { API_ENDPOINTS } from '@/config/endPoints';
 import { ClientAdminsTable } from '@/pages/contents/SuperAdmin/components/ClientAdminsTable';
 import { ClientCoverageEditor } from '@/pages/contents/SuperAdmin/components/ClientCoverageEditor';
 import { ClientDeleteModal } from '@/pages/contents/SuperAdmin/components/ClientDeleteModal';
+import { MapSettingsHelpModal } from '@/pages/contents/SuperAdmin/components/MapSettingsHelpModal';
+import { MapSettingsPreview } from '@/pages/contents/SuperAdmin/components/MapSettingsPreview';
 import { ClientRequestDetails } from '@/pages/contents/SuperAdmin/components/ClientRequestDetails';
 import { useSuperFetch } from '@/pages/contents/SuperAdmin/hooks/useSuperFetch';
 import type { ClientCoverageBarangay, ClientDetailResponse } from '@/pages/contents/SuperAdmin/types';
-import { getToken, statusColor } from '@/pages/contents/SuperAdmin/utils';
-import { Button, Card, CardBody, Chip, Input, Tooltip, addToast } from '@heroui/react';
+import {
+  getToken,
+  hasWeatherCoordinateErrors,
+  hasMapSettingsErrors,
+  mapSettingPlaceholders,
+  statusColor,
+  validateWeatherCoordinateDraft,
+  validateMapSettingsDraft,
+  weatherCoordinatePlaceholders,
+} from '@/pages/contents/SuperAdmin/utils';
+import { Button, Card, CardBody, Chip, Input, Textarea, Tooltip, addToast } from '@heroui/react';
 import axios from 'axios';
-import { ArrowLeft, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -20,8 +31,23 @@ export const SuperAdminClientDetails = () => {
     'client details'
   );
   const [coordinateDraft, setCoordinateDraft] = useState({ key: '', lat: '', lng: '' });
+  const [mapDraft, setMapDraft] = useState({
+    centerLatitude: '',
+    centerLongitude: '',
+    minZoom: '13',
+    zoom: '15',
+    maxZoom: '18',
+    north: '',
+    south: '',
+    east: '',
+    west: '',
+  });
+  const [boundarySource, setBoundarySource] = useState('');
+  const [boundaryGeoJson, setBoundaryGeoJson] = useState('');
   const [coverageDraft, setCoverageDraft] = useState<ClientCoverageBarangay[]>([]);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [coordinateErrors, setCoordinateErrors] = useState<ReturnType<typeof validateWeatherCoordinateDraft>>({});
+  const [mapErrors, setMapErrors] = useState<ReturnType<typeof validateMapSettingsDraft>>({});
 
   const client = data?.client;
   const request = data?.request ?? null;
@@ -35,11 +61,66 @@ export const SuperAdminClientDetails = () => {
       lat: client.weatherLatitude?.toString() ?? '',
       lng: client.weatherLongitude?.toString() ?? '',
     });
+    setMapDraft({
+      centerLatitude: (client.mapSettings?.centerLatitude ?? client.weatherLatitude)?.toString() ?? '',
+      centerLongitude: (client.mapSettings?.centerLongitude ?? client.weatherLongitude)?.toString() ?? '',
+      minZoom: client.mapSettings?.minZoom?.toString() ?? '13',
+      zoom: client.mapSettings?.zoom?.toString() ?? '15',
+      maxZoom: client.mapSettings?.maxZoom?.toString() ?? '18',
+      north: client.mapSettings?.maxBounds?.north?.toString() ?? '',
+      south: client.mapSettings?.maxBounds?.south?.toString() ?? '',
+      east: client.mapSettings?.maxBounds?.east?.toString() ?? '',
+      west: client.mapSettings?.maxBounds?.west?.toString() ?? '',
+    });
+    setBoundarySource(client.mapSettings?.boundarySource || '');
     setCoverageDraft(client.barangays);
+    setCoordinateErrors({});
+    setMapErrors({});
   }, [client]);
 
-  const saveClient = async () => {
-    if (!client) return;
+  const updateCoordinateDraft = (key: keyof typeof coordinateDraft, value: string) => {
+    const nextDraft = { ...coordinateDraft, [key]: value };
+    setCoordinateDraft(nextDraft);
+    setCoordinateErrors(validateWeatherCoordinateDraft(nextDraft));
+  };
+
+  const updateMapDraftPatch = (patch: Partial<typeof mapDraft>) => {
+    setMapDraft(prev => {
+      const nextDraft = { ...prev, ...patch };
+      setMapErrors(validateMapSettingsDraft(nextDraft));
+      return nextDraft;
+    });
+  };
+
+  const updateMapDraft = (key: keyof typeof mapDraft, value: string) => {
+    updateMapDraftPatch({ [key]: value });
+  };
+
+  const saveClient = async (options: { showToast?: boolean; refetchAfter?: boolean } = {}) => {
+    const { showToast = true, refetchAfter = true } = options;
+    if (!client) return false;
+
+    const coordinateValidation = validateWeatherCoordinateDraft(coordinateDraft);
+    const errors = validateMapSettingsDraft(mapDraft);
+    setCoordinateErrors(coordinateValidation);
+    setMapErrors(errors);
+    if (hasWeatherCoordinateErrors(coordinateValidation)) {
+      addToast({
+        title: 'Review center coordinates',
+        description: Object.values(coordinateValidation)[0],
+        color: 'warning',
+      });
+      return false;
+    }
+
+    if (hasMapSettingsErrors(errors)) {
+      addToast({
+        title: 'Review map settings',
+        description: Object.values(errors)[0],
+        color: 'warning',
+      });
+      return false;
+    }
 
     const token = await getToken();
     await axios.patch(
@@ -48,25 +129,74 @@ export const SuperAdminClientDetails = () => {
         weatherLocationKey: coordinateDraft.key || client.weatherLocationKey,
         weatherLatitude: coordinateDraft.lat ? Number(coordinateDraft.lat) : null,
         weatherLongitude: coordinateDraft.lng ? Number(coordinateDraft.lng) : null,
+        mapSettings: {
+          centerLatitude: mapDraft.centerLatitude ? Number(mapDraft.centerLatitude) : null,
+          centerLongitude: mapDraft.centerLongitude ? Number(mapDraft.centerLongitude) : null,
+          minZoom: Number(mapDraft.minZoom),
+          zoom: Number(mapDraft.zoom),
+          maxZoom: Number(mapDraft.maxZoom),
+          maxBounds:
+            mapDraft.north && mapDraft.south && mapDraft.east && mapDraft.west
+              ? {
+                  north: Number(mapDraft.north),
+                  south: Number(mapDraft.south),
+                  east: Number(mapDraft.east),
+                  west: Number(mapDraft.west),
+                }
+              : null,
+          boundarySource: boundarySource || null,
+          boundaryVerified: client.mapSettings?.boundaryVerified ?? false,
+        },
         barangays: coverageDraft,
       },
       { headers: { Authorization: `Bearer ${token}` } }
     );
-    addToast({ title: 'Client updated', color: 'success' });
-    refetch();
+    if (showToast) addToast({ title: 'Client updated', color: 'success' });
+    if (refetchAfter) refetch();
+    return true;
+  };
+
+  const uploadBoundary = async () => {
+    if (!client) return;
+    try {
+      const geoJson = JSON.parse(boundaryGeoJson);
+      const token = await getToken();
+      await axios.post(
+        API_ENDPOINTS.SUPER_ADMIN.CLIENT_BOUNDARY(client.id),
+        { geoJson, source: boundarySource },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      addToast({ title: 'Boundary uploaded', color: 'success' });
+      setBoundaryGeoJson('');
+      refetch();
+    } catch (error) {
+      addToast({ title: 'Invalid boundary GeoJSON', color: 'danger' });
+    }
   };
 
   const setStatus = async (status: 'active' | 'inactive') => {
     if (!client) return;
 
-    const token = await getToken();
-    const endpoint =
-      status === 'active'
-        ? API_ENDPOINTS.SUPER_ADMIN.ACTIVATE_CLIENT(client.id)
-        : API_ENDPOINTS.SUPER_ADMIN.DEACTIVATE_CLIENT(client.id);
-    await axios.post(endpoint, {}, { headers: { Authorization: `Bearer ${token}` } });
-    addToast({ title: status === 'active' ? 'Client activated' : 'Client deactivated', color: 'success' });
-    refetch();
+    try {
+      if (status === 'active') {
+        const saved = await saveClient({ showToast: false, refetchAfter: false });
+        if (!saved) return;
+      }
+
+      const token = await getToken();
+      const endpoint =
+        status === 'active'
+          ? API_ENDPOINTS.SUPER_ADMIN.ACTIVATE_CLIENT(client.id)
+          : API_ENDPOINTS.SUPER_ADMIN.DEACTIVATE_CLIENT(client.id);
+      await axios.post(endpoint, {}, { headers: { Authorization: `Bearer ${token}` } });
+      addToast({ title: status === 'active' ? 'Client activated' : 'Client deactivated', color: 'success' });
+      refetch();
+    } catch (error) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || 'Failed to update client status'
+        : 'Failed to update client status';
+      addToast({ title: message, color: 'danger' });
+    }
   };
 
   const deleteClient = async () => {
@@ -143,7 +273,7 @@ export const SuperAdminClientDetails = () => {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="flat" startContent={<Save size={16} />} onPress={saveClient}>
+          <Button variant="flat" startContent={<Save size={16} />} onPress={() => void saveClient()}>
             Save
           </Button>
           {client.status !== 'active' ? (
@@ -177,27 +307,170 @@ export const SuperAdminClientDetails = () => {
           <div>
             <h2 className="text-xl font-semibold">Client Setup</h2>
             <p className="text-sm text-default-500">
-              Weather settings and active barangay coverage for resident signup.
+              Center coordinate settings and active barangay coverage for resident signup.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <Input
               label="Weather Key"
+              placeholder={weatherCoordinatePlaceholders.key}
               value={coordinateDraft.key}
-              onValueChange={value => setCoordinateDraft(prev => ({ ...prev, key: value }))}
+              isInvalid={Boolean(coordinateErrors.key)}
+              errorMessage={coordinateErrors.key}
+              onValueChange={value => updateCoordinateDraft('key', value)}
             />
             <Input
-              label="Weather Latitude"
+              label="Center Latitude"
+              type="number"
+              step="any"
+              placeholder={weatherCoordinatePlaceholders.lat}
               value={coordinateDraft.lat}
-              onValueChange={value => setCoordinateDraft(prev => ({ ...prev, lat: value }))}
+              isInvalid={Boolean(coordinateErrors.lat)}
+              errorMessage={coordinateErrors.lat}
+              onValueChange={value => updateCoordinateDraft('lat', value)}
             />
             <Input
-              label="Weather Longitude"
+              label="Center Longitude"
+              type="number"
+              step="any"
+              placeholder={weatherCoordinatePlaceholders.lng}
               value={coordinateDraft.lng}
-              onValueChange={value => setCoordinateDraft(prev => ({ ...prev, lng: value }))}
+              isInvalid={Boolean(coordinateErrors.lng)}
+              errorMessage={coordinateErrors.lng}
+              onValueChange={value => updateCoordinateDraft('lng', value)}
             />
           </div>
           <ClientCoverageEditor coverage={coverageDraft} onCoverageChange={setCoverageDraft} />
+        </CardBody>
+      </Card>
+
+      <Card className="border border-default-200">
+        <CardBody className="gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold">Map Settings</h2>
+              <p className="text-sm text-default-500">
+                LGU admin map defaults and verified municipality/city bounds.
+              </p>
+            </div>
+            <MapSettingsHelpModal />
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="md:col-span-3">
+              <MapSettingsPreview
+                draft={mapDraft}
+                onDraftChange={updateMapDraft}
+                onDraftPatch={updateMapDraftPatch}
+                description="Click the map or drag the marker to update the client map center before saving."
+              />
+            </div>
+            <Input
+              label="Center Latitude"
+              type="number"
+              step="any"
+              placeholder={mapSettingPlaceholders.centerLatitude}
+              value={mapDraft.centerLatitude}
+              isInvalid={Boolean(mapErrors.centerLatitude)}
+              errorMessage={mapErrors.centerLatitude}
+              onValueChange={centerLatitude => updateMapDraft('centerLatitude', centerLatitude)}
+            />
+            <Input
+              label="Center Longitude"
+              type="number"
+              step="any"
+              placeholder={mapSettingPlaceholders.centerLongitude}
+              value={mapDraft.centerLongitude}
+              isInvalid={Boolean(mapErrors.centerLongitude)}
+              errorMessage={mapErrors.centerLongitude}
+              onValueChange={centerLongitude => updateMapDraft('centerLongitude', centerLongitude)}
+            />
+            <Input
+              label="Minimum Zoom"
+              type="number"
+              step="1"
+              placeholder={mapSettingPlaceholders.minZoom}
+              value={mapDraft.minZoom}
+              isInvalid={Boolean(mapErrors.minZoom)}
+              errorMessage={mapErrors.minZoom}
+              onValueChange={minZoom => updateMapDraft('minZoom', minZoom)}
+            />
+            <Input
+              label="Default Zoom"
+              type="number"
+              step="1"
+              placeholder={mapSettingPlaceholders.zoom}
+              value={mapDraft.zoom}
+              isInvalid={Boolean(mapErrors.zoom)}
+              errorMessage={mapErrors.zoom}
+              onValueChange={zoom => updateMapDraft('zoom', zoom)}
+            />
+            <Input
+              label="Maximum Zoom"
+              type="number"
+              step="1"
+              placeholder={mapSettingPlaceholders.maxZoom}
+              value={mapDraft.maxZoom}
+              isInvalid={Boolean(mapErrors.maxZoom)}
+              errorMessage={mapErrors.maxZoom}
+              onValueChange={maxZoom => updateMapDraft('maxZoom', maxZoom)}
+            />
+            <Input
+              label="Boundary Source"
+              placeholder={mapSettingPlaceholders.boundarySource}
+              value={boundarySource}
+              onValueChange={setBoundarySource}
+            />
+            <Input
+              label="North Bound"
+              type="number"
+              step="any"
+              placeholder={mapSettingPlaceholders.north}
+              value={mapDraft.north}
+              isInvalid={Boolean(mapErrors.north)}
+              errorMessage={mapErrors.north}
+              onValueChange={north => updateMapDraft('north', north)}
+            />
+            <Input
+              label="South Bound"
+              type="number"
+              step="any"
+              placeholder={mapSettingPlaceholders.south}
+              value={mapDraft.south}
+              isInvalid={Boolean(mapErrors.south)}
+              errorMessage={mapErrors.south}
+              onValueChange={south => updateMapDraft('south', south)}
+            />
+            <Input
+              label="East Bound"
+              type="number"
+              step="any"
+              placeholder={mapSettingPlaceholders.east}
+              value={mapDraft.east}
+              isInvalid={Boolean(mapErrors.east)}
+              errorMessage={mapErrors.east}
+              onValueChange={east => updateMapDraft('east', east)}
+            />
+            <Input
+              label="West Bound"
+              type="number"
+              step="any"
+              placeholder={mapSettingPlaceholders.west}
+              value={mapDraft.west}
+              isInvalid={Boolean(mapErrors.west)}
+              errorMessage={mapErrors.west}
+              onValueChange={west => updateMapDraft('west', west)}
+            />
+          </div>
+          <Textarea
+            label="Boundary GeoJSON"
+            placeholder={mapSettingPlaceholders.boundaryGeoJson}
+            minRows={4}
+            value={boundaryGeoJson}
+            onValueChange={setBoundaryGeoJson}
+          />
+          <Button variant="flat" startContent={<Upload size={16} />} onPress={uploadBoundary} isDisabled={!boundaryGeoJson.trim()}>
+            Upload Boundary
+          </Button>
         </CardBody>
       </Card>
 

@@ -1,10 +1,39 @@
 import { initializeAuth } from '@/auth/firebaseAuth';
 import { inititallizeAppStorage, STORAGE_KEYS, type User as StoredUser } from '@/config/asyncStorage';
-import { getResidentLocationSelectionForBarangay } from '@/config/locationConfig';
+import { API_ROUTES } from '@/config/endpoints';
+import {
+  getResidentLocationSelectionForBarangay,
+  toResidentLocationSelectionFromCoverageClient,
+  type LocationCoverageResponse,
+  type ResidentLocationSelection,
+} from '@/config/locationConfig';
 import { storageHelpers } from '@/helper/storage';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
+import axios from 'axios';
 import { useEffect } from 'react';
+
+const getLatestLocationSelection = async (
+  savedUser: Partial<StoredUser>
+): Promise<ResidentLocationSelection | null> => {
+  if (!savedUser.clientId || !savedUser.barangay) {
+    return null;
+  }
+
+  try {
+    const response = await axios.get<LocationCoverageResponse>(API_ROUTES.DATA.GET_LOCATION_COVERAGE, {
+      timeout: 10000,
+    });
+    const client = response.data.provinces
+      .flatMap(province => province.clients)
+      .find(item => item.clientId === savedUser.clientId);
+
+    return toResidentLocationSelectionFromCoverageClient(client, savedUser.barangay);
+  } catch (error) {
+    console.warn('Unable to refresh client map settings during bootstrap:', error);
+    return null;
+  }
+};
 
 export const useAppBootstrap = () => {
   const setHasSignedOut = useAuth(state => state.setHasSignedOut);
@@ -28,9 +57,10 @@ export const useAppBootstrap = () => {
 
         if (savedUser) {
           const locationSelection =
-            savedUser.clientId && savedUser.weatherLocationKey
+            (await getLatestLocationSelection(savedUser)) ??
+            (savedUser.clientId && savedUser.weatherLocationKey
               ? null
-              : getResidentLocationSelectionForBarangay(savedUser.barangay);
+              : getResidentLocationSelectionForBarangay(savedUser.barangay));
 
           setUserData({
             userData: {
@@ -48,9 +78,10 @@ export const useAppBootstrap = () => {
               municipalityType: savedUser.municipalityType ?? locationSelection?.municipalityType,
               barangayCode: savedUser.barangayCode ?? locationSelection?.barangayCode,
               barangayLabel: savedUser.barangayLabel ?? locationSelection?.barangayLabel,
-              weatherLocationKey: savedUser.weatherLocationKey ?? locationSelection?.weatherLocationKey,
-              weatherLatitude: savedUser.weatherLatitude ?? locationSelection?.weatherLatitude,
-              weatherLongitude: savedUser.weatherLongitude ?? locationSelection?.weatherLongitude,
+              weatherLocationKey: locationSelection?.weatherLocationKey ?? savedUser.weatherLocationKey,
+              weatherLatitude: locationSelection?.weatherLatitude ?? savedUser.weatherLatitude,
+              weatherLongitude: locationSelection?.weatherLongitude ?? savedUser.weatherLongitude,
+              mapSettings: locationSelection?.mapSettings ?? savedUser.mapSettings ?? null,
             },
           });
 

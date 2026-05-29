@@ -141,8 +141,11 @@ export interface EarthquakeNotificationData {
   // Source
   source: 'usgs' | 'phivolcs' | 'manual';
 
-  // Distance from Naic (optional)
-  distanceFromNaic?: number; // in kilometers
+  // Client-relative distance (optional)
+  clientId?: string;
+  clientName?: string;
+  distanceFromClient?: number; // in kilometers
+  distanceFromNaic?: number; // legacy compatibility
 
   // Impact radii for visualization
   impact_radii?: {

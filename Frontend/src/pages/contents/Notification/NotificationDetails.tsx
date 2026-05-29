@@ -22,6 +22,7 @@ import {
   CloudRain,
   Droplets,
   Eye,
+  FileText,
   Gauge,
   Info,
   MapPin,
@@ -30,6 +31,7 @@ import {
   Sun,
   Thermometer,
   TrendingUp,
+  UserPlus,
   Users,
   Wind,
 } from 'lucide-react';
@@ -110,6 +112,11 @@ export const NotificationDetails = () => {
         return <CloudRain size={32} className="text-blue-500" />;
       case 'announcement':
         return <Megaphone size={32} className="text-purple-500" />;
+      case 'client_request':
+      case 'client_change_request':
+        return <FileText size={32} className="text-sky-500" />;
+      case 'admin_invite':
+        return <UserPlus size={32} className="text-emerald-500" />;
       case 'emergency':
         return <Shield size={32} className="text-red-600" />;
       case 'typhoon':
@@ -305,9 +312,10 @@ export const NotificationDetails = () => {
               <h4 className="font-semibold">Location Details</h4>
             </div>
             <p className="text-default-700">{earthquakeData.place}</p>
-            {earthquakeData.distanceFromNaic && (
+            {(earthquakeData.distanceFromClient ?? earthquakeData.distanceFromNaic) !== undefined && (
               <p className="text-sm text-default-500 mt-2">
-                📍 {earthquakeData.distanceFromNaic.toFixed(1)} km from Naic, Cavite
+                {(earthquakeData.distanceFromClient ?? earthquakeData.distanceFromNaic ?? 0).toFixed(1)} km from{' '}
+                {earthquakeData.clientName || 'the client center'}
               </p>
             )}
           </div>

@@ -1,4 +1,6 @@
 import { SignInModel } from '@/models/admin/SignInModel';
+import { ClientModel } from '@/models/admin/ClientModel';
+import { canLguAdminUseClient } from '@/utils/accessControl';
 import { Request, Response } from 'express';
 
 export class LoginController {
@@ -17,6 +19,19 @@ export class LoginController {
       if (!user) {
         res.status(404).json({ message: 'User not found' });
         return;
+      }
+
+      if (user.status !== 'active') {
+        res.status(403).json({ message: 'Admin account is inactive' });
+        return;
+      }
+
+      if (user.role === 'lgu_admin') {
+        const client = user.clientId ? await ClientModel.getClientById(user.clientId) : null;
+        if (!client || !canLguAdminUseClient(client.status)) {
+          res.status(403).json({ message: 'LGU client is not active' });
+          return;
+        }
       }
 
       res.status(200).json({ message: 'User signed in successfully', user });

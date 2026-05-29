@@ -1,22 +1,22 @@
 # Location Expansion Enhancement
 
-Status: Phase 4 Implemented; Phase 5 Planning Next
+Status: Phase 5 Completed; Phase 6A Planning Next
 Date: 2026-05-20
-Last Updated: 2026-05-25
+Last Updated: 2026-05-29
 
 ## Summary
 
 Rescuenect started as a Naic-focused system, with barangays, weather keys, and several admin assumptions tied to one municipality. The location expansion enhancement turns that into a municipality or city client model so Rescuenect can onboard multiple LGU clients without code changes for every new location.
 
-Phase 1 to Phase 3 prepared the location model, simplified weather to a municipality/city key, and made resident signup use active coverage. Phase 4 has now added the Super Admin layer, LGU request onboarding, client management, LGU admin management, protected admin authorization, Naic legacy migration support, and dynamic client-based weather configuration.
+Phase 1 to Phase 3 prepared the location model, simplified weather to a municipality/city key, and made resident signup use active coverage. Phase 4 added the Super Admin layer, LGU request onboarding, client management, LGU admin management, protected admin authorization, Naic legacy migration support, and dynamic client-based weather configuration. Phase 5 completed the stability layer with client proposals, map settings, boundary imports, SMTP email delivery, Super Admin analytics, dynamic earthquake scope, role-aware notifications, and operation logs.
 
 The current MVP direction remains municipality or city-level deployments only. Province-wide coverage is still a future roadmap item.
 
-Earthquake data is still treated as a global module. Making earthquakes client-aware is intentionally moved to Phase 5.
+Earthquake data is now client-aware for active municipality/city clients. Naic is still retained as a protected transition fallback until Phase 6A removes default-client behavior.
 
 ## Current Implementation Status
 
-Phase 4 is now configured around two admin levels:
+The system is now configured around two admin levels:
 
 - Super Admin: manages LGU requests, clients, LGU admins, activation, protected client deletion/deactivation, and system status.
 - LGU Admin: uses the existing admin dashboard modules, scoped to one client municipality/city.
@@ -39,12 +39,18 @@ The current system supports:
 - Naic retained as the protected initial/default client during transition.
 - Dynamic weather loading from active clients in Supabase weather functions.
 - Weather notifications using client-aware weather configuration.
+- Dynamic earthquake scoping using active clients.
+- LGU Coordination proposals for client changes.
+- Client map settings and GeoJSON boundary imports.
+- SMTP email delivery and email logging.
+- Super Admin analytics with system health.
+- Super Admin operation logs with Git-style before/after changes.
 
-Known Phase 4 limitations:
+Known transition limitations:
 
 - Naic is still protected from deletion as the initial fallback client.
-- LGU admin invitation is still a simple admin onboarding mechanism; full email delivery can be added later.
-- Earthquake data remains global and is not yet filtered by client, municipality, radius, or LGU coverage.
+- Some legacy fallback paths still treat missing `clientId` data as Naic.
+- Full removal of Naic as a runtime default is planned for Phase 6A.
 - Province-wide clients remain out of scope.
 
 ## Problem
@@ -68,7 +74,7 @@ If a new LGU wants to use Rescuenect, the system should not require code edits j
 - Make Naic one configured client, not the whole system assumption.
 - Keep province-wide coverage as a future roadmap option.
 - Use one shared weather feed per municipality or city for the MVP.
-- Move earthquake client scoping into Phase 5.
+- Keep earthquake, weather, notifications, and maps scoped by active municipality/city clients.
 
 ## Final MVP Scope
 
@@ -90,8 +96,7 @@ Out of scope for the MVP:
 - Provincial admin hierarchy.
 - Municipality or city admins under a province client.
 - Required barangay weather zones inside one municipality or city.
-- Barangay boundary GeoJSON management.
-- Client-specific earthquake filtering and notifications, now planned for Phase 5.
+- Province-wide boundary hierarchy.
 
 ## Admin Roles
 
@@ -120,7 +125,7 @@ Current LGU Admin responsibilities:
 - Access the existing dashboard modules for their assigned client.
 - Manage client-scoped residents, statuses, evacuation centers, announcements, contacts, and notifications.
 - View weather for their configured municipality/city weather key.
-- View earthquake data as a global module until Phase 5 makes it client-aware.
+- View earthquake data scoped to their assigned client.
 
 LGU admins cannot access Super Admin pages and cannot manage other clients.
 
@@ -448,36 +453,61 @@ Status: Implemented
 
 Phase 4 retained Naic as the protected initial client. This is expected during transition and can be revisited after production data and fallback behavior are fully stable.
 
-### Phase 5: Dynamic Earthquake Scope And Production Hardening
+### Phase 5: Stability, Client Settings, Email, Analytics, Earthquake Scope, And Logs
+
+Status: Completed and verified
+
+Phase 5 completed the stability-first layer for municipality/city clients.
+
+Completed work:
+
+- Added stronger tenant isolation and role-aware notification filtering.
+- Added client `mapSettings`.
+- Added GeoJSON boundary upload and computed map bounds.
+- Added LGU Coordination proposals for client changes.
+- Added Super Admin Client Requests review flow.
+- Added SMTP email delivery and email logs.
+- Added Super Admin analytics and unified system health overview.
+- Added dynamic earthquake scope for active clients.
+- Added client-relative earthquake distance and notifications.
+- Added Super Admin operation logs.
+- Split actionable notifications from audit/operation logs.
+- Applied client map settings to admin and mobile map modules.
+- Verified the Phase 5 checklist after implementation.
+
+Phase 5 retained Naic as a protected transition fallback. This is expected. Naic should not be deleted until Phase 6A removes the remaining runtime default-client assumptions.
+
+### Phase 6A: Full Dynamic Client Cutover
 
 Status: Planned Next
 
-Phase 5 should focus on modules that still behave globally or need deeper production hardening.
+Phase 6A should remove Naic as the system's runtime default client.
 
-Planned earthquake work:
+Planned work:
 
-- Make the earthquake module client-aware.
-- Let Super Admin view system-wide earthquake data.
-- Let LGU admins view earthquakes relevant to their assigned client only.
-- Use each client's municipality/city coordinates as the default earthquake relevance center.
-- Add configurable radius or relevance rules per client.
-- Scope earthquake notifications by affected client coverage.
-- Store earthquake notification metadata with `clientId` where applicable.
-- Review earthquake map behavior so it centers and filters correctly per LGU admin.
-- Decide whether residents should receive earthquake alerts by client, barangay, radius, or device location.
+- Require `clientId` in LGU-scoped backend operations instead of defaulting missing values to `naic`.
+- Confirm all production and staging records have valid `clientId`.
+- Remove runtime `|| 'naic'` fallbacks where safe.
+- Remove automatic Naic seeding from normal client lookups.
+- Keep Naic creation as an explicit seed or migration script only.
+- Replace static Naic fallback data in admin and mobile with active client coverage from the backend.
+- Make Naic deletable under the same safety rules as other inactive clients.
+- Add tests proving the system works without Naic as a default dependency.
 
-Planned hardening work:
+### Phase 6B: Production Readiness
 
-- Remove remaining temporary Naic fallbacks when they are no longer needed.
-- Replace temporary LGU admin environment setup with fully dynamic request-approved onboarding.
-- Add more backend tests for Super Admin versus LGU Admin access.
-- Add frontend smoke tests for client switching and role-aware routing.
-- Add mobile tests for active client signup visibility.
-- Review Firestore rules and direct client reads for tenant isolation.
-- Add safer audit/history fields for Super Admin actions.
-- Add stronger operational checks for scheduled weather and earthquake jobs.
+Status: Future
 
-### Phase 6: Future Province Support
+- Review Firestore/security rules for tenant isolation.
+- Add E2E tests for Super Admin and LGU Admin flows.
+- Add operation log retention, export, and cleanup rules.
+- Add backup and restore documentation.
+- Add monitoring for scheduled weather and earthquake jobs.
+- Add monitoring for SMTP/email failures.
+- Address frontend Recharts/chunk-size build warnings.
+- Review performance for large clients, many notifications, and many logs.
+
+### Phase 7: Future Province Support
 
 Status: Future
 
@@ -487,7 +517,7 @@ Status: Future
 - Add filtering by province, municipality, city, and barangay.
 - Add role-based access rules per coverage area.
 
-Province coverage should wait until municipality/city clients are stable in production.
+Province coverage should wait until municipality/city clients are stable in production and Naic is no longer a default runtime dependency.
 
 ## Risk And Complexity Rating
 
@@ -511,10 +541,10 @@ The technical work is manageable, but correctness of Philippine location data an
 
 Use dynamic municipality or city client coverage as the production direction.
 
-Phase 4 confirms that Rescuenect can now onboard LGU clients through a Super Admin flow, activate coverage for resident signup, and run client-aware weather using one municipality/city weather key.
+Phase 4 confirmed that Rescuenect can onboard LGU clients through a Super Admin flow, activate coverage for resident signup, and run client-aware weather using one municipality/city weather key. Phase 5 extended that foundation with proposal-first client changes, map boundaries, email delivery, analytics, dynamic earthquake scope, role-aware notifications, and operation logs.
 
 Naic remains the initial protected client during transition, but it should continue moving toward being just one configured client among many.
 
-Province-level coverage remains on the roadmap, but it should not be implemented until multiple municipality/city clients are stable.
+Province-level coverage remains on the roadmap, but it should not be implemented until multiple municipality/city clients are stable and Phase 6A removes Naic as a runtime default.
 
-Phase 5 should make the earthquake module dynamic and client-aware, then continue hardening tenant isolation, tests, auditability, and operational monitoring.
+The next enhancement move should be Phase 6A: full dynamic client cutover.

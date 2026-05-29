@@ -3,6 +3,57 @@ export type AdminStatus = 'active' | 'inactive';
 export type ClientLguStatus = 'draft' | 'active' | 'inactive';
 export type ClientLguType = 'municipality' | 'city';
 export type LguRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+export type ClientChangeRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+export type ClientChangeRequestType =
+  | 'weather_coordinates'
+  | 'map_settings'
+  | 'barangay_coverage'
+  | 'client_info'
+  | 'admin_invite'
+  | 'boundary_update';
+export type EmailDeliveryStatus = 'disabled' | 'sent' | 'failed';
+export type OperationLogStatus = 'success' | 'failed';
+export type OperationLogActorRole = AdminRole | 'system';
+
+export interface ClientMapBounds {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+}
+
+export interface ClientMapSettings {
+  centerLatitude: number | null;
+  centerLongitude: number | null;
+  minZoom: number;
+  zoom: number;
+  maxZoom: number;
+  maxBounds: ClientMapBounds | null;
+  boundarySource?: string | null;
+  boundaryVerified: boolean;
+  boundaryUpdatedAt?: unknown;
+}
+
+export interface ClientBoundary {
+  clientId: string;
+  source: string | null;
+  geoJson?: Record<string, unknown> | null;
+  geoJsonText?: string | null;
+  bounds: ClientMapBounds;
+  uploadedBy: string;
+  uploadedAt?: unknown;
+}
+
+export interface ClientEarthquakeSettings {
+  radiusKm: number;
+  minMagnitude: number;
+}
+
+export interface ClientEarthquakeImpact {
+  clientId: string;
+  distanceKm: number;
+  isRelevant: boolean;
+}
 
 export interface AdminUser {
   uid: string;
@@ -14,6 +65,7 @@ export interface AdminUser {
   weatherLocationKey?: string | null;
   weatherLatitude?: number | null;
   weatherLongitude?: number | null;
+  mapSettings?: ClientMapSettings;
   clientBarangays?: ClientCoverageBarangay[];
   status: AdminStatus;
   permissionsVersion: number;
@@ -53,6 +105,8 @@ export interface ClientLgu {
   weatherLocationKey: string;
   weatherLatitude: number | null;
   weatherLongitude: number | null;
+  mapSettings: ClientMapSettings;
+  earthquakeSettings: ClientEarthquakeSettings;
   barangays: ClientCoverageBarangay[];
   requestId?: string | null;
 }
@@ -73,6 +127,8 @@ export interface LguRequest {
   municipalityCode: string;
   municipalityName: string;
   municipalityType: ClientLguType;
+  proposedWeatherLatitude?: number | null;
+  proposedWeatherLongitude?: number | null;
   selectedBarangays: ClientCoverageBarangay[];
   barangaysVerified: boolean;
   notes?: string;
@@ -107,4 +163,74 @@ export interface SystemStatus {
   earthquake: {
     status: 'configured' | 'unknown';
   };
+}
+
+export interface ClientChangeRequest {
+  id: string;
+  clientId: string;
+  clientName?: string | null;
+  type: ClientChangeRequestType;
+  status: ClientChangeRequestStatus;
+  currentSnapshot: Record<string, unknown>;
+  proposedChanges: Record<string, unknown>;
+  requestedBy: string;
+  requestedByEmail?: string | null;
+  requestedAt?: unknown;
+  reviewedBy?: string | null;
+  reviewedAt?: unknown;
+  reviewNote?: string | null;
+  appliedAt?: unknown;
+  cancelledAt?: unknown;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface EmailDeliveryLog {
+  id?: string;
+  to: string;
+  subject: string;
+  template: string;
+  status: EmailDeliveryStatus;
+  error?: string | null;
+  createdAt?: unknown;
+}
+
+export interface OperationLog {
+  id: string;
+  action: string;
+  actionLabel: string;
+  targetType: string;
+  targetId?: string | null;
+  targetName?: string | null;
+  clientId?: string | null;
+  clientName?: string | null;
+  actorUid: string;
+  actorEmail?: string | null;
+  actorRole: OperationLogActorRole;
+  status: OperationLogStatus;
+  message: string;
+  before?: Record<string, unknown> | null;
+  after?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown>;
+  timestamp: number;
+  createdAt?: unknown;
+}
+
+export interface SuperAdminOverview {
+  status: 'healthy' | 'degraded';
+  timestamp: string;
+  summary: {
+    clients: Record<ClientLguStatus, number>;
+    lguRequests: Record<LguRequestStatus, number>;
+    changeRequests: Record<ClientChangeRequestStatus, number>;
+    lguAdmins: number;
+    activeResidents: number;
+  };
+  charts: {
+    clientStatus: Array<{ name: string; value: number }>;
+    lguRequestStatus: Array<{ name: string; value: number }>;
+    changeRequestStatus: Array<{ name: string; value: number }>;
+    changeRequestTypes: Array<{ name: string; value: number }>;
+  };
+  system: SystemStatus;
 }

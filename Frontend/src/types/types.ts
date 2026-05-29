@@ -418,6 +418,14 @@ export interface ProcessedEarthquake {
   tsunami_warning: boolean;
   usgs_url: string;
   distance_km?: number;
+  affectedClientIds?: string[];
+  clientImpacts?: Array<{
+    clientId: string;
+    clientName?: string;
+    weatherLocationKey?: string;
+    distanceKm: number;
+    radiusKm?: number;
+  }>;
   impact_radii: {
     felt_radius_km: number;
     moderate_shaking_radius_km: number;
@@ -506,12 +514,13 @@ export interface BaseNotification {
   hiddenBy?: string[]; // User IDs who have hidden/deleted from their view
 
   // Location/barangay targeting
-  clientId?: string;
+  clientId?: string | null;
   location: string; // weather zone or specific barangay
   barangays?: string[]; // List of affected barangays
 
   // Audience targeting
   audience: 'admin' | 'users' | 'both';
+  targetRole?: 'super_admin' | 'lgu_admin' | 'all_admins' | null;
 
   // Delivery tracking
   sentTo: number; // Number of recipients
@@ -534,6 +543,10 @@ export type NotificationType =
   | 'announcement'
   | 'emergency'
   | 'system'
+  | 'client_request'
+  | 'client_change_request'
+  | 'admin_invite'
+  | 'system_health'
   | 'evacuation'
   | 'flood'
   | 'typhoon';
@@ -626,8 +639,11 @@ export interface EarthquakeNotificationData {
   // Source
   source: 'usgs' | 'phivolcs' | 'manual';
 
-  // Distance from Naic (optional)
-  distanceFromNaic?: number; // in kilometers
+  // Client-relative distance (optional)
+  clientId?: string;
+  clientName?: string;
+  distanceFromClient?: number; // in kilometers
+  distanceFromNaic?: number; // legacy compatibility
 
   // Impact radii for visualization
   impact_radii?: {

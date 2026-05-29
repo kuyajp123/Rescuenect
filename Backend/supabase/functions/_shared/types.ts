@@ -90,8 +90,10 @@ export interface EarthquakeData {
     latitude: number;
     depth: number;
   };
-  severity: 'minor' | 'light' | 'moderate' | 'strong' | 'major' | 'great';
+  severity: 'micro' | 'minor' | 'light' | 'moderate' | 'strong' | 'major' | 'great';
   tsunami_warning: boolean;
+  affectedClientIds?: string[];
+  clientImpacts?: ClientEarthquakeImpact[];
 }
 
 export interface EarthquakeNotification {
@@ -150,6 +152,8 @@ export interface ProcessedEarthquake {
   tsunami_warning: boolean;
   usgs_url: string;
   distance_km?: number;
+  affectedClientIds?: string[];
+  clientImpacts?: ClientEarthquakeImpact[];
   impact_radii: {
     felt_radius_km: number;
     moderate_shaking_radius_km: number;
@@ -163,6 +167,24 @@ export interface ProcessedEarthquake {
     };
   };
   notification_sent: boolean;
+}
+
+export interface EarthquakeClientScope {
+  clientId: string;
+  clientName: string;
+  weatherLocationKey: string;
+  centerLatitude: number;
+  centerLongitude: number;
+  radiusKm: number;
+  minMagnitude: number;
+}
+
+export interface ClientEarthquakeImpact {
+  clientId: string;
+  clientName: string;
+  weatherLocationKey: string;
+  distanceKm: number;
+  radiusKm: number;
 }
 
 export interface EarthquakeNotificationData {

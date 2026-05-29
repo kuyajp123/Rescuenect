@@ -27,6 +27,7 @@ function App() {
   const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
   const authUser = useAuth(state => state.auth);
   const userData = useAuth(state => state.userData);
+  const syncUserData = useAuth(state => state.syncUserData);
   const canLoadAdminData = Boolean(authUser && userData?.onboardingComplete);
   const canLoadClientScopedData =
     canLoadAdminData && (userData?.role !== 'lgu_admin' || Boolean(userData.clientId));
@@ -46,6 +47,26 @@ function App() {
   useEffect(() => {
     setStatus(statuses);
   }, [statuses, setStatus]);
+
+  useEffect(() => {
+    if (!authUser) return;
+
+    const revalidateAccess = () => {
+      if (document.visibilityState === 'visible') {
+        void syncUserData({ silent: true });
+      }
+    };
+
+    window.addEventListener('focus', revalidateAccess);
+    document.addEventListener('visibilitychange', revalidateAccess);
+    const interval = window.setInterval(revalidateAccess, 60000);
+
+    return () => {
+      window.removeEventListener('focus', revalidateAccess);
+      document.removeEventListener('visibilitychange', revalidateAccess);
+      window.clearInterval(interval);
+    };
+  }, [authUser, syncUserData]);
 
   // Fetch all latest statuses when auth is ready
   useEffect(() => {
@@ -100,6 +121,7 @@ function App() {
     enabled: canLoadClientScopedData,
     userLocation: userData?.weatherLocationKey || userData?.barangay || undefined,
     clientId: userData?.role === 'lgu_admin' ? userData.clientId || undefined : undefined,
+    role: userData?.role ?? null,
     userId: authUser?.uid,
     maxNotifications: 100,
   });
