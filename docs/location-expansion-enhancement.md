@@ -491,7 +491,11 @@ Planned work:
 - Remove automatic Naic seeding from normal client lookups.
 - Keep Naic creation as an explicit seed or migration script only.
 - Replace static Naic fallback data in admin and mobile with active client coverage from the backend.
-- Make Naic deletable under the same safety rules as other inactive clients.
+- Replace instant client deletion with scheduled cascade decommissioning.
+- Make Naic use the same scheduled decommissioning flow as other clients.
+- Add 30-day deletion warnings for LGU admins and residents.
+- Disable/delete resident accounts tied to the client on the deletion effective date.
+- Delete client-scoped operational data through a scheduled Supabase cleanup job.
 - Add tests proving the system works without Naic as a default dependency.
 
 ### Phase 6B: Production Readiness
@@ -503,6 +507,7 @@ Status: Future
 - Add operation log retention, export, and cleanup rules.
 - Add backup and restore documentation.
 - Add monitoring for scheduled weather and earthquake jobs.
+- Add monitoring for scheduled client deletion jobs.
 - Add monitoring for SMTP/email failures.
 - Address frontend Recharts/chunk-size build warnings.
 - Review performance for large clients, many notifications, and many logs.
