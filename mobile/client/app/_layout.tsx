@@ -10,6 +10,7 @@ import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { storageHelpers } from '@/helper/storage';
 import { useAppBootstrap } from '@/hooks/useAppBootstrap';
 import { useAuthGate } from '@/hooks/useAuthGate';
+import { useEarthquakeSubscriber } from '@/hooks/useEarthquakeSubscriber';
 import { useIdToken } from '@/hooks/useIdToken';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useNotificationSubscriber } from '@/hooks/useNotificationSubscriber';
@@ -147,6 +148,7 @@ function LayoutContent() {
   const setWeather = useWeatherStore(state => state.setWeather);
   const setSavedLocations = useSavedLocationsStore(state => state.setSavedLocations);
   useCurrentStatuses();
+  useEarthquakeSubscriber();
 
   useNotificationSubscriber({
     userLocation: userData?.barangay || undefined,

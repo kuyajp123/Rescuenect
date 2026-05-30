@@ -1,6 +1,7 @@
 import { db } from '@/lib/firebaseConfig';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import type { BaseNotification } from '@/types/types';
+import { getNotificationDisplayTimestamp, isStaleEarthquakeNotification } from '@/utils/notificationTime';
 import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { useEffect } from 'react';
 
@@ -53,6 +54,10 @@ export const useNotificationSubscriber = ({
               ...data,
               id: doc.id,
             };
+
+            if (isStaleEarthquakeNotification(notification)) {
+              return;
+            }
 
             const notificationClientId =
               typeof notification.clientId === 'string' && notification.clientId.trim()
@@ -134,7 +139,11 @@ export const useNotificationSubscriber = ({
             ? allNotifications.filter(notif => !notif.hiddenBy?.includes(userId))
             : allNotifications;
 
-          setNotifications(visibleNotifications);
+          setNotifications(
+            visibleNotifications.sort(
+              (left, right) => getNotificationDisplayTimestamp(right) - getNotificationDisplayTimestamp(left)
+            )
+          );
           setIsLoading(false);
           setError(null);
         } catch (err) {

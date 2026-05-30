@@ -67,6 +67,7 @@ const getEarthquakeRadiusImage = (severity: string) => {
 };
 
 interface EarthquakeData {
+  id?: string;
   coordinates: {
     latitude: number;
     longitude: number;
@@ -79,6 +80,36 @@ interface EarthquakeData {
     strong_shaking_radius_km: number;
   };
 }
+
+const EARTHQUAKE_RADIUS_IMAGES = {
+  earthquakeRadiusMicro: require('@/assets/images/marker/radius/micro.png'),
+  earthquakeRadiusMinor: require('@/assets/images/marker/radius/minor.png'),
+  earthquakeRadiusLight: require('@/assets/images/marker/radius/light.png'),
+  earthquakeRadiusModerate: require('@/assets/images/marker/radius/moderate.png'),
+  earthquakeRadiusStrong: require('@/assets/images/marker/radius/strong.png'),
+  earthquakeRadiusMajor: require('@/assets/images/marker/radius/major.png'),
+  earthquakeRadiusGreat: require('@/assets/images/marker/radius/great.png'),
+};
+
+const getEarthquakeRadiusImageKey = (severity: string) => {
+  switch (severity.toLowerCase()) {
+    case 'micro':
+      return 'earthquakeRadiusMicro';
+    case 'minor':
+      return 'earthquakeRadiusMinor';
+    case 'light':
+      return 'earthquakeRadiusLight';
+    case 'strong':
+      return 'earthquakeRadiusStrong';
+    case 'major':
+      return 'earthquakeRadiusMajor';
+    case 'great':
+      return 'earthquakeRadiusGreat';
+    case 'moderate':
+    default:
+      return 'earthquakeRadiusModerate';
+  }
+};
 
 type saveLocationData = {
   id: string;
@@ -102,6 +133,7 @@ interface MapViewProps {
   coords?: { lat: number; lng: number };
   data?: EvacuationCenter[];
   earthquakeData?: EarthquakeData;
+  earthquakeDataList?: EarthquakeData[];
   handleMapPress?: (event: any) => void;
   onPress?: (coords: [number, number]) => void;
   showButtons?: boolean;
@@ -127,6 +159,7 @@ interface MapViewProps {
   hasAnimation?: boolean;
   show3DBuildings?: boolean;
   onMarkerPress?: (markerId: string) => void;
+  onEarthquakePress?: (earthquakeId: string) => void;
   savedLocations?: saveLocationData[];
 }
 
@@ -179,6 +212,7 @@ export const MapView: React.FC<MapViewProps> = ({
   coords,
   data,
   earthquakeData,
+  earthquakeDataList,
   handleMapPress,
   pitchEnabled = false,
   rotateEnabled = true,
@@ -203,6 +237,7 @@ export const MapView: React.FC<MapViewProps> = ({
   hasAnimation = true,
   show3DBuildings = true,
   onMarkerPress,
+  onEarthquakePress,
   savedLocations,
 }) => {
   const router = useRouter();
@@ -211,6 +246,7 @@ export const MapView: React.FC<MapViewProps> = ({
   const savedLocationsFromStore = useSavedLocationsStore(state => state.savedLocations);
   const userData = useUserData(state => state.userData);
   const savedLocationsList = savedLocations ?? savedLocationsFromStore;
+  const earthquakeMarkers = earthquakeDataList ?? (earthquakeData ? [earthquakeData] : []);
   const scopedCenterCoordinate = centerCoordinate ?? getClientMapCenter(userData, DEFAULT_CLIENT_MAP_CENTER);
   const scopedMaxBounds = maxBounds !== undefined ? maxBounds : getClientMapBounds(userData, scopedCenterCoordinate);
   const scopedZoom = getClientMapZoomSettings(userData, {
@@ -400,6 +436,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 'marker-vacant-building': require('@/assets/images/marker/evacuation-center-marker/marker-vacant-building.png'),
                 'marker-covered-court': require('@/assets/images/marker/evacuation-center-marker/marker-covered-court.png'),
                 'others-marker': require('@/assets/images/marker/evacuation-center-marker/others-marker.png'),
+                ...EARTHQUAKE_RADIUS_IMAGES,
                 earthquakeRadius: earthquakeData
                   ? getEarthquakeRadiusImage(earthquakeData.severity)
                   : require('@/assets/images/marker/radius/moderate.png'),
@@ -520,11 +557,13 @@ export const MapView: React.FC<MapViewProps> = ({
               ))}
 
             {/* Earthquake radius using PNG image overlay */}
-            {earthquakeData && (
-              <>
-                {/* Earthquake radius image using ShapeSource for better positioning */}
+            {earthquakeMarkers.map((earthquake, index) => {
+              const markerId = String(earthquake.id ?? `earthquake-${index}`).replace(/[^a-zA-Z0-9_-]/g, '_');
+
+              return (
+                <React.Fragment key={`earthquake-${markerId}`}>
                 <ShapeSource
-                  id="earthquake-radius-source"
+                  id={`earthquake-radius-source-${markerId}`}
                   shape={{
                     type: 'FeatureCollection',
                     features: [
@@ -532,7 +571,7 @@ export const MapView: React.FC<MapViewProps> = ({
                         type: 'Feature',
                         geometry: {
                           type: 'Point',
-                          coordinates: [earthquakeData.coordinates.longitude, earthquakeData.coordinates.latitude],
+                          coordinates: [earthquake.coordinates.longitude, earthquake.coordinates.latitude],
                         },
                         properties: {},
                       },
@@ -540,9 +579,9 @@ export const MapView: React.FC<MapViewProps> = ({
                   }}
                 >
                   <SymbolLayer
-                    id="earthquake-radius-layer"
+                    id={`earthquake-radius-layer-${markerId}`}
                     style={{
-                      iconImage: 'earthquakeRadius',
+                      iconImage: getEarthquakeRadiusImageKey(earthquake.severity),
                       iconSize: 0.2, // Adjust size as needed
                       iconAllowOverlap: true,
                       iconIgnorePlacement: true,
@@ -553,15 +592,16 @@ export const MapView: React.FC<MapViewProps> = ({
 
                 {/* Earthquake epicenter marker */}
                 <MapboxGL.PointAnnotation
-                  id="earthquake-epicenter"
-                  coordinate={[earthquakeData.coordinates.longitude, earthquakeData.coordinates.latitude]}
+                  id={`earthquake-epicenter-${markerId}`}
+                  coordinate={[earthquake.coordinates.longitude, earthquake.coordinates.latitude]}
+                  onSelected={() => onEarthquakePress?.(earthquake.id ?? markerId)}
                 >
                   <View
                     collapsable={false}
                     style={[
                       styles.tapMarker,
                       {
-                        backgroundColor: getEarthquakeSeverityColor(earthquakeData.severity),
+                        backgroundColor: getEarthquakeSeverityColor(earthquake.severity),
                         width: 16,
                         height: 16,
                         borderWidth: 3,
@@ -569,8 +609,9 @@ export const MapView: React.FC<MapViewProps> = ({
                     ]}
                   />
                 </MapboxGL.PointAnnotation>
-              </>
-            )}
+                </React.Fragment>
+              );
+            })}
 
             {areMarkersReady && children}
           </>

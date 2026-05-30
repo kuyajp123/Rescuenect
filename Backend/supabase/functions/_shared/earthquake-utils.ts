@@ -1,36 +1,106 @@
-import type { ClientEarthquakeImpact, EarthquakeClientScope, ProcessedEarthquake, USGSEarthquake } from './types.ts';
-
-const NAIC_CENTER = { lat: 14.2919325, lng: 120.7752839 };
-
-const DEFAULT_NAIC_SCOPE: EarthquakeClientScope = {
-  clientId: 'naic',
-  clientName: 'Naic',
-  weatherLocationKey: 'naic',
-  centerLatitude: NAIC_CENTER.lat,
-  centerLongitude: NAIC_CENTER.lng,
-  radiusKm: 150,
-  minMagnitude: 1.5,
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
 };
 
-/**
- * Fetch earthquake data from USGS for the legacy Naic scope.
- */
-export async function fetchUSGSEarthquakes(): Promise<USGSEarthquake[]> {
-  return fetchUSGSEarthquakesForScope(DEFAULT_NAIC_SCOPE);
+import type { ClientEarthquakeImpact, EarthquakeClientScope, ProcessedEarthquake, USGSEarthquake } from './types.ts';
+
+const MINUTE_MS = 60 * 1000;
+const DEFAULT_HISTORY_LOOKBACK_DAYS = 30;
+const DEFAULT_HISTORY_QUERY_LIMIT = 500;
+const DEFAULT_MAX_EVENT_AGE_MINUTES = 2 * 60;
+const DEFAULT_FUTURE_TOLERANCE_MINUTES = 5;
+
+type EarthquakeFetchOptions = {
+  now?: number;
+  queryLookbackMinutes?: number;
+};
+
+function getNumericEnv(key: string, fallback: number, min: number, max: number): number {
+  const raw = Deno.env.get(key);
+  if (!raw) return fallback;
+
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return fallback;
+
+  return Math.min(max, Math.max(min, parsed));
+}
+
+export function getEarthquakeFreshnessConfig(): {
+  maxEventAgeMinutes: number;
+  futureToleranceMinutes: number;
+} {
+  return {
+    maxEventAgeMinutes: getNumericEnv('EARTHQUAKE_MAX_EVENT_AGE_MINUTES', DEFAULT_MAX_EVENT_AGE_MINUTES, 5, 24 * 60),
+    futureToleranceMinutes: getNumericEnv(
+      'EARTHQUAKE_EVENT_FUTURE_TOLERANCE_MINUTES',
+      DEFAULT_FUTURE_TOLERANCE_MINUTES,
+      0,
+      60
+    ),
+  };
+}
+
+export function getEarthquakeHistoryConfig(): {
+  historyLookbackMinutes: number;
+  historyLookbackDays: number;
+  queryLimit: number;
+} {
+  const historyLookbackDays = getNumericEnv('EARTHQUAKE_HISTORY_LOOKBACK_DAYS', DEFAULT_HISTORY_LOOKBACK_DAYS, 1, 45);
+
+  return {
+    historyLookbackDays,
+    historyLookbackMinutes: Math.round(historyLookbackDays * 24 * 60),
+    queryLimit: getNumericEnv('EARTHQUAKE_HISTORY_QUERY_LIMIT', DEFAULT_HISTORY_QUERY_LIMIT, 50, 2000),
+  };
+}
+
+export function getEarthquakeEventAgeMinutes(eventTime: number, now = Date.now()): number {
+  return Math.round(((now - eventTime) / MINUTE_MS) * 10) / 10;
+}
+
+export function isEarthquakeEventFresh(
+  earthquake: Pick<ProcessedEarthquake, 'time' | 'id'> | Pick<USGSEarthquake, 'id'> & { properties: { time: number } },
+  now = Date.now()
+): boolean {
+  const eventTime = 'time' in earthquake ? earthquake.time : earthquake.properties.time;
+  if (!Number.isFinite(eventTime)) return false;
+
+  const { maxEventAgeMinutes, futureToleranceMinutes } = getEarthquakeFreshnessConfig();
+  const oldestAllowed = now - maxEventAgeMinutes * MINUTE_MS;
+  const newestAllowed = now + futureToleranceMinutes * MINUTE_MS;
+
+  return eventTime >= oldestAllowed && eventTime <= newestAllowed;
+}
+
+function toUsgsDateTime(timestamp: number): string {
+  return new Date(timestamp).toISOString();
 }
 
 /**
  * Fetch earthquake data from USGS for one active LGU client scope.
  */
-export async function fetchUSGSEarthquakesForScope(scope: EarthquakeClientScope): Promise<USGSEarthquake[]> {
+export async function fetchUSGSEarthquakesForScope(
+  scope: EarthquakeClientScope,
+  options: EarthquakeFetchOptions = {}
+): Promise<USGSEarthquake[]> {
+  const now = options.now ?? Date.now();
+  const freshness = getEarthquakeFreshnessConfig();
+  const history = getEarthquakeHistoryConfig();
+  const queryLookbackMinutes = options.queryLookbackMinutes ?? history.historyLookbackMinutes;
+  const startTime = now - queryLookbackMinutes * MINUTE_MS;
+  const endTime = now + freshness.futureToleranceMinutes * MINUTE_MS;
   const params = new URLSearchParams({
     format: 'geojson',
     latitude: scope.centerLatitude.toString(),
     longitude: scope.centerLongitude.toString(),
     maxradiuskm: scope.radiusKm.toString(),
     minmagnitude: scope.minMagnitude.toString(),
+    starttime: toUsgsDateTime(startTime),
+    endtime: toUsgsDateTime(endTime),
     orderby: 'time',
-    limit: '50',
+    limit: history.queryLimit.toString(),
   });
 
   const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?${params}`;
@@ -47,14 +117,11 @@ export async function fetchUSGSEarthquakesForScope(scope: EarthquakeClientScope)
   }
 
   const data = await response.json();
-  return data.features || [];
-}
-
-/**
- * Process raw USGS earthquake data for the legacy Naic scope.
- */
-export function processEarthquakeData(earthquake: USGSEarthquake): ProcessedEarthquake {
-  return processEarthquakeDataForScope(earthquake, DEFAULT_NAIC_SCOPE);
+  const features = Array.isArray(data.features) ? (data.features as USGSEarthquake[]) : [];
+  return features.filter(earthquake => {
+    const eventTime = earthquake.properties?.time;
+    return Number.isFinite(eventTime) && eventTime >= startTime && eventTime <= endTime;
+  });
 }
 
 /**
@@ -194,6 +261,7 @@ function toRadians(degrees: number): number {
  */
 export function shouldNotify(earthquake: ProcessedEarthquake, impact?: ClientEarthquakeImpact): boolean {
   const distanceKm = impact?.distanceKm ?? earthquake.distance_km;
+  const ageMinutes = getEarthquakeEventAgeMinutes(earthquake.time);
 
   console.log('Checking notification criteria for earthquake:', {
     id: earthquake.id,
@@ -202,7 +270,14 @@ export function shouldNotify(earthquake: ProcessedEarthquake, impact?: ClientEar
     distance_km: distanceKm,
     tsunami_warning: earthquake.tsunami_warning,
     severity: earthquake.severity,
+    event_time: new Date(earthquake.time).toISOString(),
+    age_minutes: ageMinutes,
   });
+
+  if (!isEarthquakeEventFresh(earthquake)) {
+    console.warn(`Skipping stale earthquake notification for ${earthquake.id}: event is ${ageMinutes} minutes old`);
+    return false;
+  }
 
   if (earthquake.magnitude < 2.0) return false;
   if (earthquake.magnitude >= 5.0) return true;

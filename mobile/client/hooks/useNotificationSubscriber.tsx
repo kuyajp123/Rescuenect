@@ -1,5 +1,6 @@
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { storageHelpers } from '@/helper/storage';
+import { getNotificationDisplayTimestamp, isStaleEarthquakeNotification } from '@/helper/notificationTime';
 import { db } from '@/lib/firebaseConfig';
 import { useNotificationStore } from '@/store/useNotificationStore';
 import { useUserData } from '@/store/useBackendResponse';
@@ -89,6 +90,9 @@ export const useNotificationSubscriber = ({
                 ...data,
                 id: doc.id,
               };
+              if (isStaleEarthquakeNotification(notification)) {
+                return;
+              }
               if (
                 notification.audience === 'admin' ||
                 notification.targetRole === 'super_admin' ||
@@ -199,7 +203,9 @@ export const useNotificationSubscriber = ({
 
   // Merge and update store
   useEffect(() => {
-    const merged = [...globalNotifications, ...userNotifications].sort((a, b) => b.timestamp - a.timestamp);
+    const merged = [...globalNotifications, ...userNotifications].sort(
+      (a, b) => getNotificationDisplayTimestamp(b) - getNotificationDisplayTimestamp(a)
+    );
     setNotifications(merged);
   }, [globalNotifications, userNotifications, setNotifications]);
   return { isLoading, error };

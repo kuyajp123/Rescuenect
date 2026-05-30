@@ -212,6 +212,7 @@ export interface EarthquakeMonitorResult {
     magnitude: number;
     place: string;
     time: string;
+    age_minutes?: number;
     severity: string;
   }>;
   error?: string;

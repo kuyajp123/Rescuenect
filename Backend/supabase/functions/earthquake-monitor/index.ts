@@ -1,6 +1,8 @@
 import { serve } from 'serve';
 import {
   fetchUSGSEarthquakesForScope,
+  getEarthquakeEventAgeMinutes,
+  getEarthquakeHistoryConfig,
   mergeClientEarthquakes,
   processEarthquakeDataForScope,
   shouldNotify,
@@ -8,10 +10,12 @@ import {
 import { sendEarthquakeNotification } from '../_shared/fcm-client.ts';
 import {
   getActiveEarthquakeClientScopes,
+  reserveEarthquakeNotification,
   getExistingEarthquakes,
   getUserTokensByClientId,
   initializeFirebase,
   replaceEarthquakesInFirestore,
+  updateEarthquakeNotificationReservation,
 } from '../_shared/firestore-client.ts';
 import type { EarthquakeNotificationData } from '../_shared/notification-schema.ts';
 import { NotificationService } from '../_shared/notification-service.ts';
@@ -36,12 +40,14 @@ serve(async (req: Request) => {
   console.log('Starting earthquake monitoring cycle...');
 
   try {
+    const now = Date.now();
+    const historyConfig = getEarthquakeHistoryConfig();
     const clientScopes = await getActiveEarthquakeClientScopes();
     const processedByClient: ProcessedEarthquake[] = [];
 
     for (const scope of clientScopes) {
       try {
-        const rawEarthquakes = await fetchUSGSEarthquakesForScope(scope);
+        const rawEarthquakes = await fetchUSGSEarthquakesForScope(scope, { now });
         processedByClient.push(...rawEarthquakes.map(earthquake => processEarthquakeDataForScope(earthquake, scope)));
       } catch (error) {
         console.error(`Failed to fetch earthquakes for ${scope.clientId}:`, error);
@@ -59,7 +65,7 @@ serve(async (req: Request) => {
     if (processedEarthquakes.length === 0) {
       return createResponse({
         success: true,
-        message: 'No earthquakes found in active client scopes - database cleared',
+        message: `No earthquakes found in active client scopes for the last ${historyConfig.historyLookbackDays} day(s) - history cache cleared`,
         new_earthquakes: 0,
         notifications_sent: 0,
         total_processed: 0,
@@ -74,7 +80,7 @@ serve(async (req: Request) => {
     if (newEarthquakes.length === 0) {
       return createResponse({
         success: true,
-        message: 'No new earthquakes detected - database updated',
+        message: `${historyConfig.historyLookbackDays}-day earthquake history cache updated; no newly discovered events`,
         new_earthquakes: 0,
         notifications_sent: 0,
         total_processed: processedEarthquakes.length,
@@ -91,6 +97,8 @@ serve(async (req: Request) => {
       for (const impact of impacts) {
         if (!shouldNotify(earthquake, impact)) continue;
 
+        let reservedNotificationId: string | null = null;
+
         try {
           const { tokens, barangays, clientName, weatherLocationKey } = await getUserTokensByClientId(
             'both',
@@ -102,10 +110,32 @@ serve(async (req: Request) => {
             continue;
           }
 
+          const reservation = await reserveEarthquakeNotification({
+            clientId: impact.clientId,
+            clientName,
+            earthquakeId: earthquake.id,
+            eventTime: earthquake.time,
+            magnitude: earthquake.magnitude,
+            place: earthquake.place,
+          });
+
+          reservedNotificationId = reservation.notificationId;
+
+          if (!reservation.reserved) {
+            notificationResults.push({
+              earthquake_id: earthquake.id,
+              clientId: impact.clientId,
+              magnitude: earthquake.magnitude,
+              duplicate_skipped: true,
+            });
+            continue;
+          }
+
           const fcmResult = await sendEarthquakeNotification(earthquake, tokens);
 
           if (fcmResult.success > 0) {
             await saveEarthquakeNotification({
+              notificationId: reservation.notificationId,
               earthquake,
               impact: { ...impact, clientName, weatherLocationKey },
               barangays,
@@ -119,6 +149,28 @@ serve(async (req: Request) => {
 
             earthquake.notification_sent = true;
             notificationsSent++;
+
+            await updateEarthquakeNotificationReservation(reservation.notificationId, {
+              status: 'sent',
+              sentAt: Date.now(),
+              sentTo: fcmResult.success + fcmResult.failure,
+              deliveryStatus: {
+                success: fcmResult.success,
+                failure: fcmResult.failure,
+                errors: fcmResult.errors.length ? fcmResult.errors : undefined,
+              },
+            });
+          } else {
+            await updateEarthquakeNotificationReservation(reservation.notificationId, {
+              status: 'failed',
+              reason: 'FCM returned no successful deliveries',
+              sentTo: fcmResult.success + fcmResult.failure,
+              deliveryStatus: {
+                success: fcmResult.success,
+                failure: fcmResult.failure,
+                errors: fcmResult.errors.length ? fcmResult.errors : undefined,
+              },
+            });
           }
 
           notificationResults.push({
@@ -132,6 +184,16 @@ serve(async (req: Request) => {
           await delay(1000);
         } catch (error) {
           console.error(`Failed to send notification for ${earthquake.id} and ${impact.clientId}:`, error);
+          if (reservedNotificationId) {
+            try {
+              await updateEarthquakeNotificationReservation(reservedNotificationId, {
+                status: 'failed',
+                reason: error instanceof Error ? error.message : 'Unknown error',
+              });
+            } catch (reservationError) {
+              console.error(`Failed to update earthquake dedupe reservation ${reservedNotificationId}:`, reservationError);
+            }
+          }
           notificationResults.push({
             earthquake_id: earthquake.id,
             clientId: impact.clientId,
@@ -148,7 +210,7 @@ serve(async (req: Request) => {
 
     return createResponse({
       success: true,
-      message: `Monitoring completed: ${newEarthquakes.length} new earthquakes, ${notificationsSent} client notifications sent`,
+      message: `History cache updated: ${newEarthquakes.length} newly discovered earthquake record(s), ${notificationsSent} fresh client notification(s) sent`,
       new_earthquakes: newEarthquakes.length,
       notifications_sent: notificationsSent,
       total_processed: processedEarthquakes.length,
@@ -158,6 +220,7 @@ serve(async (req: Request) => {
         magnitude: eq.magnitude,
         place: eq.place,
         time: new Date(eq.time).toISOString(),
+        age_minutes: getEarthquakeEventAgeMinutes(eq.time),
         severity: eq.severity,
       })),
     });
@@ -188,6 +251,7 @@ serve(async (req: Request) => {
 });
 
 async function saveEarthquakeNotification(params: {
+  notificationId: string;
   earthquake: ProcessedEarthquake;
   impact: ClientEarthquakeImpact;
   barangays: string[];
@@ -213,6 +277,8 @@ async function saveEarthquakeNotification(params: {
     earthquakeId: earthquake.id,
     magnitude: earthquake.magnitude,
     place: earthquake.place,
+    eventTime: earthquake.time,
+    eventTimeIso: new Date(earthquake.time).toISOString(),
     coordinates: {
       latitude: earthquake.coordinates.latitude,
       longitude: earthquake.coordinates.longitude,
@@ -235,6 +301,7 @@ async function saveEarthquakeNotification(params: {
   };
 
   await notificationService.createEarthquakeNotification({
+    notificationId: params.notificationId,
     title,
     message,
     location: impact.weatherLocationKey,

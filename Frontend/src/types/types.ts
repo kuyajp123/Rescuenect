@@ -613,6 +613,8 @@ export interface EarthquakeNotificationData {
   // Magnitude and location
   magnitude: number;
   place: string;
+  eventTime?: number;
+  eventTimeIso?: string;
 
   // Coordinates
   coordinates: {

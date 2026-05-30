@@ -1,4 +1,5 @@
 import { admin, db } from '@/db/firestoreConfig';
+import { AuthIdentityService } from '@/services/AuthIdentityService';
 import { EmailService } from '@/services/EmailService';
 import type { AdminRole, AdminStatus, AdminUser } from '@/types/admin';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -307,6 +308,7 @@ export class AdminAuthModel {
       },
       { merge: true }
     );
+    await AuthIdentityService.deleteAuthUserIfNoProfiles(uid, 'LGU admin');
 
     return admin;
   }
@@ -368,28 +370,14 @@ export class AdminAuthModel {
     if (adminSnapshot.empty) return 0;
 
     const batch = db.batch();
+    const adminUids: string[] = [];
     for (const doc of adminSnapshot.docs) {
-      const uid = doc.id;
-      try {
-        await admin.auth().updateUser(uid, { disabled: true });
-      } catch (error: any) {
-        if (error?.code !== 'auth/user-not-found') {
-          console.error(`Failed to disable LGU admin auth user ${uid}:`, error);
-        }
-      }
-
-      try {
-        await admin.auth().deleteUser(uid);
-      } catch (error: any) {
-        if (error?.code !== 'auth/user-not-found') {
-          console.error(`Failed to delete LGU admin auth user ${uid}:`, error);
-        }
-      }
-
+      adminUids.push(doc.id);
       batch.delete(doc.ref);
     }
 
     await batch.commit();
+    await Promise.all(adminUids.map(uid => AuthIdentityService.deleteAuthUserIfNoProfiles(uid, 'LGU admin')));
     return adminSnapshot.size;
   }
 

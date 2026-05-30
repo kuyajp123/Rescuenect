@@ -1,8 +1,9 @@
-import { admin, db } from '@/db/firestoreConfig';
+import { db } from '@/db/firestoreConfig';
 import { AdminAuthModel } from '@/models/admin/AdminAuthModel';
 import { ClientArchiveModel } from '@/models/admin/ClientArchiveModel';
 import { ClientModel } from '@/models/admin/ClientModel';
 import { EmailService } from '@/services/EmailService';
+import { AuthIdentityService } from '@/services/AuthIdentityService';
 import type { ClientDeletionJob, ClientDeletionPreview, ClientLgu } from '@/types/admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 
@@ -367,26 +368,11 @@ export class ClientDeletionModel {
   private static async deleteResidents(clientId: string): Promise<number> {
     const snapshot = await db.collection('users').where('clientId', '==', clientId).get();
     const queue = { batch: db.batch(), writes: 0 };
+    const residentUids: string[] = [];
     let count = 0;
 
     for (const doc of snapshot.docs) {
-      const uid = doc.id;
-      try {
-        await admin.auth().updateUser(uid, { disabled: true });
-      } catch (error: any) {
-        if (error?.code !== 'auth/user-not-found') {
-          console.error(`Failed to disable resident auth user ${uid}:`, error);
-        }
-      }
-
-      try {
-        await admin.auth().deleteUser(uid);
-      } catch (error: any) {
-        if (error?.code !== 'auth/user-not-found') {
-          console.error(`Failed to delete resident auth user ${uid}:`, error);
-        }
-      }
-
+      residentUids.push(doc.id);
       queue.batch.delete(doc.ref);
       queue.writes++;
       count++;
@@ -396,6 +382,7 @@ export class ClientDeletionModel {
     }
 
     await this.commitBatch(queue);
+    await Promise.all(residentUids.map(uid => AuthIdentityService.deleteAuthUserIfNoProfiles(uid, 'resident')));
     return count;
   }
 

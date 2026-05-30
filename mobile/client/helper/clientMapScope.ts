@@ -14,6 +14,8 @@ type ZoomOverrides = {
   maxZoomLevel?: number;
 };
 
+type MapboxMaxBounds = [[number, number], [number, number]];
+
 export const DEFAULT_CLIENT_MAP_CENTER: [number, number] = [120.750674, 14.31808];
 
 const DEFAULT_BOUNDS_DELTA = 0.08;
@@ -80,3 +82,25 @@ export const getClientMapZoomSettings = (userData: ScopedMapUserData, overrides:
     zoomLevel: clamp(rawZoomLevel, minZoomLevel, maxZoomLevel),
   };
 };
+
+export const getClientEarthquakeMapZoomSettings = (userData: ScopedMapUserData) => {
+  const settings = userData?.mapSettings;
+  const maxZoomLevel = 10;
+  const minZoomLevel = Math.min(settings?.minZoom ?? 13, 7);
+
+  return {
+    minZoomLevel,
+    zoomLevel: Math.min(Math.max(8, minZoomLevel), maxZoomLevel),
+    maxZoomLevel,
+  };
+};
+
+export const getEarthquakeMaxBoundsFromCenter = (center: [number, number], radiusDegrees: number = 1): MapboxMaxBounds => {
+  const [longitude, latitude] = center;
+
+  return [
+    [longitude - radiusDegrees, latitude - radiusDegrees], // southwest
+    [longitude + radiusDegrees, latitude + radiusDegrees], // northeast
+  ];
+};
+

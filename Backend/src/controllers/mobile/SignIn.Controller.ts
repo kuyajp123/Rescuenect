@@ -4,6 +4,7 @@ import {
 } from '@/config/locationConfig';
 import { ClientModel } from '@/models/admin/ClientModel';
 import { SignInModel } from '@/models/mobile/SignInModel';
+import { AuthIdentityService } from '@/services/AuthIdentityService';
 import { NextFunction, Request, Response } from 'express';
 import { OAuth2Client } from 'google-auth-library';
 
@@ -188,7 +189,7 @@ export class SignInController {
 
     try {
       await SignInModel.deleteUser(uid);
-      await admin.auth().deleteUser(uid);
+      await AuthIdentityService.deleteAuthUserIfNoProfiles(uid, 'resident');
 
       res.status(200).json({ success: true, message: 'User deleted successfully' });
     } catch (error: any) {

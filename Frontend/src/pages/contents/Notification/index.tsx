@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import type { BaseNotification, EarthquakeNotificationData, WeatherNotificationData } from '@/types/types';
+import { getNotificationDisplayTimestamp } from '@/utils/notificationTime';
 import { Card, Chip, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Spinner } from '@heroui/react';
 import axios from 'axios';
 import {
@@ -400,7 +401,7 @@ export const Notification = () => {
                     </Chip>
                   </div>
 
-                  <p className="text-xs text-default-400">{formatTime(notification.timestamp)}</p>
+                  <p className="text-xs text-default-400">{formatTime(getNotificationDisplayTimestamp(notification))}</p>
 
                   <Dropdown>
                     <DropdownTrigger>

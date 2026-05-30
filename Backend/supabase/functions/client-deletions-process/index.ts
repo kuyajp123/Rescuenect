@@ -97,15 +97,17 @@ Deno.serve(async req => {
     const auth = initializeFirebaseAuth();
     const result = await processDueDeletionJobs(db, auth);
 
-    await createOperationLog(db, {
-      action: 'client_deletion.edge_process_due_jobs',
-      actionLabel: 'Processed due client deletions from Supabase',
-      targetType: 'client_deletion_job',
-      actorUid: 'supabase_client_deletion_scheduler',
-      actorRole: 'system',
-      message: `Processed ${result.processed} due client deletion job(s).`,
-      after: summarizeDeletionProcessResult(result),
-    });
+    if (shouldCreateOperationLog(result)) {
+      await createOperationLog(db, {
+        action: 'client_deletion.edge_process_due_jobs',
+        actionLabel: 'Processed due client deletions from Supabase',
+        targetType: 'client_deletion_job',
+        actorUid: 'supabase_client_deletion_scheduler',
+        actorRole: 'system',
+        message: `Processed ${result.processed} due client deletion job(s).`,
+        after: summarizeDeletionProcessResult(result),
+      });
+    }
 
     return jsonResponse({
       success: true,
@@ -300,6 +302,10 @@ function summarizeDeletionProcessResult(result: DeletionProcessResult): Record<s
   };
 }
 
+function shouldCreateOperationLog(result: DeletionProcessResult): boolean {
+  return result.processed > 0 || result.failed > 0 || result.remainingDue > 0;
+}
+
 async function cleanupClient(db: Firestore, auth: Auth, job: ClientDeletionJob): Promise<CleanupProgress> {
   const clientRef = db.collection('clients').doc(job.clientId);
   const clientSnap = await clientRef.get();
@@ -349,7 +355,7 @@ async function archiveClientSnapshot(db: Firestore, clientSnap: DocumentSnapshot
     return 1;
   }
 
-  const client = { id: clientSnap.id, ...(clientSnap.data() ?? {}) };
+  const client: Record<string, unknown> = { id: clientSnap.id, ...(clientSnap.data() ?? {}) };
   const collections = await buildArchiveCollections(db, clientSnap.id, client);
   const counts = await writeArchiveDocuments(db, archiveRef, collections);
   const request = collections.lguRequests[0]?.data ?? null;
@@ -530,22 +536,20 @@ async function deleteStatuses(db: Firestore, clientId: string): Promise<number> 
 
 async function deleteResidents(db: Firestore, auth: Auth, clientId: string): Promise<number> {
   const snapshot = await db.collection('users').where('clientId', '==', clientId).get();
+  const residentUids = snapshot.docs.map(doc => doc.id);
+  const deletedCount = await deleteRefs(db, snapshot.docs.map(doc => doc.ref));
 
-  for (const doc of snapshot.docs) {
-    await deleteAuthUser(auth, doc.id, 'resident');
-  }
-
-  return deleteRefs(db, snapshot.docs.map(doc => doc.ref));
+  await Promise.all(residentUids.map(uid => deleteAuthUserIfNoProfiles(db, auth, uid, 'resident')));
+  return deletedCount;
 }
 
 async function deleteLguAdmins(db: Firestore, auth: Auth, clientId: string): Promise<number> {
   const snapshot = await db.collection('admin').where('clientId', '==', clientId).get();
+  const adminUids = snapshot.docs.map(doc => doc.id);
+  const deletedCount = await deleteRefs(db, snapshot.docs.map(doc => doc.ref));
 
-  for (const doc of snapshot.docs) {
-    await deleteAuthUser(auth, doc.id, 'LGU admin');
-  }
-
-  return deleteRefs(db, snapshot.docs.map(doc => doc.ref));
+  await Promise.all(adminUids.map(uid => deleteAuthUserIfNoProfiles(db, auth, uid, 'LGU admin')));
+  return deletedCount;
 }
 
 async function deleteCollectionWhere(db: Firestore, collectionName: string, clientId: string): Promise<number> {
@@ -587,7 +591,16 @@ async function commitBatch(
   queue.writes = 0;
 }
 
-async function deleteAuthUser(auth: Auth, uid: string, label: string): Promise<void> {
+async function deleteAuthUserIfNoProfiles(db: Firestore, auth: Auth, uid: string, label: string): Promise<void> {
+  const [residentSnap, adminSnap] = await Promise.all([
+    db.collection('users').doc(uid).get(),
+    db.collection('admin').doc(uid).get(),
+  ]);
+
+  if (residentSnap.exists || adminSnap.exists) {
+    return;
+  }
+
   try {
     await auth.updateUser(uid, { disabled: true });
   } catch (error) {

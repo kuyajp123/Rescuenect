@@ -197,6 +197,27 @@ export default function AppLayout() {
             presentation: 'card',
           }}
         />
+        <Stack.Screen
+          name="earthquake"
+          options={{
+            headerShown: false,
+            title: '',
+            headerTintColor: isDark ? Colors.text.dark : Colors.text.light,
+            headerStyle: {
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerTitleStyle: {
+              fontSize: 24,
+              fontWeight: 'bold',
+              color: isDark ? Colors.text.dark : Colors.brand.light,
+            },
+            headerShadowVisible: false,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
+            animation: 'none',
+            animationDuration: 150,
+            animationTypeForReplace: 'push',
+          }}
+        />
       </Stack>
 
       <Dialog
