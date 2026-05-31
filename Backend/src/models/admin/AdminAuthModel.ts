@@ -1,6 +1,6 @@
 import { admin, db } from '@/db/firestoreConfig';
 import { AuthIdentityService } from '@/services/AuthIdentityService';
-import { EmailService } from '@/services/EmailService';
+// import { EmailService } from '@/services/EmailService';
 import type { AdminRole, AdminStatus, AdminUser } from '@/types/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { ClientModel } from './ClientModel';
@@ -241,15 +241,17 @@ export class AdminAuthModel {
 
     await this.invitationRef(data.email).set(payload, { merge: true });
     const appUrl = (process.env.APP_BASE_URL || '').replace(/\/$/, '');
-    await EmailService.sendSimple({
-      to: payload.email,
-      subject: `Rescuenect ${payload.clientName || 'LGU'} admin invitation`,
-      title: 'You have been invited to Rescuenect',
-      message: `You were invited as an LGU admin${payload.clientName ? ` for ${payload.clientName}` : ''}. Sign in with this email to accept the invitation.`,
-      template: 'lgu_admin_invitation',
-      actionUrl: appUrl ? `${appUrl}/auth/login` : undefined,
-      actionLabel: appUrl ? 'Accept invitation' : undefined,
-    });
+    //--- EMAIL DISABLED ---
+    // await EmailService.sendSimple({
+    //   to: payload.email,
+    //   subject: `Rescuenect ${payload.clientName || 'LGU'} admin invitation`,
+    //   title: 'You have been invited to Rescuenect',
+    //   message: `You were invited as an LGU admin${payload.clientName ? ` for ${payload.clientName}` : ''}. Sign in with this email to accept the invitation.`,
+    //   template: 'lgu_admin_invitation',
+    //   actionUrl: appUrl ? `${appUrl}/auth/login` : undefined,
+    //   actionLabel: appUrl ? 'Accept invitation' : undefined,
+    // });
+    //--- EMAIL DISABLED ---
     return {
       email: payload.email,
       role: payload.role,

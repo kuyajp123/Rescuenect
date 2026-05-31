@@ -2,7 +2,7 @@ import { db } from '@/db/firestoreConfig';
 import { AdminAuthModel } from '@/models/admin/AdminAuthModel';
 import { ClientArchiveModel } from '@/models/admin/ClientArchiveModel';
 import { ClientModel } from '@/models/admin/ClientModel';
-import { EmailService } from '@/services/EmailService';
+// import { EmailService } from '@/services/EmailService';
 import { AuthIdentityService } from '@/services/AuthIdentityService';
 import type { ClientDeletionJob, ClientDeletionPreview, ClientLgu } from '@/types/admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
@@ -124,22 +124,24 @@ export class ClientDeletionModel {
     const emails = await this.getLguAdminNotificationEmails(params.client.id);
     if (emails.length === 0) return;
 
-    const effectiveAt = formatManilaDateTime(params.effectiveAt);
-    const reasonLine = params.reason ? ` Reason noted by the Super Admin: ${params.reason}` : '';
-    await Promise.all(
-      emails.map(email =>
-        EmailService.sendSimple({
-          to: email,
-          subject: `Rescuenect access update for ${params.client.name}`,
-          title: 'Thank you for working with Rescuenect',
-          message:
-            `Your LGU client, ${params.client.name}, has been scheduled for removal from Rescuenect. ` +
-            `Your admin account will stay available during the grace period and will be removed when the client is archived after ${effectiveAt}. ` +
-            `Thank you for the time and care you shared with the Rescuenect community.${reasonLine}`,
-          template: 'lgu_client_deletion_scheduled',
-        })
-      )
-    );
+    //--- EMAIL DISABLED ---
+    // const effectiveAt = formatManilaDateTime(params.effectiveAt);
+    // const reasonLine = params.reason ? ` Reason noted by the Super Admin: ${params.reason}` : '';
+    // await Promise.all(
+    //   emails.map(email =>
+    //     EmailService.sendSimple({
+    //       to: email,
+    //       subject: `Rescuenect access update for ${params.client.name}`,
+    //       title: 'Thank you for working with Rescuenect',
+    //       message:
+    //         `Your LGU client, ${params.client.name}, has been scheduled for removal from Rescuenect. ` +
+    //         `Your admin account will stay available during the grace period and will be removed when the client is archived after ${effectiveAt}. ` +
+    //         `Thank you for the time and care you shared with the Rescuenect community.${reasonLine}`,
+    //       template: 'lgu_client_deletion_scheduled',
+    //     })
+    //   )
+    // );
+    //--- EMAIL DISABLED ---
   }
 
   static async getDeletionPreview(clientId: string): Promise<ClientDeletionPreview> {

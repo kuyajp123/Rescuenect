@@ -1,12 +1,7 @@
 import { db } from '@/db/firestoreConfig';
-import { EmailService } from '@/services/EmailService';
+// import { EmailService } from '@/services/EmailService';
 import { ManagementNotificationService } from '@/services/ManagementNotificationService';
-import type {
-  ClientChangeRequest,
-  ClientChangeRequestType,
-  ClientLgu,
-  ClientMapSettings,
-} from '@/types/admin';
+import type { ClientChangeRequest, ClientChangeRequestType, ClientLgu, ClientMapSettings } from '@/types/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { AdminAuthModel } from './AdminAuthModel';
 import { ClientModel, normalizeMapSettings, parseGeoJsonFromStorage, stringifyGeoJsonForStorage } from './ClientModel';
@@ -114,11 +109,17 @@ const sanitizeProposal = (
 
   if (type === 'client_info') {
     const allowed: Record<string, unknown> = {};
-    ['name', 'regionCode', 'regionName', 'provinceCode', 'provinceName', 'municipalityCode', 'municipalityName'].forEach(
-      key => {
-        if (Object.prototype.hasOwnProperty.call(proposedChanges, key)) allowed[key] = proposedChanges[key];
-      }
-    );
+    [
+      'name',
+      'regionCode',
+      'regionName',
+      'provinceCode',
+      'provinceName',
+      'municipalityCode',
+      'municipalityName',
+    ].forEach(key => {
+      if (Object.prototype.hasOwnProperty.call(proposedChanges, key)) allowed[key] = proposedChanges[key];
+    });
     if (Object.keys(allowed).length === 0) throw new Error('At least one client information field is required');
     return allowed;
   }
@@ -154,11 +155,13 @@ export class ClientChangeRequestModel {
 
   static async listByClient(clientId: string): Promise<ClientChangeRequest[]> {
     const snapshot = await this.collectionRef().where('clientId', '==', clientId).get();
-    return snapshot.docs.map(doc => serialize(doc.id, doc.data())).sort((left, right) => {
-      const leftTime = (left.createdAt as any)?._seconds ?? 0;
-      const rightTime = (right.createdAt as any)?._seconds ?? 0;
-      return rightTime - leftTime;
-    });
+    return snapshot.docs
+      .map(doc => serialize(doc.id, doc.data()))
+      .sort((left, right) => {
+        const leftTime = (left.createdAt as any)?._seconds ?? 0;
+        const rightTime = (right.createdAt as any)?._seconds ?? 0;
+        return rightTime - leftTime;
+      });
   }
 
   static async getById(id: string): Promise<ClientChangeRequest | null> {
@@ -222,17 +225,19 @@ export class ClientChangeRequestModel {
           actionPath: '/super/client-requests',
         },
       }),
-      ...superAdminEmails.map(email =>
-        EmailService.sendSimple({
-          to: email,
-          subject: 'New Rescuenect client change request',
-          title: 'Client change request submitted',
-          message: `${client.name} submitted a ${params.type.replace(/_/g, ' ')} proposal.`,
-          template: 'client_change_request_submitted',
-          actionUrl: appUrl ? `${appUrl}/super/client-requests` : undefined,
-          actionLabel: appUrl ? 'Review proposal' : undefined,
-        })
-      ),
+      //--- EMAIL DISABLED ---
+      // ...superAdminEmails.map(email =>
+      //   EmailService.sendSimple({
+      //     to: email,
+      //     subject: 'New Rescuenect client change request',
+      //     title: 'Client change request submitted',
+      //     message: `${client.name} submitted a ${params.type.replace(/_/g, ' ')} proposal.`,
+      //     template: 'client_change_request_submitted',
+      //     actionUrl: appUrl ? `${appUrl}/super/client-requests` : undefined,
+      //     actionLabel: appUrl ? 'Review proposal' : undefined,
+      //   })
+      // ),
+      //--- EMAIL DISABLED ---
     ]);
 
     return request;
@@ -287,21 +292,23 @@ export class ClientChangeRequestModel {
       await ClientModel.updateClient(request.clientId, request.proposedChanges);
     }
 
-    await this.collectionRef().doc(id).set(
-      {
-        status: 'approved',
-        reviewedBy,
-        reviewedAt: FieldValue.serverTimestamp(),
-        reviewNote: reviewNote || null,
-        appliedAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
+    await this.collectionRef()
+      .doc(id)
+      .set(
+        {
+          status: 'approved',
+          reviewedBy,
+          reviewedAt: FieldValue.serverTimestamp(),
+          reviewNote: reviewNote || null,
+          appliedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
 
     const updated = await this.getById(id);
     if (!updated) throw new Error('Change request not found after approval');
-    await this.notifyRequester(updated, true, reviewNote);
+    // await this.notifyRequester(updated, true, reviewNote); //--- EMAIL DISABLED ---
     return updated;
   }
 
@@ -310,20 +317,22 @@ export class ClientChangeRequestModel {
     if (!request) throw new Error('Change request not found');
     if (request.status !== 'pending') throw new Error('Only pending change requests can be rejected');
 
-    await this.collectionRef().doc(id).set(
-      {
-        status: 'rejected',
-        reviewedBy,
-        reviewedAt: FieldValue.serverTimestamp(),
-        reviewNote: reviewNote || null,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
+    await this.collectionRef()
+      .doc(id)
+      .set(
+        {
+          status: 'rejected',
+          reviewedBy,
+          reviewedAt: FieldValue.serverTimestamp(),
+          reviewNote: reviewNote || null,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
 
     const updated = await this.getById(id);
     if (!updated) throw new Error('Change request not found after rejection');
-    await this.notifyRequester(updated, false, reviewNote);
+    // await this.notifyRequester(updated, false, reviewNote); //--- EMAIL DISABLED ---
     return updated;
   }
 
@@ -335,23 +344,25 @@ export class ClientChangeRequestModel {
     return request;
   }
 
-  private static async notifyRequester(
-    request: ClientChangeRequest,
-    approved: boolean,
-    reviewNote?: string
-  ): Promise<void> {
-    if (!request.requestedByEmail) return;
+  //--- EMAIL DISABLED ---
+  // private static async notifyRequester(
+  //   request: ClientChangeRequest,
+  //   approved: boolean,
+  //   reviewNote?: string
+  // ): Promise<void> {
+  //   if (!request.requestedByEmail) return;
 
-    await EmailService.sendSimple({
-      to: request.requestedByEmail,
-      subject: approved ? 'Rescuenect client change approved' : 'Rescuenect client change update',
-      title: approved ? 'Your client change request was approved' : 'Your client change request was not approved',
-      message:
-        reviewNote ||
-        `${request.type.replace(/_/g, ' ')} for ${request.clientName || request.clientId} was ${
-          approved ? 'approved and applied' : 'reviewed'
-        }.`,
-      template: approved ? 'client_change_request_approved' : 'client_change_request_rejected',
-    });
-  }
+  //   await EmailService.sendSimple({
+  //     to: request.requestedByEmail,
+  //     subject: approved ? 'Rescuenect client change approved' : 'Rescuenect client change update',
+  //     title: approved ? 'Your client change request was approved' : 'Your client change request was not approved',
+  //     message:
+  //       reviewNote ||
+  //       `${request.type.replace(/_/g, ' ')} for ${request.clientName || request.clientId} was ${
+  //         approved ? 'approved and applied' : 'reviewed'
+  //       }.`,
+  //     template: approved ? 'client_change_request_approved' : 'client_change_request_rejected',
+  //   });
+  // }
+  //--- EMAIL DISABLED ---
 }
