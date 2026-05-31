@@ -249,103 +249,103 @@ export const SuperAdminClientRequests = () => {
       <Card className="border border-default-200">
         <CardBody className="gap-3">
           <div className="max-h-[620px] overflow-auto">
-          <Table
-            aria-label="Client change requests"
-            isHeaderSticky
-            removeWrapper
-          >
-            <TableHeader>
-              <TableColumn>Client</TableColumn>
-              <TableColumn>Type</TableColumn>
-              <TableColumn>Status</TableColumn>
-              <TableColumn>Requested By</TableColumn>
-              <TableColumn>Date</TableColumn>
-              <TableColumn>Summary</TableColumn>
-              <TableColumn>Review Note</TableColumn>
-              <TableColumn>Actions</TableColumn>
-            </TableHeader>
-            <TableBody emptyContent={loading ? 'Loading proposals...' : 'No client requests.'}>
-              {paginatedRequests.map(request => (
-                <TableRow key={request.id}>
-                  <TableCell>{request.clientName || request.clientId}</TableCell>
-                  <TableCell>{formatClientChangeRequestType(request.type)}</TableCell>
-                  <TableCell>
-                    <Chip size="sm" color={statusColor(request.status) as any}>
-                      {request.status}
-                    </Chip>
-                  </TableCell>
-                  <TableCell>{request.requestedByEmail || request.requestedBy}</TableCell>
-                  <TableCell>{formatDateTime(request.createdAt || request.requestedAt)}</TableCell>
-                  <TableCell>
-                    <ClientChangeSummary request={request} />
-                  </TableCell>
-                  <TableCell>
-                    {request.reviewNote ? (
-                      <div className="max-h-44 max-w-xs overflow-auto whitespace-pre-wrap rounded-md border border-default-200 bg-default-50 p-2 text-sm text-default-600">
-                        {request.reviewNote}
+            <Table aria-label="Client change requests" isHeaderSticky removeWrapper>
+              <TableHeader>
+                <TableColumn>Client</TableColumn>
+                <TableColumn>Date</TableColumn>
+                <TableColumn>Requested By</TableColumn>
+                <TableColumn>Status</TableColumn>
+                <TableColumn>Type</TableColumn>
+                <TableColumn>Summary</TableColumn>
+                <TableColumn>Review Note</TableColumn>
+                <TableColumn>Actions</TableColumn>
+              </TableHeader>
+              <TableBody emptyContent={loading ? 'Loading proposals...' : 'No client requests.'}>
+                {paginatedRequests.map(request => (
+                  <TableRow key={request.id}>
+                    <TableCell>{request.clientName || request.clientId}</TableCell>
+                    <TableCell>{formatDateTime(request.createdAt || request.requestedAt)}</TableCell>
+                    <TableCell>{request.requestedByEmail || request.requestedBy}</TableCell>
+                    <TableCell>
+                      <Chip size="sm" color={statusColor(request.status) as any}>
+                        {request.status}
+                      </Chip>
+                    </TableCell>
+                    <TableCell>{formatClientChangeRequestType(request.type)}</TableCell>
+                    <TableCell>
+                      <ClientChangeSummary request={request} />
+                    </TableCell>
+                    <TableCell>
+                      {request.reviewNote ? (
+                        <div className="max-h-44 max-w-xs overflow-auto whitespace-pre-wrap rounded-md border border-default-200 bg-default-50 p-2 text-sm text-default-600">
+                          {request.reviewNote}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-default-400">
+                          {request.status === 'pending' ? 'Add during review' : 'None'}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Tooltip
+                          content={
+                            request.status === 'pending' ? 'Accept proposal' : 'Only pending proposals can be accepted'
+                          }
+                        >
+                          <span className="inline-flex">
+                            <Button
+                              isIconOnly
+                              size="sm"
+                              color="success"
+                              variant="flat"
+                              aria-label="Accept proposal"
+                              isDisabled={request.status !== 'pending'}
+                              onPress={() => openReview(request, 'approve')}
+                            >
+                              <Check size={16} />
+                            </Button>
+                          </span>
+                        </Tooltip>
+                        <Tooltip
+                          content={
+                            request.status === 'pending' ? 'Reject proposal' : 'Only pending proposals can be rejected'
+                          }
+                        >
+                          <span className="inline-flex">
+                            <Button
+                              isIconOnly
+                              size="sm"
+                              color="danger"
+                              variant="flat"
+                              aria-label="Reject proposal"
+                              isDisabled={request.status !== 'pending'}
+                              onPress={() => openReview(request, 'reject')}
+                            >
+                              <X size={16} />
+                            </Button>
+                          </span>
+                        </Tooltip>
+                        <Tooltip content="Delete request">
+                          <span className="inline-flex">
+                            <Button
+                              isIconOnly
+                              size="sm"
+                              color="danger"
+                              variant="light"
+                              aria-label="Delete request"
+                              onPress={() => setDeleteTarget(request)}
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </span>
+                        </Tooltip>
                       </div>
-                    ) : (
-                      <span className="text-sm text-default-400">
-                        {request.status === 'pending' ? 'Add during review' : 'None'}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Tooltip
-                        content={request.status === 'pending' ? 'Accept proposal' : 'Only pending proposals can be accepted'}
-                      >
-                        <span className="inline-flex">
-                          <Button
-                            isIconOnly
-                            size="sm"
-                            color="success"
-                            variant="flat"
-                            aria-label="Accept proposal"
-                            isDisabled={request.status !== 'pending'}
-                            onPress={() => openReview(request, 'approve')}
-                          >
-                            <Check size={16} />
-                          </Button>
-                        </span>
-                      </Tooltip>
-                      <Tooltip
-                        content={request.status === 'pending' ? 'Reject proposal' : 'Only pending proposals can be rejected'}
-                      >
-                        <span className="inline-flex">
-                          <Button
-                            isIconOnly
-                            size="sm"
-                            color="danger"
-                            variant="flat"
-                            aria-label="Reject proposal"
-                            isDisabled={request.status !== 'pending'}
-                            onPress={() => openReview(request, 'reject')}
-                          >
-                            <X size={16} />
-                          </Button>
-                        </span>
-                      </Tooltip>
-                      <Tooltip content="Delete request">
-                        <span className="inline-flex">
-                          <Button
-                            isIconOnly
-                            size="sm"
-                            color="danger"
-                            variant="light"
-                            aria-label="Delete request"
-                            onPress={() => setDeleteTarget(request)}
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        </span>
-                      </Tooltip>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
           {bottomContent}
         </CardBody>

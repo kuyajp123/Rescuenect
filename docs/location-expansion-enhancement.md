@@ -1,14 +1,14 @@
 # Location Expansion Enhancement
 
-Status: Phase 6A Implemented; Phase 6B Production Readiness Next
+Status: Phase 6A Validated; Phase 6B Production Readiness In Progress
 Date: 2026-05-20
-Last Updated: 2026-05-29
+Last Updated: 2026-05-30
 
 ## Summary
 
 Rescuenect started as a Naic-focused system, with barangays, weather keys, and several admin assumptions tied to one municipality. The location expansion enhancement turns that into a municipality or city client model so Rescuenect can onboard multiple LGU clients without code changes for every new location.
 
-Phase 1 to Phase 3 prepared the location model, simplified weather to a municipality/city key, and made resident signup use active coverage. Phase 4 added the Super Admin layer, LGU request onboarding, client management, LGU admin management, protected admin authorization, Naic legacy migration support, and dynamic client-based weather configuration. Phase 5 completed the stability layer with client proposals, map settings, boundary imports, SMTP email delivery, Super Admin analytics, dynamic earthquake scope, role-aware notifications, and operation logs. Phase 6A removed Naic as the runtime default client and added scheduled client decommissioning with archive retention, processed directly by a Supabase Edge Function using Firebase credentials.
+Phase 1 to Phase 3 prepared the location model, simplified weather to a municipality/city key, and made resident signup use active coverage. Phase 4 added the Super Admin layer, LGU request onboarding, client management, LGU admin management, protected admin authorization, Naic legacy migration support, and dynamic client-based weather configuration. Phase 5 completed the stability layer with client proposals, map settings, boundary imports, SMTP email delivery, Super Admin analytics, dynamic earthquake scope, role-aware notifications, and operation logs. Phase 6A removed Naic as the runtime default client and added scheduled client decommissioning with archive retention, processed directly by a Supabase Edge Function using Firebase credentials. Phase 6A validation is complete, so the active work is now Phase 6B production readiness.
 
 The current MVP direction remains municipality or city-level deployments only. Province-wide coverage is still a future roadmap item.
 
@@ -575,7 +575,7 @@ Phase 5 retained Naic as a protected fallback client at that time. Phase 6A has 
 
 ### Phase 6A: Full Dynamic Client Cutover
 
-Status: Implemented
+Status: Validated
 
 Phase 6A removed Naic as the system's runtime default client and introduced scheduled client decommissioning.
 
@@ -591,11 +591,11 @@ Implemented work:
 - Blocked LGU and resident client-dependent writes during scheduled deletion.
 - Added Archive for completed deleted clients, including client setup, settings, LGU admins, and captured client-scoped data.
 - Added a Supabase scheduled function that processes due deletion jobs directly through Firebase/Firestore, avoiding Render free-plan uptime dependency.
-- Verified backend, frontend, and mobile builds/tests for the cutover.
+- Verified backend, frontend, mobile, Firestore rules, and Supabase scheduled deletion behavior for the cutover.
 
 ### Phase 6B: Production Readiness
 
-Status: Future
+Status: In progress
 
 - Review Firestore/security rules for tenant isolation.
 - Add E2E tests for Super Admin and LGU Admin flows.

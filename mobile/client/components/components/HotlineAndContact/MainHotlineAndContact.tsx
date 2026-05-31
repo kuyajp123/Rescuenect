@@ -6,6 +6,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { storageHelpers } from '@/helper/storage';
 import { db } from '@/lib/firebaseConfig';
 import { useAuth } from '@/store/useAuth';
+import { useUserData } from '@/store/useBackendResponse';
 import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -56,6 +57,7 @@ type ContactsCachePayload = {
   categories?: any[];
   contacts?: any[];
   cachedAt?: string;
+  clientId?: string;
 };
 
 const ICON_MAP = {
@@ -77,6 +79,8 @@ const isContactAction = (value: unknown): value is ContactAction =>
   value === 'call' || value === 'copy' || value === 'link' || value === 'display';
 
 const makeId = () => `id-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+const getContactsCacheKey = (clientId: string) => `${STORAGE_KEYS.CONTACTS_MAIN}:${clientId}`;
 
 const normalizeCategory = (category: any): ContactCategory => ({
   id: typeof category?.id === 'string' ? category.id : makeId(),
@@ -107,13 +111,22 @@ export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactP
   const { showSuccess } = useAppToast();
   const authUser = useAuth(state => state.authUser);
   const authLoading = useAuth(state => state.isLoading);
+  const clientId = useUserData(state => state.userData.clientId);
   const [categories, setCategories] = useState<ContactCategory[]>([]);
   const [contacts, setContacts] = useState<ContactItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const lastUidRef = useRef<string | null>(null);
+  const lastScopeRef = useRef<string | null>(null);
   const lastOnlineRef = useRef<boolean | null>(null);
-  const docRef = useMemo(() => doc(db, 'contacts', 'main'), []);
+  const normalizedClientId = typeof clientId === 'string' && clientId.trim() ? clientId.trim() : null;
+  const cacheKey = useMemo(
+    () => (normalizedClientId ? getContactsCacheKey(normalizedClientId) : null),
+    [normalizedClientId]
+  );
+  const docRef = useMemo(
+    () => (normalizedClientId ? doc(db, 'contacts', normalizedClientId) : null),
+    [normalizedClientId]
+  );
 
   const applyContacts = useCallback(
     (payload: ContactsCachePayload | any) => {
@@ -128,20 +141,29 @@ export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactP
     []
   );
 
+  const clearContacts = useCallback(() => {
+    setCategories([]);
+    setContacts([]);
+    setIsLoading(false);
+  }, []);
+
   const persistCache = useCallback(async (payload: ContactsCachePayload | any) => {
+    if (!cacheKey || !normalizedClientId) return;
+
     const categories = Array.isArray(payload?.categories) ? payload.categories : [];
     const contacts = Array.isArray(payload?.contacts) ? payload.contacts : [];
 
     try {
-      await storageHelpers.setData(STORAGE_KEYS.CONTACTS_MAIN, {
+      await storageHelpers.setData(cacheKey, {
         categories,
         contacts,
+        clientId: normalizedClientId,
         cachedAt: new Date().toISOString(),
       });
     } catch (error) {
       console.warn('Failed to persist contacts cache:', error);
     }
-  }, []);
+  }, [cacheKey, normalizedClientId]);
 
   const loadContacts = useCallback(
     async (options?: { showLoading?: boolean }) => {
@@ -150,11 +172,17 @@ export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactP
         setIsLoading(true);
       }
 
+      if (!normalizedClientId || !cacheKey || !docRef) {
+        clearContacts();
+        setLoadError(null);
+        return;
+      }
+
       let hasCache = false;
 
       try {
-        const localCache = await storageHelpers.getData<ContactsCachePayload>(STORAGE_KEYS.CONTACTS_MAIN);
-        if (localCache) {
+        const localCache = await storageHelpers.getData<ContactsCachePayload>(cacheKey);
+        if (localCache?.clientId === normalizedClientId) {
           applyContacts(localCache);
           hasCache = true;
         }
@@ -178,10 +206,10 @@ export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactP
           const data = serverDoc.data();
           applyContacts(data);
           persistCache(data);
-        } else if (!hasCache) {
-          setCategories([]);
-          setContacts([]);
-          setIsLoading(false);
+        } else {
+          await storageHelpers.removeData(cacheKey);
+          clearContacts();
+          setLoadError(null);
         }
       } catch (error: any) {
         console.error('Failed to load contacts:', error);
@@ -191,17 +219,17 @@ export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactP
         }
       }
     },
-    [authLoading, applyContacts, docRef, persistCache]
+    [authLoading, normalizedClientId, cacheKey, docRef, clearContacts, applyContacts, persistCache]
   );
 
   useEffect(() => {
     if (authLoading) return;
-    const uidKey = authUser?.uid ?? '__guest__';
-    if (lastUidRef.current === uidKey) return;
-    lastUidRef.current = uidKey;
+    const scopeKey = `${authUser?.uid ?? '__guest__'}:${normalizedClientId ?? '__no_client__'}`;
+    if (lastScopeRef.current === scopeKey) return;
+    lastScopeRef.current = scopeKey;
 
     loadContacts({ showLoading: true });
-  }, [authLoading, authUser, loadContacts]);
+  }, [authLoading, authUser, normalizedClientId, loadContacts]);
 
   useEffect(() => {
     if (refreshTrigger && refreshTrigger > 0) {
