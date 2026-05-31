@@ -32,6 +32,8 @@ export type ClientEarthquakeSettings = {
   minMagnitude: number;
 };
 
+export type ClientLguStatus = 'draft' | 'active' | 'inactive' | 'deletion_scheduled' | 'deleting' | 'deleted';
+
 export type LguRequest = {
   id: string;
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
@@ -65,7 +67,7 @@ export type ClientLgu = {
   id: string;
   name: string;
   type?: 'municipality' | 'city';
-  status: 'draft' | 'active' | 'inactive';
+  status: ClientLguStatus;
   regionCode?: string | null;
   regionName?: string | null;
   provinceCode?: string;
@@ -80,6 +82,12 @@ export type ClientLgu = {
   earthquakeSettings: ClientEarthquakeSettings;
   barangays: ClientCoverageBarangay[];
   requestId?: string | null;
+  deletionScheduledAt?: unknown;
+  deletionEffectiveAt?: unknown;
+  deletionRequestedBy?: string | null;
+  deletionReason?: string | null;
+  deletionCancelledAt?: unknown;
+  deletionStatus?: string | null;
 };
 
 export type AdminUser = {
@@ -89,6 +97,63 @@ export type AdminUser = {
   clientId: string | null;
   clientName?: string | null;
   status: 'active' | 'inactive';
+  clientStatus?: ClientLguStatus | null;
+  clientDeletionEffectiveAt?: unknown;
+};
+
+export type ClientDeletionPreview = {
+  canDelete: boolean;
+  canScheduleDeletion: boolean;
+  warnings: string[];
+  dependencies: Record<string, number>;
+};
+
+export type ClientDeletionJob = {
+  id: string;
+  clientId: string;
+  clientName: string;
+  status: 'scheduled' | 'running' | 'completed' | 'failed' | 'cancelled';
+  deletionEffectiveAt: unknown;
+  deletionScheduledAt?: unknown;
+  deletionRequestedBy?: string | null;
+  deletionReason?: string | null;
+  progress?: Record<string, number>;
+  errors?: string[];
+  createdAt?: unknown;
+  updatedAt?: unknown;
+};
+
+export type ArchivedClientDocument = {
+  id: string;
+  originalId: string;
+  originalPath: string;
+  data: Record<string, unknown>;
+};
+
+export type ClientArchiveSummary = {
+  id: string;
+  clientId: string;
+  clientName: string;
+  provinceName?: string | null;
+  municipalityName?: string | null;
+  status: 'archived';
+  counts: Record<string, number>;
+  deletionReason?: string | null;
+  deletionRequestedBy?: string | null;
+  deletionScheduledAt?: unknown;
+  deletionEffectiveAt?: unknown;
+  archivedAt?: unknown;
+  permanentlyDeletedAt?: unknown;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+};
+
+export type ClientArchive = ClientArchiveSummary & {
+  client: Partial<ClientLgu> & Record<string, unknown>;
+  request: Record<string, unknown> | null;
+  deletion: Record<string, unknown>;
+  job: Record<string, unknown>;
+  collections: Record<string, ArchivedClientDocument[]>;
 };
 
 export type SystemStatus = {
@@ -152,7 +217,7 @@ export type SuperAdminOverview = {
   status: 'healthy' | 'degraded';
   timestamp: string;
   summary: {
-    clients: Record<'draft' | 'active' | 'inactive', number>;
+    clients: Record<ClientLguStatus, number>;
     lguRequests: Record<'pending' | 'approved' | 'rejected' | 'cancelled', number>;
     changeRequests: Record<'pending' | 'approved' | 'rejected' | 'cancelled', number>;
     lguAdmins: number;

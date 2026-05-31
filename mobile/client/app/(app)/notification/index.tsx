@@ -5,6 +5,7 @@ import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatToCapitalized } from '@/helper/commonHelpers';
+import { getNotificationDisplayTimestamp } from '@/helper/notificationTime';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
 import { useNotificationStore } from '@/store/useNotificationStore';
@@ -331,7 +332,7 @@ const index = () => {
                         : notification.location?.replace('_', ' ').toUpperCase()}
                   </Text>
                   <Text size="xs" emphasis="light">
-                    {formatTime(notification.timestamp)}
+                    {formatTime(getNotificationDisplayTimestamp(notification))}
                   </Text>
                 </View>
               </View>

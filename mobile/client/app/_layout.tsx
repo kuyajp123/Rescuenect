@@ -10,6 +10,7 @@ import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { storageHelpers } from '@/helper/storage';
 import { useAppBootstrap } from '@/hooks/useAppBootstrap';
 import { useAuthGate } from '@/hooks/useAuthGate';
+import { useEarthquakeSubscriber } from '@/hooks/useEarthquakeSubscriber';
 import { useIdToken } from '@/hooks/useIdToken';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useNotificationSubscriber } from '@/hooks/useNotificationSubscriber';
@@ -18,6 +19,7 @@ import { useStatusFetchBackgroundData } from '@/hooks/useStatusFetchBackgroundDa
 import { useCurrentStatuses } from '@/hooks/useStatusSubscriber';
 import { subscribeToWeatherData } from '@/hooks/useWeatherData';
 import { FCMTokenService } from '@/services/fcmTokenService';
+import { syncAuthenticatedUserProfile } from '@/services/userProfileSync';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
 import { useCoords } from '@/store/useCoords';
@@ -146,6 +148,7 @@ function LayoutContent() {
   const setWeather = useWeatherStore(state => state.setWeather);
   const setSavedLocations = useSavedLocationsStore(state => state.setSavedLocations);
   useCurrentStatuses();
+  useEarthquakeSubscriber();
 
   useNotificationSubscriber({
     userLocation: userData?.barangay || undefined,
@@ -156,7 +159,7 @@ function LayoutContent() {
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
 
-    const weatherLocation = userData?.weatherLocationKey || userData?.barangay;
+    const weatherLocation = userData?.weatherLocationKey;
     if (weatherLocation) {
       unsubscribe = subscribeToWeatherData(weatherLocation, weatherData => {
         setWeather?.(weatherData);
@@ -188,6 +191,10 @@ function LayoutContent() {
 
   useEffect(() => {
     if (!authUser) return;
+
+    syncAuthenticatedUserProfile(authUser).catch(error => {
+      console.error('Failed to refresh resident profile on app start:', error);
+    });
 
     FCMTokenService.updateUserFcmToken(authUser).catch(error => {
       console.error('Failed to register FCM token on login:', error);

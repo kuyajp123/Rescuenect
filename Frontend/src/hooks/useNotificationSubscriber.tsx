@@ -1,6 +1,7 @@
 import { db } from '@/lib/firebaseConfig';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import type { BaseNotification } from '@/types/types';
+import { getNotificationDisplayTimestamp, isStaleEarthquakeNotification } from '@/utils/notificationTime';
 import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { useEffect } from 'react';
 
@@ -54,7 +55,14 @@ export const useNotificationSubscriber = ({
               id: doc.id,
             };
 
-            const notificationClientId = notification.clientId || 'naic';
+            if (isStaleEarthquakeNotification(notification)) {
+              return;
+            }
+
+            const notificationClientId =
+              typeof notification.clientId === 'string' && notification.clientId.trim()
+                ? notification.clientId.trim()
+                : null;
             if (role === 'super_admin') {
               if (notification.type === 'weather') return;
               const actionableTypes = new Set(['client_request', 'client_change_request', 'earthquake', 'system_health']);
@@ -113,7 +121,6 @@ export const useNotificationSubscriber = ({
                 // Check if notification is relevant to user's location
                 const isRelevant =
                   notification.location === userLocation ||
-                  notification.location === 'central_naic' || // Central location affects everyone
                   notification.barangays?.includes(userLocation) ||
                   false;
 
@@ -132,7 +139,11 @@ export const useNotificationSubscriber = ({
             ? allNotifications.filter(notif => !notif.hiddenBy?.includes(userId))
             : allNotifications;
 
-          setNotifications(visibleNotifications);
+          setNotifications(
+            visibleNotifications.sort(
+              (left, right) => getNotificationDisplayTimestamp(right) - getNotificationDisplayTimestamp(left)
+            )
+          );
           setIsLoading(false);
           setError(null);
         } catch (err) {

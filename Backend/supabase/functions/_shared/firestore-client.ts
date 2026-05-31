@@ -458,18 +458,6 @@ export async function getActiveEarthquakeClientScopes(): Promise<EarthquakeClien
     });
   });
 
-  if (scopes.length === 0) {
-    scopes.push({
-      clientId: NAIC_CLIENT_ID,
-      clientName: 'Naic',
-      weatherLocationKey: NAIC_WEATHER_LOCATION_KEY,
-      centerLatitude: 14.2919325,
-      centerLongitude: 120.7752839,
-      radiusKm: 150,
-      minMagnitude: 1.5,
-    });
-  }
-
   return scopes;
 }
 
@@ -710,6 +698,105 @@ export async function getNotificationStats(timeframe: 'today' | 'week' | 'month'
 // ========================
 // EARTHQUAKE FUNCTIONS
 // ========================
+
+const EARTHQUAKE_NOTIFICATION_DEDUP_COLLECTION = 'earthquakeNotificationDedup';
+const EARTHQUAKE_NOTIFICATION_RETRY_AFTER_MS = 5 * 60 * 1000;
+
+function safeFirestoreDocSegment(value: string): string {
+  return value.replace(/[^\w.-]/g, '_').slice(0, 700);
+}
+
+export function buildEarthquakeNotificationId(clientId: string, earthquakeId: string): string {
+  return `earthquake_${safeFirestoreDocSegment(clientId)}_${safeFirestoreDocSegment(earthquakeId)}`;
+}
+
+function isAlreadyExistsError(error: unknown): boolean {
+  const maybeError = error as { code?: unknown; message?: unknown };
+  return maybeError.code === 6 || String(maybeError.message || '').toLowerCase().includes('already exists');
+}
+
+export async function reserveEarthquakeNotification(params: {
+  clientId: string;
+  clientName?: string;
+  earthquakeId: string;
+  eventTime: number;
+  magnitude: number;
+  place: string;
+}): Promise<{ reserved: boolean; notificationId: string }> {
+  const db = initializeFirebase();
+  const notificationId = buildEarthquakeNotificationId(params.clientId, params.earthquakeId);
+  const dedupRef = db.collection(EARTHQUAKE_NOTIFICATION_DEDUP_COLLECTION).doc(notificationId);
+
+  try {
+    await dedupRef.create({
+      notificationId,
+      clientId: params.clientId,
+      clientName: params.clientName ?? params.clientId,
+      earthquakeId: params.earthquakeId,
+      eventTime: params.eventTime,
+      eventTimeIso: new Date(params.eventTime).toISOString(),
+      magnitude: params.magnitude,
+      place: params.place,
+      status: 'reserved',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    return { reserved: true, notificationId };
+  } catch (error) {
+    if (isAlreadyExistsError(error)) {
+      const existing = await dedupRef.get();
+      const data = existing.exists ? existing.data() : null;
+      const status = typeof data?.status === 'string' ? data.status : null;
+      const updatedAt = typeof data?.updatedAt === 'number' ? data.updatedAt : 0;
+      const retryCount = typeof data?.retryCount === 'number' ? data.retryCount : 0;
+      const canRetry = ['failed', 'reserved'].includes(status || '') && Date.now() - updatedAt >= EARTHQUAKE_NOTIFICATION_RETRY_AFTER_MS;
+
+      if (canRetry) {
+        await dedupRef.set(
+          {
+            notificationId,
+            clientId: params.clientId,
+            clientName: params.clientName ?? params.clientId,
+            earthquakeId: params.earthquakeId,
+            eventTime: params.eventTime,
+            eventTimeIso: new Date(params.eventTime).toISOString(),
+            magnitude: params.magnitude,
+            place: params.place,
+            status: 'reserved',
+            retryCount: retryCount + 1,
+            updatedAt: Date.now(),
+          },
+          { merge: true }
+        );
+
+        return { reserved: true, notificationId };
+      }
+
+      console.log(`Skipping duplicate earthquake notification: ${notificationId}`);
+      return { reserved: false, notificationId };
+    }
+
+    throw error;
+  }
+}
+
+export async function updateEarthquakeNotificationReservation(
+  notificationId: string,
+  update: Record<string, unknown>
+): Promise<void> {
+  const db = initializeFirebase();
+  await db
+    .collection(EARTHQUAKE_NOTIFICATION_DEDUP_COLLECTION)
+    .doc(notificationId)
+    .set(
+      {
+        ...update,
+        updatedAt: Date.now(),
+      },
+      { merge: true }
+    );
+}
 
 /**
  * Get existing earthquakes from Firestore to prevent duplicates

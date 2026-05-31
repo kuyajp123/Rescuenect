@@ -9,7 +9,7 @@ Phase 5 has been implemented as the stability and client-configuration layer aft
 
 The major Phase 5 goal was to move Rescuenect from a working multi-client foundation into a safer multi-client operating model. That goal is complete for municipality/city clients.
 
-Important transition note: Naic is still intentionally retained as a protected fallback client. Full removal of the Naic default behavior is not part of the completed Phase 5 scope. That should be handled first in Phase 6A before province-level work or other large enhancements.
+Important transition note: at Phase 5 closeout, Naic was intentionally retained as a protected fallback client. This note is now superseded by Phase 6A, which removed the runtime Naic default behavior and made Naic follow the same client lifecycle as other configured municipality/city clients.
 
 ## Final Decisions
 
@@ -20,7 +20,7 @@ Important transition note: Naic is still intentionally retained as a protected f
 - Super admins do not receive client weather notifications.
 - Super Admin notifications are reserved for actionable items.
 - Operation logs are stored separately from notifications.
-- Naic remains protected until all fallback paths are fully removed.
+- At Phase 5 closeout, Naic remained protected until all fallback paths were fully removed in Phase 6A.
 - Province-wide coverage remains out of scope.
 
 ## Completed Work
@@ -361,4 +361,4 @@ Phase 5 is complete and verified for municipality/city clients.
 
 The system now has a stable multi-client operating layer with LGU proposals, Super Admin review, email delivery, dynamic maps, dynamic weather, dynamic earthquake scope, analytics, and operation logs.
 
-Naic remains a protected transition fallback until Phase 6A completes the full dynamic client cutover.
+This Phase 5 Naic fallback note is now historical. Phase 6A completed the full dynamic client cutover and moved deleted clients into Archive.

@@ -51,9 +51,7 @@ export const useEarthquakeSnapshot = () => {
           .filter(earthquake => {
             if (isSuperAdmin || !clientId) return true;
             const affectedClientIds = (earthquake as any).affectedClientIds;
-            return Array.isArray(affectedClientIds)
-              ? affectedClientIds.includes(clientId)
-              : clientId === 'naic';
+            return Array.isArray(affectedClientIds) ? affectedClientIds.includes(clientId) : false;
           }) as unknown as ProcessedEarthquake[];
 
         const sortedData = earthquakeData.sort((a, b) => {

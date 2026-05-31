@@ -175,6 +175,8 @@ serve(async (req: Request) => {
         earthquakeId: earthquake.id,
         magnitude: earthquake.magnitude,
         place: earthquake.place,
+        eventTime: earthquake.time,
+        eventTimeIso: new Date(earthquake.time).toISOString(),
         coordinates: {
           latitude: earthquake.coordinates.latitude,
           longitude: earthquake.coordinates.longitude,

@@ -13,14 +13,15 @@ export class ResidentsModel {
         const residents: any[] = [];
         snapshot.forEach(doc => {
           const data = doc.data();
-          if (clientId && getEffectiveClientId(data) !== clientId) {
+          const effectiveClientId = getEffectiveClientId(data);
+          if (clientId && effectiveClientId !== clientId) {
             return;
           }
 
           residents.push({
             id: doc.id,
             ...data,
-            clientId: getEffectiveClientId(data),
+            clientId: effectiveClientId,
           });
         });
         return residents;

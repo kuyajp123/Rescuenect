@@ -363,33 +363,6 @@ export const getBarangayByValue = (value: string | null | undefined): BarangayMe
 
 export const isCoveredBarangay = (value: string | null | undefined): boolean => !!getBarangayByValue(value);
 
-export const getResidentLocationSelectionForBarangay = (
-  value: string | null | undefined
-): ResidentLocationSelection | null => {
-  const matchedBarangay = getBarangayByValue(value);
-  const matchedClient = matchedBarangay ? getClientForBarangayValue(matchedBarangay.value) : undefined;
-
-  if (!matchedBarangay || !matchedClient) {
-    return null;
-  }
-
-  return {
-    barangay: matchedBarangay.value,
-    clientId: matchedClient.id,
-    clientName: matchedClient.name,
-    provinceCode: matchedClient.province.psgcCode,
-    provinceName: matchedClient.province.name,
-    municipalityCode: matchedClient.municipality.psgcCode,
-    municipalityName: matchedClient.municipality.name,
-    municipalityType: matchedClient.type,
-    barangayCode: matchedBarangay.psgcCode,
-    barangayLabel: matchedBarangay.label,
-    weatherLocationKey: matchedClient.weatherLocationKey,
-    weatherLatitude: matchedClient.weatherLatitude,
-    weatherLongitude: matchedClient.weatherLongitude,
-  };
-};
-
 export const getWeatherLocationKey = (value: string | null | undefined): WeatherLocationKey => {
   const barangay = getBarangayByValue(value);
 

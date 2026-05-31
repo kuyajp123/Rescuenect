@@ -6,8 +6,10 @@ import { MapSettingsHelpModal } from '@/pages/contents/SuperAdmin/components/Map
 import { MapSettingsPreview } from '@/pages/contents/SuperAdmin/components/MapSettingsPreview';
 import { ClientRequestDetails } from '@/pages/contents/SuperAdmin/components/ClientRequestDetails';
 import { useSuperFetch } from '@/pages/contents/SuperAdmin/hooks/useSuperFetch';
-import type { ClientCoverageBarangay, ClientDetailResponse } from '@/pages/contents/SuperAdmin/types';
+import type { ClientCoverageBarangay, ClientDeletionPreview, ClientDetailResponse } from '@/pages/contents/SuperAdmin/types';
 import {
+  formatDateTime,
+  formatStatusLabel,
   getToken,
   hasWeatherCoordinateErrors,
   hasMapSettingsErrors,
@@ -46,12 +48,22 @@ export const SuperAdminClientDetails = () => {
   const [boundaryGeoJson, setBoundaryGeoJson] = useState('');
   const [coverageDraft, setCoverageDraft] = useState<ClientCoverageBarangay[]>([]);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deletionPreview, setDeletionPreview] = useState<ClientDeletionPreview | null>(null);
+  const [deletionReason, setDeletionReason] = useState('');
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [isSchedulingDeletion, setIsSchedulingDeletion] = useState(false);
+  const [isCancellingDeletion, setIsCancellingDeletion] = useState(false);
   const [coordinateErrors, setCoordinateErrors] = useState<ReturnType<typeof validateWeatherCoordinateDraft>>({});
   const [mapErrors, setMapErrors] = useState<ReturnType<typeof validateMapSettingsDraft>>({});
 
   const client = data?.client;
   const request = data?.request ?? null;
   const admins = data?.admins ?? [];
+  const isDeletionLocked = Boolean(
+    client && ['deletion_scheduled', 'deleting', 'deleted'].includes(client.status)
+  );
+  const canScheduleDeletion = Boolean(client && (client.status === 'draft' || client.status === 'inactive'));
+  const canCancelDeletion = client?.status === 'deletion_scheduled';
 
   useEffect(() => {
     if (!client) return;
@@ -78,6 +90,39 @@ export const SuperAdminClientDetails = () => {
     setMapErrors({});
   }, [client]);
 
+  useEffect(() => {
+    if (!client || !isDeleteOpen) {
+      setDeletionPreview(null);
+      setDeletionReason('');
+      return;
+    }
+
+    let isMounted = true;
+    setIsLoadingPreview(true);
+    void (async () => {
+      try {
+        const token = await getToken();
+        const response = await axios.get<{ preview: ClientDeletionPreview }>(
+          API_ENDPOINTS.SUPER_ADMIN.CLIENT_DELETION_PREVIEW(client.id),
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (isMounted) setDeletionPreview(response.data.preview);
+      } catch (error) {
+        const message = axios.isAxiosError(error)
+          ? error.response?.data?.message || 'Failed to load deletion preview'
+          : 'Failed to load deletion preview';
+        addToast({ title: message, color: 'danger' });
+        if (isMounted) setIsDeleteOpen(false);
+      } finally {
+        if (isMounted) setIsLoadingPreview(false);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [client, isDeleteOpen]);
+
   const updateCoordinateDraft = (key: keyof typeof coordinateDraft, value: string) => {
     const nextDraft = { ...coordinateDraft, [key]: value };
     setCoordinateDraft(nextDraft);
@@ -99,6 +144,10 @@ export const SuperAdminClientDetails = () => {
   const saveClient = async (options: { showToast?: boolean; refetchAfter?: boolean } = {}) => {
     const { showToast = true, refetchAfter = true } = options;
     if (!client) return false;
+    if (isDeletionLocked) {
+      addToast({ title: 'Client deletion is locked', description: 'Cancel scheduled deletion before editing.', color: 'warning' });
+      return false;
+    }
 
     const coordinateValidation = validateWeatherCoordinateDraft(coordinateDraft);
     const errors = validateMapSettingsDraft(mapDraft);
@@ -158,6 +207,7 @@ export const SuperAdminClientDetails = () => {
 
   const uploadBoundary = async () => {
     if (!client) return;
+    if (isDeletionLocked) return;
     try {
       const geoJson = JSON.parse(boundaryGeoJson);
       const token = await getToken();
@@ -176,6 +226,7 @@ export const SuperAdminClientDetails = () => {
 
   const setStatus = async (status: 'active' | 'inactive') => {
     if (!client) return;
+    if (isDeletionLocked) return;
 
     try {
       if (status === 'active') {
@@ -199,20 +250,24 @@ export const SuperAdminClientDetails = () => {
     }
   };
 
-  const deleteClient = async () => {
+  const scheduleClientDeletion = async () => {
     if (!client) return;
 
     try {
+      setIsSchedulingDeletion(true);
       const token = await getToken();
 
-      await axios.delete(API_ENDPOINTS.SUPER_ADMIN.DELETE_CLIENT(client.id), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post(
+        API_ENDPOINTS.SUPER_ADMIN.SCHEDULE_CLIENT_DELETION(client.id),
+        { reason: deletionReason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      addToast({ title: 'Client deleted', color: 'success' });
-      navigate('/super/clients');
+      addToast({ title: 'Client deletion scheduled', color: 'success' });
+      setIsDeleteOpen(false);
+      refetch();
     } catch (error) {
-      let message = 'Failed to delete client';
+      let message = 'Failed to schedule client deletion';
 
       if (axios.isAxiosError(error)) {
         message = error.response?.data?.message || message;
@@ -222,12 +277,35 @@ export const SuperAdminClientDetails = () => {
       }
 
       addToast({ title: message, color: 'danger' });
-      setIsDeleteOpen(false);
+    } finally {
+      setIsSchedulingDeletion(false);
+    }
+  };
+
+  const cancelClientDeletion = async () => {
+    if (!client) return;
+
+    try {
+      setIsCancellingDeletion(true);
+      const token = await getToken();
+      await axios.post(
+        API_ENDPOINTS.SUPER_ADMIN.CANCEL_CLIENT_DELETION(client.id),
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      addToast({ title: 'Client deletion cancelled', color: 'success' });
+      refetch();
+    } catch (error) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || 'Failed to cancel client deletion'
+        : 'Failed to cancel client deletion';
+      addToast({ title: message, color: 'danger' });
+    } finally {
+      setIsCancellingDeletion(false);
     }
   };
 
   const activeBarangayCount = coverageDraft.filter(barangay => barangay.isActive !== false).length;
-  const canDelete = Boolean(client && client.id !== 'naic');
 
   if (loading && !client) {
     return (
@@ -263,7 +341,7 @@ export const SuperAdminClientDetails = () => {
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-3xl font-bold">{client.name}</h1>
               <Chip size="sm" color={statusColor(client.status) as any}>
-                {client.status}
+                {formatStatusLabel(client.status)}
               </Chip>
             </div>
             <p className="text-sm text-default-500">
@@ -273,25 +351,35 @@ export const SuperAdminClientDetails = () => {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="flat" startContent={<Save size={16} />} onPress={() => void saveClient()}>
+          <Button
+            variant="flat"
+            startContent={<Save size={16} />}
+            isDisabled={isDeletionLocked}
+            onPress={() => void saveClient()}
+          >
             Save
           </Button>
           {client.status !== 'active' ? (
-            <Button color="success" onPress={() => setStatus('active')}>
+            <Button color="success" isDisabled={isDeletionLocked} onPress={() => setStatus('active')}>
               Activate
             </Button>
           ) : (
-            <Button color="danger" variant="flat" onPress={() => setStatus('inactive')}>
+            <Button color="danger" variant="flat" isDisabled={isDeletionLocked} onPress={() => setStatus('inactive')}>
               Deactivate
             </Button>
           )}
-          <Tooltip content={canDelete ? 'Delete client' : 'Default client cannot be deleted'}>
+          {canCancelDeletion && (
+            <Button color="warning" variant="flat" isLoading={isCancellingDeletion} onPress={cancelClientDeletion}>
+              Cancel Deletion
+            </Button>
+          )}
+          <Tooltip content={canScheduleDeletion ? 'Schedule client deletion' : 'Only draft or inactive clients can be scheduled'}>
             <Button
               isIconOnly
               color="danger"
               variant="light"
-              aria-label="Delete client"
-              isDisabled={!canDelete}
+              aria-label="Schedule client deletion"
+              isDisabled={!canScheduleDeletion}
               onPress={() => setIsDeleteOpen(true)}
             >
               <Trash2 size={18} />
@@ -299,6 +387,13 @@ export const SuperAdminClientDetails = () => {
           </Tooltip>
         </div>
       </div>
+
+      {client.status === 'deletion_scheduled' && (
+        <div className="rounded-md border border-warning-200 bg-warning-50 p-4 text-sm text-warning-800">
+          Deletion is scheduled for {formatDateTime(client.deletionEffectiveAt)}. LGU admin and resident writes are
+          locked until deletion is cancelled or processed.
+        </div>
+      )}
 
       <ClientRequestDetails client={client} request={request} />
 
@@ -318,6 +413,7 @@ export const SuperAdminClientDetails = () => {
               isInvalid={Boolean(coordinateErrors.key)}
               errorMessage={coordinateErrors.key}
               onValueChange={value => updateCoordinateDraft('key', value)}
+              isDisabled={isDeletionLocked}
             />
             <Input
               label="Center Latitude"
@@ -328,6 +424,7 @@ export const SuperAdminClientDetails = () => {
               isInvalid={Boolean(coordinateErrors.lat)}
               errorMessage={coordinateErrors.lat}
               onValueChange={value => updateCoordinateDraft('lat', value)}
+              isDisabled={isDeletionLocked}
             />
             <Input
               label="Center Longitude"
@@ -338,9 +435,15 @@ export const SuperAdminClientDetails = () => {
               isInvalid={Boolean(coordinateErrors.lng)}
               errorMessage={coordinateErrors.lng}
               onValueChange={value => updateCoordinateDraft('lng', value)}
+              isDisabled={isDeletionLocked}
             />
           </div>
-          <ClientCoverageEditor coverage={coverageDraft} onCoverageChange={setCoverageDraft} />
+          <ClientCoverageEditor
+            coverage={coverageDraft}
+            onCoverageChange={nextCoverage => {
+              if (!isDeletionLocked) setCoverageDraft(nextCoverage);
+            }}
+          />
         </CardBody>
       </Card>
 
@@ -373,6 +476,7 @@ export const SuperAdminClientDetails = () => {
               isInvalid={Boolean(mapErrors.centerLatitude)}
               errorMessage={mapErrors.centerLatitude}
               onValueChange={centerLatitude => updateMapDraft('centerLatitude', centerLatitude)}
+              isDisabled={isDeletionLocked}
             />
             <Input
               label="Center Longitude"
@@ -383,6 +487,7 @@ export const SuperAdminClientDetails = () => {
               isInvalid={Boolean(mapErrors.centerLongitude)}
               errorMessage={mapErrors.centerLongitude}
               onValueChange={centerLongitude => updateMapDraft('centerLongitude', centerLongitude)}
+              isDisabled={isDeletionLocked}
             />
             <Input
               label="Minimum Zoom"
@@ -393,6 +498,7 @@ export const SuperAdminClientDetails = () => {
               isInvalid={Boolean(mapErrors.minZoom)}
               errorMessage={mapErrors.minZoom}
               onValueChange={minZoom => updateMapDraft('minZoom', minZoom)}
+              isDisabled={isDeletionLocked}
             />
             <Input
               label="Default Zoom"
@@ -403,6 +509,7 @@ export const SuperAdminClientDetails = () => {
               isInvalid={Boolean(mapErrors.zoom)}
               errorMessage={mapErrors.zoom}
               onValueChange={zoom => updateMapDraft('zoom', zoom)}
+              isDisabled={isDeletionLocked}
             />
             <Input
               label="Maximum Zoom"
@@ -413,12 +520,14 @@ export const SuperAdminClientDetails = () => {
               isInvalid={Boolean(mapErrors.maxZoom)}
               errorMessage={mapErrors.maxZoom}
               onValueChange={maxZoom => updateMapDraft('maxZoom', maxZoom)}
+              isDisabled={isDeletionLocked}
             />
             <Input
               label="Boundary Source"
               placeholder={mapSettingPlaceholders.boundarySource}
               value={boundarySource}
               onValueChange={setBoundarySource}
+              isDisabled={isDeletionLocked}
             />
             <Input
               label="North Bound"
@@ -429,6 +538,7 @@ export const SuperAdminClientDetails = () => {
               isInvalid={Boolean(mapErrors.north)}
               errorMessage={mapErrors.north}
               onValueChange={north => updateMapDraft('north', north)}
+              isDisabled={isDeletionLocked}
             />
             <Input
               label="South Bound"
@@ -439,6 +549,7 @@ export const SuperAdminClientDetails = () => {
               isInvalid={Boolean(mapErrors.south)}
               errorMessage={mapErrors.south}
               onValueChange={south => updateMapDraft('south', south)}
+              isDisabled={isDeletionLocked}
             />
             <Input
               label="East Bound"
@@ -449,6 +560,7 @@ export const SuperAdminClientDetails = () => {
               isInvalid={Boolean(mapErrors.east)}
               errorMessage={mapErrors.east}
               onValueChange={east => updateMapDraft('east', east)}
+              isDisabled={isDeletionLocked}
             />
             <Input
               label="West Bound"
@@ -459,6 +571,7 @@ export const SuperAdminClientDetails = () => {
               isInvalid={Boolean(mapErrors.west)}
               errorMessage={mapErrors.west}
               onValueChange={west => updateMapDraft('west', west)}
+              isDisabled={isDeletionLocked}
             />
           </div>
           <Textarea
@@ -467,8 +580,14 @@ export const SuperAdminClientDetails = () => {
             minRows={4}
             value={boundaryGeoJson}
             onValueChange={setBoundaryGeoJson}
+            isDisabled={isDeletionLocked}
           />
-          <Button variant="flat" startContent={<Upload size={16} />} onPress={uploadBoundary} isDisabled={!boundaryGeoJson.trim()}>
+          <Button
+            variant="flat"
+            startContent={<Upload size={16} />}
+            onPress={uploadBoundary}
+            isDisabled={!boundaryGeoJson.trim() || isDeletionLocked}
+          >
             Upload Boundary
           </Button>
         </CardBody>
@@ -476,7 +595,17 @@ export const SuperAdminClientDetails = () => {
 
       <ClientAdminsTable admins={admins} />
 
-      <ClientDeleteModal client={client} isOpen={isDeleteOpen} onOpenChange={setIsDeleteOpen} onDelete={deleteClient} />
+      <ClientDeleteModal
+        client={client}
+        preview={deletionPreview}
+        isLoadingPreview={isLoadingPreview}
+        isScheduling={isSchedulingDeletion}
+        reason={deletionReason}
+        isOpen={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        onReasonChange={setDeletionReason}
+        onScheduleDeletion={scheduleClientDeletion}
+      />
     </div>
   );
 };

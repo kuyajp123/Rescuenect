@@ -1,14 +1,13 @@
 import { db } from '@/lib/firebaseConfig';
 import { DailyWeather, HourlyWeather, RealTimeWeather, WeatherData } from '@/types/types';
 import { collection, onSnapshot } from 'firebase/firestore';
-import { getUsersBarangay } from './getUserLocation';
 
 export const subscribeToWeatherData = (location: string, callback: (data: WeatherData) => void) => {
-  const barangay = getUsersBarangay(location);
+  const weatherLocationKey = location.trim();
 
-  const realtime = collection(db, 'weather', barangay, 'realtime');
-  const hourly = collection(db, 'weather', barangay, 'hourly');
-  const daily = collection(db, 'weather', barangay, 'daily');
+  const realtime = collection(db, 'weather', weatherLocationKey, 'realtime');
+  const hourly = collection(db, 'weather', weatherLocationKey, 'hourly');
+  const daily = collection(db, 'weather', weatherLocationKey, 'daily');
 
   const data: WeatherData = {
     realtime: [],

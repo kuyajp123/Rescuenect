@@ -76,8 +76,9 @@ export class EvacuationModel {
       const centers: any[] = [];
       snapshot.forEach(doc => {
         const data = doc.data();
-        if (clientId && getEffectiveClientId(data) !== clientId) return;
-        centers.push({ id: doc.id, ...data, clientId: getEffectiveClientId(data) });
+        const effectiveClientId = getEffectiveClientId(data);
+        if (clientId && effectiveClientId !== clientId) return;
+        centers.push({ id: doc.id, ...data, clientId: effectiveClientId });
       });
       return centers;
     } catch (error) {
@@ -86,7 +87,7 @@ export class EvacuationModel {
     }
   }
 
-  public static async addCenter(data: any, files: Express.Multer.File[], clientId: string = 'naic'): Promise<string> {
+  public static async addCenter(data: any, files: Express.Multer.File[], clientId: string): Promise<string> {
     let docRef: DocumentReference | null = null;
     const uploadedFilePaths: string[] = [];
 
@@ -202,7 +203,7 @@ export class EvacuationModel {
 
       await docRef.update({
         ...data,
-        clientId: clientId || getEffectiveClientId(currentData ?? {}),
+        clientId,
         images: finalImages,
         updatedAt: FieldValue.serverTimestamp(),
       });

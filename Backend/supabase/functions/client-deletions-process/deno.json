@@ -1,0 +1,10 @@
+{
+  "imports": {
+    "firebase-admin/app": "npm:firebase-admin@11.8.0/app",
+    "firebase-admin/auth": "npm:firebase-admin@11.8.0/auth",
+    "firebase-admin/firestore": "npm:firebase-admin@11.8.0/firestore"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window", "dom"]
+  }
+}

@@ -1,6 +1,6 @@
 import { STORAGE_KEYS } from '@/config/asyncStorage';
-import { getWeatherLocationKey } from '@/config/locationConfig';
 import { storageHelpers } from '@/helper/storage';
+import { getNotificationDisplayTimestamp, isStaleEarthquakeNotification } from '@/helper/notificationTime';
 import { db } from '@/lib/firebaseConfig';
 import { useNotificationStore } from '@/store/useNotificationStore';
 import { useUserData } from '@/store/useBackendResponse';
@@ -25,26 +25,19 @@ export const useNotificationSubscriber = ({
   const [globalNotifications, setGlobalNotifications] = useState<BaseNotification[]>([]);
   const [userNotifications, setUserNotifications] = useState<BaseNotification[]>([]);
   const userClientId = useUserData(state => state.userData.clientId);
+  const userWeatherLocationKey = useUserData(state => state.userData.weatherLocationKey);
 
   const isRelevantLocationNotification = useCallback((notification: BaseNotification) => {
     if (!userLocation) {
       return true;
     }
 
-    let userWeatherLocationKey: string | null = null;
-
-    try {
-      userWeatherLocationKey = getWeatherLocationKey(userLocation);
-    } catch {
-      userWeatherLocationKey = null;
-    }
-
     return (
-      (userWeatherLocationKey !== null && notification.location === userWeatherLocationKey) ||
+      (userWeatherLocationKey !== null && userWeatherLocationKey !== undefined && notification.location === userWeatherLocationKey) ||
       notification.barangays?.includes(userLocation) ||
       false
     );
-  }, [userLocation]);
+  }, [userLocation, userWeatherLocationKey]);
 
   useEffect(() => {
     // Set userId in store for unread count calculation
@@ -97,6 +90,9 @@ export const useNotificationSubscriber = ({
                 ...data,
                 id: doc.id,
               };
+              if (isStaleEarthquakeNotification(notification)) {
+                return;
+              }
               if (
                 notification.audience === 'admin' ||
                 notification.targetRole === 'super_admin' ||
@@ -104,7 +100,10 @@ export const useNotificationSubscriber = ({
               ) {
                 return;
               }
-              const notificationClientId = notification.clientId || 'naic';
+              const notificationClientId =
+                typeof notification.clientId === 'string' && notification.clientId.trim()
+                  ? notification.clientId.trim()
+                  : null;
               if (userClientId && notification.type !== 'earthquake' && notificationClientId !== userClientId) {
                 return;
               }
@@ -204,7 +203,9 @@ export const useNotificationSubscriber = ({
 
   // Merge and update store
   useEffect(() => {
-    const merged = [...globalNotifications, ...userNotifications].sort((a, b) => b.timestamp - a.timestamp);
+    const merged = [...globalNotifications, ...userNotifications].sort(
+      (a, b) => getNotificationDisplayTimestamp(b) - getNotificationDisplayTimestamp(a)
+    );
     setNotifications(merged);
   }, [globalNotifications, userNotifications, setNotifications]);
   return { isLoading, error };

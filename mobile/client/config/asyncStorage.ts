@@ -30,6 +30,9 @@ export interface User {
   fcmToken: string | null;
   clientId?: string;
   clientName?: string;
+  clientStatus?: 'draft' | 'active' | 'inactive' | 'deletion_scheduled' | 'deleting' | 'deleted' | null;
+  clientDeletionEffectiveAt?: unknown;
+  clientDeletionStatus?: string | null;
   provinceCode?: string;
   provinceName?: string;
   municipalityCode?: string;

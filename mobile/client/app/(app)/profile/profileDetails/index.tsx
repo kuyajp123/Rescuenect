@@ -8,7 +8,12 @@ import { useAppToast } from '@/components/ui/Toast';
 import { VStack } from '@/components/ui/vstack';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
-import { getBarangayOptionsForClient, getResidentLocationSelectionForBarangay } from '@/config/locationConfig';
+import {
+  toResidentLocationSelectionFromCoverageClient,
+  type BarangayOption,
+  type LocationCoverageClient,
+  type LocationCoverageResponse,
+} from '@/config/locationConfig';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatBarangayLabel, formatContactNumber, sortByLabel } from '@/helper/commonHelpers';
@@ -24,7 +29,7 @@ import { useStatusFormStore } from '@/store/useStatusForm';
 import axios from 'axios';
 import { Avatar } from 'heroui-native';
 import { Calendar, ChevronDown, Mail, MapPin, Phone, Trash2, X } from 'lucide-react-native';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 // Moved InfoItem outside to prevent re-renders losing focus
@@ -134,6 +139,8 @@ const ProfileDetails = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [coverageClient, setCoverageClient] = useState<LocationCoverageClient | undefined>(undefined);
+  const [barangayOptions, setBarangayOptions] = useState<BarangayOption[]>([]);
   const { showSuccess } = useAppToast();
 
   // Form State
@@ -143,7 +150,48 @@ const ProfileDetails = () => {
     phoneNumber: userData.phoneNumber,
     barangay: userData.barangay,
   });
-  const sortedBarangays = useMemo(() => sortByLabel(getBarangayOptionsForClient(userData.clientId)), [userData.clientId]);
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadCoverage = async () => {
+      if (!userData.clientId) {
+        setCoverageClient(undefined);
+        setBarangayOptions([]);
+        return;
+      }
+
+      try {
+        const response = await axios.get<LocationCoverageResponse>(API_ROUTES.DATA.GET_LOCATION_COVERAGE, {
+          timeout: 10000,
+        });
+        const client = response.data.provinces
+          .flatMap(province => province.clients)
+          .find(item => item.clientId === userData.clientId);
+
+        if (!isMounted) return;
+        setCoverageClient(client);
+        setBarangayOptions(
+          (client?.barangays ?? []).map(barangay => ({
+            label: barangay.barangayLabel,
+            value: barangay.value,
+          }))
+        );
+      } catch (error) {
+        console.warn('Unable to load resident location coverage:', error);
+        if (!isMounted) return;
+        setCoverageClient(undefined);
+        setBarangayOptions([]);
+      }
+    };
+
+    void loadCoverage();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userData.clientId]);
+
+  const sortedBarangays = useMemo(() => sortByLabel(barangayOptions), [barangayOptions]);
   const selectedBarangayLabel = useMemo(() => {
     if (!formData.barangay) {
       return '';
@@ -152,8 +200,8 @@ const ProfileDetails = () => {
     return match?.label ?? formatBarangayLabel(formData.barangay);
   }, [formData.barangay, sortedBarangays]);
   const selectedLocation = useMemo(
-    () => getResidentLocationSelectionForBarangay(formData.barangay),
-    [formData.barangay]
+    () => toResidentLocationSelectionFromCoverageClient(coverageClient, formData.barangay),
+    [coverageClient, formData.barangay]
   );
 
   // Format date

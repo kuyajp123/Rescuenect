@@ -2,7 +2,7 @@ import { Request } from 'express';
 
 export const getClientScopeFromRequest = (req: Request): string | undefined => {
   if (req.adminUser?.role === 'lgu_admin') {
-    return req.adminUser.clientId || 'naic';
+    return req.adminUser.clientId || undefined;
   }
 
   const queryClientId = typeof req.query.clientId === 'string' ? req.query.clientId.trim() : '';
@@ -10,5 +10,5 @@ export const getClientScopeFromRequest = (req: Request): string | undefined => {
   return queryClientId || bodyClientId || undefined;
 };
 
-export const getEffectiveClientId = (data: Record<string, unknown>): string =>
-  typeof data.clientId === 'string' && data.clientId.trim() ? data.clientId : 'naic';
+export const getEffectiveClientId = (data: Record<string, unknown>): string | undefined =>
+  typeof data.clientId === 'string' && data.clientId.trim() ? data.clientId.trim() : undefined;

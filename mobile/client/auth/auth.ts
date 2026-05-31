@@ -1,6 +1,5 @@
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
-import { getResidentLocationSelectionForBarangay } from '@/config/locationConfig';
 import { storageHelpers } from '@/helper/storage';
 import { auth } from '@/lib/firebaseConfig';
 import { navigateToSignIn } from '@/routes/route';
@@ -60,10 +59,6 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
     );
 
     const responseUser = response.data.user;
-    const locationSelection =
-      responseUser.clientId && responseUser.weatherLocationKey
-        ? null
-        : getResidentLocationSelectionForBarangay(responseUser.barangay);
 
     const nextUserData = {
       ...userData,
@@ -72,19 +67,22 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
       barangay: responseUser.barangay ?? '',
       phoneNumber: responseUser.phoneNumber ?? '',
       fcmToken: responseUser.fcmToken ?? userData.fcmToken ?? null,
-      clientId: responseUser.clientId ?? locationSelection?.clientId,
-      clientName: responseUser.clientName ?? locationSelection?.clientName,
-      provinceCode: responseUser.provinceCode ?? locationSelection?.provinceCode,
-      provinceName: responseUser.provinceName ?? locationSelection?.provinceName,
-      municipalityCode: responseUser.municipalityCode ?? locationSelection?.municipalityCode,
-      municipalityName: responseUser.municipalityName ?? locationSelection?.municipalityName,
-      municipalityType: responseUser.municipalityType ?? locationSelection?.municipalityType,
-      barangayCode: responseUser.barangayCode ?? locationSelection?.barangayCode,
-      barangayLabel: responseUser.barangayLabel ?? locationSelection?.barangayLabel,
-      weatherLocationKey: responseUser.weatherLocationKey ?? locationSelection?.weatherLocationKey,
-      weatherLatitude: responseUser.weatherLatitude ?? locationSelection?.weatherLatitude,
-      weatherLongitude: responseUser.weatherLongitude ?? locationSelection?.weatherLongitude,
-      mapSettings: responseUser.mapSettings ?? locationSelection?.mapSettings ?? userData.mapSettings ?? null,
+      clientId: responseUser.clientId ?? userData.clientId,
+      clientName: responseUser.clientName ?? userData.clientName,
+      clientStatus: responseUser.clientStatus ?? null,
+      clientDeletionEffectiveAt: responseUser.clientDeletionEffectiveAt ?? null,
+      clientDeletionStatus: responseUser.clientDeletionStatus ?? null,
+      provinceCode: responseUser.provinceCode ?? userData.provinceCode,
+      provinceName: responseUser.provinceName ?? userData.provinceName,
+      municipalityCode: responseUser.municipalityCode ?? userData.municipalityCode,
+      municipalityName: responseUser.municipalityName ?? userData.municipalityName,
+      municipalityType: responseUser.municipalityType ?? userData.municipalityType,
+      barangayCode: responseUser.barangayCode ?? userData.barangayCode,
+      barangayLabel: responseUser.barangayLabel ?? userData.barangayLabel,
+      weatherLocationKey: responseUser.weatherLocationKey ?? userData.weatherLocationKey,
+      weatherLatitude: responseUser.weatherLatitude ?? userData.weatherLatitude,
+      weatherLongitude: responseUser.weatherLongitude ?? userData.weatherLongitude,
+      mapSettings: responseUser.mapSettings ?? userData.mapSettings ?? null,
     };
 
     // Store backend response BEFORE Firebase auth state changes

@@ -159,7 +159,11 @@ export class AnnouncementController {
       const category = ALLOWED_CATEGORIES.has(rawCategory) ? rawCategory : '';
       const content = sanitizeHtmlContent(req.body.content);
       const barangays = parseBarangays(req.body.barangays);
-      const clientId = getClientScopeFromRequest(req) || 'naic';
+      const clientId = getClientScopeFromRequest(req);
+      if (!clientId) {
+        res.status(400).json({ message: 'clientId is required for announcements' });
+        return;
+      }
 
       const title = sanitizeText(req.body.title);
       const subtitle = sanitizeText(req.body.subtitle);
@@ -255,7 +259,11 @@ export class AnnouncementController {
       const category = ALLOWED_CATEGORIES.has(rawCategory) ? rawCategory : '';
       const content = sanitizeHtmlContent(req.body.content);
       const barangays = parseBarangays(req.body.barangays);
-      const clientId = getClientScopeFromRequest(req) || 'naic';
+      const clientId = getClientScopeFromRequest(req);
+      if (!clientId) {
+        res.status(400).json({ message: 'clientId is required for announcements' });
+        return;
+      }
 
       const title = sanitizeText(req.body.title);
       const subtitle = sanitizeText(req.body.subtitle);

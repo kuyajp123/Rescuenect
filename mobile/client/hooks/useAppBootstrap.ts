@@ -2,7 +2,6 @@ import { initializeAuth } from '@/auth/firebaseAuth';
 import { inititallizeAppStorage, STORAGE_KEYS, type User as StoredUser } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
 import {
-  getResidentLocationSelectionForBarangay,
   toResidentLocationSelectionFromCoverageClient,
   type LocationCoverageResponse,
   type ResidentLocationSelection,
@@ -56,11 +55,7 @@ export const useAppBootstrap = () => {
         if (!isActive) return;
 
         if (savedUser) {
-          const locationSelection =
-            (await getLatestLocationSelection(savedUser)) ??
-            (savedUser.clientId && savedUser.weatherLocationKey
-              ? null
-              : getResidentLocationSelectionForBarangay(savedUser.barangay));
+          const locationSelection = await getLatestLocationSelection(savedUser);
 
           setUserData({
             userData: {
@@ -71,6 +66,9 @@ export const useAppBootstrap = () => {
               fcmToken: savedUser.fcmToken ?? null,
               clientId: savedUser.clientId ?? locationSelection?.clientId,
               clientName: savedUser.clientName ?? locationSelection?.clientName,
+              clientStatus: savedUser.clientStatus ?? null,
+              clientDeletionEffectiveAt: savedUser.clientDeletionEffectiveAt ?? null,
+              clientDeletionStatus: savedUser.clientDeletionStatus ?? null,
               provinceCode: savedUser.provinceCode ?? locationSelection?.provinceCode,
               provinceName: savedUser.provinceName ?? locationSelection?.provinceName,
               municipalityCode: savedUser.municipalityCode ?? locationSelection?.municipalityCode,

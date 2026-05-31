@@ -8,6 +8,6 @@ const contactRouter = Router();
 contactRouter.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin, AdminMiddleware.requireClientAccess);
 
 contactRouter.get('/getContacts', ContactController.getContacts);
-contactRouter.post('/addContact', ContactController.saveContacts);
+contactRouter.post('/addContact', AdminMiddleware.blockLguWritesWhenClientDeletionScheduled, ContactController.saveContacts);
 
 export default contactRouter;

@@ -1,8 +1,8 @@
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { ClientDeleteModal } from '@/pages/contents/SuperAdmin/components/ClientDeleteModal';
 import { useSuperFetch } from '@/pages/contents/SuperAdmin/hooks/useSuperFetch';
-import type { AdminUser, ClientLgu } from '@/pages/contents/SuperAdmin/types';
-import { getToken, statusColor } from '@/pages/contents/SuperAdmin/utils';
+import type { AdminUser, ClientDeletionPreview, ClientLgu } from '@/pages/contents/SuperAdmin/types';
+import { formatStatusLabel, getToken, statusColor } from '@/pages/contents/SuperAdmin/utils';
 import type { SortDescriptor } from '@heroui/react';
 import {
   Button,
@@ -19,7 +19,7 @@ import {
   addToast,
 } from '@heroui/react';
 import axios from 'axios';
-import { Building2, RefreshCcw, Search, Settings, Trash2 } from 'lucide-react';
+import { Archive as ArchiveIcon, Building2, RefreshCcw, Search, Settings, Trash2 } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -33,6 +33,10 @@ export const SuperAdminClients = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [clientToDelete, setClientToDelete] = useState<ClientLgu | null>(null);
+  const [deletionPreview, setDeletionPreview] = useState<ClientDeletionPreview | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [isSchedulingDeletion, setIsSchedulingDeletion] = useState(false);
+  const [deletionReason, setDeletionReason] = useState('');
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
@@ -111,26 +115,63 @@ export const SuperAdminClients = () => {
     setPage(1);
   }, [searchQuery]);
 
-  const deleteClient = async () => {
+  useEffect(() => {
+    if (!clientToDelete) {
+      setDeletionPreview(null);
+      setDeletionReason('');
+      return;
+    }
+
+    let isMounted = true;
+    setIsLoadingPreview(true);
+    void (async () => {
+      try {
+        const token = await getToken();
+        const response = await axios.get<{ preview: ClientDeletionPreview }>(
+          API_ENDPOINTS.SUPER_ADMIN.CLIENT_DELETION_PREVIEW(clientToDelete.id),
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (isMounted) setDeletionPreview(response.data.preview);
+      } catch (error) {
+        const message = axios.isAxiosError(error)
+          ? error.response?.data?.message || 'Failed to load deletion preview'
+          : 'Failed to load deletion preview';
+        addToast({ title: message, color: 'danger' });
+        if (isMounted) setClientToDelete(null);
+      } finally {
+        if (isMounted) setIsLoadingPreview(false);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [clientToDelete]);
+
+  const scheduleClientDeletion = async () => {
     if (!clientToDelete) return;
 
     try {
+      setIsSchedulingDeletion(true);
       const token = await getToken();
-      await axios.delete(API_ENDPOINTS.SUPER_ADMIN.DELETE_CLIENT(clientToDelete.id), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      addToast({ title: 'Client deleted', color: 'success' });
+      await axios.post(
+        API_ENDPOINTS.SUPER_ADMIN.SCHEDULE_CLIENT_DELETION(clientToDelete.id),
+        { reason: deletionReason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      addToast({ title: 'Client deletion scheduled', color: 'success' });
       setClientToDelete(null);
       refetch();
     } catch (error) {
-      let message = 'Failed to delete client';
+      let message = 'Failed to schedule client deletion';
       if (axios.isAxiosError(error)) {
         message = error.response?.data?.message || message;
       } else if (error instanceof Error) {
         message = error.message;
       }
       addToast({ title: message, color: 'danger' });
-      setClientToDelete(null);
+    } finally {
+      setIsSchedulingDeletion(false);
     }
   };
 
@@ -162,11 +203,16 @@ export const SuperAdminClients = () => {
           <h1 className="text-3xl font-bold">Clients</h1>
           <p className="text-sm text-default-500">Search LGU clients, review their status, and open detailed setup.</p>
         </div>
-        <Tooltip content="Refresh clients">
-          <Button isIconOnly variant="flat" aria-label="Refresh clients" onPress={refetch} isLoading={loading}>
-            <RefreshCcw size={18} />
+        <div className="flex items-center gap-2">
+          <Button variant="flat" startContent={<ArchiveIcon size={16} />} onPress={() => navigate('/super/clients/archive')}>
+            Archive
           </Button>
-        </Tooltip>
+          <Tooltip content="Refresh clients">
+            <Button isIconOnly variant="flat" aria-label="Refresh clients" onPress={refetch} isLoading={loading}>
+              <RefreshCcw size={18} />
+            </Button>
+          </Tooltip>
+        </div>
       </div>
 
       <Input
@@ -208,7 +254,7 @@ export const SuperAdminClients = () => {
         <TableBody emptyContent={loading ? 'Loading clients...' : 'No clients found'} items={paginatedClients}>
           {client => {
             const activeBarangays = client.barangays.filter(barangay => barangay.isActive !== false).length;
-            const canDelete = client.id !== 'naic';
+            const canScheduleDeletion = client.status === 'draft' || client.status === 'inactive';
 
             return (
               <TableRow key={client.id}>
@@ -231,8 +277,11 @@ export const SuperAdminClients = () => {
                 </TableCell>
                 <TableCell>
                   <Chip size="sm" color={statusColor(client.status) as any}>
-                    {client.status}
+                    {formatStatusLabel(client.status)}
                   </Chip>
+                  {Boolean(client.deletionEffectiveAt) && (
+                    <p className="mt-1 text-xs text-warning-600">Effective deletion scheduled</p>
+                  )}
                 </TableCell>
                 <TableCell>
                   <p className="text-sm">
@@ -251,14 +300,20 @@ export const SuperAdminClients = () => {
                     >
                       Manage
                     </Button>
-                    <Tooltip content={canDelete ? 'Delete client' : 'Default client cannot be deleted'}>
+                    <Tooltip
+                      content={
+                        canScheduleDeletion
+                          ? 'Schedule client deletion'
+                          : 'Deactivate draft or inactive clients before scheduling deletion'
+                      }
+                    >
                       <Button
                         isIconOnly
                         size="sm"
                         variant="light"
                         color="danger"
-                        aria-label="Delete client"
-                        isDisabled={!canDelete}
+                        aria-label="Schedule client deletion"
+                        isDisabled={!canScheduleDeletion}
                         onPress={() => setClientToDelete(client)}
                       >
                         <Trash2 size={16} />
@@ -274,9 +329,14 @@ export const SuperAdminClients = () => {
 
       <ClientDeleteModal
         client={clientToDelete}
+        preview={deletionPreview}
+        isLoadingPreview={isLoadingPreview}
+        isScheduling={isSchedulingDeletion}
+        reason={deletionReason}
         isOpen={!!clientToDelete}
         onOpenChange={open => !open && setClientToDelete(null)}
-        onDelete={deleteClient}
+        onReasonChange={setDeletionReason}
+        onScheduleDeletion={scheduleClientDeletion}
       />
     </div>
   );

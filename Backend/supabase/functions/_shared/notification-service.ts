@@ -70,6 +70,7 @@ export class NotificationService {
    * Create an earthquake notification
    */
   async createEarthquakeNotification(params: {
+    notificationId?: string;
     title: string;
     message: string;
     location: string;
@@ -81,7 +82,16 @@ export class NotificationService {
     deliveryStatus?: { success: number; failure: number; errors?: string[] };
   }): Promise<string> {
     const timestamp = Date.now();
-    const notificationId = generateNotificationId('earthquake', timestamp, params.location);
+    const notificationId = params.notificationId || generateNotificationId('earthquake', timestamp, params.location);
+    const docRef = this.db.collection(this.collectionName).doc(notificationId);
+
+    if (params.notificationId) {
+      const existing = await docRef.get();
+      if (existing.exists) {
+        console.log(`Earthquake notification already exists: ${notificationId}`);
+        return notificationId;
+      }
+    }
 
     const notification: Omit<Notification, 'id'> & { id: string } = {
       id: notificationId,
@@ -99,7 +109,7 @@ export class NotificationService {
       data: params.earthquakeData,
     };
 
-    await this.db.collection(this.collectionName).doc(notificationId).set(notification);
+    await docRef.set(notification);
     console.log(`✅ Earthquake notification created: ${notificationId}`);
     return notificationId;
   }

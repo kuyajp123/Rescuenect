@@ -12,7 +12,7 @@ export class AnnouncementModel {
     data: Record<string, unknown>,
     file: Express.Multer.File | undefined,
     userId: string,
-    clientId: string = 'naic'
+    clientId: string
   ): Promise<string> {
     try {
       const docRef = await this.pathRef().add({
@@ -59,7 +59,7 @@ export class AnnouncementModel {
 
       const updatePayload: Record<string, unknown> = {
         ...data,
-        clientId: clientId || getEffectiveClientId(doc.data() ?? {}),
+        clientId,
         updatedAt: FieldValue.serverTimestamp(),
         updatedBy: userId,
       };
@@ -115,8 +115,9 @@ export class AnnouncementModel {
       const announcements: FirebaseFirestore.DocumentData[] = [];
       snapshot.forEach(doc => {
         const data = doc.data();
-        if (clientId && getEffectiveClientId(data) !== clientId) return;
-        announcements.push({ id: doc.id, ...data, clientId: getEffectiveClientId(data) });
+        const effectiveClientId = getEffectiveClientId(data);
+        if (clientId && effectiveClientId !== clientId) return;
+        announcements.push({ id: doc.id, ...data, clientId: effectiveClientId });
       });
       return announcements;
     } catch (error) {
@@ -134,11 +135,12 @@ export class AnnouncementModel {
       if (!doc.exists) return null;
 
       const data = doc.data() ?? {};
-      if (clientId && getEffectiveClientId(data) !== clientId) {
+      const effectiveClientId = getEffectiveClientId(data);
+      if (clientId && effectiveClientId !== clientId) {
         return null;
       }
 
-      return { id: doc.id, ...data, clientId: getEffectiveClientId(data) };
+      return { id: doc.id, ...data, clientId: effectiveClientId };
     } catch (error) {
       console.error('âŒ Error in AnnouncementModel.getAnnouncementById:', error);
       throw error;

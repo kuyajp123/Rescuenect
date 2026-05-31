@@ -12,6 +12,8 @@ export interface UserData {
   role?: 'super_admin' | 'lgu_admin';
   clientId?: string | null;
   clientName?: string | null;
+  clientStatus?: 'draft' | 'active' | 'inactive' | 'deletion_scheduled' | 'deleting' | 'deleted' | null;
+  clientDeletionEffectiveAt?: unknown;
   municipalityName?: string | null;
   weatherLocationKey?: string | null;
   weatherLatitude?: number | null;

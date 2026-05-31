@@ -14,7 +14,15 @@ lguRoutes.use(
 
 lguRoutes.get('/client', LguAdminController.getClient);
 lguRoutes.get('/change-requests', LguAdminController.getChangeRequests);
-lguRoutes.post('/change-requests', LguAdminController.createChangeRequest);
-lguRoutes.post('/change-requests/:id/cancel', LguAdminController.cancelChangeRequest);
+lguRoutes.post(
+  '/change-requests',
+  AdminMiddleware.blockLguWritesWhenClientDeletionScheduled,
+  LguAdminController.createChangeRequest
+);
+lguRoutes.post(
+  '/change-requests/:id/cancel',
+  AdminMiddleware.blockLguWritesWhenClientDeletionScheduled,
+  LguAdminController.cancelChangeRequest
+);
 
 export default lguRoutes;

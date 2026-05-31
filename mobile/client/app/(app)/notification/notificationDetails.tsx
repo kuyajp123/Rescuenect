@@ -10,6 +10,7 @@ import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { BaseNotification, EarthquakeNotificationData, WeatherNotificationData } from '@/types/notification';
+import { getNotificationDisplayTimestamp } from '@/helper/notificationTime';
 import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -184,6 +185,7 @@ const notificationDetails = () => {
   const isWeather = notification.type === 'weather';
   const earthquakeData = isEarthquake ? (notification.data as EarthquakeNotificationData) : null;
   const weatherData = isWeather ? (notification.data as WeatherNotificationData) : null;
+  const displayTimestamp = getNotificationDisplayTimestamp(notification);
 
   return (
     <Body style={styles.container}>
@@ -218,7 +220,7 @@ const notificationDetails = () => {
                 {notification.type.replace('_', ' ')}
               </Text>
               <Text size="sm" emphasis="light">
-                {formatFullDate(notification.timestamp)}
+                {formatFullDate(displayTimestamp)}
               </Text>
             </View>
           </View>
@@ -325,6 +327,13 @@ const notificationDetails = () => {
                 <Text size="md" bold>
                   {earthquakeData.magnitude}
                 </Text>
+              </View>
+
+              <View style={styles.dataRow}>
+                <Text size="sm" emphasis="light">
+                  Event Time:
+                </Text>
+                <Text size="sm">{formatFullDate(displayTimestamp)}</Text>
               </View>
 
               <View style={styles.dataRow}>

@@ -238,12 +238,14 @@ const normalizeClientDoc = (id: string, data: FirebaseFirestore.DocumentData): C
   const rawBarangays = Array.isArray(data.barangays) ? data.barangays : [];
   const weatherLatitude = typeof data.weatherLatitude === 'number' ? data.weatherLatitude : null;
   const weatherLongitude = typeof data.weatherLongitude === 'number' ? data.weatherLongitude : null;
+  const statusValues: ClientLguStatus[] = ['draft', 'active', 'inactive', 'deletion_scheduled', 'deleting', 'deleted'];
+  const status = statusValues.includes(data.status) ? data.status : 'draft';
 
   return {
     id,
     name: data.name || data.municipalityName || id,
     type,
-    status: data.status === 'active' || data.status === 'inactive' ? data.status : 'draft',
+    status,
     regionCode: data.regionCode ?? null,
     regionName: data.regionName ?? null,
     provinceCode: data.provinceCode || '',
@@ -266,6 +268,12 @@ const normalizeClientDoc = (id: string, data: FirebaseFirestore.DocumentData): C
       verified: barangay.verified !== false,
     })),
     requestId: data.requestId ?? null,
+    deletionScheduledAt: data.deletionScheduledAt,
+    deletionEffectiveAt: data.deletionEffectiveAt,
+    deletionRequestedBy: data.deletionRequestedBy ?? null,
+    deletionReason: data.deletionReason ?? null,
+    deletionCancelledAt: data.deletionCancelledAt,
+    deletionStatus: data.deletionStatus ?? null,
   };
 };
 
@@ -280,20 +288,11 @@ export class ClientModel {
 
   static async listClients(): Promise<ClientLgu[]> {
     const snapshot = await this.collectionRef().get();
-    const clients = snapshot.docs.map(doc => normalizeClientDoc(doc.id, doc.data()));
-    const hasNaic = clients.some(client => client.id === NAIC_CLIENT_ID);
-
-    return (hasNaic ? clients : [toFallbackClient(), ...clients]).sort((left, right) =>
-      left.name.localeCompare(right.name)
-    );
+    const clients = snapshot.docs.map(doc => normalizeClientDoc(doc.id, doc.data())).filter(client => client.status !== 'deleted');
+    return clients.sort((left, right) => left.name.localeCompare(right.name));
   }
 
   static async getClientById(clientId: string): Promise<ClientLgu | null> {
-    if (clientId === NAIC_CLIENT_ID) {
-      const snap = await this.collectionRef().doc(clientId).get();
-      return snap.exists ? normalizeClientDoc(snap.id, snap.data() ?? {}) : toFallbackClient();
-    }
-
     const snap = await this.collectionRef().doc(clientId).get();
     return snap.exists ? normalizeClientDoc(snap.id, snap.data() ?? {}) : null;
   }
@@ -569,6 +568,9 @@ export class ClientModel {
 
     const client = await this.getClientById(clientId);
     if (!client) throw new Error('Client not found');
+    if (['deletion_scheduled', 'deleting', 'deleted'].includes(client.status)) {
+      throw new Error('Cancel deletion before changing client status');
+    }
 
     if (status === 'active' && activeBarangays(client.barangays).length === 0) {
       throw new Error('Client must have at least one active barangay before activation');
@@ -585,10 +587,6 @@ export class ClientModel {
   }
 
   static async deleteClient(clientId: string): Promise<ClientLgu> {
-    if (clientId === NAIC_CLIENT_ID) {
-      throw new Error('Default Naic client cannot be deleted');
-    }
-
     const client = await this.getClientById(clientId);
     if (!client) throw new Error('Client not found');
     if (client.status === 'active') {

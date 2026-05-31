@@ -12,6 +12,19 @@ const getAuthenticatedUid = (req: Request, res: Response): string | null => {
 };
 
 export class StatusController {
+  private static getWriteErrorStatus(message: string): number {
+    if (message.includes('scheduled for deletion')) return 423;
+    if (
+      message.includes('missing client assignment') ||
+      message.includes('client is not available') ||
+      message.includes('client is not active') ||
+      message.includes('User profile not found')
+    ) {
+      return 400;
+    }
+    return 500;
+  }
+
   static async createStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     const data = req.body;
     const file = req.file;
@@ -51,7 +64,9 @@ export class StatusController {
       res.status(201).json({ message: 'Status created/updated successfully', data: result });
       return;
     } catch (error: any) {
-      res.status(500).json({ message: 'Failed to create status', error: error.message });
+      res
+        .status(StatusController.getWriteErrorStatus(error.message || ''))
+        .json({ message: 'Failed to create status', error: error.message });
       console.error('Status creation error:', error);
       // next(error);
     }
@@ -95,7 +110,9 @@ export class StatusController {
       const result = await StatusModel.deleteStatus(cleanUid, cleanParentId);
       res.status(200).json({ message: 'Status deleted successfully', data: result });
     } catch (error: any) {
-      res.status(500).json({ message: 'Failed to delete status', error: error.message });
+      res
+        .status(StatusController.getWriteErrorStatus(error.message || ''))
+        .json({ message: 'Failed to delete status', error: error.message });
       console.error('Status deletion error:', error);
     }
   }

@@ -15,6 +15,10 @@ statusRoutes.get('/getAllLatestStatuses', StatusController.getAllLatestStatuses)
 
 statusRoutes.get('/getStatusHistory', StatusController.getStatusHistory);
 
-statusRoutes.put('/resolvedStatus', StatusController.resolveStatus);
+statusRoutes.put(
+  '/resolvedStatus',
+  AdminMiddleware.blockLguWritesWhenClientDeletionScheduled,
+  StatusController.resolveStatus
+);
 
 export default statusRoutes;

@@ -28,6 +28,35 @@ const formatValue = (value: unknown): string => {
 
 const areSame = (before: unknown, after: unknown) => formatValue(before) === formatValue(after);
 
+const firstPresent = (...values: unknown[]): unknown =>
+  values.find(value => value !== undefined && value !== null && value !== '');
+
+const toMillis = (value: unknown): number | null => {
+  if (!value) return null;
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const parsed = new Date(value).getTime();
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+  const record = toRecord(value);
+  const seconds = record.seconds ?? record._seconds;
+  if (typeof seconds === 'number') return seconds * 1000;
+  return null;
+};
+
+const formatDateValue = (value: unknown): unknown => {
+  const millis = toMillis(value);
+  if (!millis) return value;
+  return new Intl.DateTimeFormat('en-PH', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(millis));
+};
+
 const flattenRecord = (value: unknown, prefix = ''): Record<string, unknown> => {
   const record = toRecord(value);
 
@@ -44,9 +73,119 @@ const flattenRecord = (value: unknown, prefix = ''): Record<string, unknown> => 
   }, {});
 };
 
+const COUNT_LABELS: Record<string, string> = {
+  residents: 'residents',
+  lguAdmins: 'LGU admins',
+  adminInvitations: 'admin invites',
+  statuses: 'status records',
+  evacuationCenters: 'evacuation centers',
+  announcements: 'announcements',
+  contacts: 'contacts',
+  notifications: 'notifications',
+  clientBoundaries: 'boundaries',
+  clientChangeRequests: 'change requests',
+  lguRequests: 'LGU requests',
+  clientArchive: 'archive snapshots',
+  clientRecord: 'client records',
+  operationalRecords: 'operational records',
+};
+
+const summarizeCounts = (value: unknown, emptyLabel = 'No affected records'): string => {
+  const record = toRecord(value);
+  const parts = Object.entries(COUNT_LABELS)
+    .map(([key, label]) => [label, Number(record[key] ?? 0)] as const)
+    .filter(([, count]) => Number.isFinite(count) && count > 0)
+    .map(([label, count]) => `${count} ${label}`);
+
+  return parts.length > 0 ? parts.join(', ') : emptyLabel;
+};
+
+const summarizeJobs = (jobsValue: unknown): string => {
+  if (!Array.isArray(jobsValue) || jobsValue.length === 0) return 'No due jobs';
+  const names = jobsValue.slice(0, 3).map(job => {
+    const record = toRecord(job);
+    const name = record.clientName || record.clientId || record.id || 'Client';
+    return record.status ? `${name} (${record.status})` : String(name);
+  });
+  return jobsValue.length > names.length ? `${names.join(', ')} +${jobsValue.length - names.length} more` : names.join(', ');
+};
+
+const summarizeJobProgress = (jobsValue: unknown): string => {
+  if (!Array.isArray(jobsValue) || jobsValue.length === 0) return 'No cleanup records';
+  const totals = jobsValue.reduce<Record<string, number>>((acc, job) => {
+    const progress = toRecord(toRecord(job).progress);
+    Object.keys(COUNT_LABELS).forEach(key => {
+      const count = Number(progress[key] ?? 0);
+      if (Number.isFinite(count) && count > 0) acc[key] = (acc[key] || 0) + count;
+    });
+    return acc;
+  }, {});
+  return summarizeCounts(totals, 'No cleanup records');
+};
+
+const getClientDeletionRows = (log: OperationLog, before: Record<string, any>, after: Record<string, any>): DiffRow[] | null => {
+  if (log.action === 'client.schedule_deletion') {
+    const afterClient = Object.keys(toRecord(after.client)).length ? toRecord(after.client) : after;
+    const job = toRecord(after.job);
+    const preview = toRecord(after.preview);
+    const dependencies = firstPresent(preview.dependencies, after.dependencies, after.affectedRecords);
+
+    return [
+      { label: 'Status', before: before.status || null, after: firstPresent(afterClient.status, 'deletion_scheduled') },
+      {
+        label: 'Effective date',
+        before: null,
+        after: formatDateValue(firstPresent(afterClient.deletionEffectiveAt, job.deletionEffectiveAt)),
+      },
+      { label: 'Reason', before: null, after: firstPresent(afterClient.deletionReason, job.deletionReason, after.reason) },
+      { label: 'Affected data', before: null, after: summarizeCounts(dependencies) },
+    ].filter(row => row.after !== undefined && !areSame(row.before, row.after));
+  }
+
+  if (log.action === 'client.cancel_deletion') {
+    const afterClient = Object.keys(toRecord(after.client)).length ? toRecord(after.client) : after;
+    const job = toRecord(after.job);
+
+    return [
+      { label: 'Status', before: before.status || 'deletion_scheduled', after: firstPresent(afterClient.status, 'inactive') },
+      {
+        label: 'Effective date',
+        before: formatDateValue(before.deletionEffectiveAt),
+        after: null,
+      },
+      { label: 'Job status', before: 'scheduled', after: firstPresent(job.status, after.jobStatus, 'cancelled') },
+    ].filter(row => !areSame(row.before, row.after));
+  }
+
+  if (log.action === 'client_deletion.process_due_jobs' || log.action === 'client_deletion.edge_process_due_jobs') {
+    return [
+      { label: 'Processed jobs', before: null, after: firstPresent(after.processed, 0) },
+      { label: 'Completed', before: null, after: firstPresent(after.completed, 0) },
+      { label: 'Failed', before: null, after: firstPresent(after.failed, 0) },
+      { label: 'Remaining due', before: null, after: after.remainingDue },
+      { label: 'Clients', before: null, after: summarizeJobs(after.jobs) },
+      { label: 'Cleanup summary', before: null, after: summarizeJobProgress(after.jobs) },
+    ].filter(row => row.after !== undefined && !areSame(row.before, row.after));
+  }
+
+  if (log.action === 'client_archive.permanent_delete') {
+    const counts = firstPresent(before.snapshotCounts, before.counts, before.cleanupProgress);
+
+    return [
+      { label: 'Archive', before: before.status || 'Archived', after: 'Permanently deleted' },
+      { label: 'Captured data', before: summarizeCounts(counts, 'Archive snapshot'), after: 'Removed' },
+      { label: 'Archived at', before: formatDateValue(before.archivedAt), after: null },
+    ].filter(row => row.before !== undefined && !areSame(row.before, row.after));
+  }
+
+  return null;
+};
+
 const getSimpleRows = (log: OperationLog): DiffRow[] | null => {
   const before = toRecord(log.before);
   const after = toRecord(log.after);
+  const clientDeletionRows = getClientDeletionRows(log, before, after);
+  if (clientDeletionRows) return clientDeletionRows;
 
   if (log.action === 'admin.invite') {
     return [{ label: 'Invitation', before: null, after: 'Created' }];

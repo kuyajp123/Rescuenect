@@ -48,6 +48,12 @@ export const SuperAdminAdmins = () => {
     direction: 'ascending',
   });
   const admins = useMemo(() => (data?.admins ?? []).filter(admin => admin.role === 'lgu_admin'), [data]);
+  const clients = useMemo(() => clientData?.clients ?? [], [clientData]);
+  const clientStatusById = useMemo(() => new Map(clients.map(client => [client.id, client.status])), [clients]);
+  const inviteEligibleClients = useMemo(
+    () => clients.filter(client => !['deletion_scheduled', 'deleting', 'deleted'].includes(client.status)),
+    [clients]
+  );
   const pages = Math.max(1, Math.ceil(admins.length / rowsPerPage));
 
   const sortedAdmins = useMemo(() => {
@@ -83,9 +89,12 @@ export const SuperAdminAdmins = () => {
   }, [page, pages]);
 
   useEffect(() => {
-    const firstClientId = clientData?.clients?.[0]?.id;
+    const firstClientId = inviteEligibleClients[0]?.id;
     if (!inviteClientId && firstClientId) setInviteClientId(firstClientId);
-  }, [clientData, inviteClientId]);
+    if (inviteClientId && !inviteEligibleClients.some(client => client.id === inviteClientId)) {
+      setInviteClientId(firstClientId || '');
+    }
+  }, [inviteEligibleClients, inviteClientId]);
 
   const inviteAdmin = async () => {
     if (!inviteEmail.trim() || !inviteClientId) {
@@ -93,27 +102,45 @@ export const SuperAdminAdmins = () => {
       return;
     }
 
-    const token = await getToken();
-    await axios.post(
-      API_ENDPOINTS.SUPER_ADMIN.INVITE_ADMIN,
-      { email: inviteEmail.trim(), role: 'lgu_admin', clientId: inviteClientId },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    addToast({ title: 'LGU admin invited', color: 'success' });
-    setInviteEmail('');
-    setIsInviteOpen(false);
-    refetch();
+    try {
+      const token = await getToken();
+      await axios.post(
+        API_ENDPOINTS.SUPER_ADMIN.INVITE_ADMIN,
+        { email: inviteEmail.trim(), role: 'lgu_admin', clientId: inviteClientId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      addToast({ title: 'LGU admin invited', color: 'success' });
+      setInviteEmail('');
+      setIsInviteOpen(false);
+      refetch();
+    } catch (error) {
+      addToast({
+        title: 'Invite failed',
+        description: axios.isAxiosError(error) ? error.response?.data?.message || error.message : 'Failed to invite admin',
+        color: 'danger',
+      });
+    }
   };
 
   const updateAdminStatus = async (admin: AdminUser, status: 'active' | 'inactive') => {
-    const token = await getToken();
-    await axios.patch(
-      API_ENDPOINTS.SUPER_ADMIN.UPDATE_ADMIN(admin.uid),
-      { status },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    addToast({ title: status === 'active' ? 'Admin activated' : 'Admin deactivated', color: 'success' });
-    refetch();
+    try {
+      const token = await getToken();
+      await axios.patch(
+        API_ENDPOINTS.SUPER_ADMIN.UPDATE_ADMIN(admin.uid),
+        { status },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      addToast({ title: status === 'active' ? 'Admin activated' : 'Admin deactivated', color: 'success' });
+      refetch();
+    } catch (error) {
+      addToast({
+        title: status === 'active' ? 'Activation blocked' : 'Update failed',
+        description: axios.isAxiosError(error)
+          ? error.response?.data?.message || error.message
+          : 'Failed to update admin status',
+        color: 'danger',
+      });
+    }
   };
 
   const deleteAdmin = async () => {
@@ -128,21 +155,32 @@ export const SuperAdminAdmins = () => {
     refetch();
   };
 
+  const getAdminClientStatus = (admin: AdminUser) =>
+    admin.clientStatus ?? (admin.clientId ? clientStatusById.get(admin.clientId) ?? null : null);
+
   const renderAdminActions = (admin: AdminUser) => {
     const isSelf = admin.uid === userData?.uid;
     const canDelete = admin.role === 'lgu_admin' && !isSelf;
     const isActive = admin.status === 'active';
+    const clientStatus = getAdminClientStatus(admin);
+    const canActivate = !isActive && clientStatus === 'active';
+    const activationTooltip =
+      clientStatus === 'deleted'
+        ? 'Deleted client admins cannot be activated'
+        : clientStatus
+          ? 'Assigned client must be active before activation'
+          : 'Assigned client was not found';
 
     return (
       <div className="flex items-center justify-center gap-1">
-        <Tooltip content={isActive ? 'Deactivate admin' : 'Activate admin'}>
+        <Tooltip content={isActive ? 'Deactivate admin' : canActivate ? 'Activate admin' : activationTooltip}>
           <Button
             isIconOnly
             size="sm"
             variant="light"
             color={isActive ? 'warning' : 'success'}
             aria-label={isActive ? 'Deactivate admin' : 'Activate admin'}
-            isDisabled={isSelf && isActive}
+            isDisabled={(isSelf && isActive) || (!isActive && !canActivate)}
             onPress={() => updateAdminStatus(admin, isActive ? 'inactive' : 'active')}
           >
             {isActive ? <UserX size={16} /> : <UserCheck size={16} />}
@@ -230,28 +268,36 @@ export const SuperAdminAdmins = () => {
           </TableColumn>
         </TableHeader>
         <TableBody emptyContent={loading ? 'Loading admins...' : 'No LGU admin accounts found'} items={paginatedAdmins}>
-          {admin => (
-            <TableRow key={admin.uid}>
-              <TableCell>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
-                    <Shield size={18} />
+          {admin => {
+            const clientStatus = getAdminClientStatus(admin);
+            return (
+              <TableRow key={admin.uid}>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
+                      <Shield size={18} />
+                    </div>
+                    <div>
+                      <p className="font-semibold">{admin.email}</p>
+                      <p className="text-xs text-default-500">{admin.uid}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold">{admin.email}</p>
-                    <p className="text-xs text-default-500">{admin.uid}</p>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1">
+                    <span>{admin.clientName || admin.clientId || 'System-wide'}</span>
+                    {clientStatus && <span className="text-xs text-default-500">Client status: {clientStatus}</span>}
                   </div>
-                </div>
-              </TableCell>
-              <TableCell>{admin.clientName || admin.clientId || 'System-wide'}</TableCell>
-              <TableCell>
-                <Chip size="sm" color={statusColor(admin.status) as any}>
-                  {admin.status}
-                </Chip>
-              </TableCell>
-              <TableCell>{renderAdminActions(admin)}</TableCell>
-            </TableRow>
-          )}
+                </TableCell>
+                <TableCell>
+                  <Chip size="sm" color={statusColor(admin.status) as any}>
+                    {admin.status}
+                  </Chip>
+                </TableCell>
+                <TableCell>{renderAdminActions(admin)}</TableCell>
+              </TableRow>
+            );
+          }}
         </TableBody>
       </Table>
 
@@ -272,7 +318,7 @@ export const SuperAdminAdmins = () => {
                   selectedKeys={inviteClientId ? [inviteClientId] : []}
                   onSelectionChange={keys => setInviteClientId(Array.from(keys)[0]?.toString() || '')}
                 >
-                  {(clientData?.clients ?? []).map(client => (
+                  {inviteEligibleClients.map(client => (
                     <SelectItem key={client.id}>{client.name}</SelectItem>
                   ))}
                 </Select>

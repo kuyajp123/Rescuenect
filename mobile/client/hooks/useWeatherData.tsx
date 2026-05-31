@@ -1,21 +1,5 @@
-import { getWeatherLocationKey } from '@/config/getUserLocation';
-import { ACTIVE_WEATHER_LOCATION_KEYS } from '@/config/locationConfig';
 import { db } from '@/lib/firebaseConfig';
 import { collection, onSnapshot } from 'firebase/firestore';
-
-const resolveWeatherLocationKey = (location: string): string => {
-  const trimmedLocation = location.trim();
-
-  if ((ACTIVE_WEATHER_LOCATION_KEYS as readonly string[]).includes(trimmedLocation)) {
-    return trimmedLocation;
-  }
-
-  try {
-    return getWeatherLocationKey(trimmedLocation);
-  } catch {
-    return trimmedLocation;
-  }
-};
 
 export const subscribeToWeatherData = (location: string | null | undefined, callback: (data: any) => void) => {
   try {
@@ -23,7 +7,7 @@ export const subscribeToWeatherData = (location: string | null | undefined, call
       return () => {};
     }
 
-    const weatherLocationKey = resolveWeatherLocationKey(location);
+    const weatherLocationKey = location.trim();
 
     const realtime = collection(db, 'weather', weatherLocationKey, 'realtime');
     const hourly = collection(db, 'weather', weatherLocationKey, 'hourly');

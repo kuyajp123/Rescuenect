@@ -4,6 +4,25 @@ import { db } from '@/db/firestoreConfig';
 export class SignInModel {
   private static userRef = (uid: string) => db.collection('users').doc(uid);
 
+  private static async withClientStatus(data: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const clientId = typeof data.clientId === 'string' && data.clientId.trim() ? data.clientId.trim() : null;
+    if (!clientId) {
+      return {
+        ...data,
+        clientStatus: null,
+        clientDeletionEffectiveAt: null,
+      };
+    }
+
+    const client = await ClientModel.getClientById(clientId);
+    return {
+      ...data,
+      clientStatus: client?.status ?? null,
+      clientDeletionEffectiveAt: client?.deletionEffectiveAt ?? null,
+      clientDeletionStatus: client?.deletionStatus ?? null,
+    };
+  }
+
   private static async getLocationUpgrade(data: any): Promise<DynamicResidentLocationSelection | null> {
     if (!data?.barangay || data?.clientId || data?.weatherLocationKey) {
       return null;
@@ -44,11 +63,11 @@ export class SignInModel {
           );
         }
 
-        return {
+        return this.withClientStatus({
           id: userDoc.id,
           ...existingData,
           ...(locationUpdate ?? {}),
-        };
+        });
       } else {
         const userData = {
           uid: data.uid,
@@ -61,10 +80,10 @@ export class SignInModel {
         };
 
         await this.userRef(uid).set(userData, { merge: true });
-        return {
+        return this.withClientStatus({
           id: uid,
           ...userData,
-        };
+        });
       }
     } catch (error) {
       console.error('Error signing in user:', error);

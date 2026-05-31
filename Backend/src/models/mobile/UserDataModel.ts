@@ -1,4 +1,5 @@
 import { admin, db, withRetry } from '@/db/firestoreConfig';
+import { ClientModel } from '@/models/admin/ClientModel';
 
 export class UserDataModel {
   private static pathRef(userId: string) {
@@ -84,9 +85,16 @@ export class UserDataModel {
         return null;
       }
 
+      const data = doc.data() ?? {};
+      const clientId = typeof data.clientId === 'string' && data.clientId.trim() ? data.clientId.trim() : null;
+      const client = clientId ? await ClientModel.getClientById(clientId) : null;
+
       return {
         id: doc.id,
-        ...doc.data(),
+        ...data,
+        clientStatus: client?.status ?? null,
+        clientDeletionEffectiveAt: client?.deletionEffectiveAt ?? null,
+        clientDeletionStatus: client?.deletionStatus ?? null,
       };
     } catch (error) {
       console.error('Error getting user profile:', error);

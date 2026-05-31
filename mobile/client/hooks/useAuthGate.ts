@@ -19,7 +19,7 @@ export const useAuthGate = () => {
 
   const profileStatus: ProfileStatus = !isProfileHydrated
     ? 'unknown'
-    : !hasText(userData?.barangay)
+    : !hasText(userData?.barangay) || !hasText(userData?.clientId) || !hasText(userData?.weatherLocationKey)
       ? 'missingBarangay'
       : !hasText(userData?.firstName) || !hasText(userData?.lastName) || !hasText(userData?.phoneNumber)
         ? 'missingContact'

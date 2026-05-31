@@ -9,6 +9,7 @@ import type {
   MapMarkerData,
   WeatherNotificationData,
 } from '@/types/types';
+import { getNotificationDisplayTimestamp } from '@/utils/notificationTime';
 import { Card, Chip, Divider, Spinner } from '@heroui/react';
 import axios from 'axios';
 import {
@@ -548,6 +549,7 @@ export const NotificationDetails = () => {
   };
 
   const isRead = notification.readBy?.includes(uid || '');
+  const displayTimestamp = getNotificationDisplayTimestamp(notification);
 
   return (
     <div className="w-full space-y-4">
@@ -594,8 +596,10 @@ export const NotificationDetails = () => {
             <div className="flex items-center gap-3">
               <Calendar size={18} className="text-default-400" />
               <div>
-                <p className="text-xs text-default-500">Date & Time</p>
-                <p className="font-medium">{formatDateTime(notification.timestamp)}</p>
+                <p className="text-xs text-default-500">
+                  {notification.type === 'earthquake' ? 'Event Date & Time' : 'Date & Time'}
+                </p>
+                <p className="font-medium">{formatDateTime(displayTimestamp)}</p>
               </div>
             </div>
 

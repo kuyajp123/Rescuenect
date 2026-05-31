@@ -1,6 +1,6 @@
 export type AdminRole = 'super_admin' | 'lgu_admin';
 export type AdminStatus = 'active' | 'inactive';
-export type ClientLguStatus = 'draft' | 'active' | 'inactive';
+export type ClientLguStatus = 'draft' | 'active' | 'inactive' | 'deletion_scheduled' | 'deleting' | 'deleted';
 export type ClientLguType = 'municipality' | 'city';
 export type LguRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 export type ClientChangeRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
@@ -67,6 +67,8 @@ export interface AdminUser {
   weatherLongitude?: number | null;
   mapSettings?: ClientMapSettings;
   clientBarangays?: ClientCoverageBarangay[];
+  clientStatus?: ClientLguStatus | null;
+  clientDeletionEffectiveAt?: unknown;
   status: AdminStatus;
   permissionsVersion: number;
   permissions: string[];
@@ -109,6 +111,87 @@ export interface ClientLgu {
   earthquakeSettings: ClientEarthquakeSettings;
   barangays: ClientCoverageBarangay[];
   requestId?: string | null;
+  deletionScheduledAt?: unknown;
+  deletionEffectiveAt?: unknown;
+  deletionRequestedBy?: string | null;
+  deletionReason?: string | null;
+  deletionCancelledAt?: unknown;
+  deletionStatus?: string | null;
+}
+
+export interface DynamicClientCutoverCollectionAudit {
+  scanned: number;
+  missingClientId: number;
+  invalidClientId: number;
+  eligibleForNaicMigration: number;
+  updated: number;
+  errors: string[];
+}
+
+export interface DynamicClientCutoverAudit {
+  dryRun: boolean;
+  collections: Record<string, DynamicClientCutoverCollectionAudit>;
+  totalScanned: number;
+  totalMissingClientId: number;
+  totalInvalidClientId: number;
+  totalEligibleForNaicMigration: number;
+  totalUpdated: number;
+  canCutover: boolean;
+}
+
+export interface ClientDeletionPreview {
+  canDelete: boolean;
+  canScheduleDeletion: boolean;
+  warnings: string[];
+  dependencies: Record<string, number>;
+}
+
+export interface ClientDeletionJob {
+  id: string;
+  clientId: string;
+  clientName: string;
+  status: 'scheduled' | 'running' | 'completed' | 'failed' | 'cancelled';
+  deletionEffectiveAt: unknown;
+  deletionScheduledAt?: unknown;
+  deletionRequestedBy?: string | null;
+  deletionReason?: string | null;
+  progress?: Record<string, number>;
+  errors?: string[];
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface ArchivedClientDocument {
+  id: string;
+  originalId: string;
+  originalPath: string;
+  data: Record<string, unknown>;
+}
+
+export interface ClientArchiveSummary {
+  id: string;
+  clientId: string;
+  clientName: string;
+  provinceName?: string | null;
+  municipalityName?: string | null;
+  status: 'archived';
+  counts: Record<string, number>;
+  deletionReason?: string | null;
+  deletionRequestedBy?: string | null;
+  deletionScheduledAt?: unknown;
+  deletionEffectiveAt?: unknown;
+  archivedAt?: unknown;
+  permanentlyDeletedAt?: unknown;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface ClientArchive extends ClientArchiveSummary {
+  client: Record<string, unknown>;
+  request: Record<string, unknown> | null;
+  deletion: Record<string, unknown>;
+  job: Record<string, unknown>;
+  collections: Record<string, ArchivedClientDocument[]>;
 }
 
 export interface LguRequest {
