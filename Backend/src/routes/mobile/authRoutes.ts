@@ -5,6 +5,6 @@ const authRoutes = Router();
 
 // sign in related routes
 authRoutes.post('/signin', SignInController.signIn);
-authRoutes.get('/config-diagnostics', SignInController.getConfigDiagnostics);
+// authRoutes.get('/config-diagnostics', SignInController.getConfigDiagnostics);
 
 export default authRoutes;

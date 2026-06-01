@@ -96,15 +96,22 @@ export const LguClientRequests = () => {
       return;
     }
 
-    const token = await getToken();
-    await axios.post(
-      API_ENDPOINTS.LGU_ADMIN.CREATE_CHANGE_REQUEST,
-      { type, proposedChanges },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    addToast({ title: 'Proposal submitted', color: 'success' });
-    refetch();
-    refetchClient();
+    try {
+      const token = await getToken();
+      await axios.post(
+        API_ENDPOINTS.LGU_ADMIN.CREATE_CHANGE_REQUEST,
+        { type, proposedChanges },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      addToast({ title: 'Proposal submitted', color: 'success' });
+      refetch();
+      refetchClient();
+    } catch (error) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || 'Failed to submit proposal'
+        : 'Failed to submit proposal';
+      addToast({ title: message, color: message.includes('No changes') ? 'warning' : 'danger' });
+    }
   };
 
   const cancelProposal = async (request: ClientChangeRequest) => {
