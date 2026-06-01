@@ -27,7 +27,7 @@ export class SignInModel {
       lastName: string;
       phone: string;
       bio: string;
-      barangay: string;
+      barangay?: string;
       address: string;
     }
   ): Promise<boolean> {
@@ -37,15 +37,22 @@ export class SignInModel {
         throw new Error('Admin user not found');
       }
 
-      const normalizedBarangay = normalizeBarangayValue(data.barangay);
       const update: Record<string, unknown> = {
-        ...data,
-        barangay: normalizedBarangay,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+        bio: data.bio,
+        address: data.address,
         onboardingComplete: true,
         updatedAt: new Date(),
       };
 
       if (adminUser.role === 'lgu_admin') {
+        if (!data.barangay) {
+          throw new Error('Barangay is required for LGU admins');
+        }
+
+        const normalizedBarangay = normalizeBarangayValue(data.barangay);
         const client = adminUser.clientId ? await ClientModel.getClientById(adminUser.clientId) : null;
         const barangay = client?.barangays
           .filter(item => item.isActive !== false)
@@ -57,8 +64,13 @@ export class SignInModel {
 
         update.clientId = client.id;
         update.clientName = client.name;
+        update.barangay = normalizedBarangay;
         update.barangayCode = barangay.barangayCode;
         update.barangayLabel = barangay.barangayLabel;
+      } else {
+        update.barangay = '';
+        update.barangayCode = null;
+        update.barangayLabel = null;
       }
 
       await db

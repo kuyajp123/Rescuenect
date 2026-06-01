@@ -2,7 +2,7 @@ import { getAdminBarangayOptions } from '@/helper/adminBarangayOptions';
 import { useAuth } from '@/stores/useAuth';
 import { useOnboardingStore } from '@/stores/useOnboardingStore';
 import { Button } from '@heroui/button';
-import { Input } from '@heroui/input';
+import { Input, Textarea } from '@heroui/input';
 import { Select, SelectItem } from '@heroui/select';
 import { ArrowRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -17,14 +17,28 @@ const AddressForm = () => {
   const [address, setAddress] = useState<string>(initialAddress);
   const [error, setError] = useState('');
   const sortedBarangays = useMemo(() => getAdminBarangayOptions(userData), [userData]);
+  const isSuperAdmin = userData?.role === 'super_admin';
 
   const handleNext = () => {
+    const trimmedAddress = address.trim();
+
+    if (isSuperAdmin) {
+      if (!trimmedAddress) {
+        setError('Enter your office address.');
+        return;
+      }
+
+      setAddressData('', trimmedAddress);
+      navigate('/info-setup');
+      return;
+    }
+
     if (sortedBarangays.length === 0) {
       setError('No active barangays are configured for your LGU client.');
       return;
     }
 
-    if (!barangay || !address) {
+    if (!barangay || !trimmedAddress) {
       setError('Please fill in all fields');
       return;
     }
@@ -34,7 +48,7 @@ const AddressForm = () => {
       return;
     }
 
-    setAddressData(barangay, address);
+    setAddressData(barangay, trimmedAddress);
     navigate('/info-setup');
   };
 
@@ -43,30 +57,45 @@ const AddressForm = () => {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Location Setup</h2>
-          <p className="text-gray-600 dark:text-gray-400">Select your deployed barangay and office address.</p>
+          <p className="text-gray-600 dark:text-gray-400">
+            {isSuperAdmin ? 'Enter your office or organization address.' : 'Select your deployed barangay and office address.'}
+          </p>
         </div>
 
         <div className="space-y-6">
-          <Select
-            label="Barangay"
-            placeholder="Select a barangay"
-            selectedKeys={barangay ? [barangay] : []}
-            onChange={e => setBarangay(e.target.value)}
-            errorMessage={!barangay && error ? 'Required' : ''}
-            className="w-full"
-            isDisabled={sortedBarangays.length === 0}
-            items={sortedBarangays}
-          >
-            {item => <SelectItem key={item.value}>{item.label}</SelectItem>}
-          </Select>
+          {isSuperAdmin ? (
+            <Textarea
+              label="Office Address"
+              placeholder="e.g. Rescuenect operations office, Cavite"
+              value={address}
+              onValueChange={setAddress}
+              errorMessage={!address.trim() && error ? 'Required' : ''}
+              minRows={3}
+            />
+          ) : (
+            <>
+              <Select
+                label="Barangay"
+                placeholder="Select a barangay"
+                selectedKeys={barangay ? [barangay] : []}
+                onChange={e => setBarangay(e.target.value)}
+                errorMessage={!barangay && error ? 'Required' : ''}
+                className="w-full"
+                isDisabled={sortedBarangays.length === 0}
+                items={sortedBarangays}
+              >
+                {item => <SelectItem key={item.value}>{item.label}</SelectItem>}
+              </Select>
 
-          <Input
-            label="Street Address / Office"
-            placeholder="e.g. Barangay Hall, Zone 1"
-            value={address}
-            onValueChange={setAddress}
-            errorMessage={!address && error ? 'Required' : ''}
-          />
+              <Input
+                label="Street Address / Office"
+                placeholder="e.g. Barangay Hall, Zone 1"
+                value={address}
+                onValueChange={setAddress}
+                errorMessage={!address.trim() && error ? 'Required' : ''}
+              />
+            </>
+          )}
 
           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 

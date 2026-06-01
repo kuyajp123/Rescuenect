@@ -12,9 +12,10 @@ import { useNavigate } from 'react-router-dom';
 const AdminInfo = () => {
   const navigate = useNavigate();
   const { barangay, address } = useOnboardingStore();
-  // const userData = useAuth(state => state.userData);
+  const userData = useAuth(state => state.userData);
   const updateUserData = useAuth(state => state.updateUserData);
   const auth = useAuth(state => state.auth);
+  const isSuperAdmin = userData?.role === 'super_admin';
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -30,7 +31,7 @@ const AdminInfo = () => {
       lastName,
       phone,
       bio,
-      barangay,
+      barangay: isSuperAdmin ? '' : barangay,
       address,
       onboardingComplete: true,
     });
@@ -57,8 +58,8 @@ const AdminInfo = () => {
       if (!auth) throw new Error('Not authenticated');
       const idToken = await auth.getIdToken();
 
-      // Ensure we have address data, if not redirect back
-      if (!barangay || !address) {
+      // Ensure we have location data, if not redirect back
+      if (!address || (!isSuperAdmin && !barangay)) {
         navigate('/address-setup');
         return;
       }
@@ -71,7 +72,7 @@ const AdminInfo = () => {
           lastName,
           phone,
           bio,
-          barangay,
+          ...(isSuperAdmin ? {} : { barangay }),
           address,
         },
         {
