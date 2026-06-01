@@ -42,8 +42,9 @@ export class LoginController {
 
   static async updateProfile(req: Request, res: Response): Promise<void> {
     const { uid, firstName, lastName, phone, bio, barangay, address } = req.body;
+    const isLguAdmin = req.adminUser?.role === 'lgu_admin';
 
-    if (!uid || !firstName || !lastName || !phone || !barangay || !address) {
+    if (!uid || !firstName || !lastName || !phone || !address || (isLguAdmin && !barangay)) {
       res.status(400).json({ message: 'Missing required fields' });
       return;
     }

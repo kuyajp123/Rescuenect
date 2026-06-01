@@ -1,4 +1,3 @@
-import { barangays } from '@/config/constant';
 import { sortBarangays } from '@/helper/commonHelpers';
 import type { UserData } from '@/stores/useAuth';
 
@@ -19,5 +18,5 @@ export const getAdminBarangayOptions = (userData: UserData | null): BarangayOpti
     );
   }
 
-  return sortBarangays(barangays);
+  return [];
 };

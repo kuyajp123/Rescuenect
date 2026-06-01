@@ -176,7 +176,7 @@ export class AdminAuthModel {
       email: normalizeEmail(params.email),
       uid: params.uid,
       fcmToken: params.fcmToken ?? existing.fcmToken ?? null,
-      barangay: existing.barangay || params.barangay || 'bancaan',
+      barangay: role === 'super_admin' ? existing.barangay ?? '' : existing.barangay || params.barangay || 'bancaan',
       role,
       clientId,
       clientName,

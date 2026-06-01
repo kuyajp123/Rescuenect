@@ -1,7 +1,7 @@
 import Label from '@/components/ui/forms/Label';
 import { getAdminBarangayOptions } from '@/helper/adminBarangayOptions';
 import { UserData } from '@/stores/useAuth';
-import { Button, Input, Select, SelectItem } from '@heroui/react';
+import { Button, Input, Select, SelectItem, Textarea } from '@heroui/react';
 import { useEffect, useMemo, useState } from 'react';
 
 interface UserAddressCardProps {
@@ -17,6 +17,7 @@ export default function UserAddressCard({ userData, onUpdate }: UserAddressCardP
   });
   const [isLoading, setIsLoading] = useState(false);
   const sortedBarangays = useMemo(() => getAdminBarangayOptions(userData), [userData]);
+  const isSuperAdmin = userData?.role === 'super_admin';
 
   useEffect(() => {
     if (userData) {
@@ -28,6 +29,27 @@ export default function UserAddressCard({ userData, onUpdate }: UserAddressCardP
   }, [userData]);
 
   const handleSave = async () => {
+    const trimmedAddress = formData.address.trim();
+
+    if (!trimmedAddress) {
+      alert('Enter an office address.');
+      return;
+    }
+
+    if (isSuperAdmin) {
+      setIsLoading(true);
+      try {
+        await onUpdate({ barangay: '', address: trimmedAddress });
+        setFormData(prev => ({ ...prev, barangay: '', address: trimmedAddress }));
+        setIsEditing(false);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     if (!sortedBarangays.some(item => item.value === formData.barangay)) {
       alert('Select a barangay covered by your LGU client.');
       return;
@@ -35,7 +57,7 @@ export default function UserAddressCard({ userData, onUpdate }: UserAddressCardP
 
     setIsLoading(true);
     try {
-      await onUpdate(formData);
+      await onUpdate({ ...formData, address: trimmedAddress });
       setIsEditing(false);
     } catch (error) {
       console.error(error);
@@ -62,7 +84,9 @@ export default function UserAddressCard({ userData, onUpdate }: UserAddressCardP
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="w-full">
           <div className="flex justify-between items-center mb-6">
-            <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">Address</h4>
+            <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+              {isSuperAdmin ? 'Office Address' : 'Address'}
+            </h4>
 
             {/* Action Buttons */}
             {isEditing ? (
@@ -99,45 +123,64 @@ export default function UserAddressCard({ userData, onUpdate }: UserAddressCardP
             )}
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
+          {isSuperAdmin ? (
             <div>
-              {!isEditing && <Label>Barangay</Label>}
+              {!isEditing && <Label>Office Address</Label>}
               {isEditing ? (
-                <Select
-                  placeholder="Select a barangay"
-                  selectedKeys={formData.barangay ? [formData.barangay] : []}
-                  onChange={e => setFormData(prev => ({ ...prev, barangay: e.target.value }))}
+                <Textarea
                   variant="bordered"
-                  items={sortedBarangays}
-                  isDisabled={sortedBarangays.length === 0}
-                  aria-label="Select Barangay"
-                  label="Barangay"
-                  labelPlacement="outside"
-                >
-                  {item => <SelectItem key={item.value}>{item.label}</SelectItem>}
-                </Select>
-              ) : (
-                <p className="text-sm font-medium text-gray-800 dark:text-white/90">{selectedBarangayLabel}</p>
-              )}
-            </div>
-
-            <div>
-              {!isEditing && <Label>Address</Label>}
-              {isEditing ? (
-                <Input
-                  type="text"
-                  variant="bordered"
-                  placeholder="Address"
+                  placeholder="Office address"
                   value={formData.address}
                   onValueChange={val => setFormData(prev => ({ ...prev, address: val }))}
-                  label="Address"
+                  label="Office Address"
                   labelPlacement="outside"
+                  minRows={3}
                 />
               ) : (
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">{userData?.address || '-'}</p>
               )}
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
+              <div>
+                {!isEditing && <Label>Barangay</Label>}
+                {isEditing ? (
+                  <Select
+                    placeholder="Select a barangay"
+                    selectedKeys={formData.barangay ? [formData.barangay] : []}
+                    onChange={e => setFormData(prev => ({ ...prev, barangay: e.target.value }))}
+                    variant="bordered"
+                    items={sortedBarangays}
+                    isDisabled={sortedBarangays.length === 0}
+                    aria-label="Select Barangay"
+                    label="Barangay"
+                    labelPlacement="outside"
+                  >
+                    {item => <SelectItem key={item.value}>{item.label}</SelectItem>}
+                  </Select>
+                ) : (
+                  <p className="text-sm font-medium text-gray-800 dark:text-white/90">{selectedBarangayLabel}</p>
+                )}
+              </div>
+
+              <div>
+                {!isEditing && <Label>Address</Label>}
+                {isEditing ? (
+                  <Input
+                    type="text"
+                    variant="bordered"
+                    placeholder="Address"
+                    value={formData.address}
+                    onValueChange={val => setFormData(prev => ({ ...prev, address: val }))}
+                    label="Address"
+                    labelPlacement="outside"
+                  />
+                ) : (
+                  <p className="text-sm font-medium text-gray-800 dark:text-white/90">{userData?.address || '-'}</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
