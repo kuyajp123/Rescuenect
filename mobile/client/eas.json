@@ -13,7 +13,8 @@
       },
       "env": {
         "APP_ENV": "local",
-        "APP_VARIANT": "development"
+        "APP_VARIANT": "local",
+        "EXPO_PUBLIC_BACKEND_URL": "https://rescuenect-staging-api.onrender.com"
       }
     },
     "staging": {
