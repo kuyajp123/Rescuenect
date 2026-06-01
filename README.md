@@ -164,7 +164,33 @@ Use this flow when testing the mobile app on a real Android phone from your loca
    adb devices -l
    ```
 
-7. Build and install the local development client on the phone:
+7. Choose environment and variant you want to install:
+
+   - For local development with the local backend, use the `development` profile (default):
+
+     ```bash
+     npx expo run:android --device
+     ```
+
+   - For staging backend testing, use the `staging` profile:
+
+     ```bash
+     $env:APP_ENV="staging"
+     $env:EXPO_PUBLIC_BACKEND_URL="https://rescuenect-staging-api.onrender.com"
+     npx expo prebuild --platform android --clean
+     npx expo run:android --variant release --device <device-id>
+     ```
+
+   - For production backend testing, use the `preview` profile:
+
+     ```bash
+     $env:APP_ENV="production-preview"
+     $env:EXPO_PUBLIC_BACKEND_URL="https://rescuenect-backend.onrender.com"
+     npx expo prebuild --platform android --clean
+     npx expo run:android --variant release --device <device-id>
+     ```
+
+8. Build and install the local development client on the phone:
 
    ```bash
    npx expo run:android --device
@@ -176,13 +202,13 @@ Use this flow when testing the mobile app on a real Android phone from your loca
    npx expo run:android --device <device-id>
    ```
 
-8. After the dev client is installed, start Metro over the local network:
+9. After the dev client is installed, start Metro over the local network:
 
    ```bash
    npx expo start --dev-client --lan
    ```
 
-9. Open the installed Rescuenect dev app on the phone or scan the QR code from the terminal.
+10. Open the installed Rescuenect dev app on the phone or scan the QR code from the terminal.
 
 For local backend testing, `mobile/client/.env` should point to your computer's LAN IP:
 
@@ -224,7 +250,33 @@ Use this when Wireless debugging is enabled and the dev client is not installed 
    adb devices -l
    ```
 
-6. Build and install the local development client on the wireless device:
+7. Choose environment and variant you want to install:
+
+   - For local development with the local backend, use the `development` profile (default):
+
+     ```bash
+     npx expo run:android --device
+     ```
+
+   - For staging backend testing, use the `staging` profile:
+
+     ```bash
+     $env:APP_ENV="staging"
+     $env:EXPO_PUBLIC_BACKEND_URL="https://rescuenect-staging-api.onrender.com"
+     npx expo prebuild --platform android --clean
+     npx expo run:android --variant release --device <phone-ip>:<debug-port>
+     ```
+
+   - For production backend testing, use the `preview` profile:
+
+     ```bash
+     $env:APP_ENV="production-preview"
+     $env:EXPO_PUBLIC_BACKEND_URL="https://rescuenect-backend.onrender.com"
+     npx expo prebuild --platform android --clean
+     npx expo run:android --variant release --device <phone-ip>:<debug-port>
+     ```
+
+8. Build and install the local development client on the wireless device:
 
    ```bash
    cd mobile/client
@@ -237,13 +289,13 @@ Use this when Wireless debugging is enabled and the dev client is not installed 
    npx expo run:android --device <phone-ip>:<debug-port>
    ```
 
-7. Start Metro over the local network:
+9. Start Metro over the local network:
 
    ```bash
    npx expo start --dev-client --lan
    ```
 
-8. Open the installed Rescuenect dev app on the phone or scan the QR code from the terminal.
+10. Open the installed Rescuenect dev app on the phone or scan the QR code from the terminal.
 
 Keep `EXPO_PUBLIC_BACKEND_URL` pointed at your computer's LAN IP when testing the local backend. Do not use `localhost` on a physical phone because it points to the phone itself, not your computer.
 
