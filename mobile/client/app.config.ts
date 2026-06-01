@@ -32,9 +32,9 @@ const variantConfig: Record<
   }
 > = {
   local: {
-    name: 'Rescuenect Dev',
-    scheme: 'rescuenect-dev',
-    androidPackage: 'com.yajeyps.client.dev',
+    name: 'Rescuenect Staging',
+    scheme: 'rescuenect-staging',
+    androidPackage: 'com.yajeyps.client.staging',
     googleServicesFile: './staging-google-services.json',
   },
   staging: {
