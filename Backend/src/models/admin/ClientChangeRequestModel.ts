@@ -2,6 +2,7 @@ import { db } from '@/db/firestoreConfig';
 // import { EmailService } from '@/services/EmailService';
 import { ManagementNotificationService } from '@/services/ManagementNotificationService';
 import type { ClientChangeRequest, ClientChangeRequestType, ClientLgu, ClientMapSettings } from '@/types/admin';
+import { areChangeValuesEqual, hasRecordChanges } from '@/utils/changeDetection';
 import { FieldValue } from 'firebase-admin/firestore';
 import { AdminAuthModel } from './AdminAuthModel';
 import { ClientModel, normalizeMapSettings, parseGeoJsonFromStorage, stringifyGeoJsonForStorage } from './ClientModel';
@@ -65,6 +66,37 @@ const snapshotForType = (client: ClientLgu, type: ClientChangeRequestType): Reco
     };
   }
   return {};
+};
+
+const hasProposalChanges = (
+  type: ClientChangeRequestType,
+  currentSnapshot: Record<string, unknown>,
+  proposedChanges: Record<string, unknown>
+): boolean => {
+  if (type === 'admin_invite' || type === 'boundary_update') return true;
+
+  if (type === 'weather_coordinates') {
+    return ['weatherLocationKey', 'weatherLatitude', 'weatherLongitude'].some(
+      key => !areChangeValuesEqual(currentSnapshot[key], proposedChanges[key])
+    );
+  }
+
+  if (type === 'map_settings') {
+    return !areChangeValuesEqual(currentSnapshot.mapSettings, proposedChanges.mapSettings);
+  }
+
+  if (type === 'barangay_coverage') {
+    return !areChangeValuesEqual(currentSnapshot.barangays, proposedChanges.barangays);
+  }
+
+  if (type === 'client_info') {
+    const currentForProposedKeys = Object.fromEntries(
+      Object.keys(proposedChanges).map(key => [key, currentSnapshot[key]])
+    );
+    return hasRecordChanges(currentForProposedKeys, proposedChanges);
+  }
+
+  return hasRecordChanges(currentSnapshot, proposedChanges);
 };
 
 const sanitizeProposal = (
@@ -182,12 +214,18 @@ export class ClientChangeRequestModel {
     if (!client) throw new Error('Client not found');
 
     const proposedChanges = sanitizeProposal(params.type, params.proposedChanges, client);
+    const currentSnapshot = snapshotForType(client, params.type);
+
+    if (!hasProposalChanges(params.type, currentSnapshot, proposedChanges)) {
+      throw new Error('No changes detected in proposal');
+    }
+
     const payload = {
       clientId: client.id,
       clientName: client.name,
       type: params.type,
       status: 'pending',
-      currentSnapshot: snapshotForType(client, params.type),
+      currentSnapshot,
       proposedChanges,
       requestedBy: params.requestedBy,
       requestedByEmail: params.requestedByEmail ?? null,

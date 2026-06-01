@@ -68,7 +68,7 @@ export class SignInController {
       }
 
       const payload = ticket.getPayload();
-      console.log('✅ Token verified successfully. Audience (aud):', payload?.aud);
+      // console.log('✅ Token verified successfully. Audience (aud):', payload?.aud);
       
       if (!payload || !payload.email) {
         res.status(401).json({ message: 'Invalid Google token' });
@@ -77,7 +77,7 @@ export class SignInController {
 
       // Log Firebase project info for debugging
       const firebaseProjectId = admin.app().options.projectId;
-      console.log('🔍 Creating custom token for Firebase project:', firebaseProjectId);
+      // console.log('🔍 Creating custom token for Firebase project:', firebaseProjectId);
 
       // Create or get Firebase user
       let firebaseUser;
@@ -99,7 +99,7 @@ export class SignInController {
 
       // Create custom token for client
       const customToken = await admin.auth().createCustomToken(firebaseUser.uid);
-      console.log('✅ Custom token created for project:', firebaseProjectId, 'user:', firebaseUser.uid);
+      // console.log('✅ Custom token created for project:', firebaseProjectId, 'user:', firebaseUser.uid);
 
       // Save/update user in your database
       const userData = await SignInModel.signInUser(firebaseUser.uid, {

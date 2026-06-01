@@ -22,6 +22,7 @@ import type {
   LguRequestStatus,
   SystemStatus,
 } from '@/types/admin';
+import { hasRecordChanges } from '@/utils/changeDetection';
 import { Request, Response } from 'express';
 
 const REVIEW_NOTE_WORD_LIMIT = 300;
@@ -40,19 +41,38 @@ const getReviewNote = (value: unknown): string | undefined => {
 const activeBarangayCount = (client: ClientLgu): number =>
   client.barangays.filter(barangay => barangay.isActive !== false).length;
 
+const barangayLogSnapshot = (client: ClientLgu): Record<string, unknown>[] =>
+  client.barangays
+    .map(barangay => ({
+      barangayCode: barangay.barangayCode ?? null,
+      barangayLabel: barangay.barangayLabel,
+      value: barangay.value,
+      isActive: barangay.isActive !== false,
+    }))
+    .sort((left, right) =>
+      String(left.barangayCode || left.value || left.barangayLabel).localeCompare(
+        String(right.barangayCode || right.value || right.barangayLabel)
+      )
+    );
+
 const clientLogSnapshot = (client: ClientLgu | null | undefined): Record<string, unknown> | null => {
   if (!client) return null;
 
   return {
     name: client.name,
     status: client.status,
+    regionCode: client.regionCode ?? null,
     provinceName: client.provinceName,
+    provinceCode: client.provinceCode,
     municipalityName: client.municipalityName,
+    municipalityCode: client.municipalityCode,
+    municipalityType: client.municipalityType ?? client.type ?? null,
     weatherLocationKey: client.weatherLocationKey,
     centerLatitude: client.weatherLatitude,
     centerLongitude: client.weatherLongitude,
     activeBarangays: activeBarangayCount(client),
     totalBarangays: client.barangays.length,
+    barangays: barangayLogSnapshot(client),
     mapSettings: {
       centerLatitude: client.mapSettings?.centerLatitude ?? null,
       centerLongitude: client.mapSettings?.centerLongitude ?? null,
@@ -62,6 +82,10 @@ const clientLogSnapshot = (client: ClientLgu | null | undefined): Record<string,
       maxBounds: client.mapSettings?.maxBounds ?? null,
       boundarySource: client.mapSettings?.boundarySource ?? null,
       boundaryVerified: client.mapSettings?.boundaryVerified ?? false,
+    },
+    earthquakeSettings: {
+      radiusKm: client.earthquakeSettings?.radiusKm ?? null,
+      minMagnitude: client.earthquakeSettings?.minMagnitude ?? null,
     },
     deletionScheduledAt: client.deletionScheduledAt ?? null,
     deletionEffectiveAt: client.deletionEffectiveAt ?? null,
@@ -457,19 +481,24 @@ export class SuperAdminController {
     try {
       const before = await ClientModel.getClientById(req.params.clientId);
       const client = await ClientModel.updateClient(req.params.clientId, req.body || {});
-      await OperationLogService.create({
-        actor: req.adminUser,
-        action: 'client.update',
-        actionLabel: 'Updated client',
-        targetType: 'client',
-        targetId: client.id,
-        targetName: client.name,
-        clientId: client.id,
-        clientName: client.name,
-        message: `${client.name} client settings were updated.`,
-        before: clientLogSnapshot(before),
-        after: clientLogSnapshot(client),
-      });
+      const beforeLog = clientLogSnapshot(before);
+      const afterLog = clientLogSnapshot(client);
+
+      if (hasRecordChanges(beforeLog, afterLog)) {
+        await OperationLogService.create({
+          actor: req.adminUser,
+          action: 'client.update',
+          actionLabel: 'Updated client',
+          targetType: 'client',
+          targetId: client.id,
+          targetName: client.name,
+          clientId: client.id,
+          clientName: client.name,
+          message: `${client.name} client settings were updated.`,
+          before: beforeLog,
+          after: afterLog,
+        });
+      }
       res.status(200).json({ client });
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : 'Failed to update client' });

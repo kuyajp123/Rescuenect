@@ -18,6 +18,24 @@ const getWebClientId = (googleServices: any) => {
 
 const googleWebClientId = getWebClientId(selectedGoogleServices);
 
+const getFirebaseClientConfig = (googleServices: any) => {
+  const projectInfo = googleServices?.project_info ?? {};
+  const client = googleServices?.client?.[0] ?? {};
+  const apiKey = client?.api_key?.[0]?.current_key;
+  const projectId = projectInfo?.project_id;
+
+  return {
+    apiKey,
+    authDomain: projectId ? `${projectId}.firebaseapp.com` : undefined,
+    projectId,
+    storageBucket: projectInfo?.storage_bucket,
+    messagingSenderId: projectInfo?.project_number,
+    appId: client?.client_info?.mobilesdk_app_id,
+  };
+};
+
+const firebaseConfig = getFirebaseClientConfig(selectedGoogleServices);
+
 export default ({ config }: { config: any }) => {
   return {
     ...config,
@@ -88,6 +106,8 @@ export default ({ config }: { config: any }) => {
     extra: {
       router: {},
       googleWebClientId,
+      firebaseConfig,
+      firebaseProjectId: firebaseConfig.projectId,
       eas: {
         projectId: 'b0c098eb-8a7f-4cbd-b1ea-2e6557df75f7',
       },

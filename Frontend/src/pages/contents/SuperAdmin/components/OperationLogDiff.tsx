@@ -26,7 +26,25 @@ const formatValue = (value: unknown): string => {
   return String(value);
 };
 
-const areSame = (before: unknown, after: unknown) => formatValue(before) === formatValue(after);
+const normalizeComparableValue = (value: unknown): unknown => {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? Number(value.toFixed(6)) : null;
+  if (Array.isArray(value)) return value.map(normalizeComparableValue);
+  if (typeof value === 'object' && value) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, entry]) => entry !== undefined)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entry]) => [key, normalizeComparableValue(entry)])
+    );
+  }
+
+  return value;
+};
+
+const stableStringify = (value: unknown): string => JSON.stringify(normalizeComparableValue(value));
+
+const areSame = (before: unknown, after: unknown) => stableStringify(before) === stableStringify(after);
 
 const firstPresent = (...values: unknown[]): unknown =>
   values.find(value => value !== undefined && value !== null && value !== '');
@@ -71,6 +89,51 @@ const flattenRecord = (value: unknown, prefix = ''): Record<string, unknown> => 
     acc[nextKey] = item;
     return acc;
   }, {});
+};
+
+const enabledBarangayLabel = (barangays: unknown) => {
+  if (!Array.isArray(barangays)) return 'None';
+  const enabled = barangays.filter(item => toRecord(item).isActive !== false).length;
+  return `${enabled} of ${barangays.length} enabled`;
+};
+
+const getBarangayKey = (item: unknown): string => {
+  const barangay = toRecord(item);
+  return String(barangay.barangayCode || barangay.value || barangay.barangayLabel || '');
+};
+
+const barangayRows = (beforeBarangays: unknown, afterBarangays: unknown): DiffRow[] => {
+  const beforeList: unknown[] = Array.isArray(beforeBarangays) ? beforeBarangays : [];
+  const afterList: unknown[] = Array.isArray(afterBarangays) ? afterBarangays : [];
+  const beforeMap = new Map<string, Record<string, any>>(beforeList.map(item => [getBarangayKey(item), toRecord(item)]));
+  const afterMap = new Map<string, Record<string, any>>(afterList.map(item => [getBarangayKey(item), toRecord(item)]));
+  const keys = Array.from(new Set([...beforeMap.keys(), ...afterMap.keys()])).filter(Boolean);
+
+  const changedBarangays = keys
+    .map(key => {
+      const beforeBarangay = beforeMap.get(key);
+      const afterBarangay = afterMap.get(key);
+      const label = afterBarangay?.barangayLabel || beforeBarangay?.barangayLabel || key;
+      const beforeStatus = beforeBarangay ? (beforeBarangay.isActive === false ? 'Disabled' : 'Enabled') : 'Missing';
+      const afterStatus = afterBarangay ? (afterBarangay.isActive === false ? 'Disabled' : 'Enabled') : 'Removed';
+
+      return { label: `Barangay: ${label}`, before: beforeStatus, after: afterStatus };
+    })
+    .filter(row => !areSame(row.before, row.after));
+
+  const rows = [
+    {
+      label: 'Enabled barangays',
+      before: enabledBarangayLabel(beforeList),
+      after: enabledBarangayLabel(afterList),
+    },
+    ...changedBarangays,
+  ].filter(row => !areSame(row.before, row.after));
+
+  if (rows.length > 0) return rows;
+  return areSame(beforeList, afterList)
+    ? []
+    : [{ label: 'Barangay coverage', before: `${beforeList.length} items`, after: `${afterList.length} items` }];
 };
 
 const COUNT_LABELS: Record<string, string> = {
@@ -260,16 +323,27 @@ const getRows = (log: OperationLog): DiffRow[] => {
   const simpleRows = getSimpleRows(log);
   if (simpleRows) return simpleRows;
 
+  const beforeRecord = toRecord(log.before);
+  const afterRecord = toRecord(log.after);
+  const specialRows: DiffRow[] = [];
+
+  if (Array.isArray(beforeRecord.barangays) || Array.isArray(afterRecord.barangays)) {
+    specialRows.push(...barangayRows(beforeRecord.barangays, afterRecord.barangays));
+  }
+
   const before = flattenRecord(log.before || {});
   const after = flattenRecord(log.after || {});
   const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)])).filter(key => {
     const lastSegment = key.split('.').pop() || key;
+    if (key === 'barangays') return false;
     return !TABLE_CONTEXT_KEYS.has(key) && !TABLE_CONTEXT_KEYS.has(lastSegment);
   });
 
-  return keys
+  const genericRows = keys
     .map(key => ({ label: humanize(key), before: before[key], after: after[key] }))
     .filter(row => !areSame(row.before, row.after));
+
+  return [...specialRows, ...genericRows];
 };
 
 export const OperationLogDiff = ({ log }: { log: OperationLog }) => {
