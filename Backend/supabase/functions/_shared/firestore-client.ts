@@ -7,42 +7,14 @@ declare const Deno: {
 
 import { cert, getApps, initializeApp, type ServiceAccount } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import {
+  NAIC_CLIENT_ID,
+  getBarangaysForWeatherLocationKey,
+  NAIC_WEATHER_LOCATION_KEY,
+  normalizeBarangayValue,
+} from './location-config.ts';
 import type { EarthquakeNotificationData, NotificationType, WeatherNotificationData } from './notification-schema.ts';
-import type { EarthquakeData } from './types.ts';
-
-// barangayMap['barangay name']
-export const barangayMap: Record<string, string> = {
-  labac: 'coastal_west',
-  mabolo: 'coastal_west',
-  bancaan: 'coastal_west',
-  balsahan: 'coastal_west',
-  'bagong karsada': 'coastal_west',
-  sapa: 'coastal_west',
-  'bucana sasahan': 'coastal_west',
-  'capt c. nazareno': 'coastal_west',
-  'gomez-zamora': 'coastal_west',
-  kanluran: 'coastal_west',
-  humbac: 'coastal_west',
-  'bucana malaki': 'coastal_east',
-  'ibayo estacion': 'coastal_east',
-  'ibayo silangan': 'coastal_east',
-  latoria: 'coastal_east',
-  'munting mapino': 'coastal_east',
-  'timalan balsahan': 'coastal_east',
-  'timalan concepcion': 'coastal_east',
-  muzon: 'central_naic',
-  'malainem bago': 'central_naic',
-  santulan: 'central_naic',
-  calubcob: 'central_naic',
-  makina: 'central_naic',
-  'san roque': 'central_naic',
-  sabang: 'sabang',
-  molino: 'farm_area',
-  halang: 'farm_area',
-  'palangue 1': 'farm_area',
-  'malainem luma': 'naic_boundary',
-  'palangue 2 & 3': 'naic_boundary',
-};
+import type { EarthquakeClientScope, EarthquakeData } from './types.ts';
 
 // Singleton pattern for Firebase initialization
 let firestoreInstance: Firestore | null = null;
@@ -208,17 +180,123 @@ export async function getWeatherForecastData(
 }
 
 /**
- * Get user FCM tokens and barangays based on audience and weather zone
+ * Get user FCM tokens and barangays based on audience and weather location key
  */
+type ClientCoverage = {
+  clientId: string;
+  clientName: string;
+  weatherLocationKey: string;
+  barangays: string[];
+};
+
+const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+
+function getTokensFromData(userData: Record<string, unknown>): string[] {
+  const tokens: string[] = [];
+
+  if (Array.isArray(userData.fcmTokens)) {
+    userData.fcmTokens.forEach(token => {
+      if (typeof token === 'string' && isValidToken(token)) tokens.push(token);
+    });
+  }
+
+  if (typeof userData.fcmToken === 'string' && isValidToken(userData.fcmToken)) {
+    tokens.push(userData.fcmToken);
+  }
+
+  return tokens;
+}
+
+function getActiveBarangaysFromClientData(data: Record<string, unknown> | undefined | null): string[] {
+  const barangays = Array.isArray(data?.barangays) ? data.barangays : [];
+  return barangays
+    .filter((barangay: Record<string, unknown>) => barangay.isActive !== false)
+    .map((barangay: Record<string, unknown>) => barangay.value || barangay.barangayLabel || barangay.name)
+    .filter((value: unknown): value is string => typeof value === 'string' && value.trim().length > 0)
+    .map(normalizeBarangayValue);
+}
+
+async function getClientCoverageByWeatherLocationKey(
+  db: Firestore,
+  weatherLocationKey: string
+): Promise<ClientCoverage | null> {
+  const staticBarangays = getBarangaysForWeatherLocationKey(weatherLocationKey);
+
+  const snapshot = await db
+    .collection('clients')
+    .where('status', '==', 'active')
+    .where('weatherLocationKey', '==', weatherLocationKey)
+    .limit(1)
+    .get();
+
+  const clientDoc = snapshot.empty ? await db.collection('clients').doc(weatherLocationKey).get() : snapshot.docs[0];
+  const clientData = clientDoc.exists ? clientDoc.data() : null;
+
+  if (!clientDoc.exists && staticBarangays.length === 0) return null;
+
+  return {
+    clientId: clientDoc.exists ? clientDoc.id : weatherLocationKey,
+    clientName:
+      typeof clientData?.name === 'string' && clientData.name.trim()
+        ? clientData.name.trim()
+        : weatherLocationKey === NAIC_WEATHER_LOCATION_KEY
+        ? 'Naic'
+        : weatherLocationKey,
+    weatherLocationKey,
+    barangays: getActiveBarangaysFromClientData(clientData).length
+      ? getActiveBarangaysFromClientData(clientData)
+      : staticBarangays,
+  };
+}
+
+async function getClientCoverageById(db: Firestore, clientId: string): Promise<ClientCoverage | null> {
+  const doc = await db.collection('clients').doc(clientId).get();
+  const data = doc.exists ? doc.data() : null;
+
+  if (!doc.exists && clientId !== NAIC_CLIENT_ID) return null;
+
+  const weatherLocationKey =
+    typeof data?.weatherLocationKey === 'string' && data.weatherLocationKey.trim()
+      ? data.weatherLocationKey.trim()
+      : clientId;
+
+  const staticBarangays = getBarangaysForWeatherLocationKey(weatherLocationKey);
+
+  return {
+    clientId,
+    clientName:
+      typeof data?.name === 'string' && data.name.trim()
+        ? data.name.trim()
+        : clientId === NAIC_CLIENT_ID
+        ? 'Naic'
+        : clientId,
+    weatherLocationKey,
+    barangays: getActiveBarangaysFromClientData(data).length
+      ? getActiveBarangaysFromClientData(data)
+      : staticBarangays,
+  };
+}
+
 export async function getUserTokens(
   audience: 'admin' | 'users' | 'both',
-  weatherZone?: string
+  weatherLocationKey?: string
 ): Promise<{ tokens: string[]; barangays: string[] }> {
   const db = initializeFirebase();
   const tokens: string[] = [];
-  const barangays: string[] = [];
+  const matchedBarangays: string[] = [];
+  const targetClient = weatherLocationKey
+    ? await getClientCoverageByWeatherLocationKey(db, weatherLocationKey)
+    : null;
+  const weatherLocationBarangays = targetClient?.barangays ?? [];
+  const coveredBarangays = weatherLocationKey ? new Set(weatherLocationBarangays) : null;
 
   try {
+    if (weatherLocationKey && weatherLocationBarangays.length === 0) {
+      console.warn(`No covered barangays configured for weather location key: ${weatherLocationKey}`);
+      return { tokens: [], barangays: [] };
+    }
+
     const collections = [];
 
     // Determine which collections to query
@@ -239,45 +317,35 @@ export async function getUserTokens(
         // Check if user wants notifications
         // if (userData.notificationsEnabled === false) return; // we send notifications to all users regardless of this setting
 
-        // Check barangay preferences if weather zone is specified
-        if (weatherZone && userData.barangay) {
-          // Ensure barangay is an array
+        if (collectionName === 'admin') {
+          if (userData.role === 'super_admin') return;
+          if (userData.status === 'inactive') return;
+          if (targetClient && userData.clientId !== targetClient.clientId) return;
+
+          tokens.push(...getTokensFromData(userData));
+          return;
+        }
+
+        if (coveredBarangays) {
           const userBarangays = Array.isArray(userData.barangay) ? userData.barangay : [userData.barangay];
+          const matchingBarangays = userBarangays
+            .filter((userBarangay: unknown): userBarangay is string => typeof userBarangay === 'string')
+            .map(normalizeBarangayValue)
+            .filter((userBarangay: string) => coveredBarangays.has(userBarangay));
 
-          if (userBarangays.length > 0) {
-            // Get user's barangays that match the weather zone
-            const matchingBarangays = userBarangays.filter((userBarangay: string) => {
-              const userBarangayZone = barangayMap[userBarangay.toLowerCase()];
-              return userBarangayZone === weatherZone;
-            });
-
-            if (matchingBarangays.length === 0) {
-              // User has no barangays in affected weather zone - skip this user
-              return;
-            }
-
-            // Add matching barangays to our collection
-            barangays.push(...matchingBarangays);
+          if (matchingBarangays.length === 0) {
+            return;
           }
+
+          matchedBarangays.push(...matchingBarangays);
         }
 
-        // Add FCM tokens if valid (supports both fcmTokens array and legacy fcmToken)
-        if (userData.fcmTokens && Array.isArray(userData.fcmTokens)) {
-          // New format: fcmTokens array
-          userData.fcmTokens.forEach((token: string) => {
-            if (isValidToken(token)) {
-              tokens.push(token);
-            }
-          });
-        } else if (userData.fcmToken && isValidToken(userData.fcmToken)) {
-          // Legacy format: single fcmToken (for backward compatibility)
-          tokens.push(userData.fcmToken);
-        }
+        tokens.push(...getTokensFromData(userData));
       });
     }
 
     const uniqueTokens = [...new Set(tokens)];
-    const uniqueBarangays = [...new Set(barangays)];
+    const uniqueBarangays = weatherLocationKey ? weatherLocationBarangays : [...new Set(matchedBarangays)];
 
     return {
       tokens: uniqueTokens,
@@ -287,6 +355,110 @@ export async function getUserTokens(
     console.error('Error fetching user tokens:', error);
     return { tokens: [], barangays: [] };
   }
+}
+
+export async function getUserTokensByClientId(
+  audience: 'admin' | 'users' | 'both',
+  clientId: string
+): Promise<{ tokens: string[]; barangays: string[]; clientName: string; weatherLocationKey: string }> {
+  const db = initializeFirebase();
+  const client = await getClientCoverageById(db, clientId);
+  if (!client) return { tokens: [], barangays: [], clientName: clientId, weatherLocationKey: clientId };
+
+  const tokens: string[] = [];
+  const matchedBarangays: string[] = [];
+  const coveredBarangays = new Set(client.barangays);
+  const collections = [];
+
+  if (audience === 'admin' || audience === 'both') collections.push('admin');
+  if (audience === 'users' || audience === 'both') collections.push('users');
+
+  for (const collectionName of collections) {
+    const snapshot = await db.collection(collectionName).get();
+    snapshot.forEach(doc => {
+      const userData = doc.data();
+
+      if (collectionName === 'admin') {
+        if (userData.role === 'super_admin') return;
+        if (userData.status === 'inactive') return;
+        if (userData.clientId !== client.clientId) return;
+        tokens.push(...getTokensFromData(userData));
+        return;
+      }
+
+      const directClientMatch = userData.clientId === client.clientId;
+      const userBarangays = Array.isArray(userData.barangay) ? userData.barangay : [userData.barangay];
+      const matchingBarangays = userBarangays
+        .filter((userBarangay: unknown): userBarangay is string => typeof userBarangay === 'string')
+        .map(normalizeBarangayValue)
+        .filter((userBarangay: string) => coveredBarangays.has(userBarangay));
+
+      if (!directClientMatch && matchingBarangays.length === 0) return;
+
+      matchedBarangays.push(...matchingBarangays);
+      tokens.push(...getTokensFromData(userData));
+    });
+  }
+
+  return {
+    tokens: [...new Set(tokens)],
+    barangays: client.barangays.length ? client.barangays : [...new Set(matchedBarangays)],
+    clientName: client.clientName,
+    weatherLocationKey: client.weatherLocationKey,
+  };
+}
+
+export async function getActiveEarthquakeClientScopes(): Promise<EarthquakeClientScope[]> {
+  const db = initializeFirebase();
+  const scopes: EarthquakeClientScope[] = [];
+
+  const snapshot = await db.collection('clients').where('status', '==', 'active').get();
+  snapshot.docs.forEach(doc => {
+    const data = doc.data();
+    const mapSettings =
+      data.mapSettings && typeof data.mapSettings === 'object'
+        ? (data.mapSettings as Record<string, unknown>)
+        : {};
+    const earthquakeSettings =
+      data.earthquakeSettings && typeof data.earthquakeSettings === 'object'
+        ? (data.earthquakeSettings as Record<string, unknown>)
+        : {};
+    const fallbackLatitude = isFiniteNumber(data.weatherLatitude) ? data.weatherLatitude : null;
+    const fallbackLongitude = isFiniteNumber(data.weatherLongitude) ? data.weatherLongitude : null;
+    const centerLatitude = isFiniteNumber(mapSettings.centerLatitude) ? mapSettings.centerLatitude : fallbackLatitude;
+    const centerLongitude = isFiniteNumber(mapSettings.centerLongitude)
+      ? mapSettings.centerLongitude
+      : fallbackLongitude;
+
+    if (!isFiniteNumber(centerLatitude) || !isFiniteNumber(centerLongitude)) {
+      console.warn(`Skipping earthquake scope for client ${doc.id}: missing coordinates`);
+      return;
+    }
+
+    scopes.push({
+      clientId: doc.id,
+      clientName:
+        typeof data.name === 'string' && data.name.trim()
+          ? data.name.trim()
+          : typeof data.municipalityName === 'string' && data.municipalityName.trim()
+          ? data.municipalityName.trim()
+          : doc.id,
+      weatherLocationKey:
+        typeof data.weatherLocationKey === 'string' && data.weatherLocationKey.trim()
+          ? data.weatherLocationKey.trim()
+          : doc.id,
+      centerLatitude,
+      centerLongitude,
+      radiusKm: clamp(isFiniteNumber(earthquakeSettings.radiusKm) ? earthquakeSettings.radiusKm : 150, 25, 500),
+      minMagnitude: clamp(
+        isFiniteNumber(earthquakeSettings.minMagnitude) ? earthquakeSettings.minMagnitude : 1.5,
+        0,
+        9
+      ),
+    });
+  });
+
+  return scopes;
 }
 
 /**
@@ -322,8 +494,11 @@ export async function saveNotificationHistory(
     const { NotificationService } = await import('./notification-service');
     const notificationService = new NotificationService(db);
 
-    // Prepare location
-    const location = metadata.weatherZone || metadata.location || 'central_naic';
+    // Prepare location. Weather history now uses the active municipality key.
+    const location =
+      notification.type === 'weather'
+        ? metadata.location || NAIC_WEATHER_LOCATION_KEY
+        : metadata.location || metadata.weatherZone || NAIC_WEATHER_LOCATION_KEY;
     const audience = metadata.audience || 'both';
 
     // Prepare delivery status
@@ -417,6 +592,36 @@ function isValidToken(token: string): boolean {
   return !!(token && token.length > 100 && token.includes(':'));
 }
 
+async function getCoveredBarangaysForWeatherLocationKey(
+  db: Firestore,
+  weatherLocationKey: string
+): Promise<string[]> {
+  const staticBarangays = getBarangaysForWeatherLocationKey(weatherLocationKey);
+
+  try {
+    const snapshot = await db
+      .collection('clients')
+      .where('status', '==', 'active')
+      .where('weatherLocationKey', '==', weatherLocationKey)
+      .limit(1)
+      .get();
+
+    const clientDoc = snapshot.empty ? await db.collection('clients').doc(weatherLocationKey).get() : snapshot.docs[0];
+    const clientData = clientDoc.exists ? clientDoc.data() : null;
+    const barangays = Array.isArray(clientData?.barangays) ? clientData.barangays : [];
+    const dynamicBarangays = barangays
+      .filter((barangay: Record<string, unknown>) => barangay.isActive !== false)
+      .map((barangay: Record<string, unknown>) => barangay.value || barangay.barangayLabel || barangay.name)
+      .filter((value: unknown): value is string => typeof value === 'string' && value.trim().length > 0)
+      .map(normalizeBarangayValue);
+
+    return dynamicBarangays.length > 0 ? dynamicBarangays : staticBarangays;
+  } catch (error) {
+    console.warn(`Unable to load dynamic barangay coverage for weather location ${weatherLocationKey}:`, error);
+    return staticBarangays;
+  }
+}
+
 function normalizeForComparison(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(normalizeForComparison);
@@ -493,6 +698,105 @@ export async function getNotificationStats(timeframe: 'today' | 'week' | 'month'
 // ========================
 // EARTHQUAKE FUNCTIONS
 // ========================
+
+const EARTHQUAKE_NOTIFICATION_DEDUP_COLLECTION = 'earthquakeNotificationDedup';
+const EARTHQUAKE_NOTIFICATION_RETRY_AFTER_MS = 5 * 60 * 1000;
+
+function safeFirestoreDocSegment(value: string): string {
+  return value.replace(/[^\w.-]/g, '_').slice(0, 700);
+}
+
+export function buildEarthquakeNotificationId(clientId: string, earthquakeId: string): string {
+  return `earthquake_${safeFirestoreDocSegment(clientId)}_${safeFirestoreDocSegment(earthquakeId)}`;
+}
+
+function isAlreadyExistsError(error: unknown): boolean {
+  const maybeError = error as { code?: unknown; message?: unknown };
+  return maybeError.code === 6 || String(maybeError.message || '').toLowerCase().includes('already exists');
+}
+
+export async function reserveEarthquakeNotification(params: {
+  clientId: string;
+  clientName?: string;
+  earthquakeId: string;
+  eventTime: number;
+  magnitude: number;
+  place: string;
+}): Promise<{ reserved: boolean; notificationId: string }> {
+  const db = initializeFirebase();
+  const notificationId = buildEarthquakeNotificationId(params.clientId, params.earthquakeId);
+  const dedupRef = db.collection(EARTHQUAKE_NOTIFICATION_DEDUP_COLLECTION).doc(notificationId);
+
+  try {
+    await dedupRef.create({
+      notificationId,
+      clientId: params.clientId,
+      clientName: params.clientName ?? params.clientId,
+      earthquakeId: params.earthquakeId,
+      eventTime: params.eventTime,
+      eventTimeIso: new Date(params.eventTime).toISOString(),
+      magnitude: params.magnitude,
+      place: params.place,
+      status: 'reserved',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    return { reserved: true, notificationId };
+  } catch (error) {
+    if (isAlreadyExistsError(error)) {
+      const existing = await dedupRef.get();
+      const data = existing.exists ? existing.data() : null;
+      const status = typeof data?.status === 'string' ? data.status : null;
+      const updatedAt = typeof data?.updatedAt === 'number' ? data.updatedAt : 0;
+      const retryCount = typeof data?.retryCount === 'number' ? data.retryCount : 0;
+      const canRetry = ['failed', 'reserved'].includes(status || '') && Date.now() - updatedAt >= EARTHQUAKE_NOTIFICATION_RETRY_AFTER_MS;
+
+      if (canRetry) {
+        await dedupRef.set(
+          {
+            notificationId,
+            clientId: params.clientId,
+            clientName: params.clientName ?? params.clientId,
+            earthquakeId: params.earthquakeId,
+            eventTime: params.eventTime,
+            eventTimeIso: new Date(params.eventTime).toISOString(),
+            magnitude: params.magnitude,
+            place: params.place,
+            status: 'reserved',
+            retryCount: retryCount + 1,
+            updatedAt: Date.now(),
+          },
+          { merge: true }
+        );
+
+        return { reserved: true, notificationId };
+      }
+
+      console.log(`Skipping duplicate earthquake notification: ${notificationId}`);
+      return { reserved: false, notificationId };
+    }
+
+    throw error;
+  }
+}
+
+export async function updateEarthquakeNotificationReservation(
+  notificationId: string,
+  update: Record<string, unknown>
+): Promise<void> {
+  const db = initializeFirebase();
+  await db
+    .collection(EARTHQUAKE_NOTIFICATION_DEDUP_COLLECTION)
+    .doc(notificationId)
+    .set(
+      {
+        ...update,
+        updatedAt: Date.now(),
+      },
+      { merge: true }
+    );
+}
 
 /**
  * Get existing earthquakes from Firestore to prevent duplicates

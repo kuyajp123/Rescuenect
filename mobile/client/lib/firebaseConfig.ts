@@ -1,6 +1,7 @@
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import { getApp as fcmGetApp } from '@react-native-firebase/app';
 import { getMessaging } from '@react-native-firebase/messaging';
+import Constants from 'expo-constants';
 import { FirebaseApp, getApp, getApps, initializeApp } from 'firebase/app';
 import { Auth, getAuth, getReactNativePersistence, initializeAuth } from 'firebase/auth';
 import { Firestore, getFirestore } from 'firebase/firestore';
@@ -23,6 +24,42 @@ type FirebaseConfig = {
 };
 
 let firebaseConfig: FirebaseConfig;
+
+const normalizeFirebaseConfig = (value: unknown): FirebaseConfig | null => {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const config = value as Partial<FirebaseConfig>;
+  const requiredFields: Array<keyof FirebaseConfig> = [
+    'apiKey',
+    'authDomain',
+    'projectId',
+    'storageBucket',
+    'messagingSenderId',
+    'appId',
+  ];
+  const missing = requiredFields.filter(field => !config[field]);
+
+  if (missing.length > 0) {
+    console.warn(`[Firebase] Ignoring incomplete app config. Missing: ${missing.join(', ')}`);
+    return null;
+  }
+
+  return {
+    apiKey: String(config.apiKey),
+    authDomain: String(config.authDomain),
+    projectId: String(config.projectId),
+    storageBucket: String(config.storageBucket),
+    messagingSenderId: String(config.messagingSenderId),
+    appId: String(config.appId),
+    measurementId: config.measurementId ? String(config.measurementId) : undefined,
+  };
+};
+
+const getFirebaseConfigFromExpoConfig = (): FirebaseConfig | null => {
+  return normalizeFirebaseConfig(Constants.expoConfig?.extra?.firebaseConfig);
+};
 
 const buildConfigFromEnvVars = (): { config: FirebaseConfig | null; missing: string[] } => {
   const apiKey = process.env.EXPO_PUBLIC_API_KEY;
@@ -62,13 +99,21 @@ const buildConfigFromEnvVars = (): { config: FirebaseConfig | null; missing: str
 };
 
 try {
-  if (firebaseConfigStr) {
+  const expoFirebaseConfig = getFirebaseConfigFromExpoConfig();
+  if (expoFirebaseConfig) {
+    firebaseConfig = expoFirebaseConfig;
+    console.log('[Firebase] Using app.config.ts Firebase config');
+    console.log('[Firebase] Project ID:', firebaseConfig.projectId);
+  } else if (firebaseConfigStr) {
     firebaseConfig = JSON.parse(firebaseConfigStr) as FirebaseConfig;
+    console.log('[Firebase] Using EXPO_PUBLIC_FIREBASE_CONFIG');
   } else {
     // Fallback: Check for individual variables if the single object isn't found
     const { config, missing } = buildConfigFromEnvVars();
     if (config) {
       firebaseConfig = config;
+      console.log('[Firebase] Using individual Firebase env vars');
+      console.log('[Firebase] Project ID:', config.projectId);
     } else {
       console.warn(
         `WARN: EXPO_PUBLIC_FIREBASE_CONFIG not found and missing individual vars: ${missing.join(', ')}. ` +
@@ -110,9 +155,12 @@ let app: FirebaseApp;
 if (getApps().length === 0) {
   // No Firebase apps initialized yet
   app = initializeApp(firebaseConfig);
+  console.log('[Firebase] App initialized');
+  console.log('[Firebase] Connected to project:', firebaseConfig.projectId);
 } else {
   // Firebase app already exists, get the existing one
   app = getApp();
+  console.log('[Firebase] Using existing Firebase App');
 }
 
 // Initialize Firestore

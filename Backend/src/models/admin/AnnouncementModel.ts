@@ -1,5 +1,6 @@
 import { db } from '@/db/firestoreConfig';
 import { AnnouncementThumbnailUploadService } from '@/services/announcementThumbnailUpload';
+import { getEffectiveClientId } from '@/utils/adminScope';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export class AnnouncementModel {
@@ -10,11 +11,13 @@ export class AnnouncementModel {
   public static async addAnnouncement(
     data: Record<string, unknown>,
     file: Express.Multer.File | undefined,
-    userId: string
+    userId: string,
+    clientId: string
   ): Promise<string> {
     try {
       const docRef = await this.pathRef().add({
         ...data,
+        clientId,
         thumbnail: null,
         createdAt: FieldValue.serverTimestamp(),
         createdBy: userId,
@@ -40,7 +43,8 @@ export class AnnouncementModel {
     announcementId: string,
     data: Record<string, unknown>,
     file: Express.Multer.File | undefined,
-    userId: string
+    userId: string,
+    clientId?: string
   ): Promise<void> {
     try {
       const docRef = this.pathRef().doc(announcementId);
@@ -49,8 +53,13 @@ export class AnnouncementModel {
         throw new Error('Announcement not found');
       }
 
+      if (clientId && getEffectiveClientId(doc.data() ?? {}) !== clientId) {
+        throw new Error('Announcement not found');
+      }
+
       const updatePayload: Record<string, unknown> = {
         ...data,
+        clientId,
         updatedAt: FieldValue.serverTimestamp(),
         updatedBy: userId,
       };
@@ -75,7 +84,7 @@ export class AnnouncementModel {
     }
   }
 
-  public static async deleteAnnouncement(announcementId: string): Promise<void> { 
+  public static async deleteAnnouncement(announcementId: string, clientId?: string): Promise<void> {
     try {
       const docRef = this.pathRef().doc(announcementId);
       const doc = await docRef.get();
@@ -84,6 +93,9 @@ export class AnnouncementModel {
       }
 
       const data = doc.data();
+      if (clientId && getEffectiveClientId(data ?? {}) !== clientId) {
+        throw new Error('Announcement not found');
+      }
       const thumbnailUrl = data?.thumbnail as string | undefined;
 
       if (thumbnailUrl) {
@@ -93,6 +105,44 @@ export class AnnouncementModel {
       await docRef.delete();
     } catch (error) {
       console.error('❌ Error in AnnouncementModel.deleteAnnouncement:', error);
+      throw error;
+    }
+  }
+
+  public static async getAnnouncements(clientId?: string): Promise<FirebaseFirestore.DocumentData[]> {
+    try {
+      const snapshot = await this.pathRef().orderBy('createdAt', 'desc').get();
+      const announcements: FirebaseFirestore.DocumentData[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const effectiveClientId = getEffectiveClientId(data);
+        if (clientId && effectiveClientId !== clientId) return;
+        announcements.push({ id: doc.id, ...data, clientId: effectiveClientId });
+      });
+      return announcements;
+    } catch (error) {
+      console.error('❌ Error in AnnouncementModel.getAnnouncements:', error);
+      throw error;
+    }
+  }
+
+  public static async getAnnouncementById(
+    announcementId: string,
+    clientId?: string
+  ): Promise<FirebaseFirestore.DocumentData | null> {
+    try {
+      const doc = await this.pathRef().doc(announcementId).get();
+      if (!doc.exists) return null;
+
+      const data = doc.data() ?? {};
+      const effectiveClientId = getEffectiveClientId(data);
+      if (clientId && effectiveClientId !== clientId) {
+        return null;
+      }
+
+      return { id: doc.id, ...data, clientId: effectiveClientId };
+    } catch (error) {
+      console.error('âŒ Error in AnnouncementModel.getAnnouncementById:', error);
       throw error;
     }
   }

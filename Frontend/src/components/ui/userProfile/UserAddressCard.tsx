@@ -1,6 +1,5 @@
 import Label from '@/components/ui/forms/Label';
-import { barangays } from '@/config/constant';
-import { sortBarangays } from '@/helper/commonHelpers';
+import { getAdminBarangayOptions } from '@/helper/adminBarangayOptions';
 import { UserData } from '@/stores/useAuth';
 import { Button, Input, Select, SelectItem } from '@heroui/react';
 import { useEffect, useMemo, useState } from 'react';
@@ -17,7 +16,7 @@ export default function UserAddressCard({ userData, onUpdate }: UserAddressCardP
     address: '',
   });
   const [isLoading, setIsLoading] = useState(false);
-  const sortedBarangays = useMemo(() => sortBarangays(barangays), []);
+  const sortedBarangays = useMemo(() => getAdminBarangayOptions(userData), [userData]);
 
   useEffect(() => {
     if (userData) {
@@ -29,6 +28,11 @@ export default function UserAddressCard({ userData, onUpdate }: UserAddressCardP
   }, [userData]);
 
   const handleSave = async () => {
+    if (!sortedBarangays.some(item => item.value === formData.barangay)) {
+      alert('Select a barangay covered by your LGU client.');
+      return;
+    }
+
     setIsLoading(true);
     try {
       await onUpdate(formData);
@@ -105,6 +109,7 @@ export default function UserAddressCard({ userData, onUpdate }: UserAddressCardP
                   onChange={e => setFormData(prev => ({ ...prev, barangay: e.target.value }))}
                   variant="bordered"
                   items={sortedBarangays}
+                  isDisabled={sortedBarangays.length === 0}
                   aria-label="Select Barangay"
                   label="Barangay"
                   labelPlacement="outside"

@@ -3,6 +3,7 @@ import { getUserTokens, getWeatherData, getWeatherForecastData, initializeFireba
 import type { WeatherNotificationData } from './notification-schema.ts';
 import { NotificationService } from './notification-service.ts';
 import { WeatherNotificationSystem, type WeatherData, type WeatherNotification } from './weather-notification-core.ts';
+import { getWeatherLocations } from './weather-utils.ts';
 
 export interface WeatherNotificationConfig {
   type: 'current' | 'forecast_3h' | 'forecast_tomorrow';
@@ -27,7 +28,6 @@ export interface WeatherNotificationResult {
 
 export class UnifiedWeatherProcessor {
   private weatherNotifier: WeatherNotificationSystem;
-  private locations = ['coastal_west', 'coastal_east', 'central_naic', 'sabang', 'farm_area', 'naic_boundary'];
 
   constructor() {
     this.weatherNotifier = new WeatherNotificationSystem();
@@ -48,15 +48,19 @@ export class UnifiedWeatherProcessor {
     console.log(`🌤️ Processing ${config.type} weather notifications...`);
 
     try {
-      for (const location of this.locations) {
+      const locations = await getWeatherLocations();
+
+      for (const location of locations) {
         try {
-          await this.processLocationWeather(location, config, result);
+          await this.processLocationWeather(location.key, config, result, location.clientId);
           result.locations_processed++;
 
           // Rate limiting between locations
           await this.delay(1000);
         } catch (error) {
-          const errorMsg = `Failed to process ${location}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          const errorMsg = `Failed to process ${location.key}: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`;
           console.error(`❌ ${errorMsg}`);
           result.errors.push(errorMsg);
         }
@@ -75,7 +79,8 @@ export class UnifiedWeatherProcessor {
   private async processLocationWeather(
     location: string,
     config: WeatherNotificationConfig,
-    result: WeatherNotificationResult
+    result: WeatherNotificationResult,
+    clientId?: string
   ): Promise<void> {
     // Get appropriate weather data based on notification type
     const weatherData = await this.getWeatherDataForType(location, config);
@@ -109,7 +114,7 @@ export class UnifiedWeatherProcessor {
     // Send notifications for each condition found
     for (const notification of filteredNotifications) {
       try {
-        await this.sendWeatherNotification(notification, location, config, result);
+        await this.sendWeatherNotification(notification, location, config, result, clientId);
       } catch (error) {
         const errorMsg = `Failed to send notification for ${location}: ${
           error instanceof Error ? error.message : 'Unknown error'
@@ -270,95 +275,102 @@ export class UnifiedWeatherProcessor {
     notification: WeatherNotification,
     location: string,
     config: WeatherNotificationConfig,
-    result: WeatherNotificationResult
+    result: WeatherNotificationResult,
+    clientId?: string
   ): Promise<void> {
-    // Get user tokens for the location/audience
-    const { tokens } = await getUserTokens(config.targetAudience, location);
-
-    if (tokens.length === 0) {
-      console.log(`No FCM tokens found for ${location}`);
-      return;
-    }
+    // Get user tokens for the location/audience.
+    // Tokens may be empty if the admin/residents have not enabled push notifications,
+    // but we still create the Firestore record so the in-app feed is always populated.
+    const { tokens, barangays } = await getUserTokens(config.targetAudience, location);
 
     // Create notification content with time context
     const notificationContent = this.createNotificationContent(notification, config);
 
-    // Send FCM notification
-    const fcmResult = await sendFCMNotification(notificationContent, tokens);
+    // Send FCM push notification only if tokens are available
+    let fcmResult: { success: number; failure: number; errors: string[] } = {
+      success: 0,
+      failure: 0,
+      errors: [],
+    };
 
-    if (fcmResult.success > 0) {
-      // Save to notification collection using new NotificationService
-      const db = initializeFirebase();
-      const notificationService = new NotificationService(db);
-
-      // Prepare weather notification data (only include defined values)
-      const weatherData: WeatherNotificationData = {
-        weatherType: config.type,
-        severity: notification.level,
-        category: notification.category,
-        priority: notification.priority,
-        source: 'weather_api',
-      };
-
-      // Only add metrics that are actually defined
-      if (notification.data?.temperature !== undefined)
-        weatherData.temperature = notification.data.temperature as number;
-      if (notification.data?.temperatureApparent !== undefined)
-        weatherData.temperatureApparent = notification.data.temperatureApparent as number;
-      if (notification.data?.humidity !== undefined) weatherData.humidity = notification.data.humidity as number;
-      if (notification.data?.rainIntensity !== undefined)
-        weatherData.rainIntensity = notification.data.rainIntensity as number;
-      if (notification.data?.rainAccumulation !== undefined)
-        weatherData.rainAccumulation = notification.data.rainAccumulation as number;
-      if (notification.data?.windSpeed !== undefined) weatherData.windSpeed = notification.data.windSpeed as number;
-      if (notification.data?.windGust !== undefined) weatherData.windGust = notification.data.windGust as number;
-      if (notification.data?.windDirection !== undefined)
-        weatherData.windDirection = notification.data.windDirection as number;
-      if (notification.data?.uvIndex !== undefined) weatherData.uvIndex = notification.data.uvIndex as number;
-      if (notification.data?.visibility !== undefined) weatherData.visibility = notification.data.visibility as number;
-      if (notification.data?.precipitationProbability !== undefined)
-        weatherData.precipitationProbability = notification.data.precipitationProbability as number;
-      if (notification.data?.weatherCode !== undefined)
-        weatherData.weatherCode = notification.data.weatherCode as number;
-      if (config.type !== 'current') weatherData.forecastTime = this.getForecastTimeString(config);
-      if (config.forecastHoursAhead !== undefined) weatherData.forecastHoursAhead = config.forecastHoursAhead;
-
-      // Create the notification in the new schema
-      const deliveryStatus: {
-        success: number;
-        failure: number;
-        errors?: string[];
-      } = {
-        success: fcmResult.success,
-        failure: fcmResult.failure,
-      };
-
-      // Only add errors array if there are actual errors
-      if (fcmResult.errors.length > 0) {
-        deliveryStatus.errors = fcmResult.errors;
-      }
-
-      await notificationService.createWeatherNotification({
-        title: notificationContent.title,
-        message: notificationContent.body,
-        location: location,
-        audience: config.targetAudience,
-        sentTo: fcmResult.success + fcmResult.failure,
-        weatherData: weatherData,
-        deliveryStatus: deliveryStatus,
-      });
-
-      result.notifications_sent++;
-      result.notifications_details.push({
-        location: location,
-        level: notification.level,
-        category: notification.category,
-        recipients: fcmResult.success,
-        title: notificationContent.title,
-      });
-
-      console.log(`✅ Notification sent to ${fcmResult.success} users in ${location}`);
+    if (tokens.length > 0) {
+      fcmResult = await sendFCMNotification(notificationContent, tokens);
+      console.log(`✅ Push notification sent to ${fcmResult.success} users in ${location}`);
+    } else {
+      console.log(`ℹ️ No FCM tokens for ${location} — saving notification record only (in-app feed)`);
     }
+
+    // Always save to the notification collection so the in-app feed is populated
+    // regardless of whether the user has enabled device push notifications.
+    const db = initializeFirebase();
+    const notificationService = new NotificationService(db);
+
+    // Prepare weather notification data (only include defined values)
+    const weatherData: WeatherNotificationData = {
+      weatherType: config.type,
+      severity: notification.level,
+      category: notification.category,
+      priority: notification.priority,
+      source: 'weather_api',
+    };
+
+    // Only add metrics that are actually defined
+    if (notification.data?.temperature !== undefined)
+      weatherData.temperature = notification.data.temperature as number;
+    if (notification.data?.temperatureApparent !== undefined)
+      weatherData.temperatureApparent = notification.data.temperatureApparent as number;
+    if (notification.data?.humidity !== undefined) weatherData.humidity = notification.data.humidity as number;
+    if (notification.data?.rainIntensity !== undefined)
+      weatherData.rainIntensity = notification.data.rainIntensity as number;
+    if (notification.data?.rainAccumulation !== undefined)
+      weatherData.rainAccumulation = notification.data.rainAccumulation as number;
+    if (notification.data?.windSpeed !== undefined) weatherData.windSpeed = notification.data.windSpeed as number;
+    if (notification.data?.windGust !== undefined) weatherData.windGust = notification.data.windGust as number;
+    if (notification.data?.windDirection !== undefined)
+      weatherData.windDirection = notification.data.windDirection as number;
+    if (notification.data?.uvIndex !== undefined) weatherData.uvIndex = notification.data.uvIndex as number;
+    if (notification.data?.visibility !== undefined) weatherData.visibility = notification.data.visibility as number;
+    if (notification.data?.precipitationProbability !== undefined)
+      weatherData.precipitationProbability = notification.data.precipitationProbability as number;
+    if (notification.data?.weatherCode !== undefined)
+      weatherData.weatherCode = notification.data.weatherCode as number;
+    if (config.type !== 'current') weatherData.forecastTime = this.getForecastTimeString(config);
+    if (config.forecastHoursAhead !== undefined) weatherData.forecastHoursAhead = config.forecastHoursAhead;
+
+    // Build delivery status — reflects actual push results (zeroed if no tokens)
+    const deliveryStatus: {
+      success: number;
+      failure: number;
+      errors?: string[];
+    } = {
+      success: fcmResult.success,
+      failure: fcmResult.failure,
+    };
+
+    if (fcmResult.errors.length > 0) {
+      deliveryStatus.errors = fcmResult.errors;
+    }
+
+    await notificationService.createWeatherNotification({
+      title: notificationContent.title,
+      message: notificationContent.body,
+      location: location,
+      clientId,
+      barangays,
+      audience: config.targetAudience,
+      sentTo: fcmResult.success + fcmResult.failure,
+      weatherData: weatherData,
+      deliveryStatus: deliveryStatus,
+    });
+
+    result.notifications_sent++;
+    result.notifications_details.push({
+      location: location,
+      level: notification.level,
+      category: notification.category,
+      recipients: fcmResult.success,
+      title: notificationContent.title,
+    });
   }
 
   /**

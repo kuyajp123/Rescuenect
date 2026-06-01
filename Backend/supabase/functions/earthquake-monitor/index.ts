@@ -1,17 +1,27 @@
 import { serve } from 'serve';
-import { fetchUSGSEarthquakes, processEarthquakeData, shouldNotify } from '../_shared/earthquake-utils.ts';
+import {
+  fetchUSGSEarthquakesForScope,
+  getEarthquakeEventAgeMinutes,
+  getEarthquakeHistoryConfig,
+  mergeClientEarthquakes,
+  processEarthquakeDataForScope,
+  shouldNotify,
+} from '../_shared/earthquake-utils.ts';
 import { sendEarthquakeNotification } from '../_shared/fcm-client.ts';
 import {
+  getActiveEarthquakeClientScopes,
+  reserveEarthquakeNotification,
   getExistingEarthquakes,
-  getUserTokens,
+  getUserTokensByClientId,
   initializeFirebase,
   replaceEarthquakesInFirestore,
+  updateEarthquakeNotificationReservation,
 } from '../_shared/firestore-client.ts';
 import type { EarthquakeNotificationData } from '../_shared/notification-schema.ts';
 import { NotificationService } from '../_shared/notification-service.ts';
-import type { EarthquakeMonitorResult } from '../_shared/types.ts';
+import type { ClientEarthquakeImpact, EarthquakeMonitorResult, ProcessedEarthquake } from '../_shared/types.ts';
 
-console.log('🌍 Earthquake Monitor Function Loaded');
+console.log('Earthquake Monitor Function Loaded');
 
 serve(async (req: Request) => {
   const startTime = performance.now();
@@ -27,28 +37,35 @@ serve(async (req: Request) => {
     });
   }
 
-  console.log('🔍 Starting earthquake monitoring cycle...');
+  console.log('Starting earthquake monitoring cycle...');
 
   try {
-    // Step 1: Fetch earthquake data from USGS
-    const rawEarthquakes = await fetchUSGSEarthquakes();
-    // const rawEarthquakes: unknown[] = []; // TEMPORARY DISABLE FETCHING FOR TESTING
-    // Step 2: Process earthquake data (even if empty array)
-    const processedEarthquakes = rawEarthquakes.map(processEarthquakeData);
+    const now = Date.now();
+    const historyConfig = getEarthquakeHistoryConfig();
+    const clientScopes = await getActiveEarthquakeClientScopes();
+    const processedByClient: ProcessedEarthquake[] = [];
 
-    // Step 3: Get existing earthquakes BEFORE replacing database (for notification logic)
+    for (const scope of clientScopes) {
+      try {
+        const rawEarthquakes = await fetchUSGSEarthquakesForScope(scope, { now });
+        processedByClient.push(...rawEarthquakes.map(earthquake => processEarthquakeDataForScope(earthquake, scope)));
+      } catch (error) {
+        console.error(`Failed to fetch earthquakes for ${scope.clientId}:`, error);
+      }
+    }
+
+    const processedEarthquakes = mergeClientEarthquakes(processedByClient);
     const existingEarthquakes = await getExistingEarthquakes();
 
-    // Step 4: Always replace earthquake database with current USGS data (even if empty)
     await replaceEarthquakesInFirestore(
       processedEarthquakes as unknown as Array<{ [key: string]: unknown; id: string }>,
       existingEarthquakes
     );
 
-    if (rawEarthquakes.length === 0) {
+    if (processedEarthquakes.length === 0) {
       return createResponse({
         success: true,
-        message: 'No earthquakes found in the region - database cleared',
+        message: `No earthquakes found in active client scopes for the last ${historyConfig.historyLookbackDays} day(s) - history cache cleared`,
         new_earthquakes: 0,
         notifications_sent: 0,
         total_processed: 0,
@@ -56,7 +73,6 @@ serve(async (req: Request) => {
       });
     }
 
-    // Step 5: Identify new earthquakes (for notifications only)
     const newEarthquakes = processedEarthquakes.filter(
       earthquake => !existingEarthquakes.some(existing => existing.id === earthquake.id)
     );
@@ -64,7 +80,7 @@ serve(async (req: Request) => {
     if (newEarthquakes.length === 0) {
       return createResponse({
         success: true,
-        message: 'No new earthquakes detected - database updated',
+        message: `${historyConfig.historyLookbackDays}-day earthquake history cache updated; no newly discovered events`,
         new_earthquakes: 0,
         notifications_sent: 0,
         total_processed: processedEarthquakes.length,
@@ -72,160 +88,129 @@ serve(async (req: Request) => {
       });
     }
 
-    // Step 6: Filter earthquakes that need notifications
-    const notifiableEarthquakes = newEarthquakes.filter(shouldNotify);
-
-    console.log(
-      `📢 Found ${newEarthquakes.length} new earthquakes, ${notifiableEarthquakes.length} need notifications`
-    );
-
     let notificationsSent = 0;
-    const notificationResults = [];
+    const notificationResults: Array<Record<string, unknown>> = [];
 
-    // Step 7: Send notifications for qualifying earthquakes
-    for (const earthquake of notifiableEarthquakes) {
-      try {
-        // Get all user tokens (both admin and users for earthquake alerts)
-        const { tokens } = await getUserTokens('both');
+    for (const earthquake of newEarthquakes) {
+      const impacts = earthquake.clientImpacts || [];
 
-        if (tokens.length === 0) {
-          console.log(`⚠️ No FCM tokens found for earthquake ${earthquake.id}`);
-          continue;
-        }
+      for (const impact of impacts) {
+        if (!shouldNotify(earthquake, impact)) continue;
 
-        // Send FCM notification using your existing function
-        const fcmResult = await sendEarthquakeNotification(earthquake, tokens);
+        let reservedNotificationId: string | null = null;
 
-        if (fcmResult.success > 0) {
-          // Save notification using new NotificationService
-          try {
-            const db = initializeFirebase();
-            const notificationService = new NotificationService(db);
+        try {
+          const { tokens, barangays, clientName, weatherLocationKey } = await getUserTokensByClientId(
+            'both',
+            impact.clientId
+          );
 
-            // Prepare earthquake notification data
-            // Map priority: 'normal' -> 'medium' for schema compatibility
-            const mappedPriority: 'critical' | 'high' | 'medium' | 'low' =
-              earthquake.priority === 'normal' ? 'medium' : earthquake.priority;
+          if (tokens.length === 0) {
+            console.log(`No FCM tokens found for earthquake ${earthquake.id} and client ${impact.clientId}`);
+            continue;
+          }
 
-            const earthquakeData: EarthquakeNotificationData = {
-              earthquakeId: earthquake.id,
+          const reservation = await reserveEarthquakeNotification({
+            clientId: impact.clientId,
+            clientName,
+            earthquakeId: earthquake.id,
+            eventTime: earthquake.time,
+            magnitude: earthquake.magnitude,
+            place: earthquake.place,
+          });
+
+          reservedNotificationId = reservation.notificationId;
+
+          if (!reservation.reserved) {
+            notificationResults.push({
+              earthquake_id: earthquake.id,
+              clientId: impact.clientId,
               magnitude: earthquake.magnitude,
-              place: earthquake.place,
-              coordinates: {
-                latitude: earthquake.coordinates.latitude,
-                longitude: earthquake.coordinates.longitude,
-                depth: earthquake.coordinates.depth,
-              },
-              severity: earthquake.severity,
-              tsunamiWarning: earthquake.tsunami_warning,
-              priority: mappedPriority,
-              usgsUrl: earthquake.usgs_url,
-              source: 'usgs',
-              distanceFromNaic: earthquake.distance_km,
-              impact_radii: {
-                felt_radius_km: earthquake.impact_radii.felt_radius_km,
-                moderate_shaking_radius_km: earthquake.impact_radii.moderate_shaking_radius_km,
-                strong_shaking_radius_km: earthquake.impact_radii.strong_shaking_radius_km,
-              },
-            };
-
-            // Prepare delivery status (only add errors if they exist)
-            const deliveryStatus: {
-              success: number;
-              failure: number;
-              errors?: string[];
-            } = {
-              success: fcmResult.success,
-              failure: fcmResult.failure,
-            };
-
-            if (fcmResult.errors.length > 0) {
-              deliveryStatus.errors = fcmResult.errors;
-            }
-
-            // Determine notification title based on severity
-            let title = '';
-            if (earthquake.tsunami_warning) {
-              title = `🌊 TSUNAMI WARNING - Magnitude ${earthquake.magnitude} Earthquake`;
-            } else if (earthquake.magnitude >= 6.0) {
-              title = `🚨 CRITICAL EARTHQUAKE - Magnitude ${earthquake.magnitude}`;
-            } else if (earthquake.magnitude >= 5.0) {
-              title = `🔴 Strong Earthquake - Magnitude ${earthquake.magnitude}`;
-            } else if (earthquake.magnitude >= 4.0) {
-              title = `🟠 Earthquake Alert - Magnitude ${earthquake.magnitude}`;
-            } else {
-              title = `🟡 Minor Earthquake - Magnitude ${earthquake.magnitude}`;
-            }
-
-            // Determine notification message
-            const timeString = new Date(earthquake.time).toLocaleString('en-PH', {
-              timeZone: 'Asia/Manila',
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
+              duplicate_skipped: true,
             });
+            continue;
+          }
 
-            let message = '';
-            if (earthquake.tsunami_warning) {
-              message = `🌊 TSUNAMI THREAT: Magnitude ${earthquake.magnitude} earthquake ${earthquake.place} at ${timeString}. MOVE TO HIGHER GROUND IMMEDIATELY!`;
-            } else if (earthquake.magnitude >= 6.0) {
-              message = `🆘 CRITICAL: Magnitude ${earthquake.magnitude} earthquake ${earthquake.place} at ${timeString}. TAKE IMMEDIATE SHELTER!`;
-            } else if (earthquake.magnitude >= 5.0) {
-              message = `⚠️ Strong earthquake detected: Magnitude ${earthquake.magnitude} ${earthquake.place} at ${timeString}. Take safety precautions!`;
-            } else if (earthquake.magnitude >= 4.0) {
-              message = `Magnitude ${earthquake.magnitude} earthquake occurred ${earthquake.place} at ${timeString}. Stay alert and follow safety protocols.`;
-            } else {
-              message = `Minor earthquake detected: Magnitude ${earthquake.magnitude} ${earthquake.place} at ${timeString}.`;
-            }
+          const fcmResult = await sendEarthquakeNotification(earthquake, tokens);
 
-            // Create the notification in the new schema
-            await notificationService.createEarthquakeNotification({
-              title: title,
-              message: message,
-              location: 'central_naic', // Default location for earthquake (affects all of Naic)
-              audience: 'both',
+          if (fcmResult.success > 0) {
+            await saveEarthquakeNotification({
+              notificationId: reservation.notificationId,
+              earthquake,
+              impact: { ...impact, clientName, weatherLocationKey },
+              barangays,
               sentTo: fcmResult.success + fcmResult.failure,
-              earthquakeData: earthquakeData,
-              deliveryStatus: deliveryStatus,
+              deliveryStatus: {
+                success: fcmResult.success,
+                failure: fcmResult.failure,
+                errors: fcmResult.errors.length ? fcmResult.errors : undefined,
+              },
             });
 
             earthquake.notification_sent = true;
-            notificationsSent++; // Only increment if notifications were actually sent
+            notificationsSent++;
 
-            console.log(`✅ Notification sent for earthquake ${earthquake.id} to ${fcmResult.success} users`);
-          } catch (historyError) {
-            console.error(`⚠️ Failed to save notification for ${earthquake.id}:`, historyError);
-            // Don't fail the whole process if notification saving fails
+            await updateEarthquakeNotificationReservation(reservation.notificationId, {
+              status: 'sent',
+              sentAt: Date.now(),
+              sentTo: fcmResult.success + fcmResult.failure,
+              deliveryStatus: {
+                success: fcmResult.success,
+                failure: fcmResult.failure,
+                errors: fcmResult.errors.length ? fcmResult.errors : undefined,
+              },
+            });
+          } else {
+            await updateEarthquakeNotificationReservation(reservation.notificationId, {
+              status: 'failed',
+              reason: 'FCM returned no successful deliveries',
+              sentTo: fcmResult.success + fcmResult.failure,
+              deliveryStatus: {
+                success: fcmResult.success,
+                failure: fcmResult.failure,
+                errors: fcmResult.errors.length ? fcmResult.errors : undefined,
+              },
+            });
           }
+
+          notificationResults.push({
+            earthquake_id: earthquake.id,
+            clientId: impact.clientId,
+            magnitude: earthquake.magnitude,
+            users_notified: fcmResult.success,
+            errors: fcmResult.errors,
+          });
+
+          await delay(1000);
+        } catch (error) {
+          console.error(`Failed to send notification for ${earthquake.id} and ${impact.clientId}:`, error);
+          if (reservedNotificationId) {
+            try {
+              await updateEarthquakeNotificationReservation(reservedNotificationId, {
+                status: 'failed',
+                reason: error instanceof Error ? error.message : 'Unknown error',
+              });
+            } catch (reservationError) {
+              console.error(`Failed to update earthquake dedupe reservation ${reservedNotificationId}:`, reservationError);
+            }
+          }
+          notificationResults.push({
+            earthquake_id: earthquake.id,
+            clientId: impact.clientId,
+            magnitude: earthquake.magnitude,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
         }
-
-        notificationResults.push({
-          earthquake_id: earthquake.id,
-          magnitude: earthquake.magnitude,
-          users_notified: fcmResult.success,
-          errors: fcmResult.errors,
-        });
-
-        // Rate limiting between notifications
-        await delay(1000);
-      } catch (error) {
-        console.error(`❌ Failed to send notification for earthquake ${earthquake.id}:`, error);
-        notificationResults.push({
-          earthquake_id: earthquake.id,
-          magnitude: earthquake.magnitude,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
       }
     }
 
     console.log(
-      `✅ Earthquake monitoring completed: ${newEarthquakes.length} new, ${notificationsSent} notifications sent`
+      `Earthquake monitoring completed: ${newEarthquakes.length} new, ${notificationsSent} client notifications sent`
     );
 
     return createResponse({
       success: true,
-      message: `Monitoring completed: ${newEarthquakes.length} new earthquakes, ${notificationsSent} notifications sent`,
+      message: `History cache updated: ${newEarthquakes.length} newly discovered earthquake record(s), ${notificationsSent} fresh client notification(s) sent`,
       new_earthquakes: newEarthquakes.length,
       notifications_sent: notificationsSent,
       total_processed: processedEarthquakes.length,
@@ -235,12 +220,13 @@ serve(async (req: Request) => {
         magnitude: eq.magnitude,
         place: eq.place,
         time: new Date(eq.time).toISOString(),
+        age_minutes: getEarthquakeEventAgeMinutes(eq.time),
         severity: eq.severity,
       })),
     });
   } catch (error) {
     const processingTime = Math.round(performance.now() - startTime);
-    console.error('❌ Earthquake monitoring failed:', error);
+    console.error('Earthquake monitoring failed:', error);
 
     return new Response(
       JSON.stringify({
@@ -264,9 +250,94 @@ serve(async (req: Request) => {
   }
 });
 
-/**
- * Create standardized response
- */
+async function saveEarthquakeNotification(params: {
+  notificationId: string;
+  earthquake: ProcessedEarthquake;
+  impact: ClientEarthquakeImpact;
+  barangays: string[];
+  sentTo: number;
+  deliveryStatus: { success: number; failure: number; errors?: string[] };
+}) {
+  const db = initializeFirebase();
+  const notificationService = new NotificationService(db);
+  const { earthquake, impact } = params;
+  const mappedPriority: 'critical' | 'high' | 'medium' | 'low' =
+    earthquake.priority === 'normal' ? 'medium' : earthquake.priority;
+  const timeString = new Date(earthquake.time).toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const title = getEarthquakeTitle(earthquake);
+  const message = getEarthquakeMessage(earthquake, timeString);
+  const earthquakeData: EarthquakeNotificationData = {
+    earthquakeId: earthquake.id,
+    magnitude: earthquake.magnitude,
+    place: earthquake.place,
+    eventTime: earthquake.time,
+    eventTimeIso: new Date(earthquake.time).toISOString(),
+    coordinates: {
+      latitude: earthquake.coordinates.latitude,
+      longitude: earthquake.coordinates.longitude,
+      depth: earthquake.coordinates.depth,
+    },
+    severity: earthquake.severity,
+    tsunamiWarning: earthquake.tsunami_warning,
+    priority: mappedPriority,
+    usgsUrl: earthquake.usgs_url,
+    source: 'usgs',
+    clientId: impact.clientId,
+    clientName: impact.clientName,
+    distanceFromClient: impact.distanceKm,
+    distanceFromNaic: impact.clientId === 'naic' ? impact.distanceKm : undefined,
+    impact_radii: {
+      felt_radius_km: earthquake.impact_radii.felt_radius_km,
+      moderate_shaking_radius_km: earthquake.impact_radii.moderate_shaking_radius_km,
+      strong_shaking_radius_km: earthquake.impact_radii.strong_shaking_radius_km,
+    },
+  };
+
+  await notificationService.createEarthquakeNotification({
+    notificationId: params.notificationId,
+    title,
+    message,
+    location: impact.weatherLocationKey,
+    clientId: impact.clientId,
+    barangays: params.barangays,
+    audience: 'both',
+    sentTo: params.sentTo,
+    earthquakeData,
+    deliveryStatus: params.deliveryStatus,
+  });
+}
+
+function getEarthquakeTitle(earthquake: ProcessedEarthquake): string {
+  if (earthquake.tsunami_warning) return `Tsunami warning - magnitude ${earthquake.magnitude} earthquake`;
+  if (earthquake.magnitude >= 6.0) return `Critical earthquake - magnitude ${earthquake.magnitude}`;
+  if (earthquake.magnitude >= 5.0) return `Strong earthquake - magnitude ${earthquake.magnitude}`;
+  if (earthquake.magnitude >= 4.0) return `Earthquake alert - magnitude ${earthquake.magnitude}`;
+  return `Minor earthquake - magnitude ${earthquake.magnitude}`;
+}
+
+function getEarthquakeMessage(earthquake: ProcessedEarthquake, timeString: string): string {
+  if (earthquake.tsunami_warning) {
+    return `Tsunami threat: Magnitude ${earthquake.magnitude} earthquake ${earthquake.place} at ${timeString}. Move to higher ground immediately.`;
+  }
+  if (earthquake.magnitude >= 6.0) {
+    return `Critical: Magnitude ${earthquake.magnitude} earthquake ${earthquake.place} at ${timeString}. Take immediate shelter.`;
+  }
+  if (earthquake.magnitude >= 5.0) {
+    return `Strong earthquake detected: Magnitude ${earthquake.magnitude} ${earthquake.place} at ${timeString}. Take safety precautions.`;
+  }
+  if (earthquake.magnitude >= 4.0) {
+    return `Magnitude ${earthquake.magnitude} earthquake occurred ${earthquake.place} at ${timeString}. Stay alert and follow safety protocols.`;
+  }
+  return `Minor earthquake detected: Magnitude ${earthquake.magnitude} ${earthquake.place} at ${timeString}.`;
+}
+
 function createResponse(data: EarthquakeMonitorResult): Response {
   return new Response(JSON.stringify(data), {
     status: 200,
@@ -277,9 +348,6 @@ function createResponse(data: EarthquakeMonitorResult): Response {
   });
 }
 
-/**
- * Utility delay function
- */
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }

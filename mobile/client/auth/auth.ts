@@ -4,13 +4,14 @@ import { storageHelpers } from '@/helper/storage';
 import { auth } from '@/lib/firebaseConfig';
 import { navigateToSignIn } from '@/routes/route';
 import { FCMTokenService } from '@/services/fcmTokenService';
+import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
 import { useCoords } from '@/store/useCoords';
 import { useImagePickerStore } from '@/store/useImagePicker';
 import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import { useStatusFormStore } from '@/store/useStatusForm';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-import axios from 'axios';
+import axios, { isAxiosError } from 'axios';
 import { signInWithCustomToken } from 'firebase/auth';
 import { Alert } from 'react-native';
 
@@ -26,7 +27,7 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
     // Ensure we are in a clean state to force account picker
     try {
       await GoogleSignin.signOut();
-    } catch (e) {
+    } catch {
       // Ignore errors if already signed out
     }
 
@@ -57,17 +58,39 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
       }
     );
 
+    const responseUser = response.data.user;
+
+    const nextUserData = {
+      ...userData,
+      firstName: responseUser.firstName,
+      lastName: responseUser.lastName,
+      barangay: responseUser.barangay ?? '',
+      phoneNumber: responseUser.phoneNumber ?? '',
+      fcmToken: responseUser.fcmToken ?? userData.fcmToken ?? null,
+      clientId: responseUser.clientId ?? userData.clientId,
+      clientName: responseUser.clientName ?? userData.clientName,
+      clientStatus: responseUser.clientStatus ?? null,
+      clientDeletionEffectiveAt: responseUser.clientDeletionEffectiveAt ?? null,
+      clientDeletionStatus: responseUser.clientDeletionStatus ?? null,
+      provinceCode: responseUser.provinceCode ?? userData.provinceCode,
+      provinceName: responseUser.provinceName ?? userData.provinceName,
+      municipalityCode: responseUser.municipalityCode ?? userData.municipalityCode,
+      municipalityName: responseUser.municipalityName ?? userData.municipalityName,
+      municipalityType: responseUser.municipalityType ?? userData.municipalityType,
+      barangayCode: responseUser.barangayCode ?? userData.barangayCode,
+      barangayLabel: responseUser.barangayLabel ?? userData.barangayLabel,
+      weatherLocationKey: responseUser.weatherLocationKey ?? userData.weatherLocationKey,
+      weatherLatitude: responseUser.weatherLatitude ?? userData.weatherLatitude,
+      weatherLongitude: responseUser.weatherLongitude ?? userData.weatherLongitude,
+      mapSettings: responseUser.mapSettings ?? userData.mapSettings ?? null,
+    };
+
     // Store backend response BEFORE Firebase auth state changes
     setUserData({
       isNewUser: response.data.isNewUser,
-      userData: {
-        ...userData,
-        firstName: response.data.user.firstName,
-        lastName: response.data.user.lastName,
-        barangay: response.data.user.barangay,
-        phoneNumber: response.data.user.phoneNumber,
-      },
+      userData: nextUserData,
     });
+    await storageHelpers.setData(STORAGE_KEYS.USER, nextUserData);
 
     // Sign in to Firebase with custom token AFTER storing response
     await signInWithCustomToken(auth, response.data.token);
@@ -75,9 +98,14 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
 
     // Clear sign-out flag since user is now signed in
     await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', false);
+    await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'isGuestMode', false);
+    useAuth.getState().setHasSignedOut(false);
+    useAuth.getState().setGuest(false);
+    useAuth.getState().setGuestIntent(false);
+    useAuth.getState().setShowingSetupComplete(false);
 
     setLoading?.(false);
-    // Note: Navigation for complete users will be handled by the auth state listener in firebaseAuth.ts
+    // Route guards decide whether this lands in setup or the main app.
   } catch (error: any) {
     setLoading?.(false);
 
@@ -87,7 +115,7 @@ export const handleGoogleSignIn = async (setLoading?: (loading: boolean) => void
     }
 
     console.error('❌ Google Sign-In error:', error);
-    const backendError = axios.isAxiosError(error)
+    const backendError = isAxiosError(error)
       ? {
           status: error.response?.status,
           data: error.response?.data,
@@ -133,9 +161,8 @@ const safeGoogleSignOut = async () => {
     if (isSignedIn) {
       try {
         await GoogleSignin.revokeAccess();
-      } catch (error: any) {
+      } catch {
         // If revoke fails, we still want to try signing out
-        // console.warn('Google revokeAccess failed:', error);
       }
       await GoogleSignin.signOut();
     }
@@ -157,6 +184,7 @@ export const handleLogout = async () => {
   const setImage = useImagePickerStore.getState().setImage;
   const clearLocations = useSavedLocationsStore.getState().clearLocations;
   const authUser = auth.currentUser;
+  const resetAuth = useAuth.getState().resetAuth;
 
   try {
     resetFormData();
@@ -165,6 +193,8 @@ export const handleLogout = async () => {
     await storageHelpers.removeData(STORAGE_KEYS.USER);
     // Set sign-out flag to indicate intentional sign-out
     await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', true);
+    await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'isGuestMode', false);
+    resetAuth();
 
     await storageHelpers.removeData(STORAGE_KEYS.SAVED_LOCATIONS);
     clearLocations();
@@ -183,10 +213,11 @@ export const handleLogout = async () => {
     await safeGoogleSignOut();
 
     resetResponse();
+    useAuth.getState().setAuthUser(null);
     setFormData(null);
     setImage(null);
 
-    // Note: Navigation will be handled by the auth state listener in firebaseAuth.ts
+    // Route guards also protect the app group, but this keeps logout feeling immediate.
     navigateToSignIn();
   } catch (error) {
     console.error('❌ Logout error:', error);
@@ -197,6 +228,10 @@ export const handleLogout = async () => {
     // Attempt to clear state and navigate anyway
     resetFormData();
     resetResponse();
+    useAuth.getState().setAuthUser(null);
+    useAuth.getState().setHasSignedOut(true);
+    useAuth.getState().setGuestIntent(false);
+    useAuth.getState().setShowingSetupComplete(false);
     navigateToSignIn();
 
     // Only alert if it's a critical error that prevents logout feeling effective

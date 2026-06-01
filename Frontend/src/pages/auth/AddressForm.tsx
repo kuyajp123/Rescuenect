@@ -1,5 +1,5 @@
-import { barangays } from '@/config/constant';
-import { sortBarangays } from '@/helper/commonHelpers';
+import { getAdminBarangayOptions } from '@/helper/adminBarangayOptions';
+import { useAuth } from '@/stores/useAuth';
 import { useOnboardingStore } from '@/stores/useOnboardingStore';
 import { Button } from '@heroui/button';
 import { Input } from '@heroui/input';
@@ -11,17 +11,29 @@ import { useNavigate } from 'react-router-dom';
 const AddressForm = () => {
   const navigate = useNavigate();
   const { setAddressData, barangay: initialBarangay, address: initialAddress } = useOnboardingStore();
+  const userData = useAuth(state => state.userData);
 
   const [barangay, setBarangay] = useState<string>(initialBarangay);
   const [address, setAddress] = useState<string>(initialAddress);
   const [error, setError] = useState('');
-  const sortedBarangays = useMemo(() => sortBarangays(barangays), []);
+  const sortedBarangays = useMemo(() => getAdminBarangayOptions(userData), [userData]);
 
   const handleNext = () => {
+    if (sortedBarangays.length === 0) {
+      setError('No active barangays are configured for your LGU client.');
+      return;
+    }
+
     if (!barangay || !address) {
       setError('Please fill in all fields');
       return;
     }
+
+    if (!sortedBarangays.some(item => item.value === barangay)) {
+      setError('Select a barangay covered by your LGU client.');
+      return;
+    }
+
     setAddressData(barangay, address);
     navigate('/info-setup');
   };
@@ -42,6 +54,7 @@ const AddressForm = () => {
             onChange={e => setBarangay(e.target.value)}
             errorMessage={!barangay && error ? 'Required' : ''}
             className="w-full"
+            isDisabled={sortedBarangays.length === 0}
             items={sortedBarangays}
           >
             {item => <SelectItem key={item.value}>{item.label}</SelectItem>}

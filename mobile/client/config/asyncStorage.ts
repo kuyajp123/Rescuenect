@@ -1,4 +1,5 @@
 import { storageHelpers } from '@/helper/storage';
+import type { ClientMapSettings } from './locationConfig';
 
 //
 //  --------------------------------------------
@@ -24,8 +25,25 @@ export interface User {
   firstName: string;
   lastName: string;
   phoneNumber: string;
+  e164PhoneNumber?: string;
   barangay: string;
   fcmToken: string | null;
+  clientId?: string;
+  clientName?: string;
+  clientStatus?: 'draft' | 'active' | 'inactive' | 'deletion_scheduled' | 'deleting' | 'deleted' | null;
+  clientDeletionEffectiveAt?: unknown;
+  clientDeletionStatus?: string | null;
+  provinceCode?: string;
+  provinceName?: string;
+  municipalityCode?: string;
+  municipalityName?: string;
+  municipalityType?: 'municipality' | 'city';
+  barangayCode?: string | null;
+  barangayLabel?: string;
+  weatherLocationKey?: string;
+  weatherLatitude?: number | null;
+  weatherLongitude?: number | null;
+  mapSettings?: ClientMapSettings | null;
 }
 
 //
@@ -34,7 +52,15 @@ export interface User {
 
 export interface AppState {
   hasSignedOut?: boolean;
+  isGuestMode?: boolean;
 }
+
+export const isEnabledStorageFlag = (value: unknown) => value === true || value === 'true';
+
+export const getStoredGuestMode = async () => {
+  const isGuestMode = await storageHelpers.getField<boolean | string>(STORAGE_KEYS.APP_STATE, 'isGuestMode');
+  return isEnabledStorageFlag(isGuestMode);
+};
 
 //
 //  --------------------------------------------
@@ -79,6 +105,7 @@ export const clearAllData = async () => {
 export const inititallizeAppStorage = async () => {
   try {
     const hasSignedOut = await storageHelpers.getField(STORAGE_KEYS.APP_STATE, 'hasSignedOut');
+    const isGuestMode = await storageHelpers.getField(STORAGE_KEYS.APP_STATE, 'isGuestMode');
     const expirationDuration = await storageHelpers.getField(
       STORAGE_KEYS.USER_SETTINGS,
       'status_settings.expirationDuration'
@@ -88,6 +115,9 @@ export const inititallizeAppStorage = async () => {
 
     if (hasSignedOut === null || hasSignedOut === undefined) {
       await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', true);
+    }
+    if (isGuestMode === null || isGuestMode === undefined) {
+      await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'isGuestMode', false);
     }
     if (expirationDuration === null || expirationDuration === undefined) {
       await storageHelpers.setField(STORAGE_KEYS.USER_SETTINGS, 'status_settings.expirationDuration', 24);

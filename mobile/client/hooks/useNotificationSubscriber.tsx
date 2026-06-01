@@ -1,10 +1,12 @@
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { storageHelpers } from '@/helper/storage';
+import { getNotificationDisplayTimestamp, isStaleEarthquakeNotification } from '@/helper/notificationTime';
 import { db } from '@/lib/firebaseConfig';
 import { useNotificationStore } from '@/store/useNotificationStore';
+import { useUserData } from '@/store/useBackendResponse';
 import type { BaseNotification } from '@/types/notification';
 import { collection, doc, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface UseNotificationSubscriberProps {
   userLocation?: string; // User's barangay/location for filtering weather notifications
@@ -22,6 +24,20 @@ export const useNotificationSubscriber = ({
   const [error, setError] = useState<string | null>(null);
   const [globalNotifications, setGlobalNotifications] = useState<BaseNotification[]>([]);
   const [userNotifications, setUserNotifications] = useState<BaseNotification[]>([]);
+  const userClientId = useUserData(state => state.userData.clientId);
+  const userWeatherLocationKey = useUserData(state => state.userData.weatherLocationKey);
+
+  const isRelevantLocationNotification = useCallback((notification: BaseNotification) => {
+    if (!userLocation) {
+      return true;
+    }
+
+    return (
+      (userWeatherLocationKey !== null && userWeatherLocationKey !== undefined && notification.location === userWeatherLocationKey) ||
+      notification.barangays?.includes(userLocation) ||
+      false
+    );
+  }, [userLocation, userWeatherLocationKey]);
 
   useEffect(() => {
     // Set userId in store for unread count calculation
@@ -74,23 +90,28 @@ export const useNotificationSubscriber = ({
                 ...data,
                 id: doc.id,
               };
+              if (isStaleEarthquakeNotification(notification)) {
+                return;
+              }
+              if (
+                notification.audience === 'admin' ||
+                notification.targetRole === 'super_admin' ||
+                notification.targetRole === 'lgu_admin'
+              ) {
+                return;
+              }
+              const notificationClientId =
+                typeof notification.clientId === 'string' && notification.clientId.trim()
+                  ? notification.clientId.trim()
+                  : null;
+              if (userClientId && notification.type !== 'earthquake' && notificationClientId !== userClientId) {
+                return;
+              }
 
               // Filter logic:
-              if (notification.type === 'earthquake') {
-                allNotifications.push(notification);
-              } else if (notification.type === 'weather') {
-                if (!userLocation) {
+              if (notification.type === 'earthquake' || notification.type === 'weather') {
+                if (isRelevantLocationNotification(notification)) {
                   allNotifications.push(notification);
-                } else {
-                  const isRelevant =
-                    notification.location === userLocation ||
-                    notification.location === 'central_naic' ||
-                    notification.barangays?.includes(userLocation) ||
-                    false;
-
-                  if (isRelevant) {
-                    allNotifications.push(notification);
-                  }
                 }
               } else {
                 allNotifications.push(notification);
@@ -122,7 +143,7 @@ export const useNotificationSubscriber = ({
     }
 
     return () => unsubscribe();
-  }, [userLocation, userId, maxNotifications]);
+  }, [isRelevantLocationNotification, userClientId, userId, maxNotifications]);
 
   // User-Specific Notifications Subscription
   useEffect(() => {
@@ -182,7 +203,9 @@ export const useNotificationSubscriber = ({
 
   // Merge and update store
   useEffect(() => {
-    const merged = [...globalNotifications, ...userNotifications].sort((a, b) => b.timestamp - a.timestamp);
+    const merged = [...globalNotifications, ...userNotifications].sort(
+      (a, b) => getNotificationDisplayTimestamp(b) - getNotificationDisplayTimestamp(a)
+    );
     setNotifications(merged);
   }, [globalNotifications, userNotifications, setNotifications]);
   return { isLoading, error };

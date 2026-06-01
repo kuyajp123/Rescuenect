@@ -16,6 +16,14 @@ export interface EarthquakeData {
   tsunami_warning: boolean;
   usgs_url: string;
   distance_km?: number;
+  affectedClientIds?: string[];
+  clientImpacts?: Array<{
+    clientId: string;
+    clientName?: string;
+    weatherLocationKey?: string;
+    distanceKm: number;
+    radiusKm?: number;
+  }>;
   impact_radii: {
     felt_radius_km: number;
     moderate_shaking_radius_km: number;

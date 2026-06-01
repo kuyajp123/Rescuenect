@@ -1,18 +1,16 @@
 import '@/components/components/ActionSheet/sheets';
-import { HeaderBackButton, IconButton } from '@/components/components/button/Button';
 import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary';
-import Dialog from '@/components/ui/Dialog';
-
 import { ServerWakeUpScreen } from '@/components/ui/loading/ServerWakeUpScreen';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
-
-import { Colors } from '@/constants/Colors';
 import { FontSizeProvider, useFontSize } from '@/contexts/FontSizeContext';
 import { HighContrastProvider } from '@/contexts/HighContrastContext';
 import MapContext from '@/contexts/MapContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { storageHelpers } from '@/helper/storage';
+import { useAppBootstrap } from '@/hooks/useAppBootstrap';
+import { useAuthGate } from '@/hooks/useAuthGate';
+import { useEarthquakeSubscriber } from '@/hooks/useEarthquakeSubscriber';
 import { useIdToken } from '@/hooks/useIdToken';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useNotificationSubscriber } from '@/hooks/useNotificationSubscriber';
@@ -21,22 +19,21 @@ import { useStatusFetchBackgroundData } from '@/hooks/useStatusFetchBackgroundDa
 import { useCurrentStatuses } from '@/hooks/useStatusSubscriber';
 import { subscribeToWeatherData } from '@/hooks/useWeatherData';
 import { FCMTokenService } from '@/services/fcmTokenService';
+import { syncAuthenticatedUserProfile } from '@/services/userProfileSync';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
 import { useCoords } from '@/store/useCoords';
-import { useNotificationStore } from '@/store/useNotificationStore';
 import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import { useStatusFormStore } from '@/store/useStatusForm';
 import { useWeatherStore } from '@/store/useWeatherStore';
 import MapboxGL from '@rnmapbox/maps';
 import axios from 'axios';
 import { useFonts } from 'expo-font';
-import { Stack, usePathname, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { HeroUINativeProvider } from 'heroui-native';
-import { Bell } from 'lucide-react-native';
+import { HeroUINativeConfig, HeroUINativeProvider } from 'heroui-native';
 import React, { useEffect, useState } from 'react';
-import { BackHandler, LogBox, StyleSheet, View } from 'react-native';
+import { LogBox, StyleSheet } from 'react-native';
 import { SheetProvider } from 'react-native-actions-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
@@ -44,53 +41,18 @@ import '../global.css';
 
 MapboxGL.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_API_TOKEN!);
 
-// Suppress legacy warnings from dependencies
 LogBox.ignoreLogs([
   '`new NativeEventEmitter()` was called with a non-null argument without the required `addListener` method.',
   '`new NativeEventEmitter()` was called with a non-null argument without the required `removeListeners` method.',
 ]);
 
-function RootLayoutNav() {
+function RootNavigator() {
   const { isDark, isLoading: themeLoading } = useTheme();
   const { isLoading: fontLoading } = useFontSize();
-  const router = useRouter();
-  const pathname = usePathname();
+  const { isBooting, canAccessApp, canAccessSetup, canAccessPublic } = useAuthGate();
   const [isReady, setIsReady] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const unreadCount = useNotificationStore(state => state.unreadCount);
-  const [exitModalVisible, setExitModalVisible] = useState(false);
   const [isServerReady, setIsServerReady] = useState(false);
-
-  const handleBack = () => {
-    router.back();
-  };
-
-  const NotificationButton = () => {
-    return (
-      <View style={{ position: 'relative' }}>
-        <IconButton onPress={() => router.push('/notification' as any)} style={styles.notificationButton}>
-          <Bell size={20} color={isDark ? Colors.text.dark : Colors.text.light} />
-        </IconButton>
-        {unreadCount > 0 && (
-          <View
-            style={{
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              width: 10,
-              height: 10,
-              borderRadius: 10,
-              backgroundColor: 'red',
-              borderWidth: 1,
-              borderColor: 'gray',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          />
-        )}
-      </View>
-    );
-  };
 
   const [loaded] = useFonts({
     Poppins: require('../assets/fonts/Poppins-Regular.ttf'),
@@ -118,29 +80,10 @@ function RootLayoutNav() {
     return () => clearTimeout(timer);
   }, [loaded, themeLoading, fontLoading, isMounted]);
 
-  // Handle hardware back button for exit confirmation
-  useEffect(() => {
-    const handleHardwareBackPress = () => {
-      // List of routes where back button should trigger exit modal
-      const rootRoutes = ['/', '/(tabs)', '/index'];
-
-      if (rootRoutes.includes(pathname) || pathname === '/') {
-        setExitModalVisible(true);
-        return true; // Prevent default behavior
-      }
-      return false; // Let default behavior happen (pop stack)
-    };
-
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleHardwareBackPress);
-
-    return () => backHandler.remove();
-  }, [pathname]);
-
-  if (!isMounted || !isReady || themeLoading || fontLoading) {
+  if (!isMounted || !isReady || themeLoading || fontLoading || isBooting) {
     return null;
   }
 
-  // Show Wake-Up Screen if server is not ready yet
   if (!isServerReady) {
     return (
       <>
@@ -153,182 +96,47 @@ function RootLayoutNav() {
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <Stack screenOptions={{ gestureEnabled: true }}>
-        <Stack.Screen
-          name="index"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="(tabs)"
-          options={{
-            title: 'Rescuenect',
-            headerShown: true,
-            animation: 'fade',
-            animationDuration: 500,
-            headerTintColor: isDark ? Colors.text.dark : Colors.brand.light,
-            headerStyle: {
-              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
-            },
-            headerTitleStyle: {
-              fontSize: 24,
-              fontWeight: 'bold',
-              color: isDark ? Colors.text.dark : Colors.brand.light,
-            },
-            headerShadowVisible: false,
-            headerRight: () => (
-              <View style={styles.headerRightContainer}>
-                <NotificationButton />
-              </View>
-            ),
-          }}
-        />
-        <Stack.Screen
-          name="notification"
-          options={{
-            headerShown: true,
-            title: '',
-            headerTintColor: isDark ? Colors.text.dark : Colors.text.light,
-            headerStyle: {
-              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
-            },
-            headerTitleStyle: {
-              fontSize: 24,
-              fontWeight: 'bold',
-              color: isDark ? Colors.text.dark : Colors.brand.light,
-            },
-            headerShadowVisible: false,
-            headerLeft: () => <HeaderBackButton router={handleBack} />,
-            animation: 'default',
-            presentation: 'card',
-          }}
-        />
-        <Stack.Screen
-          name="evacuation"
-          options={{
-            headerShown: false,
-            title: '',
-            headerTintColor: isDark ? Colors.text.dark : Colors.text.light,
-            headerStyle: {
-              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
-            },
-            headerTitleStyle: {
-              fontSize: 24,
-              fontWeight: 'bold',
-              color: isDark ? Colors.text.dark : Colors.brand.light,
-            },
-            headerShadowVisible: false,
-            headerLeft: () => <HeaderBackButton router={handleBack} />,
-            animation: 'none',
-            animationDuration: 150,
-            animationTypeForReplace: 'push',
-          }}
-        />
-        <Stack.Screen
-          name="post"
-          options={{
-            headerShown: true,
-            title: '',
-            headerStyle: {
-              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
-            },
-            headerShadowVisible: false,
-            headerLeft: () => <HeaderBackButton router={handleBack} />,
-            animation: 'none',
-          }}
-        />
-        <Stack.Screen
-          name="settings"
-          options={{
-            headerShown: true,
-            title: '',
-            headerStyle: {
-              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
-            },
-            headerShadowVisible: false,
-            headerLeft: () => <HeaderBackButton router={handleBack} />,
-            animation: 'default',
-            presentation: 'card',
-          }}
-        />
-        <Stack.Screen
-          name="status"
-          options={{
-            headerShown: false,
-            title: '',
-            headerStyle: {
-              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
-            },
-            headerShadowVisible: false,
-            headerLeft: () => <HeaderBackButton router={handleBack} />,
-            animation: 'none',
-          }}
-        />
-        <Stack.Screen
-          name="Weather"
-          options={{
-            headerShown: false,
-            title: '',
-            headerStyle: {
-              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
-            },
-            headerShadowVisible: false,
-            headerLeft: () => <HeaderBackButton router={handleBack} />,
-            animation: 'none',
-          }}
-        />
-        <Stack.Screen
-          name="auth"
-          options={{
-            headerShown: false,
-            title: '',
-            headerStyle: {
-              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
-            },
-            headerShadowVisible: false,
-            headerLeft: () => <HeaderBackButton router={handleBack} />,
-            animation: 'none',
-          }}
-        />
-        <Stack.Screen
-          name="profile"
-          options={{
-            headerShown: true,
-            title: '',
-            headerStyle: {
-              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
-            },
-            headerShadowVisible: false,
-            headerLeft: () => <HeaderBackButton router={handleBack} />,
-            animation: 'default',
-            presentation: 'card',
-          }}
-        />
+      <Stack screenOptions={{ headerShown: false, gestureEnabled: true }}>
+        <Stack.Screen name="index" />
+        <Stack.Protected guard={canAccessApp}>
+          <Stack.Screen name="(app)" />
+        </Stack.Protected>
+        <Stack.Protected guard={canAccessSetup}>
+          <Stack.Screen name="(setup)" />
+        </Stack.Protected>
+        <Stack.Protected guard={canAccessPublic}>
+          <Stack.Screen name="(public)" />
+        </Stack.Protected>
+        <Stack.Screen name="(shared)" />
         <Stack.Screen name="+not-found" />
       </Stack>
-
-      {/* Exit Confirmation Modal */}
-      <Dialog
-        modalVisible={exitModalVisible}
-        size="full"
-        onClose={() => setExitModalVisible(false)}
-        primaryText="Exit App"
-        secondaryText="Are you sure you want to exit Rescuenect?"
-        primaryButtonText="Exit"
-        secondaryButtonText="Cancel"
-        primaryButtonOnPress={() => BackHandler.exitApp()}
-        secondaryButtonOnPress={() => setExitModalVisible(false)}
-        primaryButtonAction="error"
-        primaryButtonVariant="solid"
-        iconOnPress={() => setExitModalVisible(false)}
-      />
     </>
   );
 }
 
+const config: HeroUINativeConfig = {
+  devInfo: {
+    stylingPrinciples: false,
+  },
+  toast: {
+    defaultProps: {
+      variant: 'accent',
+      placement: 'top',
+      isSwipeable: true,
+    },
+    insets: {
+      top: 80,
+      bottom: 20,
+      left: 20,
+      right: 20,
+    },
+  },
+};
+
 function LayoutContent() {
+  useAppBootstrap();
   useNetworkStatus();
+
   const authUser = useAuth(state => state.authUser);
   const { idToken } = useIdToken();
   const setFormData = useStatusFormStore(state => state.setFormData);
@@ -340,8 +148,8 @@ function LayoutContent() {
   const setWeather = useWeatherStore(state => state.setWeather);
   const setSavedLocations = useSavedLocationsStore(state => state.setSavedLocations);
   useCurrentStatuses();
+  useEarthquakeSubscriber();
 
-  // Subscribe to notifications with user location for filtering
   useNotificationSubscriber({
     userLocation: userData?.barangay || undefined,
     userId: authUser?.uid || undefined,
@@ -349,25 +157,11 @@ function LayoutContent() {
   });
 
   useEffect(() => {
-    const checkUserData = async () => {
-      const userData = await storageHelpers.getData(STORAGE_KEYS.USER);
-      if (userData) {
-        setUserData(userData);
-      }
-    };
-    checkUserData();
-  }, [userData]);
-
-  useEffect(() => {
     let unsubscribe: (() => void) | undefined;
 
-    if (
-      userData.barangay !== '' &&
-      userData.barangay !== undefined &&
-      userData !== '' &&
-      userData.barangay !== undefined
-    ) {
-      unsubscribe = subscribeToWeatherData(userData.barangay, weatherData => {
+    const weatherLocation = userData?.weatherLocationKey;
+    if (weatherLocation) {
+      unsubscribe = subscribeToWeatherData(weatherLocation, weatherData => {
         setWeather?.(weatherData);
       });
     }
@@ -377,7 +171,7 @@ function LayoutContent() {
         unsubscribe();
       }
     };
-  }, [userData.barangay]);
+  }, [userData?.barangay, userData?.weatherLocationKey, setWeather]);
 
   useEffect(() => {
     const formDataToSet = statusData ? { ...statusData, uid: authUser ? authUser.uid : '' } : null;
@@ -395,31 +189,31 @@ function LayoutContent() {
     }
   }, [statusData?.lat, statusData?.lng, setCoords, setActiveStatusCoords]);
 
-  // FCM Token Management - Register on login, refresh, and cleanup on logout
   useEffect(() => {
     if (!authUser) return;
 
-    // Register FCM token when user logs in
+    syncAuthenticatedUserProfile(authUser).catch(error => {
+      console.error('Failed to refresh resident profile on app start:', error);
+    });
+
     FCMTokenService.updateUserFcmToken(authUser).catch(error => {
       console.error('Failed to register FCM token on login:', error);
     });
 
-    // Setup token refresh listener
     const unsubscribeTokenRefresh = FCMTokenService.setupTokenRefreshListener(authUser, newToken => {
-      // Update local state with new token
-      setUserData((prev: any) => ({
+      const currentUserData = useUserData.getState().userData;
+      setUserData({
         userData: {
-          ...prev.userData,
+          ...currentUserData,
           fcmToken: newToken,
         },
-      }));
+      });
     });
 
     return () => {
-      // Cleanup token refresh listener
       unsubscribeTokenRefresh();
     };
-  }, [authUser]);
+  }, [authUser, setUserData]);
 
   useSaveStatusSettings(statusData);
 
@@ -447,33 +241,17 @@ function LayoutContent() {
     };
 
     fetchLocations();
-  }, [authUser]);
+  }, [authUser, setSavedLocations]);
 
   return (
     <GestureHandlerRootView style={styles.gestureHandlerContainer}>
       <ThemeProvider>
         <FontSizeProvider>
           <HighContrastProvider>
-            <HeroUINativeProvider
-              config={{
-                toast: {
-                  defaultProps: {
-                    variant: 'accent',
-                    placement: 'top',
-                    isSwipeable: true,
-                  },
-                  insets: {
-                    top: 80,
-                    bottom: 20,
-                    left: 20,
-                    right: 20,
-                  },
-                },
-              }}
-            >
+            <HeroUINativeProvider config={config}>
               <SheetProvider>
                 <MapContext>
-                  <RootLayoutNav />
+                  <RootNavigator />
                 </MapContext>
               </SheetProvider>
             </HeroUINativeProvider>
@@ -495,14 +273,5 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   gestureHandlerContainer: {
     flex: 1,
-  },
-  notificationButton: {
-    borderRadius: 50,
-    padding: 8,
-  },
-  headerRightContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
   },
 });

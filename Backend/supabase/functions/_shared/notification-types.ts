@@ -2,6 +2,7 @@
 // NOTIFICATION SYSTEM - TYPE EXPORTS
 // ============================================
 // Central export file for all notification types
+import { ACTIVE_WEATHER_LOCATION_KEYS } from './location-config.ts';
 
 export type {
   // Announcement types
@@ -22,6 +23,7 @@ export type {
 
 export {
   convertLegacyNotification,
+  getBarangaysFromWeatherLocation,
   // Utility functions
   generateNotificationId,
   getBarangaysFromZone,
@@ -33,14 +35,8 @@ export {
 export { NotificationService } from './notification-service.ts';
 
 // Re-export common constants
-export const WEATHER_ZONES = [
-  'coastal_west',
-  'coastal_east',
-  'central_naic',
-  'sabang',
-  'farm_area',
-  'naic_boundary',
-] as const;
+export const WEATHER_LOCATION_KEYS = ACTIVE_WEATHER_LOCATION_KEYS;
+export const WEATHER_ZONES = WEATHER_LOCATION_KEYS;
 
 export const NOTIFICATION_TYPES = [
   'weather',

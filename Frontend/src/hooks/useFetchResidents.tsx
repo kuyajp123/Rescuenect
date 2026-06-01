@@ -36,6 +36,7 @@ interface ResidentsState {
   loading: boolean;
   error: string | null;
   fetchResidents: () => Promise<void>;
+  clearResidents: () => void;
 }
 
 export const useResidentsStore = create<ResidentsState>(set => ({
@@ -43,6 +44,7 @@ export const useResidentsStore = create<ResidentsState>(set => ({
   totalCount: 0,
   loading: false,
   error: null,
+  clearResidents: () => set({ residents: [], totalCount: 0, error: null, loading: false }),
 
   fetchResidents: async () => {
     const idToken = await auth.currentUser?.getIdToken();

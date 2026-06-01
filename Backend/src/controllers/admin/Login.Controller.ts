@@ -1,20 +1,16 @@
 import { SignInModel } from '@/models/admin/SignInModel';
+import { ClientModel } from '@/models/admin/ClientModel';
+import { canLguAdminUseClient } from '@/utils/accessControl';
 import { Request, Response } from 'express';
 
 export class LoginController {
   static async handleLogin(req: Request, res: Response): Promise<void> {
-    const adminEmailsRaw = process.env.ADMIN_EMAILS!;
-    if (!adminEmailsRaw) {
-      throw new Error('ADMIN_EMAILS env variable is not set');
-    }
+    const { fcmToken, barangay } = req.body;
+    const email = req.user?.email;
+    const uid = req.user?.uid;
 
-    const adminEmails = JSON.parse(adminEmailsRaw);
-    const allowedEmails = Object.values(adminEmails);
-
-    const { email, uid, fcmToken, barangay } = req.body;
-
-    if (!email || !allowedEmails.includes(email)) {
-      res.status(403).json({ message: 'Access denied' });
+    if (!email || !uid) {
+      res.status(401).json({ message: 'Verified Firebase user is required' });
       return;
     }
 
@@ -23,6 +19,19 @@ export class LoginController {
       if (!user) {
         res.status(404).json({ message: 'User not found' });
         return;
+      }
+
+      if (user.status !== 'active') {
+        res.status(403).json({ message: 'Admin account is inactive' });
+        return;
+      }
+
+      if (user.role === 'lgu_admin') {
+        const client = user.clientId ? await ClientModel.getClientById(user.clientId) : null;
+        if (!client || !canLguAdminUseClient(client.status)) {
+          res.status(403).json({ message: 'LGU client is not active' });
+          return;
+        }
       }
 
       res.status(200).json({ message: 'User signed in successfully', user });
@@ -39,6 +48,11 @@ export class LoginController {
       return;
     }
 
+    if (req.user?.uid !== uid) {
+      res.status(403).json({ message: 'You can only update your own profile' });
+      return;
+    }
+
     try {
       await SignInModel.updateProfile(uid, {
         firstName,
@@ -50,6 +64,11 @@ export class LoginController {
       });
       res.status(200).json({ message: 'Profile updated successfully', success: true });
     } catch (error) {
+      if (error instanceof Error && error.message === 'Barangay is not covered by your LGU client') {
+        res.status(400).json({ message: error.message });
+        return;
+      }
+
       res.status(500).json({ message: `Failed to update profile: ${error}` });
     }
   }

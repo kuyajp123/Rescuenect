@@ -1,6 +1,12 @@
 import { Map } from '@/components/ui/Map';
 import EvacuationTable from '@/components/ui/table/EvacuationTable';
+import {
+  getClientConfiguredMapBounds,
+  getClientMapCenter,
+  getClientMapZoomSettings,
+} from '@/helper/clientMapScope';
 import { usePanelStore } from '@/stores/panelStore';
+import { useAuth } from '@/stores/useAuth';
 import { useEvacuationStore } from '@/stores/useEvacuationStore';
 import { EvacuationCenter } from '@/types/types';
 import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react';
@@ -15,6 +21,9 @@ const index = () => {
   });
   // Local delete state
   const [centerToDelete, setCenterToDelete] = useState<EvacuationCenter | null>(null);
+  const userData = useAuth(state => state.userData);
+  const mapCenter = getClientMapCenter(userData);
+  const mapZoom = getClientMapZoomSettings(userData);
 
   const navigate = useNavigate();
   const { openEvacuationPanel, closePanel, openModal, onOpenModal, onCloseModal, selectedUser } = usePanelStore();
@@ -103,6 +112,11 @@ const index = () => {
       ) : (
         <div className="h-[90%] w-full">
           <Map
+            center={mapCenter}
+            maxBounds={getClientConfiguredMapBounds(userData)}
+            zoom={mapZoom.zoom}
+            minZoom={mapZoom.minZoom}
+            maxZoom={mapZoom.maxZoom}
             onMarkerClick={handleMarkerClick}
             data={evacuationCenters
               .filter(

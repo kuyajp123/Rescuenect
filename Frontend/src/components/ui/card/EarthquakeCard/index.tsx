@@ -14,9 +14,10 @@ import { Earth } from 'lucide-react';
 
 interface EarthquakeCardProps {
   earthquake?: UnifiedEarthquake;
+  clientId?: string;
 }
 
-export const EarthquakeCard = ({ earthquake }: EarthquakeCardProps) => {
+export const EarthquakeCard = ({ earthquake, clientId }: EarthquakeCardProps) => {
   if (!earthquake) {
     return null;
   }
@@ -32,25 +33,10 @@ export const EarthquakeCard = ({ earthquake }: EarthquakeCardProps) => {
     });
   };
 
-  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    const R = 6371; // Earth's radius in km
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLng = ((lng2 - lng1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return Math.round(R * c);
-  };
-
-  // Naic, Cavite coordinates
-  const naicCoords = { lat: 14.2965, lng: 120.7925 };
-  const distance = calculateDistance(
-    naicCoords.lat,
-    naicCoords.lng,
-    earthquake.coordinates.latitude,
-    earthquake.coordinates.longitude
-  );
+  const clientImpact = clientId
+    ? earthquake.clientImpacts?.find(impact => impact.clientId === clientId)
+    : earthquake.clientImpacts?.[0];
+  const distance = clientImpact?.distanceKm ?? earthquake.distance_km;
 
   const dynamicRows = [
     {
@@ -61,7 +47,15 @@ export const EarthquakeCard = ({ earthquake }: EarthquakeCardProps) => {
     { key: 'depth', label: 'Depth', value: `${earthquake.coordinates.depth} km` }, // Would need depth data from API
     { key: 'location', label: 'Location', value: earthquake.place },
     { key: 'time', label: 'Time occurred', value: formatDate(earthquake.time) },
-    { key: 'distance', label: 'Distance from Naic, Cavite', value: `~${distance} km` },
+    ...(typeof distance === 'number'
+      ? [
+          {
+            key: 'distance',
+            label: clientImpact?.clientName ? `Distance from ${clientImpact.clientName}` : 'Distance from client center',
+            value: `~${Math.round(distance)} km`,
+          },
+        ]
+      : []),
     { key: 'tsunami', label: 'Tsunami Warning', value: earthquake.tsunami_warning ? 'Yes' : 'No' },
   ];
 

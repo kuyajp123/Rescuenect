@@ -1,5 +1,7 @@
 import { db } from '@/lib/firebaseConfig';
 import { useStatusStore } from '@/store/useCurrentStatusStore';
+import { useUserData } from '@/store/useBackendResponse';
+import { useAuth } from '@/store/useAuth';
 import { StatusData } from '@/types/components';
 import {
   collectionGroup,
@@ -17,11 +19,25 @@ import { useEffect, useMemo, useState } from 'react';
 export const useCurrentStatuses = () => {
   const statuses = useStatusStore(state => state.statusData);
   const setStatuses = useStatusStore(state => state.setData);
+  const clientId = useUserData(state => state.userData.clientId);
+  // Gate on authUser to prevent race condition on logout→login.
+  // Firebase's onAuthStateChanged fires only after the auth token is
+  // fully attached to the Firestore client. Without this guard, the
+  // collectionGroup query fires in the brief window where the new
+  // token hasn't propagated yet, causing a permissions error.
+  const authUser = useAuth(state => state.authUser);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
+    setError(null);
+
+    if (!clientId || !authUser) {
+      setStatuses([]);
+      setLoading(false);
+      return () => {};
+    }
 
     let unsubscribe = () => {};
 
@@ -29,6 +45,7 @@ export const useCurrentStatuses = () => {
       const statusQuery = query(
         collectionGroup(db, 'statuses'),
         where('statusType', '==', 'current'),
+        where('clientId', '==', clientId),
         orderBy('createdAt', 'desc')
       );
 
@@ -57,7 +74,7 @@ export const useCurrentStatuses = () => {
     }
 
     return () => unsubscribe();
-  }, []);
+  }, [clientId, authUser]);
 
   // Derived state for easy filtering
   const statusesByCondition = useMemo(() => {

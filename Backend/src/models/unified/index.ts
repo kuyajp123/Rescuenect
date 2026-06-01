@@ -1,4 +1,6 @@
 import { db } from '@/db/firestoreConfig';
+import { ClientModel } from '@/models/admin/ClientModel';
+import { getEffectiveClientId } from '@/utils/adminScope';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export class UnifiedModel {
@@ -6,12 +8,30 @@ export class UnifiedModel {
     return db.collection('centers');
   }
 
-  public static async getCenters() {
+  private static async getActiveClientIds(): Promise<Set<string>> {
+    return ClientModel.getActiveClientIds();
+  }
+
+  private static matchesActiveClientScope(
+    data: FirebaseFirestore.DocumentData,
+    activeClientIds: Set<string>,
+    requestedClientId?: string
+  ): boolean {
+    const clientId = getEffectiveClientId(data);
+    if (!clientId) return false;
+    if (!activeClientIds.has(clientId)) return false;
+    return !requestedClientId || requestedClientId === clientId;
+  }
+
+  public static async getCenters(clientId?: string) {
     try {
       const snapshot = await this.pathRef().get();
+      const activeClientIds = await this.getActiveClientIds();
       const centers: any[] = [];
       snapshot.forEach(doc => {
-        centers.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        if (!this.matchesActiveClientScope(data, activeClientIds, clientId)) return;
+        centers.push({ id: doc.id, ...data, clientId: getEffectiveClientId(data) });
       });
       return centers;
     } catch (error) {
@@ -72,6 +92,10 @@ export class UnifiedModel {
       const statusMap = new Map();
       snapshot.docs.forEach(doc => {
         const data = doc.data();
+        if (data.residentVisible === false || data.ownerAccountDeleted === true) {
+          return;
+        }
+
         const parentId = data.parentId;
 
         // If we haven't seen this parentId, or if this version is newer, store it
@@ -194,12 +218,15 @@ export class UnifiedModel {
     }
   }
 
-  static async getAllAnnouncements(): Promise<FirebaseFirestore.DocumentData[]> {
+  static async getAllAnnouncements(clientId?: string): Promise<FirebaseFirestore.DocumentData[]> {
     try {
       const snapshot = await db.collection('announcements').orderBy('createdAt', 'desc').get();
+      const activeClientIds = await this.getActiveClientIds();
       const announcements: FirebaseFirestore.DocumentData[] = [];
       snapshot.forEach(doc => {
-        announcements.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        if (!this.matchesActiveClientScope(data, activeClientIds, clientId)) return;
+        announcements.push({ id: doc.id, ...data, clientId: getEffectiveClientId(data) });
       });
       return announcements;
     } catch (error) {
@@ -208,12 +235,18 @@ export class UnifiedModel {
     }
   }
 
-  static async getAnnouncementById(announcementId: string): Promise<FirebaseFirestore.DocumentData | null> {
+  static async getAnnouncementById(
+    announcementId: string,
+    clientId?: string
+  ): Promise<FirebaseFirestore.DocumentData | null> {
     try {
       const docRef = db.collection('announcements').doc(announcementId);
       const docSnap = await docRef.get();
+      const activeClientIds = await this.getActiveClientIds();
       if (docSnap.exists) {
-        return { id: docSnap.id, ...docSnap.data() };
+        const data = docSnap.data() ?? {};
+        if (!this.matchesActiveClientScope(data, activeClientIds, clientId)) return null;
+        return { id: docSnap.id, ...data, clientId: getEffectiveClientId(data) };
       } else {
         return null;
       }

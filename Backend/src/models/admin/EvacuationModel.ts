@@ -1,6 +1,7 @@
 import { ensureBucketExists } from '@/components/UploadImageBucket';
 import { db } from '@/db/firestoreConfig';
 import { supabase } from '@/lib/supabase';
+import { getEffectiveClientId } from '@/utils/adminScope';
 import { DocumentReference, FieldValue } from 'firebase-admin/firestore';
 
 export class EvacuationModel {
@@ -69,7 +70,24 @@ export class EvacuationModel {
     }
   }
 
-  public static async addCenter(data: any, files: Express.Multer.File[]): Promise<string> {
+  public static async getCenters(clientId?: string): Promise<any[]> {
+    try {
+      const snapshot = await this.pathRef().get();
+      const centers: any[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const effectiveClientId = getEffectiveClientId(data);
+        if (clientId && effectiveClientId !== clientId) return;
+        centers.push({ id: doc.id, ...data, clientId: effectiveClientId });
+      });
+      return centers;
+    } catch (error) {
+      console.error('Error in EvacuationModel.getCenters:', error);
+      throw error;
+    }
+  }
+
+  public static async addCenter(data: any, files: Express.Multer.File[], clientId: string): Promise<string> {
     let docRef: DocumentReference | null = null;
     const uploadedFilePaths: string[] = [];
 
@@ -79,6 +97,7 @@ export class EvacuationModel {
       // Create the Firestore document first so file paths can include its ID.
       docRef = await this.pathRef().add({
         ...data,
+        clientId,
         images: [],
         createdAt: FieldValue.serverTimestamp(),
       });
@@ -114,13 +133,17 @@ export class EvacuationModel {
     }
   }
 
-  public static async deleteCenter(id: string): Promise<void> {
+  public static async deleteCenter(id: string, clientId?: string): Promise<void> {
     try {
       const docRef = this.pathRef().doc(id);
       const docSnap = await docRef.get();
 
       if (docSnap.exists) {
         const data = docSnap.data();
+
+        if (data && clientId && getEffectiveClientId(data) !== clientId) {
+          throw new Error('Evacuation center not found');
+        }
 
         if (data && Array.isArray(data.images)) {
           const filePaths = data.images
@@ -142,7 +165,8 @@ export class EvacuationModel {
     id: string,
     data: any,
     newFiles: Express.Multer.File[],
-    keptImages: string[]
+    keptImages: string[],
+    clientId?: string
   ): Promise<void> {
     const uploadedFilePaths: string[] = [];
 
@@ -156,6 +180,9 @@ export class EvacuationModel {
       }
 
       const currentData = docSnap.data();
+      if (currentData && clientId && getEffectiveClientId(currentData) !== clientId) {
+        throw new Error('Evacuation center not found');
+      }
       const currentImages = (currentData?.images as string[]) || [];
       const imagesToDelete = currentImages.filter(img => !keptImages.includes(img));
 
@@ -176,6 +203,7 @@ export class EvacuationModel {
 
       await docRef.update({
         ...data,
+        clientId,
         images: finalImages,
         updatedAt: FieldValue.serverTimestamp(),
       });

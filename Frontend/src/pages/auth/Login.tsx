@@ -1,27 +1,33 @@
+import { AccessUnavailable } from '@/security/AccessUnavailable';
 import { GoogleButton } from '@/components/ui/button';
 import { useAuth } from '@/stores/useAuth';
 import { useErrorStore } from '@/stores/useErrorMessage';
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const userAuth = useAuth(state => state.auth);
+  const accessIssue = useAuth(state => state.accessIssue);
   const isVerifying = useAuth(state => state.isVerifying);
   const error = useErrorStore(state => state.message);
   const setError = useErrorStore(state => state.setError);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (userAuth && !isVerifying) {
+    if (userAuth && !isVerifying && !accessIssue) {
       navigate('/');
     }
-  }, [userAuth, isVerifying, navigate]);
+  }, [userAuth, isVerifying, accessIssue, navigate]);
 
   useEffect(() => {
     return () => {
       setError('');
     };
   }, [setError]);
+
+  if (userAuth && accessIssue) {
+    return <AccessUnavailable issue={accessIssue} />;
+  }
 
   return (
     <div className="flex flex-col flex-1">
@@ -37,6 +43,12 @@ const Login = () => {
             </div>
             <br />
             <div className="text-red-500 flex justify-center">{error && <p>{error}</p>}</div>
+            <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+              LGU client?{' '}
+              <Link className="font-medium text-primary hover:underline" to="/request-access">
+                Request Rescuenect access
+              </Link>
+            </div>
           </div>
         </div>
       </div>

@@ -7,6 +7,7 @@ if (!BACKEND_URL) {
 export const API_ENDPOINTS = {
   AUTH: {
     SIGNIN: `${BACKEND_URL}/admin/auth/signin`,
+    ME: `${BACKEND_URL}/admin/me`,
     UPDATE_FCM_TOKEN: `${BACKEND_URL}/admin/config/update-fcm-token`,
     UPDATE_PROFILE: `${BACKEND_URL}/admin/auth/update-profile`,
   },
@@ -17,7 +18,7 @@ export const API_ENDPOINTS = {
   },
   EVACUATION: {
     ADD_CENTER: `${BACKEND_URL}/admin/evacuation/addCenter`,
-    GET_CENTERS: `${BACKEND_URL}/unified/getCenters`,
+    GET_CENTERS: `${BACKEND_URL}/admin/evacuation/getCenters`,
     DELETE_CENTER: `${BACKEND_URL}/admin/evacuation/deleteCenter`,
     UPDATE_CENTER: `${BACKEND_URL}/admin/evacuation/updateCenter`,
   },
@@ -29,18 +30,66 @@ export const API_ENDPOINTS = {
   },
   RESIDENTS: {
     GET_RESIDENTS: `${BACKEND_URL}/admin/residents/getResidents`,
-    GET_RESIDENTS_STATUS: `${BACKEND_URL}/unified/getResidentStatuses`,
+    GET_RESIDENTS_STATUS: `${BACKEND_URL}/admin/status/getResidentStatuses`,
     GET_ALL_LATEST_STATUSES: `${BACKEND_URL}/admin/status/getAllLatestStatuses`,
   },
   ANNOUNCEMENT: {
     CREATE_ANNOUNCEMENT: `${BACKEND_URL}/admin/announcement/createAnnouncement`,
-    GET_ALL_ANNOUNCEMENTS: `${BACKEND_URL}/unified/announcements`,
-    GET_ANNOUNCEMENT_DETAILS: `${BACKEND_URL}/unified/announcementDetails`,
+    GET_ALL_ANNOUNCEMENTS: `${BACKEND_URL}/admin/announcement/all`,
+    GET_ANNOUNCEMENT_DETAILS: (id: string) => `${BACKEND_URL}/admin/announcement/details/${id}`,
     DELETE_ANNOUNCEMENT: `${BACKEND_URL}/admin/announcement/deleteAnnouncement`,
     UPDATE_ANNOUNCEMENT: `${BACKEND_URL}/admin/announcement/updateAnnouncement`,
   },
   CONTACTS: {
     GET_CONTACTS: `${BACKEND_URL}/admin/contacts/getContacts`,
     CREATE_CONTACT: `${BACKEND_URL}/admin/contacts/addContact`,
+  },
+  PUBLIC: {
+    PSGC_REGIONS: `${BACKEND_URL}/public/psgc/regions`,
+    PSGC_PROVINCES: (regionCode: string) => `${BACKEND_URL}/public/psgc/regions/${regionCode}/provinces`,
+    PSGC_REGION_MUNICIPALITIES: (regionCode: string) =>
+      `${BACKEND_URL}/public/psgc/regions/${regionCode}/municipalities`,
+    PSGC_MUNICIPALITIES: (provinceCode: string) =>
+      `${BACKEND_URL}/public/psgc/provinces/${provinceCode}/municipalities`,
+    PSGC_BARANGAYS: (municipalityCode: string) =>
+      `${BACKEND_URL}/public/psgc/municipalities/${municipalityCode}/barangays`,
+    LGU_REQUESTS: `${BACKEND_URL}/public/lgu-requests`,
+  },
+  SUPER_ADMIN: {
+    OVERVIEW: `${BACKEND_URL}/admin/super/overview`,
+    LOGS: `${BACKEND_URL}/admin/super/logs`,
+    LGU_REQUESTS: `${BACKEND_URL}/admin/super/lgu-requests`,
+    DYNAMIC_CLIENT_CUTOVER_AUDIT: `${BACKEND_URL}/admin/super/migrations/dynamic-client-cutover-audit`,
+    DYNAMIC_CLIENT_CUTOVER: `${BACKEND_URL}/admin/super/migrations/dynamic-client-cutover`,
+    DELETE_LGU_REQUEST: (id: string) => `${BACKEND_URL}/admin/super/lgu-requests/${id}`,
+    APPROVE_LGU_REQUEST: (id: string) => `${BACKEND_URL}/admin/super/lgu-requests/${id}/approve`,
+    REJECT_LGU_REQUEST: (id: string) => `${BACKEND_URL}/admin/super/lgu-requests/${id}/reject`,
+    CLIENT_CHANGE_REQUESTS: `${BACKEND_URL}/admin/super/client-change-requests`,
+    APPROVE_CLIENT_CHANGE_REQUEST: (id: string) => `${BACKEND_URL}/admin/super/client-change-requests/${id}/approve`,
+    REJECT_CLIENT_CHANGE_REQUEST: (id: string) => `${BACKEND_URL}/admin/super/client-change-requests/${id}/reject`,
+    DELETE_CLIENT_CHANGE_REQUEST: (id: string) => `${BACKEND_URL}/admin/super/client-change-requests/${id}`,
+    CLIENTS: `${BACKEND_URL}/admin/super/clients`,
+    CLIENT_DETAIL: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}`,
+    UPDATE_CLIENT: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}`,
+    CLIENT_DELETION_PREVIEW: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}/deletion-preview`,
+    SCHEDULE_CLIENT_DELETION: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}/schedule-deletion`,
+    CANCEL_CLIENT_DELETION: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}/cancel-deletion`,
+    CLIENT_ARCHIVES: `${BACKEND_URL}/admin/super/client-archives`,
+    CLIENT_ARCHIVE_DETAIL: (archiveId: string) => `${BACKEND_URL}/admin/super/client-archives/${archiveId}`,
+    DELETE_CLIENT_ARCHIVE: (archiveId: string) => `${BACKEND_URL}/admin/super/client-archives/${archiveId}`,
+    ACTIVATE_CLIENT: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}/activate`,
+    DEACTIVATE_CLIENT: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}/deactivate`,
+    CLIENT_BOUNDARY: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}/boundary`,
+    ADMINS: `${BACKEND_URL}/admin/super/admins`,
+    INVITE_ADMIN: `${BACKEND_URL}/admin/super/admins/invite`,
+    UPDATE_ADMIN: (uid: string) => `${BACKEND_URL}/admin/super/admins/${uid}`,
+    DELETE_ADMIN: (uid: string) => `${BACKEND_URL}/admin/super/admins/${uid}`,
+    SYSTEM_STATUS: `${BACKEND_URL}/admin/super/system-status`,
+  },
+  LGU_ADMIN: {
+    CLIENT: `${BACKEND_URL}/admin/lgu/client`,
+    CHANGE_REQUESTS: `${BACKEND_URL}/admin/lgu/change-requests`,
+    CREATE_CHANGE_REQUEST: `${BACKEND_URL}/admin/lgu/change-requests`,
+    CANCEL_CHANGE_REQUEST: (id: string) => `${BACKEND_URL}/admin/lgu/change-requests/${id}/cancel`,
   }
 };

@@ -1,9 +1,9 @@
 import { serve } from 'serve';
 import { insertWeatherData } from '../_shared/firestore-client.ts';
-import type { ForecastWeatherData } from '../_shared/types.ts';
-import { WEATHER_LOCATIONS, convertToManilaTime, delay, getWeatherAPIUrl } from '../_shared/weather-utils.ts';
+import type { ForecastWeatherData, WeatherLocation } from '../_shared/types.ts';
+import { convertToManilaTime, delay, getWeatherAPIUrl, getWeatherLocations } from '../_shared/weather-utils.ts';
 
-const processHourlyWeather = async (location: (typeof WEATHER_LOCATIONS)[0]) => {
+const processHourlyWeather = async (location: WeatherLocation) => {
   try {
     const forecastUrl = getWeatherAPIUrl(location.coordinates, 'forecast');
     const response = await fetch(forecastUrl);
@@ -49,7 +49,9 @@ serve(async req => {
     console.log('🌤️ Starting hourly weather data collection...');
 
     // Process all locations with delay to avoid rate limits
-    for (const location of WEATHER_LOCATIONS) {
+    const weatherLocations = await getWeatherLocations();
+
+    for (const location of weatherLocations) {
       await processHourlyWeather(location);
       await delay(1500); // Rate limiting delay
     }
@@ -60,7 +62,7 @@ serve(async req => {
       JSON.stringify({
         success: true,
         message: 'Hourly weather data collected successfully',
-        processedLocations: WEATHER_LOCATIONS.length,
+        processedLocations: weatherLocations.length,
         timestamp: new Date().toISOString(),
       }),
       {

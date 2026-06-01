@@ -1,5 +1,10 @@
 import { admin } from '@/db/firestoreConfig';
+import {
+  normalizeBarangayValue,
+} from '@/config/locationConfig';
+import { ClientModel } from '@/models/admin/ClientModel';
 import { SignInModel } from '@/models/mobile/SignInModel';
+import { AuthIdentityService } from '@/services/AuthIdentityService';
 import { NextFunction, Request, Response } from 'express';
 import { OAuth2Client } from 'google-auth-library';
 
@@ -11,6 +16,16 @@ const getAllowedGoogleClientIds = () => {
     .split(',')
     .map(clientId => clientId.trim())
     .filter(Boolean);
+};
+
+const getAuthenticatedUid = (req: Request, res: Response): string | null => {
+  const uid = req.user?.uid;
+  if (!uid) {
+    res.status(401).json({ message: 'Missing user identification' });
+    return null;
+  }
+
+  return uid;
 };
 
 export class SignInController {
@@ -44,6 +59,7 @@ export class SignInController {
       });
 
       if (!ticket) {
+        console.error('❌ Token verification failed. Allowed audiences:', googleClientIds);
         res.status(401).json({
           message: 'Invalid Google token',
           detail: 'The token audience does not match the backend Google client configuration.',
@@ -52,10 +68,16 @@ export class SignInController {
       }
 
       const payload = ticket.getPayload();
+      // console.log('✅ Token verified successfully. Audience (aud):', payload?.aud);
+      
       if (!payload || !payload.email) {
         res.status(401).json({ message: 'Invalid Google token' });
         return;
       }
+
+      // Log Firebase project info for debugging
+      const firebaseProjectId = admin.app().options.projectId;
+      // console.log('🔍 Creating custom token for Firebase project:', firebaseProjectId);
 
       // Create or get Firebase user
       let firebaseUser;
@@ -77,6 +99,7 @@ export class SignInController {
 
       // Create custom token for client
       const customToken = await admin.auth().createCustomToken(firebaseUser.uid);
+      // console.log('✅ Custom token created for project:', firebaseProjectId, 'user:', firebaseUser.uid);
 
       // Save/update user in your database
       const userData = await SignInModel.signInUser(firebaseUser.uid, {
@@ -104,16 +127,44 @@ export class SignInController {
     }
   }
 
-  static async saveBarangayController(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const { uid, barangay } = req.body;
+  static async getLocationCoverageController(_req: Request, res: Response): Promise<void> {
+    res.status(200).json(await ClientModel.getActiveLocationCoverage());
+  }
 
-    if (!uid || !barangay) {
-      res.status(400).json({ message: 'User ID and barangay are required' });
+  static async getConfigDiagnostics(_req: Request, res: Response): Promise<void> {
+    const firebaseProjectId = admin.app().options.projectId;
+    const googleClientIds = getAllowedGoogleClientIds();
+    
+    res.status(200).json({
+      firebaseProjectId,
+      googleClientIds,
+      appEnv: process.env.APP_ENV,
+      backendEnv: process.env.BACKEND_ENV,
+    });
+  }
+
+  static async saveBarangayController(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const uid = getAuthenticatedUid(req, res);
+    if (!uid) {
+      return;
+    }
+
+    const { barangay } = req.body;
+    const normalizedBarangay = typeof barangay === 'string' ? normalizeBarangayValue(barangay) : '';
+
+    if (!normalizedBarangay) {
+      res.status(400).json({ message: 'Barangay is required' });
+      return;
+    }
+
+    const locationSelection = await ClientModel.resolveResidentLocationSelection(req.body);
+    if (!locationSelection) {
+      res.status(400).json({ message: 'Selected barangay is not covered by the active Rescuenect client' });
       return;
     }
 
     try {
-      await SignInModel.saveBarangay(uid, barangay);
+      await SignInModel.saveBarangay(uid, locationSelection);
       res.json({ success: true, message: 'Barangay saved successfully' });
     } catch (error: any) {
       console.error('Error saving barangay:', error);
@@ -123,9 +174,14 @@ export class SignInController {
   }
 
   static async saveUserInfoController(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const { uid, firstName, lastName, phoneNumber, e164PhoneNumber } = req.body;
+    const uid = getAuthenticatedUid(req, res);
+    if (!uid) {
+      return;
+    }
 
-    if (!uid || !firstName || !lastName || !phoneNumber || !e164PhoneNumber) {
+    const { firstName, lastName, phoneNumber, e164PhoneNumber } = req.body;
+
+    if (!firstName || !lastName || !phoneNumber || !e164PhoneNumber) {
       res.status(400).json({ message: 'All fields are required' });
       return;
     }
@@ -146,16 +202,14 @@ export class SignInController {
   }
 
   static async deleteUserController(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const { uid } = req.body;
-
+    const uid = getAuthenticatedUid(req, res);
     if (!uid) {
-      res.status(400).json({ message: 'User ID is required' });
       return;
     }
 
     try {
       await SignInModel.deleteUser(uid);
-      await admin.auth().deleteUser(uid);
+      await AuthIdentityService.deleteAuthUserIfNoProfiles(uid, 'resident');
 
       res.status(200).json({ success: true, message: 'User deleted successfully' });
     } catch (error: any) {

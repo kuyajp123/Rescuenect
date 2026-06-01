@@ -2,9 +2,11 @@ import { HoveredButton } from '@/components/components/button/Button';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { getClientMapBounds, getClientMapCenter, getClientMapZoomSettings } from '@/helper/clientMapScope';
 import { storageHelpers } from '@/helper/storage';
 import { useCoords } from '@/store/useCoords';
 import { useMapSettingsStore } from '@/store/useMapSettings';
+import { useUserData } from '@/store/useBackendResponse';
 import MapboxGL from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, MapIcon } from 'lucide-react-native';
@@ -41,6 +43,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
   const activeStatusCoords = useCoords(state => state.activeStatusCoords);
   const setActiveStatusCoords = useCoords(state => state.setActiveStatusCoords);
   const followUserLocation = useCoords(state => state.followUserLocation);
+  const userData = useUserData(state => state.userData);
 
   const [mapStyle, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
   const [showMapStyles, setShowMapStyles] = useState(false);
@@ -48,7 +51,16 @@ export const MapProvider = ({ children }: MapProviderProps) => {
   const fastTapEnabled = useMapSettingsStore(state => state.fastTapEnabled);
   const router = useRouter();
   const { isDark } = useTheme();
-  const [cameraCenter, setCameraCenterState] = useState<[number, number]>([120.750674, 14.31808]);
+  const [cameraCenter, setCameraCenterState] = useState<[number, number]>(() => getClientMapCenter(userData));
+  const cameraBounds = useMemo(() => {
+    const bounds = getClientMapBounds(userData, cameraCenter);
+
+    return {
+      ne: bounds[1],
+      sw: bounds[0],
+    };
+  }, [cameraCenter, userData]);
+  const scopedZoom = useMemo(() => getClientMapZoomSettings(userData), [userData]);
 
   const setCameraCenter = useCallback((coords: [number, number]) => {
     setCameraCenterState(coords);
@@ -71,7 +83,11 @@ export const MapProvider = ({ children }: MapProviderProps) => {
     loadMapStyle();
   }, []);
 
-  // Update camera center when active status coords change
+  // Update camera center when the user's LGU map scope changes.
+  useEffect(() => {
+    setCameraCenter(getClientMapCenter(userData));
+  }, [setCameraCenter, userData]);
+
   useEffect(() => {
     if (activeStatusCoords && coords && coords.length === 2) {
       setCameraCenter(coords);
@@ -167,15 +183,12 @@ export const MapProvider = ({ children }: MapProviderProps) => {
             centerCoordinate={cameraCenter} // [lng, lat]
             animationDuration={300}
             animationMode="flyTo"
-            zoomLevel={16}
-            minZoomLevel={15}
-            maxZoomLevel={19}
+            zoomLevel={scopedZoom.zoomLevel}
+            minZoomLevel={scopedZoom.minZoomLevel}
+            maxZoomLevel={scopedZoom.maxZoomLevel}
             followUserLocation={followUserLocation}
-            followZoomLevel={16}
-            maxBounds={{
-              ne: [120.765, 14.33],
-              sw: [120.735, 14.305],
-            }}
+            followZoomLevel={scopedZoom.zoomLevel}
+            maxBounds={cameraBounds}
           />
           {mapStyle !== MapboxGL.StyleURL.SatelliteStreet && (
             <MapboxGL.VectorSource id="buildingSource" url="mapbox://mapbox.mapbox-streets-v8">
@@ -289,6 +302,8 @@ export const MapProvider = ({ children }: MapProviderProps) => {
     coords,
     oneTimeLocationCoords,
     cameraCenter,
+    cameraBounds,
+    scopedZoom,
     mapStyle,
     showMapStyles,
     isDark,

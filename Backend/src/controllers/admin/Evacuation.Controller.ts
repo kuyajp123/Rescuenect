@@ -1,4 +1,5 @@
 import { EvacuationModel } from '@/models/admin/EvacuationModel';
+import { getClientScopeFromRequest } from '@/utils/adminScope';
 import { Request, Response } from 'express';
 
 const MAX_NAME_LENGTH = 100;
@@ -186,6 +187,18 @@ const validateEvacuationCenterPayload = (
 };
 
 export class EvacuationController {
+  static async getCenters(req: Request, res: Response): Promise<void> {
+    try {
+      const centers = await EvacuationModel.getCenters(getClientScopeFromRequest(req));
+      res.status(200).json(centers);
+    } catch (error) {
+      res.status(500).json({
+        message: 'Failed to fetch evacuation centers',
+        error: typeof error === 'string' ? error : (error as Error).message,
+      });
+    }
+  }
+
   static async addCenter(req: Request, res: Response): Promise<void> {
     try {
       const raw = req.body.data;
@@ -225,7 +238,13 @@ export class EvacuationController {
         return;
       }
 
-      await EvacuationModel.addCenter(payload, files ?? []);
+      const clientId = getClientScopeFromRequest(req);
+      if (!clientId) {
+        res.status(400).json({ message: 'clientId is required for evacuation center writes' });
+        return;
+      }
+
+      await EvacuationModel.addCenter(payload, files ?? [], clientId);
       res.status(200).json({ message: 'Evacuation center added successfully' });
     } catch (error) {
       console.error('❌ Failed to add evacuation center:', {
@@ -250,7 +269,13 @@ export class EvacuationController {
         });
         return;
       }
-      await EvacuationModel.deleteCenter(id);
+      const clientId = getClientScopeFromRequest(req);
+      if (!clientId) {
+        res.status(400).json({ message: 'clientId is required for evacuation center writes' });
+        return;
+      }
+
+      await EvacuationModel.deleteCenter(id, clientId);
       res.status(200).json({ message: 'Evacuation center deleted successfully' });
     } catch (error) {
       console.error('❌ Failed to delete evacuation center:', {
@@ -306,7 +331,13 @@ export class EvacuationController {
         return;
       }
 
-      await EvacuationModel.updateCenter(id as string, payload, files ?? [], keptImages);
+      const clientId = getClientScopeFromRequest(req);
+      if (!clientId) {
+        res.status(400).json({ message: 'clientId is required for evacuation center writes' });
+        return;
+      }
+
+      await EvacuationModel.updateCenter(id as string, payload, files ?? [], keptImages, clientId);
       res.status(200).json({ message: 'Evacuation center updated successfully' });
     } catch (error) {
       console.error('❌ Failed to update evacuation center:', {

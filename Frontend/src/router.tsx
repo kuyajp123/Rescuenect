@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect } from 'react';
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Loading } from './components/ui/LazyLoading/Loading';
 import { AuthLayout, MainLayout, Onboarding } from './layouts';
 import ProtectedRoute from './security/ProtectedRoutes';
@@ -30,6 +30,37 @@ const AddAnnouncement = lazy(() => import('@/pages/contents/announcement/add-ann
 const AnnouncementDetails = lazy(() => import('@/pages/contents/announcement/announcement-details'));
 const EditAnnouncement = lazy(() => import('@/pages/contents/announcement/edit-announcement'));
 const Contacts = lazy(() => import('@/pages/contents/Contacts'));
+const LguRequest = lazy(() => import('@/pages/public/LguRequest'));
+const SuperAdminOverview = lazy(() =>
+  import('@/pages/contents/SuperAdmin/pages/Overview').then(module => ({ default: module.SuperAdminOverview }))
+);
+const SuperAdminRequests = lazy(() =>
+  import('@/pages/contents/SuperAdmin/pages/Requests').then(module => ({ default: module.SuperAdminRequests }))
+);
+const SuperAdminClients = lazy(() =>
+  import('@/pages/contents/SuperAdmin/pages/Clients').then(module => ({ default: module.SuperAdminClients }))
+);
+const SuperAdminClientDetails = lazy(() =>
+  import('@/pages/contents/SuperAdmin/pages/ClientDetails').then(module => ({
+    default: module.SuperAdminClientDetails,
+  }))
+);
+const SuperAdminArchive = lazy(() =>
+  import('@/pages/contents/SuperAdmin/pages/Archive').then(module => ({ default: module.SuperAdminArchive }))
+);
+const SuperAdminAdmins = lazy(() =>
+  import('@/pages/contents/SuperAdmin/pages/Admins').then(module => ({ default: module.SuperAdminAdmins }))
+);
+const SuperAdminClientRequests = lazy(() =>
+  import('@/pages/contents/SuperAdmin/pages/ClientRequests').then(module => ({
+    default: module.SuperAdminClientRequests,
+  }))
+);
+const SuperAdminLogs = lazy(() =>
+  import('@/pages/contents/SuperAdmin/pages/Logs').then(module => ({ default: module.SuperAdminLogs }))
+);
+const LguClientRequests = lazy(() => import('@/pages/contents/LguClientRequests'));
+const NotFound = lazy(() => import('@/pages/NotFound').then(module => ({ default: module.NotFound })));
 
 import PrivacyPolicy from './components/ui/legalTerms/PrivacyPolicy';
 import TermsAndCondition from './components/ui/legalTerms/TermsAndCondition';
@@ -101,6 +132,16 @@ const Router = () => {
           <Route path="/announcement/details/:id" element={<AnnouncementDetails />} />
           <Route path="/announcement/edit/:id" element={<EditAnnouncement />} />
           <Route path="/contacts" element={<Contacts />} />
+          <Route path="/client-requests" element={<LguClientRequests />} />
+          <Route path="/super" element={<SuperAdminOverview />} />
+          <Route path="/super/requests" element={<SuperAdminRequests />} />
+          <Route path="/super/client-requests" element={<SuperAdminClientRequests />} />
+          <Route path="/super/logs" element={<SuperAdminLogs />} />
+          <Route path="/super/clients" element={<SuperAdminClients />} />
+          <Route path="/super/clients/archive" element={<SuperAdminArchive />} />
+          <Route path="/super/clients/:clientId" element={<SuperAdminClientDetails />} />
+          <Route path="/super/admins" element={<SuperAdminAdmins />} />
+          <Route path="/super/system-status" element={<Navigate to="/super" replace />} />
         </Route>
 
         {/* Onboarding layout */}
@@ -123,6 +164,8 @@ const Router = () => {
 
         <Route path="/terms-and-condition" element={<TermsAndCondition />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/request-access" element={<LguRequest />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
   );

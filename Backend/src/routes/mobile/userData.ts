@@ -1,15 +1,31 @@
 import { SignInController } from '@/controllers/mobile/SignIn.Controller';
 import { UserDataController } from '@/controllers/mobile/User.Data.Controller';
 import { AuthMiddleware } from '@/middlewares/AuthMiddleware';
+import { ResidentClientMiddleware } from '@/middlewares/ResidentClientMiddleware';
 import { Router } from 'express';
 
 const useDataRoutes = Router();
 
-useDataRoutes.use(AuthMiddleware.verifyToken);
+useDataRoutes.get('/locationCoverage', SignInController.getLocationCoverageController);
 
-useDataRoutes.post('/saveBarangay', SignInController.saveBarangayController);
-useDataRoutes.post('/saveUserInfo', SignInController.saveUserInfoController);
-useDataRoutes.post('/saveLocation', UserDataController.saveLocationController);
+useDataRoutes.use(AuthMiddleware.verifyToken, AuthMiddleware.requireOwnUid);
+
+useDataRoutes.get('/profile', UserDataController.getProfileController);
+useDataRoutes.post(
+  '/saveBarangay',
+  ResidentClientMiddleware.blockWritesWhenClientUnavailable,
+  SignInController.saveBarangayController
+);
+useDataRoutes.post(
+  '/saveUserInfo',
+  ResidentClientMiddleware.blockWritesWhenClientUnavailable,
+  SignInController.saveUserInfoController
+);
+useDataRoutes.post(
+  '/saveLocation',
+  ResidentClientMiddleware.blockWritesWhenClientUnavailable,
+  UserDataController.saveLocationController
+);
 useDataRoutes.get('/getLocations', UserDataController.getLocationsController);
 useDataRoutes.delete('/deleteLocation', UserDataController.deleteLocationController);
 useDataRoutes.post(

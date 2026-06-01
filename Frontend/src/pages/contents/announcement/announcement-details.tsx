@@ -41,8 +41,11 @@ const AnnouncementDetails = () => {
 
       try {
         setIsLoading(true);
-        const response = await axios.get(API_ENDPOINTS.ANNOUNCEMENT.GET_ANNOUNCEMENT_DETAILS, {
-          params: { id },
+        const idToken = await auth.currentUser?.getIdToken();
+        const response = await axios.get(API_ENDPOINTS.ANNOUNCEMENT.GET_ANNOUNCEMENT_DETAILS(id), {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
         });
         setAnnouncement(response.data as AnnouncementDataCard);
       } catch (err) {

@@ -19,8 +19,10 @@ export const API_ROUTES = {
     GET_ALL_MY_STATUSES: `${BASE_URL}/unified/getResidentStatuses`,
   },
   DATA: {
+    GET_PROFILE: `${BASE_URL}/mobile/data/profile`,
     SAVE_USER_DATA: `${BASE_URL}/mobile/data/saveUserInfo`,
     SAVE_BARANGAY_DATA: `${BASE_URL}/mobile/data/saveBarangay`,
+    GET_LOCATION_COVERAGE: `${BASE_URL}/mobile/data/locationCoverage`,
     SAVE_FCMTOKENREFRESH: `${BASE_URL}/mobile/data/saveFcmTokenRefresh`,
     SAVE_LOCATION: `${BASE_URL}/mobile/data/saveLocation`,
     GET_LOCATIONS: `${BASE_URL}/mobile/data/getLocations`,

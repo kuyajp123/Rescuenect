@@ -1,15 +1,16 @@
 import GoogleIMG from '@/assets/images/google/google.svg';
 import { Colors, getButtonColor } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
-import type { StyleProp, ViewStyle } from 'react-native';
 import { Button as HeroButton, Switch } from 'heroui-native';
+import { ChevronLeft } from 'lucide-react-native';
+import React, { useState } from 'react';
+import type { StyleProp, ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 
 type ButtonProps = {
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
+  isDisabled?: boolean;
   action?: 'primary' | 'secondary' | 'success' | 'error' | 'warning';
   variant?: 'solid' | 'outline' | 'link';
   children?: React.ReactNode;
@@ -24,6 +25,7 @@ type ButtonProps = {
 export const Button = ({
   style,
   onPress,
+  isDisabled = false,
   action = 'primary',
   variant = 'solid',
   children,
@@ -99,12 +101,7 @@ export const Button = ({
           ? Colors.button.overlay.mediumDark
           : Colors.button.overlay.medium;
 
-  const highlightOpacity =
-    variant === 'solid'
-      ? 1
-      : typeof borderColor === 'string'
-        ? 0.2
-        : 1;
+  const highlightOpacity = variant === 'solid' ? 1 : typeof borderColor === 'string' ? 0.2 : 1;
 
   return (
     <HeroButton
@@ -120,138 +117,21 @@ export const Button = ({
         },
       }}
       className={`${baseStyle} ${actionStyle} ${variantStyle} ${className}`}
-      style={style}
-      onPress={onPress}
+      isDisabled={isDisabled}
+      style={[style, isDisabled ? { opacity: 0.55 } : undefined]}
+      onPress={isDisabled ? undefined : onPress}
     >
       {children}
     </HeroButton>
   );
 };
 
-// Predefined Button Components
-export const OutlineButton = ({
-  onPress,
-  children,
-  isDark,
-  style,
-  className = '',
-}: {
-  onPress?: () => void;
-  children?: React.ReactNode;
-  isDark?: boolean;
-  style?: object;
-  className?: string;
-}) => (
-  <Button variant="outline" onPress={onPress} isDark={isDark} style={style} className={className}>
-    <Text className={'dark:text-text_dark-500 text-text_light-500'}>{children || 'Outline Button'}</Text>
-  </Button>
-);
-
-export const PrimaryButton = ({
-  onPress,
+export const HoveredButton = ({
   children,
   style,
-  className = '',
-}: {
-  onPress?: () => void;
-  children?: React.ReactNode;
-  style?: object;
-  className?: string;
-}) => (
-  <Button action="primary" variant="solid" style={style} onPress={onPress} className={className}>
-    <Text className="text-white font-semibold">{children || 'Primary Button'}</Text>
-  </Button>
-);
-
-export const ErrorButton = ({
   onPress,
-  children,
-  style,
-  className = '',
-}: {
-  onPress?: () => void;
-  children?: React.ReactNode;
-  style?: object;
-  className?: string;
-}) => (
-  <Button action="error" variant="solid" style={style} onPress={onPress} className={className}>
-    <Text className="text-white font-semibold">{children || 'Error Button'}</Text>
-  </Button>
-);
-
-export const WarningButton = ({
-  onPress,
-  children,
-  style,
-  className = '',
-}: {
-  onPress?: () => void;
-  children?: React.ReactNode;
-  style?: object;
-  className?: string;
-}) => (
-  <Button action="warning" variant="solid" style={style} onPress={onPress} className={className}>
-    <Text className="text-white font-semibold">{children || 'Warning Button'}</Text>
-  </Button>
-);
-
-export const SuccessButton = ({
-  onPress,
-  children,
-  style,
-  className = '',
-  showIcon = true,
-}: {
-  onPress?: () => void;
-  children?: React.ReactNode;
-  style?: object;
-  className?: string;
-  showIcon?: boolean;
-}) => (
-  <Button
-    action="success"
-    variant="solid"
-    style={{ borderRadius: 50, ...style }}
-    onPress={onPress}
-    className={className}
-  >
-    <Text className="text-white font-semibold">{children || 'Success Button'}</Text>
-    {showIcon && <ChevronRight size={24} color={'#FFFFFF'} />}
-  </Button>
-);
-
-export const CustomOutlineButton = ({
-  onPress,
-  children,
-  color = Colors.semantic?.success || '#4CAF50',
-  style,
-  className = '',
-  width = 'auto',
-  variant = 'outline',
-}: {
-  onPress?: () => void;
-  children?: React.ReactNode;
-  color?: string;
-  style?: object;
-  className?: string;
-  width?: 'full' | 'auto' | 'fit';
-  variant?: 'solid' | 'outline' | 'link';
-}) => {
-  const resolvedWidth = width === 'full' ? ('100%' as const) : ('auto' as const);
-
-  return (
-    <Button
-      variant={variant}
-      style={{ borderColor: color, width: resolvedWidth, borderWidth: 2, ...(style as any) }}
-      onPress={onPress}
-      className={className}
-    >
-      <Text style={{ color }}>{children || 'Custom Button'}</Text>
-    </Button>
-  );
-};
-
-export const HoveredButton = ({ children, style, onPress, onLongPress }: ButtonProps & { onLongPress?: () => void }) => {
+  onLongPress,
+}: ButtonProps & { onLongPress?: () => void }) => {
   const { isDark } = useTheme();
   const pressedBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
 
@@ -353,7 +233,6 @@ export const ToggleButton = ({
 export const GoogleButtonComponent = ({ onPress, disabled = false }: { onPress: () => void; disabled?: boolean }) => {
   return (
     <HeroButton
-      
       onPress={disabled ? undefined : onPress}
       style={{
         opacity: disabled ? 0.6 : 1,

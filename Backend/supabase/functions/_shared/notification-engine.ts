@@ -1,5 +1,7 @@
 import { sendFCMNotification } from './fcm-client.ts';
 import { getUserTokens, getWeatherData } from './firestore-client.ts';
+import { WEATHER_LOCATION_LABELS } from './location-config.ts';
+import { getWeatherLocations } from './weather-utils.ts';
 import {
   NotificationLevel,
   WeatherData,
@@ -31,8 +33,8 @@ export class NotificationProcessor {
     const results = { sent: 0, skipped: 0, errors: 0 };
 
     try {
-      // Get latest weather data for all locations
-      const locations = ['coastal_west', 'coastal_east', 'central_naic', 'sabang', 'farm_area', 'naic_boundary'];
+      // Get latest weather data for all active weather location keys
+      const locations = (await getWeatherLocations()).map(location => location.key);
 
       for (const location of locations) {
         try {
@@ -133,7 +135,7 @@ export class NotificationProcessor {
     location: string,
     targetAudience: 'admin' | 'users' | 'both'
   ): Promise<void> {
-    // Get user tokens and barangays based on target audience and weather zone
+    // Get user tokens and barangays based on target audience and weather location key
     const { tokens: userTokens, barangays } = await getUserTokens(targetAudience, location);
 
     if (userTokens.length === 0) {
@@ -180,18 +182,10 @@ export class NotificationProcessor {
   }
 
   /**
-   * Get human-readable location name (fallback for zone names)
+   * Get human-readable location name
    */
   private getLocationDisplayName(locationKey: string): string {
-    const locationNames = {
-      coastal_west: 'Coastal West',
-      coastal_east: 'Coastal East',
-      central_naic: 'Central Naic',
-      sabang: 'Sabang',
-      farm_area: 'Farm Area',
-      naic_boundary: 'Naic Boundary',
-    };
-    return locationNames[locationKey as keyof typeof locationNames] || locationKey;
+    return WEATHER_LOCATION_LABELS[locationKey as keyof typeof WEATHER_LOCATION_LABELS] || locationKey;
   }
 
   /**

@@ -1,23 +1,44 @@
 import { StatusModel } from '@/models/mobile/StatusModel';
 import { NextFunction, Request, Response } from 'express';
 
+const getAuthenticatedUid = (req: Request, res: Response): string | null => {
+  const uid = req.user?.uid;
+  if (!uid) {
+    res.status(401).json({ message: 'Missing user identification' });
+    return null;
+  }
+
+  return uid;
+};
+
 export class StatusController {
+  private static getWriteErrorStatus(message: string): number {
+    if (message.includes('scheduled for deletion')) return 423;
+    if (
+      message.includes('missing client assignment') ||
+      message.includes('client is not available') ||
+      message.includes('client is not active') ||
+      message.includes('User profile not found')
+    ) {
+      return 400;
+    }
+    return 500;
+  }
+
   static async createStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     const data = req.body;
     const file = req.file;
 
     try {
-      const { uid } = data;
-
-      // Validate uid exists
+      const uid = getAuthenticatedUid(req, res);
       if (!uid) {
-        res.status(400).json({ message: 'uid is required in request body' });
         return;
       }
 
       // Parse FormData string values back to proper types
       const statusData = {
         ...data,
+        uid,
         // Parse boolean fields
         shareLocation: data.shareLocation === 'true' || data.shareLocation === true,
         shareContact: data.shareContact === 'true' || data.shareContact === true,
@@ -43,14 +64,19 @@ export class StatusController {
       res.status(201).json({ message: 'Status created/updated successfully', data: result });
       return;
     } catch (error: any) {
-      res.status(500).json({ message: 'Failed to create status', error: error.message });
+      res
+        .status(StatusController.getWriteErrorStatus(error.message || ''))
+        .json({ message: 'Failed to create status', error: error.message });
       console.error('Status creation error:', error);
       // next(error);
     }
   }
 
   static async getStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const uid = req.params.uid;
+    const uid = getAuthenticatedUid(req, res);
+    if (!uid) {
+      return;
+    }
 
     try {
       const status = await StatusModel.getActiveStatus(uid);
@@ -69,18 +95,24 @@ export class StatusController {
   }
 
   static async deleteStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const uid = req.params.uid;
+    const uid = getAuthenticatedUid(req, res);
+    if (!uid) {
+      return;
+    }
+
     const { parentId } = req.body;
 
     // Clean and validate the inputs
-    const cleanUid = uid?.trim();
+    const cleanUid = uid.trim();
     const cleanParentId = parentId?.trim();
 
     try {
       const result = await StatusModel.deleteStatus(cleanUid, cleanParentId);
       res.status(200).json({ message: 'Status deleted successfully', data: result });
     } catch (error: any) {
-      res.status(500).json({ message: 'Failed to delete status', error: error.message });
+      res
+        .status(StatusController.getWriteErrorStatus(error.message || ''))
+        .json({ message: 'Failed to delete status', error: error.message });
       console.error('Status deletion error:', error);
     }
   }

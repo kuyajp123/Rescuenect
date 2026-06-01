@@ -12,6 +12,11 @@ export class ConfigController {
         return;
       }
 
+      if (req.user?.uid !== uid) {
+        res.status(403).json({ message: 'You can only update your own FCM token' });
+        return;
+      }
+
       const result = await ConfigModels.updateFcmToken(uid, fcmToken);
       res.status(200).json({ message: 'FCM Token updated successfully', result });
     } catch (error) {

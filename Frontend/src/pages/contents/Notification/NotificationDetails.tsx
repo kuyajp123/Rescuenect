@@ -9,6 +9,7 @@ import type {
   MapMarkerData,
   WeatherNotificationData,
 } from '@/types/types';
+import { getNotificationDisplayTimestamp } from '@/utils/notificationTime';
 import { Card, Chip, Divider, Spinner } from '@heroui/react';
 import axios from 'axios';
 import {
@@ -22,6 +23,7 @@ import {
   CloudRain,
   Droplets,
   Eye,
+  FileText,
   Gauge,
   Info,
   MapPin,
@@ -30,6 +32,7 @@ import {
   Sun,
   Thermometer,
   TrendingUp,
+  UserPlus,
   Users,
   Wind,
 } from 'lucide-react';
@@ -110,6 +113,11 @@ export const NotificationDetails = () => {
         return <CloudRain size={32} className="text-blue-500" />;
       case 'announcement':
         return <Megaphone size={32} className="text-purple-500" />;
+      case 'client_request':
+      case 'client_change_request':
+        return <FileText size={32} className="text-sky-500" />;
+      case 'admin_invite':
+        return <UserPlus size={32} className="text-emerald-500" />;
       case 'emergency':
         return <Shield size={32} className="text-red-600" />;
       case 'typhoon':
@@ -305,9 +313,10 @@ export const NotificationDetails = () => {
               <h4 className="font-semibold">Location Details</h4>
             </div>
             <p className="text-default-700">{earthquakeData.place}</p>
-            {earthquakeData.distanceFromNaic && (
+            {(earthquakeData.distanceFromClient ?? earthquakeData.distanceFromNaic) !== undefined && (
               <p className="text-sm text-default-500 mt-2">
-                📍 {earthquakeData.distanceFromNaic.toFixed(1)} km from Naic, Cavite
+                {(earthquakeData.distanceFromClient ?? earthquakeData.distanceFromNaic ?? 0).toFixed(1)} km from{' '}
+                {earthquakeData.clientName || 'the client center'}
               </p>
             )}
           </div>
@@ -540,6 +549,7 @@ export const NotificationDetails = () => {
   };
 
   const isRead = notification.readBy?.includes(uid || '');
+  const displayTimestamp = getNotificationDisplayTimestamp(notification);
 
   return (
     <div className="w-full space-y-4">
@@ -586,8 +596,10 @@ export const NotificationDetails = () => {
             <div className="flex items-center gap-3">
               <Calendar size={18} className="text-default-400" />
               <div>
-                <p className="text-xs text-default-500">Date & Time</p>
-                <p className="font-medium">{formatDateTime(notification.timestamp)}</p>
+                <p className="text-xs text-default-500">
+                  {notification.type === 'earthquake' ? 'Event Date & Time' : 'Date & Time'}
+                </p>
+                <p className="font-medium">{formatDateTime(displayTimestamp)}</p>
               </div>
             </div>
 

@@ -1,4 +1,5 @@
 import { Loading } from '@/components/ui/LazyLoading/Loading';
+import { AccessUnavailable } from '@/security/AccessUnavailable';
 import { useAuth } from '@/stores/useAuth';
 import { Navigate, useLocation } from 'react-router-dom';
 
@@ -9,6 +10,7 @@ type Props = {
 export default function ProtectedRoute({ children }: Props) {
   const userAuth = useAuth(state => state.auth);
   const userData = useAuth(state => state.userData);
+  const accessIssue = useAuth(state => state.accessIssue);
   const isLoading = useAuth(state => state.isLoading);
   const isVerifying = useAuth(state => state.isVerifying);
   const location = useLocation();
@@ -21,6 +23,10 @@ export default function ProtectedRoute({ children }: Props) {
   // 1. Not authenticated -> Login
   if (!userAuth) {
     return <Navigate to="/auth/login" replace />;
+  }
+
+  if (accessIssue) {
+    return <AccessUnavailable issue={accessIssue} />;
   }
 
   const isOnboardingRoute = ['/Welcome', '/address-setup', '/info-setup'].includes(location.pathname);
@@ -41,14 +47,14 @@ export default function ProtectedRoute({ children }: Props) {
       // Redirect to Dashboard if attempting to access onboarding
       return <Navigate to="/" replace />;
     }
+    if (userData.role === 'super_admin' && location.pathname === '/') {
+      return <Navigate to="/super" replace />;
+    }
+    if (userData.role !== 'super_admin' && location.pathname.startsWith('/super')) {
+      return <Navigate to="/" replace />;
+    }
     return children;
   }
 
-  // Fallback (e.g. userData is null but userAuth is true - shouldn't happen usually if logic is correct)
-  // If userData is still fetching, we might be here. But verified flow usually sets them together?
-  // Actually onAuthStateChanged runs, then GoogleButton sets UserData.
-  // If we refresh, onAuthStateChanged runs, but userData load might be from persist?
-  // Let's assume userData is ready if isLoading is false.
-
-  return children;
+  return <Navigate to="/auth/login" replace />;
 }

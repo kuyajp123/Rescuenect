@@ -5,7 +5,9 @@ export interface WeatherData {
   };
 }
 
-export type WeatherLocationKey =
+export type WeatherLocationKey = 'naic';
+
+export type LegacyWeatherLocationKey =
   | 'coastal_west'
   | 'coastal_east'
   | 'central_naic'

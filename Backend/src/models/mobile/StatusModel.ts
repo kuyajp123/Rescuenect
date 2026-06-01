@@ -1,4 +1,5 @@
 import db from '@/db/firestoreConfig';
+import { ClientModel } from '@/models/admin/ClientModel';
 import { ImageUploadService } from '@/services/status/imageUpload';
 import { StatusData } from '@/types/types';
 import * as admin from 'firebase-admin';
@@ -13,6 +14,48 @@ export class StatusModel {
     }
 
     return db.collection('status').doc(userId.trim()).collection('statuses');
+  }
+
+  private static async getUserClientMetadata(userId: string): Promise<Record<string, unknown>> {
+    const userSnap = await db.collection('users').doc(userId).get();
+    if (!userSnap.exists) {
+      throw new Error('User profile not found');
+    }
+
+    const data = userSnap.data() ?? {};
+    const clientId = typeof data.clientId === 'string' && data.clientId.trim() ? data.clientId.trim() : null;
+    if (!clientId) {
+      throw new Error('Resident profile is missing client assignment');
+    }
+
+    const client = await ClientModel.getClientById(clientId);
+    if (!client) {
+      throw new Error('Resident client is not available');
+    }
+    if (client.status === 'deletion_scheduled') {
+      throw new Error('Client is scheduled for deletion and resident status updates are locked');
+    }
+    if (client.status !== 'active') {
+      throw new Error('Resident client is not active');
+    }
+
+    const barangay = typeof data.barangay === 'string' ? data.barangay : null;
+    const coverageBarangay =
+      barangay !== null ? client.barangays.find(item => item.value === barangay && item.isActive !== false) : null;
+
+    return {
+      clientId: client.id,
+      clientName: client.name,
+      provinceCode: client.provinceCode,
+      provinceName: client.provinceName,
+      municipalityCode: client.municipalityCode,
+      municipalityName: client.municipalityName,
+      municipalityType: client.municipalityType,
+      barangay,
+      barangayCode: coverageBarangay?.barangayCode ?? data.barangayCode ?? null,
+      barangayLabel: coverageBarangay?.barangayLabel ?? data.barangayLabel ?? null,
+      weatherLocationKey: client.weatherLocationKey,
+    };
   }
 
   static async createOrUpdateStatus(
@@ -30,6 +73,8 @@ export class StatusModel {
       if (!userId || typeof userId !== 'string' || userId.trim() === '') {
         throw new Error(`Invalid userId provided: ${userId}`);
       }
+
+      const clientMetadata = await this.getUserClientMetadata(userId);
 
       // Check if user already has an active (current) status
       // Note: We only look for 'current' status, not 'deleted' or 'history'
@@ -73,6 +118,7 @@ export class StatusModel {
       // Create the status document - DO NOT include 'id' field, versionId is the document ID
       await statusRef.set({
         ...statusData,
+        ...clientMetadata,
         uid: userId, // Important: always set uid (override any uid in statusData)
         parentId: parentId,
         versionId: versionId,
@@ -86,7 +132,7 @@ export class StatusModel {
       return { parentId, versionId, createdAt: admin.firestore.Timestamp.now() };
     } catch (error) {
       console.error('❌ Error creating status:', error);
-      throw new Error('Failed to create status');
+      throw new Error(error instanceof Error ? error.message : 'Failed to create status');
     }
   }
 
@@ -232,6 +278,8 @@ export class StatusModel {
   static async deleteStatus(uid: string, parentId: string): Promise<{ parentId: string; deletedAt: Date }> {
     try {
       // Find current version
+      await this.getUserClientMetadata(uid);
+
       const currentQuery = await this.pathRef(uid).where('statusType', '==', 'current').limit(1).get();
 
       if (currentQuery.empty) {
