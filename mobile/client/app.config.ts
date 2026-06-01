@@ -1,8 +1,68 @@
-const appEnv = process.env.APP_ENV;
-const useStagingFirebase = appEnv === 'staging' || appEnv === 'local';
-const selectedGoogleServices = useStagingFirebase
-  ? require('./staging-google-services.json')
-  : require('./google-services.json');
+const fs = require('fs');
+const path = require('path');
+
+const appEnv = process.env.APP_ENV || 'production';
+
+type AppVariant = 'development' | 'staging' | 'production';
+
+const normalizeAppVariant = (value?: string): AppVariant => {
+  switch (value) {
+    case 'development':
+    case 'dev':
+    case 'local':
+      return 'development';
+    case 'staging':
+      return 'staging';
+    case 'production':
+    case 'production-preview':
+    case 'preview':
+    default:
+      return 'production';
+  }
+};
+
+const appVariant = normalizeAppVariant(process.env.APP_VARIANT || appEnv);
+
+const variantConfig: Record<
+  AppVariant,
+  {
+    name: string;
+    scheme: string;
+    androidPackage: string;
+    googleServicesFile: string;
+  }
+> = {
+  development: {
+    name: 'Rescuenect Dev',
+    scheme: 'rescuenect-dev',
+    androidPackage: 'com.yajeyps.client.dev',
+    googleServicesFile: './dev-google-services.json',
+  },
+  staging: {
+    name: 'Rescuenect Staging',
+    scheme: 'rescuenect-staging',
+    androidPackage: 'com.yajeyps.client.staging',
+    googleServicesFile: './staging-google-services.json',
+  },
+  production: {
+    name: 'Rescuenect',
+    scheme: 'rescuenect',
+    androidPackage: 'com.yajeyps.client',
+    googleServicesFile: './google-services.json',
+  },
+};
+
+const selectedVariantConfig = variantConfig[appVariant];
+const selectedGoogleServicesPath = path.resolve(__dirname, selectedVariantConfig.googleServicesFile);
+
+if (!fs.existsSync(selectedGoogleServicesPath)) {
+  throw new Error(
+    `Missing ${selectedVariantConfig.googleServicesFile} for APP_VARIANT=${appVariant}. ` +
+      `Create a Firebase Android app for ${selectedVariantConfig.androidPackage} and download its google-services.json.`
+  );
+}
+
+const selectedGoogleServices = require(selectedVariantConfig.googleServicesFile);
 
 const getWebClientId = (googleServices: any) => {
   const clients = googleServices?.client ?? [];
@@ -39,12 +99,12 @@ const firebaseConfig = getFirebaseClientConfig(selectedGoogleServices);
 export default ({ config }: { config: any }) => {
   return {
     ...config,
-    name: 'Rescuenect',
+    name: selectedVariantConfig.name,
     slug: 'client',
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/images/logo/adaptive-icon.png',
-    scheme: 'client',
+    scheme: selectedVariantConfig.scheme,
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
     ios: {
@@ -57,8 +117,8 @@ export default ({ config }: { config: any }) => {
         backgroundColor: '#ffffff',
       },
       edgeToEdgeEnabled: true,
-      package: useStagingFirebase ? 'com.yajeyps.client.staging' : 'com.yajeyps.client',
-      googleServicesFile: useStagingFirebase ? './staging-google-services.json' : './google-services.json',
+      package: selectedVariantConfig.androidPackage,
+      googleServicesFile: selectedVariantConfig.googleServicesFile,
       userInterfaceStyle: 'automatic',
     },
     web: {
@@ -108,6 +168,8 @@ export default ({ config }: { config: any }) => {
       googleWebClientId,
       firebaseConfig,
       firebaseProjectId: firebaseConfig.projectId,
+      appVariant,
+      appEnv,
       eas: {
         projectId: 'b0c098eb-8a7f-4cbd-b1ea-2e6557df75f7',
       },
