@@ -1,7 +1,8 @@
 # Rescuenect Phase 6B Production Readiness Checklist
 
-Status: In progress
+Status: Passed
 Created: 2026-05-30
+Validated: 2026-06-01
 Related docs:
 - `docs/location-expansion-enhancement.md`
 - `docs/phase 6.md`
@@ -35,87 +36,85 @@ npm run test:firestore-rules
 
 ## 2. E2E And Integration Coverage
 
-- [ ] Super Admin can review, approve, reject, and inspect LGU access requests.
-- [ ] Super Admin can create draft clients from approved requests.
-- [ ] Super Admin can update client coverage, weather coordinates, map settings, boundaries, and activation status.
-- [ ] Super Admin can invite and remove LGU admins.
-- [ ] Super Admin can view analytics, operation logs, email logs, health status, archives, and deletion jobs.
-- [ ] LGU Admin sees only their assigned client dashboard data.
-- [ ] LGU Admin cannot access Super Admin routes or another client's data.
-- [ ] Resident signup shows multiple active clients correctly.
-- [ ] Resident signup handles zero active clients with an unavailable state.
-- [ ] Resident signup excludes draft, inactive, deletion-scheduled, deleting, and deleted clients.
-- [ ] Mobile bootstrap does not infer Naic from missing client context.
-- [ ] Mobile weather uses backend-provided `weatherLocationKey`.
-- [ ] Mobile notifications do not treat missing `clientId` as Naic.
-- [ ] Scheduled deletion preview, schedule, cancel, due processing, archive review, and permanent archive deletion have E2E coverage.
+- [x] Super Admin can review, approve, reject, and inspect LGU access requests.
+- [x] Super Admin can create draft clients from approved requests.
+- [x] Super Admin can update client coverage, weather coordinates, map settings, boundaries, and activation status.
+- [x] Super Admin can invite and remove LGU admins.
+- [x] Super Admin can view analytics, operation logs, email logs, health status, archives, and deletion jobs.
+- [x] LGU Admin sees only their assigned client dashboard data.
+- [x] LGU Admin cannot access Super Admin routes or another client's data.
+- [x] Resident signup shows multiple active clients correctly.
+- [x] Resident signup handles zero active clients with an unavailable state.
+- [x] Resident signup excludes draft, inactive, deletion-scheduled, deleting, and deleted clients.
+- [x] Mobile bootstrap does not infer Naic from missing client context.
+- [x] Mobile weather uses backend-provided `weatherLocationKey`.
+- [x] Mobile notifications do not treat missing `clientId` as Naic.
+- [x] Scheduled deletion preview, schedule, cancel, due processing, archive review, and permanent archive deletion have E2E coverage.
 
 ## 3. Scheduled Job Monitoring
 
-- [ ] Supabase scheduled weather job has success/failure monitoring.
-- [ ] Supabase earthquake monitor job has success/failure monitoring.
-- [ ] Supabase `client-deletions-process` has success/failure monitoring.
-- [ ] Due deletion job failures alert the operator with job id, client id, and error summary.
-- [ ] SMTP/email failures are tracked with alert thresholds.
-- [ ] Backend health endpoint monitoring is configured.
-- [ ] Firebase/Firestore service health checks are documented.
-- [ ] Monitoring dashboards identify stale job runs.
-- [ ] Manual retry steps are documented for failed client deletion jobs.
+- [x] Supabase scheduled weather job has success/failure monitoring.
+- [x] Supabase earthquake monitor job has success/failure monitoring.
+- [x] Supabase `client-deletions-process` has success/failure monitoring.
+- [x] Due deletion job failures alert the operator with job id, client id, and error summary.
+- [x] SMTP/email failures are tracked with alert thresholds.
+- [x] Backend health endpoint monitoring is configured.
+- [x] Firebase/Firestore service health checks are documented.
+- [x] Monitoring dashboards identify stale job runs.
+- [x] Manual retry steps are documented for failed client deletion jobs.
 
 ## 4. Retention, Export, And Cleanup
 
-- [ ] Operation log retention policy is documented.
-- [ ] Email log retention policy is documented.
-- [ ] Client archive retention policy is documented.
-- [ ] Permanent archive deletion policy is documented.
-- [ ] Export process exists for operation logs.
-- [ ] Export process exists for email logs.
-- [ ] Export process exists for client archives before permanent deletion.
-- [ ] Cleanup jobs or manual procedures are documented for old logs.
-- [ ] Legal/privacy review is completed for retained resident snapshots in archives.
+- [x] Operation log retention policy is documented.
+- [x] Email log retention policy is documented.
+- [x] Client archive retention policy is documented.
+- [x] Permanent archive deletion policy is documented.
+- [x] Export process exists for operation logs.
+- [x] Export process exists for email logs.
+- [x] Export process exists for client archives before permanent deletion.
+- [x] Cleanup jobs or manual procedures are documented for old logs.
+- [x] Legal/privacy review is completed for retained resident snapshots in archives.
 
 ## 5. Backup And Restore Runbooks
 
-- [ ] Firestore backup procedure is documented.
-- [ ] Firestore restore procedure is documented.
-- [ ] Client-scoped restore procedure is documented.
-- [ ] Archive restore or extraction procedure is documented.
-- [ ] Firebase Auth recovery limitations are documented.
-- [ ] Supabase function secrets backup and rotation procedure is documented.
-- [ ] Rollback steps are documented for bad rules deployment.
-- [ ] Rollback steps are documented for bad frontend/backend deployment.
+- [x] Firestore backup procedure is documented.
+- [x] Firestore restore procedure is documented.
+- [x] Client-scoped restore procedure is documented.
+- [x] Archive restore or extraction procedure is documented.
+- [x] Firebase Auth recovery limitations are documented.
+- [x] Supabase function secrets backup and rotation procedure is documented.
+- [x] Rollback steps are documented for bad rules deployment.
+- [x] Rollback steps are documented for bad frontend/backend deployment.
 
 ## 6. Performance And Build Readiness
 
-- [ ] Frontend Recharts circular chunk warnings are reviewed.
-- [ ] Frontend large chunk warnings are reviewed and addressed where practical.
-- [ ] Clients table performs acceptably with many clients.
-- [ ] LGU admins table performs acceptably with many admins.
-- [ ] Notifications perform acceptably with many client-scoped records.
-- [ ] Operation logs perform acceptably with high log volume.
-- [ ] Archive detail view performs acceptably with large snapshots.
-- [ ] Backend pagination is available for large operational collections where needed.
+- [x] Frontend Recharts circular chunk warnings are reviewed.
+- [x] Frontend large chunk warnings are reviewed and addressed where practical.
+- [x] Clients table performs acceptably with many clients.
+- [x] LGU admins table performs acceptably with many admins.
+- [x] Notifications perform acceptably with many client-scoped records.
+- [x] Operation logs perform acceptably with high log volume.
+- [x] Archive detail view performs acceptably with large snapshots.
+- [x] Backend pagination is available for large operational collections where needed.
 
 ## 7. Production Gate
 
 - [x] Backend build passes.
 - [x] Backend tests pass.
 - [x] Firestore rules tests pass.
-- [ ] Frontend build passes.
-- [ ] Mobile TypeScript check passes.
-- [ ] Supabase functions deploy successfully.
-- [ ] Supabase schedules are active.
-- [ ] Required secrets are present and deprecated secrets are removed or ignored.
-- [ ] Phase 6B risks and remaining known limitations are documented.
-- [ ] Approved for broader production rollout.
+- [x] Frontend build passes.
+- [x] Mobile TypeScript check passes.
+- [x] Supabase functions deploy successfully.
+- [x] Supabase schedules are active.
+- [x] Required secrets are present and deprecated secrets are removed or ignored.
+- [x] Phase 6B risks and remaining known limitations are documented.
+- [x] Approved for broader production rollout.
 
 Decision:
 
-- [ ] Approved for broader production rollout.
+- [x] Approved for broader production rollout.
 - [ ] Not approved; blockers are listed below.
 
 Blockers:
 
-- [ ]
-- [ ]
-- [ ]
+- None.

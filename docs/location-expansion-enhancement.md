@@ -1,14 +1,14 @@
 # Location Expansion Enhancement
 
-Status: Phase 6A Validated; Phase 6B Production Readiness In Progress
+Status: Phase 6B Validated; Approved for Broader Production Rollout
 Date: 2026-05-20
-Last Updated: 2026-05-30
+Last Updated: 2026-06-01
 
 ## Summary
 
 Rescuenect started as a Naic-focused system, with barangays, weather keys, and several admin assumptions tied to one municipality. The location expansion enhancement turns that into a municipality or city client model so Rescuenect can onboard multiple LGU clients without code changes for every new location.
 
-Phase 1 to Phase 3 prepared the location model, simplified weather to a municipality/city key, and made resident signup use active coverage. Phase 4 added the Super Admin layer, LGU request onboarding, client management, LGU admin management, protected admin authorization, Naic legacy migration support, and dynamic client-based weather configuration. Phase 5 completed the stability layer with client proposals, map settings, boundary imports, SMTP email delivery, Super Admin analytics, dynamic earthquake scope, role-aware notifications, and operation logs. Phase 6A removed Naic as the runtime default client and added scheduled client decommissioning with archive retention, processed directly by a Supabase Edge Function using Firebase credentials. Phase 6A validation is complete, so the active work is now Phase 6B production readiness.
+Phase 1 to Phase 3 prepared the location model, simplified weather to a municipality/city key, and made resident signup use active coverage. Phase 4 added the Super Admin layer, LGU request onboarding, client management, LGU admin management, protected admin authorization, Naic legacy migration support, and dynamic client-based weather configuration. Phase 5 completed the stability layer with client proposals, map settings, boundary imports, SMTP email delivery, Super Admin analytics, dynamic earthquake scope, role-aware notifications, and operation logs. Phase 6A removed Naic as the runtime default client and added scheduled client decommissioning with archive retention, processed directly by a Supabase Edge Function using Firebase credentials. Phase 6B production-readiness validation is complete, and the system is approved for broader municipality/city production rollout.
 
 The current MVP direction remains municipality or city-level deployments only. Province-wide coverage is still a future roadmap item.
 
@@ -51,12 +51,12 @@ The current system supports:
 - Deletion grace-period banners for LGU admins and residents.
 - Read-only enforcement for LGU and resident writes while deletion is scheduled.
 
-Known transition limitations:
+Production readiness notes:
 
-- Firestore/security rules still need production-readiness review.
-- E2E/integration coverage for full Super Admin, LGU Admin, and resident scenarios is still planned.
-- Scheduled job monitoring and retention/export planning are still planned.
-- Province-wide clients remain out of scope.
+- Firestore/security rules production-readiness review is complete.
+- E2E/integration validation for Super Admin, LGU Admin, resident, and scheduled deletion scenarios is complete.
+- Scheduled job monitoring, retention/export planning, backup/restore runbooks, and production gate checks are complete.
+- Province-wide clients remain out of scope until Phase 7.
 
 ## Problem
 
@@ -595,17 +595,18 @@ Implemented work:
 
 ### Phase 6B: Production Readiness
 
-Status: In progress
+Status: Validated
 
-- Review Firestore/security rules for tenant isolation.
-- Add E2E tests for Super Admin and LGU Admin flows.
-- Add operation log retention, export, and cleanup rules.
-- Add backup and restore documentation.
-- Add monitoring for scheduled weather and earthquake jobs.
-- Add monitoring for scheduled client deletion jobs.
-- Add monitoring for SMTP/email failures.
-- Address frontend Recharts/chunk-size build warnings.
-- Review performance for large clients, many notifications, and many logs.
+- Reviewed Firestore/security rules for tenant isolation.
+- Validated E2E and integration coverage for Super Admin, LGU Admin, resident, mobile, and scheduled deletion flows.
+- Documented operation log, email log, archive retention, export, and cleanup rules.
+- Documented backup and restore runbooks.
+- Added or validated monitoring for scheduled weather and earthquake jobs.
+- Added or validated monitoring for scheduled client deletion jobs.
+- Added or validated monitoring for SMTP/email failures.
+- Reviewed frontend Recharts/chunk-size build warnings.
+- Reviewed performance for large clients, many notifications, archives, and operation logs.
+- Approved broader production rollout for municipality/city clients.
 
 ### Phase 7: Future Province Support
 
@@ -643,8 +644,8 @@ Use dynamic municipality or city client coverage as the production direction.
 
 Phase 4 confirmed that Rescuenect can onboard LGU clients through a Super Admin flow, activate coverage for resident signup, and run client-aware weather using one municipality/city weather key. Phase 5 extended that foundation with proposal-first client changes, map boundaries, email delivery, analytics, dynamic earthquake scope, role-aware notifications, and operation logs.
 
-Naic remains the initial protected client during transition, but it should continue moving toward being just one configured client among many.
+Naic is now treated as one configured municipality/city client among many, not as a runtime default fallback.
 
-Province-level coverage remains on the roadmap, but it should not be implemented until multiple municipality/city clients are stable and Phase 6A removes Naic as a runtime default.
+Province-level coverage remains on the roadmap, but it should not be implemented until multiple municipality/city clients are stable in production.
 
-The next enhancement move should be Phase 6B: production readiness, monitoring, rules review, and broader E2E coverage.
+The next enhancement move should be a controlled municipality/city production rollout, followed by Phase 7 province support only after real multi-client production usage is stable.
