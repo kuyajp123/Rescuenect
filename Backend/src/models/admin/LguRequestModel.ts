@@ -1,7 +1,7 @@
 import { db } from '@/db/firestoreConfig';
 import { AdminAuthModel } from '@/models/admin/AdminAuthModel';
 import { ClientModel } from '@/models/admin/ClientModel';
-import { EmailService } from '@/services/EmailService';
+// import { EmailService } from '@/services/EmailService';
 import { ManagementNotificationService } from '@/services/ManagementNotificationService';
 import type { ClientCoverageBarangay, ClientLguType, LguRequest } from '@/types/admin';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -146,26 +146,28 @@ export class LguRequestModel {
           actionPath: '/super/requests',
         },
       }),
-      EmailService.sendSimple({
-        to: request.requesterEmail,
-        subject: 'Rescuenect access request received',
-        title: 'Request received',
-        message: `We received your Rescuenect access request for ${request.lguName}. A Super Admin will review it soon.`,
-        template: 'lgu_request_received',
-        actionUrl: appUrl ? `${appUrl}/request-access` : undefined,
-        actionLabel: appUrl ? 'View Rescuenect' : undefined,
-      }),
-      ...superAdminEmails.map(email =>
-        EmailService.sendSimple({
-          to: email,
-          subject: 'New Rescuenect LGU access request',
-          title: 'New LGU request',
-          message: `${request.lguName} submitted a request for ${request.municipalityName}, ${request.provinceName}.`,
-          template: 'super_lgu_request_received',
-          actionUrl: appUrl ? `${appUrl}/super/requests` : undefined,
-          actionLabel: appUrl ? 'Review request' : undefined,
-        })
-      ),
+      //--- EMAIL DISABLED ---
+      // EmailService.sendSimple({
+      //   to: request.requesterEmail,
+      //   subject: 'Rescuenect access request received',
+      //   title: 'Request received',
+      //   message: `We received your Rescuenect access request for ${request.lguName}. A Super Admin will review it soon.`,
+      //   template: 'lgu_request_received',
+      //   actionUrl: appUrl ? `${appUrl}/request-access` : undefined,
+      //   actionLabel: appUrl ? 'View Rescuenect' : undefined,
+      // }),
+      // ...superAdminEmails.map(email =>
+      //   EmailService.sendSimple({
+      //     to: email,
+      //     subject: 'New Rescuenect LGU access request',
+      //     title: 'New LGU request',
+      //     message: `${request.lguName} submitted a request for ${request.municipalityName}, ${request.provinceName}.`,
+      //     template: 'super_lgu_request_received',
+      //     actionUrl: appUrl ? `${appUrl}/super/requests` : undefined,
+      //     actionLabel: appUrl ? 'Review request' : undefined,
+      //   })
+      // ),
+      //--- EMAIL DISABLED ---
     ]);
     return docRef.id;
   }
@@ -205,30 +207,34 @@ export class LguRequestModel {
       invitedBy: reviewedBy,
     });
 
-    await this.collectionRef().doc(id).set(
-      {
-        status: 'approved',
-        clientId: client.id,
-        reviewedBy,
-        reviewedAt: FieldValue.serverTimestamp(),
-        reviewNote: reviewNote || null,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
+    await this.collectionRef()
+      .doc(id)
+      .set(
+        {
+          status: 'approved',
+          clientId: client.id,
+          reviewedBy,
+          reviewedAt: FieldValue.serverTimestamp(),
+          reviewNote: reviewNote || null,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
 
     const updated = await this.getRequest(id);
     if (!updated) throw new Error('LGU request not found after approval');
     const appUrl = (process.env.APP_BASE_URL || '').replace(/\/$/, '');
-    await EmailService.sendSimple({
-      to: updated.requesterEmail,
-      subject: 'Rescuenect request approved',
-      title: 'Your Rescuenect request was approved',
-      message: `${updated.lguName} has been approved as a draft client. Please sign in with this email to continue onboarding.`,
-      template: 'lgu_request_approved',
-      actionUrl: appUrl ? `${appUrl}/auth/login` : undefined,
-      actionLabel: appUrl ? 'Sign in' : undefined,
-    });
+    //--- EMAIL DISABLED ---
+    // await EmailService.sendSimple({
+    //   to: updated.requesterEmail,
+    //   subject: 'Rescuenect request approved',
+    //   title: 'Your Rescuenect request was approved',
+    //   message: `${updated.lguName} has been approved as a draft client. Please sign in with this email to continue onboarding.`,
+    //   template: 'lgu_request_approved',
+    //   actionUrl: appUrl ? `${appUrl}/auth/login` : undefined,
+    //   actionLabel: appUrl ? 'Sign in' : undefined,
+    // });
+    //--- EMAIL DISABLED ---
     return updated;
   }
 
@@ -237,26 +243,30 @@ export class LguRequestModel {
     if (!request) throw new Error('LGU request not found');
     if (request.status !== 'pending') throw new Error('Only pending LGU requests can be rejected');
 
-    await this.collectionRef().doc(id).set(
-      {
-        status: 'rejected',
-        reviewedBy,
-        reviewedAt: FieldValue.serverTimestamp(),
-        reviewNote: reviewNote || null,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
+    await this.collectionRef()
+      .doc(id)
+      .set(
+        {
+          status: 'rejected',
+          reviewedBy,
+          reviewedAt: FieldValue.serverTimestamp(),
+          reviewNote: reviewNote || null,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
 
     const updated = await this.getRequest(id);
     if (!updated) throw new Error('LGU request not found after rejection');
-    await EmailService.sendSimple({
-      to: updated.requesterEmail,
-      subject: 'Rescuenect request update',
-      title: 'Your Rescuenect request was not approved',
-      message: reviewNote || 'A Super Admin reviewed your request and did not approve it at this time.',
-      template: 'lgu_request_rejected',
-    });
+    //--- EMAIL DISABLED ---
+    // await EmailService.sendSimple({
+    //   to: updated.requesterEmail,
+    //   subject: 'Rescuenect request update',
+    //   title: 'Your Rescuenect request was not approved',
+    //   message: reviewNote || 'A Super Admin reviewed your request and did not approve it at this time.',
+    //   template: 'lgu_request_rejected',
+    // });
+    //--- EMAIL DISABLED ---
     return updated;
   }
 

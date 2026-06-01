@@ -116,7 +116,34 @@ export class OperationLogService {
 
   static async list(limitCount = 300): Promise<OperationLog[]> {
     const normalizedLimit = Number.isFinite(limitCount) ? Math.min(Math.max(limitCount, 1), 500) : 300;
-    const snapshot = await this.collectionRef().orderBy('timestamp', 'desc').limit(normalizedLimit).get();
-    return snapshot.docs.map(doc => serialize(doc.id, doc.data()));
+    // Fetch slightly more than the limit so filtering out migration logs
+    // doesn't reduce the visible result count significantly.
+    const fetchLimit = Math.min(normalizedLimit + 50, 500);
+    const snapshot = await this.collectionRef().orderBy('timestamp', 'desc').limit(fetchLimit).get();
+    return snapshot.docs
+      .map(doc => serialize(doc.id, doc.data()))
+      // Exclude one-time migration/test operations from the operational log view.
+      // Migration logs are still stored in Firestore for audit purposes but are
+      // intentionally hidden from the admin dashboard.
+      .filter(log => log.targetType !== 'migration')
+      .slice(0, normalizedLimit);
+  }
+
+  static async deleteByTargetType(targetType: string): Promise<number> {
+    const snapshot = await this.collectionRef().where('targetType', '==', targetType).get();
+    if (snapshot.empty) return 0;
+    // Batch delete in chunks of 500 (Firestore batch limit)
+    let deleted = 0;
+    const chunks: FirebaseFirestore.QueryDocumentSnapshot[][] = [];
+    for (let i = 0; i < snapshot.docs.length; i += 500) {
+      chunks.push(snapshot.docs.slice(i, i + 500));
+    }
+    for (const chunk of chunks) {
+      const batch = db.batch();
+      chunk.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      deleted += chunk.length;
+    }
+    return deleted;
   }
 }

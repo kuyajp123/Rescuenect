@@ -9,6 +9,8 @@ superRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin, AdminM
 
 superRoutes.get('/overview', SuperAdminController.getOverview);
 superRoutes.get('/logs', SuperAdminController.getOperationLogs);
+superRoutes.delete('/logs/migrations', SuperAdminController.deleteMigrationLogs);
+
 superRoutes.post('/migrations/naic-client-id', SuperAdminController.backfillLegacyNaicData);
 superRoutes.get('/migrations/dynamic-client-cutover-audit', SuperAdminController.getDynamicClientCutoverAudit);
 superRoutes.post('/migrations/dynamic-client-cutover', SuperAdminController.runDynamicClientCutover);

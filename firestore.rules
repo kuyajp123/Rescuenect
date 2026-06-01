@@ -1,0 +1,431 @@
+rules_version = '2';
+
+// Rescuenect Firestore Security Rules
+// Phase 6B — Tenant Isolation Enforcement
+//
+// ARCHITECTURE NOTES:
+// - The backend (Render) uses Firebase Admin SDK → bypasses ALL rules → always allowed.
+// - Supabase Edge Functions use Firebase Admin SDK → same bypass.
+// - Rules only restrict DIRECT client-SDK access (mobile app, admin frontend).
+// - All collection WRITES should go through the backend. Rules enforce this by blocking
+//   direct writes on sensitive collections. LGU-admin-writable collections (announcements,
+//   centers, statuses) are the exception — the admin frontend writes directly.
+//
+// ROLE MODEL:
+// - super_admin : full system access, identified by admin/{uid}.role == 'super_admin'
+// - lgu_admin   : scoped to one clientId, identified by admin/{uid}.role == 'lgu_admin'
+// - resident    : identified by users/{uid} document existence
+// - public      : unauthenticated (lguRequests create, earthquakes read only)
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ================================================================
+    // HELPER FUNCTIONS
+    // ================================================================
+
+    // Is the request from an authenticated Firebase user?
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Current user's Firebase UID.
+    function uid() {
+      return request.auth.uid;
+    }
+
+    // Fetch the admin document for the current user (cached per request).
+    function adminDoc() {
+      return get(/databases/$(database)/documents/admin/$(uid())).data;
+    }
+
+    // Does this user have an admin document at all?
+    function hasAdminDoc() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admin/$(uid()));
+    }
+
+    // Is the current user a super admin?
+    function isSuperAdmin() {
+      return hasAdminDoc() && adminDoc().role == 'super_admin';
+    }
+
+    // Is the current user an active LGU admin?
+    function isActiveLguAdmin() {
+      return hasAdminDoc() &&
+             adminDoc().role == 'lgu_admin' &&
+             adminDoc().status == 'active';
+    }
+
+    // The LGU admin's assigned clientId.
+    function lguClientId() {
+      return adminDoc().clientId;
+    }
+
+    // Is this LGU admin assigned to the given clientId?
+    function isLguAdminOf(clientId) {
+      return isActiveLguAdmin() && lguClientId() == clientId;
+    }
+
+    // Is the current user a resident (has a users/{uid} document)?
+    function isResident() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(uid()));
+    }
+
+    // Fetch the resident's user document (cached per request).
+    function residentDoc() {
+      return get(/databases/$(database)/documents/users/$(uid())).data;
+    }
+
+    // The resident's assigned clientId.
+    function residentClientId() {
+      return residentDoc().clientId;
+    }
+
+    // Is this resident assigned to the given clientId?
+    function isResidentOf(clientId) {
+      return isResident() && residentClientId() == clientId;
+    }
+
+    // Is the current user the owner of a document (by uid field)?
+    function isDocOwner(docUid) {
+      return isSignedIn() && uid() == docUid;
+    }
+
+    // Does the target client currently allow direct client-SDK writes?
+    function isActiveClient(clientId) {
+      return exists(/databases/$(database)/documents/clients/$(clientId)) &&
+             get(/databases/$(database)/documents/clients/$(clientId)).data.status == 'active';
+    }
+
+    // LGU admins may directly write only to their own active client.
+    function canLguWriteClient(clientId) {
+      return isLguAdminOf(clientId) && isActiveClient(clientId);
+    }
+
+    // Residents may directly write client-dependent records only for their active client.
+    function canResidentWriteClient(clientId) {
+      return isResidentOf(clientId) && isActiveClient(clientId);
+    }
+
+    // ================================================================
+    // CLIENTS
+    // Active clients are readable publicly (resident signup, bootstrap).
+    // All other statuses are readable by admins only.
+    // ALL WRITES: Admin SDK (backend) only.
+    // ================================================================
+    match /clients/{clientId} {
+      allow read: if resource.data.status == 'active' ||
+                     isSuperAdmin() ||
+                     isLguAdminOf(clientId);
+      allow write: if false;
+    }
+
+    // ================================================================
+    // ADMIN ACCOUNTS
+    // Readable by the account owner (to check own role) or super admin.
+    // ALL WRITES: Admin SDK only — prevents role elevation.
+    // ================================================================
+    match /admin/{adminUid} {
+      allow read: if isDocOwner(adminUid) || isSuperAdmin();
+      allow write: if false;
+    }
+
+    // ================================================================
+    // ADMIN INVITATIONS
+    // Readable by super admin or the LGU admin of the same client.
+    // ALL WRITES: Admin SDK only.
+    // ================================================================
+    match /adminInvitations/{invitationId} {
+      allow read: if isSuperAdmin() ||
+                     (isActiveLguAdmin() && resource.data.clientId == lguClientId());
+      allow write: if false;
+    }
+
+    // ================================================================
+    // RESIDENTS / USERS
+    // Read: own document | LGU admin of same client | super admin
+    // Update: resident can update own non-sensitive profile fields.
+    //         Sensitive fields (clientId, FCM tokens, role) are backend-only.
+    // Create/Delete: Admin SDK only.
+    // ================================================================
+    match /users/{userUid} {
+      allow read: if isDocOwner(userUid) ||
+                     isSuperAdmin() ||
+                     (isActiveLguAdmin() && resource.data.clientId == lguClientId());
+
+      // Residents may update their own profile.
+      // Blocked fields are managed by the backend only.
+      allow update: if isDocOwner(userUid) &&
+                       isActiveClient(resource.data.clientId) &&
+                       !request.resource.data.diff(resource.data).affectedKeys()
+                         .hasAny([
+                           'clientId',
+                           'role',
+                           'fcmToken',
+                           'fcmTokens',
+                           'fcmTokenUpdatedAt',
+                           'clientStatus',
+                           'clientDeletionEffectiveAt',
+                           'clientDeletionStatus'
+                         ]);
+
+      allow create, delete: if false;
+    }
+
+    // ================================================================
+    // NOTIFICATIONS
+    // Publicly readable — intentional.
+    // Rationale: earthquake alerts, weather warnings, and system notices
+    //   are emergency information that must be visible on public/guest
+    //   screens (the app runs useNotificationSubscriber even when logged out).
+    //   This matches production behavior. Client-side filtering in
+    //   useNotificationSubscriber handles clientId-based display isolation.
+    // ALL WRITES: Supabase/backend Admin SDK only.
+    // ================================================================
+    match /notifications/{notificationId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ================================================================
+    // WEATHER DATA
+    // Publicly readable — forecast data is not sensitive and must be
+    // visible on public/guest screens. Matches production behavior.
+    // Writes: Supabase Edge Functions (Admin SDK) only.
+    // ================================================================
+    match /weather/{locationKey} {
+      allow read: if true;
+      allow write: if false;
+
+      match /{subcollection}/{docId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
+    // ================================================================
+    // EARTHQUAKES
+    // Publicly readable — seismic data is not sensitive.
+    // Writes: backend Admin SDK only.
+    // ================================================================
+    match /earthquakes/{earthquakeId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ================================================================
+    // ANNOUNCEMENTS
+    // Read: LGU admin of same client | resident of same client | super admin
+    // Write: LGU admin of same client | super admin
+    // NOTE: Queries MUST include where('clientId', '==', clientId) or they
+    //       will be rejected (rules cannot verify all results otherwise).
+    // ================================================================
+    match /announcements/{announcementId} {
+      allow read: if isSuperAdmin() ||
+                     isLguAdminOf(resource.data.clientId) ||
+                     isResidentOf(resource.data.clientId);
+
+      allow create: if isSuperAdmin() ||
+                       canLguWriteClient(request.resource.data.clientId);
+      allow update: if isSuperAdmin() ||
+                       (resource.data.clientId == request.resource.data.clientId &&
+                        canLguWriteClient(resource.data.clientId));
+      allow delete: if isSuperAdmin() ||
+                       canLguWriteClient(resource.data.clientId);
+    }
+
+    // ================================================================
+    // EVACUATION CENTERS
+    // Same scoping as announcements.
+    // ================================================================
+    match /centers/{centerId} {
+      allow read: if isSuperAdmin() ||
+                     isLguAdminOf(resource.data.clientId) ||
+                     isResidentOf(resource.data.clientId);
+
+      allow create: if isSuperAdmin() ||
+                       canLguWriteClient(request.resource.data.clientId);
+      allow update: if isSuperAdmin() ||
+                       (resource.data.clientId == request.resource.data.clientId &&
+                        canLguWriteClient(resource.data.clientId));
+      allow delete: if isSuperAdmin() ||
+                       canLguWriteClient(resource.data.clientId);
+    }
+
+    // ================================================================
+    // CONTACTS
+    // Structure: contacts/{clientId} — one document per client.
+    // Publicly readable — emergency hotlines and contacts must be
+    // accessible without login (matches production behavior).
+    // Writes: LGU admin or super admin only.
+    // ================================================================
+    match /contacts/{clientId} {
+      allow read: if true;
+      allow create, update: if isSuperAdmin() ||
+                               canLguWriteClient(clientId);
+      allow delete: if isSuperAdmin();
+    }
+
+    // ================================================================
+    // RESIDENT WELFARE STATUSES
+    // Read: resident of same client | LGU admin of same client | super admin
+    // Create: resident creates own status (clientId must match their own)
+    // Update: own status (resident) | LGU admin of same client | super admin
+    // Delete: LGU admin of same client | super admin
+    // ================================================================
+    match /statuses/{statusId} {
+      allow read: if isSuperAdmin() ||
+                     isLguAdminOf(resource.data.clientId) ||
+                     isResidentOf(resource.data.clientId);
+
+      allow create: if isResident() &&
+                       request.resource.data.uid == uid() &&
+                       request.resource.data.clientId == residentClientId() &&
+                       isActiveClient(request.resource.data.clientId);
+
+      allow update: if (isDocOwner(resource.data.uid) &&
+                        resource.data.clientId == request.resource.data.clientId &&
+                        canResidentWriteClient(resource.data.clientId)) ||
+                       canLguWriteClient(resource.data.clientId) ||
+                       isSuperAdmin();
+
+      allow delete: if canLguWriteClient(resource.data.clientId) || isSuperAdmin();
+    }
+
+    // ================================================================
+    // LGU REQUESTS (PUBLIC ONBOARDING FORM)
+    // Create: public (no auth required — public form submission)
+    // Read/Update/Delete: super admin only
+    // ================================================================
+    match /lguRequests/{requestId} {
+      allow create: if true;
+      allow read, update, delete: if isSuperAdmin();
+    }
+
+    // ================================================================
+    // CLIENT CHANGE REQUESTS (LGU PROPOSALS)
+    // ================================================================
+    match /clientChangeRequests/{requestId} {
+      allow read: if isSuperAdmin() ||
+                     (isActiveLguAdmin() && resource.data.clientId == lguClientId());
+      allow create: if isSuperAdmin() ||
+                       canLguWriteClient(request.resource.data.clientId);
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // ================================================================
+    // CLIENT BOUNDARIES (GEOJSON)
+    // Structure: clientBoundaries/{clientId} — one document per client.
+    // ================================================================
+    match /clientBoundaries/{clientId} {
+      allow read: if isSuperAdmin() ||
+                     isLguAdminOf(clientId) ||
+                     isResidentOf(clientId);
+      allow write: if false; // Admin SDK only (boundary imports go through backend)
+    }
+
+    // ================================================================
+    // SUPER ADMIN ONLY COLLECTIONS
+    // ALL WRITES: Admin SDK only.
+    // ================================================================
+
+    // Client archive snapshots (completed deletions)
+    match /clientArchives/{archiveId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+
+      match /{subcollection}/{docId} {
+        allow read: if isSuperAdmin();
+        allow write: if false;
+      }
+    }
+
+    // Scheduled deletion job tracking
+    match /clientDeletionJobs/{jobId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+
+    // System operation logs
+    match /operationLogs/{logId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+
+    // Email delivery logs
+    match /emailLogs/{logId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+
+    // Earthquake notification deduplication (internal Supabase use only)
+    match /earthquakeNotificationDedup/{docId} {
+      allow read, write: if false;
+    }
+
+    // ================================================================
+    // STATUS (USER PERSONAL STATUS SUBCOLLECTION)
+    // Path: status/{userId}/statuses/{statusId}
+    //
+    // TWO USE CASES:
+    // 1. useStatusFetchBackgroundData — resident reads their OWN status entry.
+    //    Query: collection(db, 'status', uid, 'statuses').where('statusType', ...)
+    //
+    // 2. useCurrentStatuses — community view via collectionGroup.
+    //    Query: collectionGroup(db, 'statuses').where('clientId', '==', x)
+    //
+    // IMPORTANT: For collectionGroup queries, Firestore requires an explicit
+    // /{path=**}/statuses/{statusId} wildcard rule at the TOP level — the nested
+    // /status/{userId}/statuses/{statusId} rule alone is NOT sufficient.
+    // ================================================================
+    match /status/{userId} {
+      // Parent document — Admin SDK managed
+      allow read: if isDocOwner(userId) || isSuperAdmin();
+      allow write: if false;
+
+      match /statuses/{statusId} {
+        allow read: if isDocOwner(userId) ||
+                       isSuperAdmin() ||
+                       isLguAdminOf(resource.data.clientId) ||
+                       isResidentOf(resource.data.clientId);
+
+        // Only the status owner can create or update their own active-client entry.
+        allow create: if isDocOwner(userId) &&
+                         request.resource.data.uid == uid() &&
+                         request.resource.data.clientId == residentClientId() &&
+                         isActiveClient(request.resource.data.clientId);
+        allow update: if isDocOwner(userId) &&
+                         resource.data.uid == uid() &&
+                         request.resource.data.uid == uid() &&
+                         resource.data.clientId == request.resource.data.clientId &&
+                         canResidentWriteClient(resource.data.clientId);
+
+        // Owner or admins can delete.
+        allow delete: if (isDocOwner(userId) && canResidentWriteClient(resource.data.clientId)) ||
+                         isSuperAdmin() ||
+                         canLguWriteClient(resource.data.clientId);
+      }
+    }
+
+    // ================================================================
+    // COLLECTION GROUP WILDCARD — REQUIRED FOR collectionGroup('statuses')
+    // Firestore requires this explicit top-level wildcard path rule for
+    // collectionGroup queries to work, regardless of nested rules above.
+    // ================================================================
+    match /{path=**}/statuses/{statusId} {
+      allow read: if isSuperAdmin() ||
+                     isLguAdminOf(resource.data.clientId) ||
+                     isResidentOf(resource.data.clientId);
+      allow create, update: if false;
+      allow delete: if false;
+    }
+
+    // ================================================================
+    // INTERNAL HEALTH CHECK (backend only)
+    // ================================================================
+    match /_healthcheck/{docId} {
+      allow read, write: if false;
+    }
+
+  }
+}

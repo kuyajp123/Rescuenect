@@ -269,6 +269,15 @@ export class SuperAdminController {
     }
   }
 
+  static async deleteMigrationLogs(_req: Request, res: Response): Promise<void> {
+    try {
+      const deleted = await OperationLogService.deleteByTargetType('migration');
+      res.status(200).json({ deleted, message: `Removed ${deleted} migration log(s) from operation history.` });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to delete migration logs' });
+    }
+  }
+
   static async backfillLegacyNaicData(req: Request, res: Response): Promise<void> {
     try {
       const dryRun = req.query.dryRun === 'true' || req.body?.dryRun === true;

@@ -274,6 +274,7 @@ export interface EmailDeliveryLog {
   subject: string;
   template: string;
   status: EmailDeliveryStatus;
+  provider?: 'smtp' | 'resend';
   error?: string | null;
   createdAt?: unknown;
 }
