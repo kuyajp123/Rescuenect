@@ -59,6 +59,7 @@ export class SignInController {
       });
 
       if (!ticket) {
+        console.error('❌ Token verification failed. Allowed audiences:', googleClientIds);
         res.status(401).json({
           message: 'Invalid Google token',
           detail: 'The token audience does not match the backend Google client configuration.',
@@ -67,10 +68,16 @@ export class SignInController {
       }
 
       const payload = ticket.getPayload();
+      console.log('✅ Token verified successfully. Audience (aud):', payload?.aud);
+      
       if (!payload || !payload.email) {
         res.status(401).json({ message: 'Invalid Google token' });
         return;
       }
+
+      // Log Firebase project info for debugging
+      const firebaseProjectId = admin.app().options.projectId;
+      console.log('🔍 Creating custom token for Firebase project:', firebaseProjectId);
 
       // Create or get Firebase user
       let firebaseUser;
@@ -92,6 +99,7 @@ export class SignInController {
 
       // Create custom token for client
       const customToken = await admin.auth().createCustomToken(firebaseUser.uid);
+      console.log('✅ Custom token created for project:', firebaseProjectId, 'user:', firebaseUser.uid);
 
       // Save/update user in your database
       const userData = await SignInModel.signInUser(firebaseUser.uid, {
@@ -121,6 +129,18 @@ export class SignInController {
 
   static async getLocationCoverageController(_req: Request, res: Response): Promise<void> {
     res.status(200).json(await ClientModel.getActiveLocationCoverage());
+  }
+
+  static async getConfigDiagnostics(_req: Request, res: Response): Promise<void> {
+    const firebaseProjectId = admin.app().options.projectId;
+    const googleClientIds = getAllowedGoogleClientIds();
+    
+    res.status(200).json({
+      firebaseProjectId,
+      googleClientIds,
+      appEnv: process.env.APP_ENV,
+      backendEnv: process.env.BACKEND_ENV,
+    });
   }
 
   static async saveBarangayController(req: Request, res: Response, next: NextFunction): Promise<void> {
