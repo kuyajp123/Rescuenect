@@ -14,7 +14,7 @@ import { storageHelpers } from '@/helper/storage';
 import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import { useUserData } from '@/store/useBackendResponse';
 import { CenterType, EvacuationCenter } from '@/types/components';
-import MapboxGL, { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
+import MapboxGL, { FillLayer, Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
 import type { FeatureCollection } from 'geojson';
 import { Bookmark, ChevronLeft, List, MapIcon } from 'lucide-react-native';
@@ -44,27 +44,8 @@ const getEarthquakeSeverityColor = (severity: string) => {
   }
 };
 
-// Get the appropriate radius image based on earthquake severity
-const getEarthquakeRadiusImage = (severity: string) => {
-  switch (severity.toLowerCase()) {
-    case 'micro':
-      return require('@/assets/images/marker/radius/micro.png');
-    case 'minor':
-      return require('@/assets/images/marker/radius/minor.png');
-    case 'light':
-      return require('@/assets/images/marker/radius/light.png');
-    case 'moderate':
-      return require('@/assets/images/marker/radius/moderate.png');
-    case 'strong':
-      return require('@/assets/images/marker/radius/strong.png');
-    case 'major':
-      return require('@/assets/images/marker/radius/major.png');
-    case 'great':
-      return require('@/assets/images/marker/radius/great.png');
-    default:
-      return require('@/assets/images/marker/radius/moderate.png'); // fallback
-  }
-};
+const EARTH_RADIUS_KM = 6371.0088;
+const EARTHQUAKE_RADIUS_SEGMENTS = 96;
 
 interface EarthquakeData {
   id?: string;
@@ -79,36 +60,107 @@ interface EarthquakeData {
     moderate_shaking_radius_km: number;
     strong_shaking_radius_km: number;
   };
+  clientImpacts?: Array<{
+    radiusKm?: number;
+  }>;
 }
 
-const EARTHQUAKE_RADIUS_IMAGES = {
-  earthquakeRadiusMicro: require('@/assets/images/marker/radius/micro.png'),
-  earthquakeRadiusMinor: require('@/assets/images/marker/radius/minor.png'),
-  earthquakeRadiusLight: require('@/assets/images/marker/radius/light.png'),
-  earthquakeRadiusModerate: require('@/assets/images/marker/radius/moderate.png'),
-  earthquakeRadiusStrong: require('@/assets/images/marker/radius/strong.png'),
-  earthquakeRadiusMajor: require('@/assets/images/marker/radius/major.png'),
-  earthquakeRadiusGreat: require('@/assets/images/marker/radius/great.png'),
+type EarthquakeRadiusRing = {
+  key: 'felt' | 'moderate' | 'strong';
+  label: string;
+  radiusKm: number;
+  fillColor: string;
+  fillOpacity: number;
+  outlineColor: string;
 };
 
-const getEarthquakeRadiusImageKey = (severity: string) => {
-  switch (severity.toLowerCase()) {
-    case 'micro':
-      return 'earthquakeRadiusMicro';
-    case 'minor':
-      return 'earthquakeRadiusMinor';
-    case 'light':
-      return 'earthquakeRadiusLight';
-    case 'strong':
-      return 'earthquakeRadiusStrong';
-    case 'major':
-      return 'earthquakeRadiusMajor';
-    case 'great':
-      return 'earthquakeRadiusGreat';
-    case 'moderate':
-    default:
-      return 'earthquakeRadiusModerate';
+const getPositiveFiniteNumber = (value: unknown): number | null => {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+};
+
+const createRadiusPolygon = (
+  longitude: number,
+  latitude: number,
+  radiusKm: number
+): FeatureCollection => {
+  const centerLatitude = (latitude * Math.PI) / 180;
+  const centerLongitude = (longitude * Math.PI) / 180;
+  const angularDistance = radiusKm / EARTH_RADIUS_KM;
+  const coordinates: [number, number][] = [];
+
+  for (let index = 0; index <= EARTHQUAKE_RADIUS_SEGMENTS; index++) {
+    const bearing = (index / EARTHQUAKE_RADIUS_SEGMENTS) * 2 * Math.PI;
+    const pointLatitude = Math.asin(
+      Math.sin(centerLatitude) * Math.cos(angularDistance) +
+        Math.cos(centerLatitude) * Math.sin(angularDistance) * Math.cos(bearing)
+    );
+    const pointLongitude =
+      centerLongitude +
+      Math.atan2(
+        Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(centerLatitude),
+        Math.cos(angularDistance) - Math.sin(centerLatitude) * Math.sin(pointLatitude)
+      );
+
+    const normalizedLongitude = ((((pointLongitude * 180) / Math.PI + 540) % 360) - 180) as number;
+    coordinates.push([normalizedLongitude, (pointLatitude * 180) / Math.PI]);
   }
+
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [coordinates],
+        },
+        properties: {
+          radiusKm,
+        },
+      },
+    ],
+  };
+};
+
+const getEarthquakeRadiusRings = (earthquake: EarthquakeData): EarthquakeRadiusRing[] => {
+  const feltRadius =
+    getPositiveFiniteNumber(earthquake.impact_radii?.felt_radius_km) ??
+    getPositiveFiniteNumber(earthquake.clientImpacts?.[0]?.radiusKm);
+  const moderateRadius = getPositiveFiniteNumber(earthquake.impact_radii?.moderate_shaking_radius_km);
+  const strongRadius = getPositiveFiniteNumber(earthquake.impact_radii?.strong_shaking_radius_km);
+
+  return [
+    feltRadius
+      ? {
+          key: 'felt',
+          label: 'Felt radius',
+          radiusKm: feltRadius,
+          fillColor: '#F59E0B',
+          fillOpacity: 0.16,
+          outlineColor: '#F59E0B',
+        }
+      : null,
+    moderateRadius
+      ? {
+          key: 'moderate',
+          label: 'Moderate shaking',
+          radiusKm: moderateRadius,
+          fillColor: '#F97316',
+          fillOpacity: 0.2,
+          outlineColor: '#EA580C',
+        }
+      : null,
+    strongRadius
+      ? {
+          key: 'strong',
+          label: 'Strong shaking',
+          radiusKm: strongRadius,
+          fillColor: '#EF4444',
+          fillOpacity: 0.24,
+          outlineColor: '#DC2626',
+        }
+      : null,
+  ].filter((ring): ring is EarthquakeRadiusRing => Boolean(ring));
 };
 
 type saveLocationData = {
@@ -436,10 +488,6 @@ export const MapView: React.FC<MapViewProps> = ({
                 'marker-vacant-building': require('@/assets/images/marker/evacuation-center-marker/marker-vacant-building.png'),
                 'marker-covered-court': require('@/assets/images/marker/evacuation-center-marker/marker-covered-court.png'),
                 'others-marker': require('@/assets/images/marker/evacuation-center-marker/others-marker.png'),
-                ...EARTHQUAKE_RADIUS_IMAGES,
-                earthquakeRadius: earthquakeData
-                  ? getEarthquakeRadiusImage(earthquakeData.severity)
-                  : require('@/assets/images/marker/radius/moderate.png'),
               }}
             />
 
@@ -556,59 +604,54 @@ export const MapView: React.FC<MapViewProps> = ({
                 </MapboxGL.PointAnnotation>
               ))}
 
-            {/* Earthquake radius using PNG image overlay */}
+            {/* Earthquake impact radii in real map distance, not fixed screen pixels. */}
             {earthquakeMarkers.map((earthquake, index) => {
               const markerId = String(earthquake.id ?? `earthquake-${index}`).replace(/[^a-zA-Z0-9_-]/g, '_');
+              const radiusRings = getEarthquakeRadiusRings(earthquake);
 
               return (
                 <React.Fragment key={`earthquake-${markerId}`}>
-                <ShapeSource
-                  id={`earthquake-radius-source-${markerId}`}
-                  shape={{
-                    type: 'FeatureCollection',
-                    features: [
-                      {
-                        type: 'Feature',
-                        geometry: {
-                          type: 'Point',
-                          coordinates: [earthquake.coordinates.longitude, earthquake.coordinates.latitude],
-                        },
-                        properties: {},
-                      },
-                    ],
-                  }}
-                >
-                  <SymbolLayer
-                    id={`earthquake-radius-layer-${markerId}`}
-                    style={{
-                      iconImage: getEarthquakeRadiusImageKey(earthquake.severity),
-                      iconSize: 0.2, // Adjust size as needed
-                      iconAllowOverlap: true,
-                      iconIgnorePlacement: true,
-                      iconOpacity: 0.4,
-                    }}
-                  />
-                </ShapeSource>
+                  {radiusRings.map(ring => (
+                    <ShapeSource
+                      key={`earthquake-radius-${markerId}-${ring.key}`}
+                      id={`earthquake-radius-source-${markerId}-${ring.key}`}
+                      shape={createRadiusPolygon(
+                        earthquake.coordinates.longitude,
+                        earthquake.coordinates.latitude,
+                        ring.radiusKm
+                      )}
+                    >
+                      <FillLayer
+                        id={`earthquake-radius-layer-${markerId}-${ring.key}`}
+                        style={{
+                          fillColor: ring.fillColor,
+                          fillOpacity: ring.fillOpacity,
+                          fillOutlineColor: ring.outlineColor,
+                          fillAntialias: true,
+                        }}
+                      />
+                    </ShapeSource>
+                  ))}
 
-                {/* Earthquake epicenter marker */}
-                <MapboxGL.PointAnnotation
-                  id={`earthquake-epicenter-${markerId}`}
-                  coordinate={[earthquake.coordinates.longitude, earthquake.coordinates.latitude]}
-                  onSelected={() => onEarthquakePress?.(earthquake.id ?? markerId)}
-                >
-                  <View
-                    collapsable={false}
-                    style={[
-                      styles.tapMarker,
-                      {
-                        backgroundColor: getEarthquakeSeverityColor(earthquake.severity),
-                        width: 16,
-                        height: 16,
-                        borderWidth: 3,
-                      },
-                    ]}
-                  />
-                </MapboxGL.PointAnnotation>
+                  {/* Earthquake epicenter marker */}
+                  <MapboxGL.PointAnnotation
+                    id={`earthquake-epicenter-${markerId}`}
+                    coordinate={[earthquake.coordinates.longitude, earthquake.coordinates.latitude]}
+                    onSelected={() => onEarthquakePress?.(earthquake.id ?? markerId)}
+                  >
+                    <View
+                      collapsable={false}
+                      style={[
+                        styles.tapMarker,
+                        {
+                          backgroundColor: getEarthquakeSeverityColor(earthquake.severity),
+                          width: 16,
+                          height: 16,
+                          borderWidth: 3,
+                        },
+                      ]}
+                    />
+                  </MapboxGL.PointAnnotation>
                 </React.Fragment>
               );
             })}

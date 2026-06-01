@@ -10,6 +10,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 type ButtonProps = {
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
+  isDisabled?: boolean;
   action?: 'primary' | 'secondary' | 'success' | 'error' | 'warning';
   variant?: 'solid' | 'outline' | 'link';
   children?: React.ReactNode;
@@ -24,6 +25,7 @@ type ButtonProps = {
 export const Button = ({
   style,
   onPress,
+  isDisabled = false,
   action = 'primary',
   variant = 'solid',
   children,
@@ -115,8 +117,9 @@ export const Button = ({
         },
       }}
       className={`${baseStyle} ${actionStyle} ${variantStyle} ${className}`}
-      style={style}
-      onPress={onPress}
+      isDisabled={isDisabled}
+      style={[style, isDisabled ? { opacity: 0.55 } : undefined]}
+      onPress={isDisabled ? undefined : onPress}
     >
       {children}
     </HeroButton>

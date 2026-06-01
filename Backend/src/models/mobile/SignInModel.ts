@@ -1,8 +1,10 @@
 import { ClientModel, type DynamicResidentLocationSelection } from '@/models/admin/ClientModel';
 import { db } from '@/db/firestoreConfig';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export class SignInModel {
   private static userRef = (uid: string) => db.collection('users').doc(uid);
+  private static statusRef = (uid: string) => db.collection('status').doc(uid);
 
   private static async withClientStatus(data: Record<string, unknown>): Promise<Record<string, unknown>> {
     const clientId = typeof data.clientId === 'string' && data.clientId.trim() ? data.clientId.trim() : null;
@@ -128,10 +130,52 @@ export class SignInModel {
 
   static async deleteUser(uid: string): Promise<void> {
     try {
+      await this.hideResidentStatusesForDeletedAccount(uid);
       await this.userRef(uid).delete();
     } catch (error: Error | any) {
       console.error('Error deleting user:', error);
       throw new Error('Failed to delete user');
     }
+  }
+
+  private static async hideResidentStatusesForDeletedAccount(uid: string): Promise<void> {
+    const snapshot = await this.statusRef(uid).collection('statuses').get();
+
+    if (snapshot.empty) {
+      return;
+    }
+
+    let batch = db.batch();
+    let writes = 0;
+
+    const commitBatch = async () => {
+      if (writes === 0) {
+        return;
+      }
+
+      await batch.commit();
+      batch = db.batch();
+      writes = 0;
+    };
+
+    for (const doc of snapshot.docs) {
+      batch.set(
+        doc.ref,
+        {
+          residentVisible: false,
+          ownerAccountDeleted: true,
+          retainedForAdmin: true,
+          accountDeletedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+      writes++;
+
+      if (writes >= 450) {
+        await commitBatch();
+      }
+    }
+
+    await commitBatch();
   }
 }

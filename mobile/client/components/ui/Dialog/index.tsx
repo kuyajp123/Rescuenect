@@ -1,4 +1,4 @@
-import { Button, HoveredButton } from '@/components/components/button/Button';
+import { HoveredButton } from '@/components/components/button/Button';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -45,10 +45,21 @@ type DialogProps = {
   // Footer actions (match old Modal API)
   primaryButtonOnPress?: () => void;
   secondaryButtonOnPress?: () => void;
+  primaryButtonDisabled?: boolean;
+  secondaryButtonDisabled?: boolean;
   primaryButtonText?: string;
   secondaryButtonText?: string;
   primaryButtonAction?: 'primary' | 'secondary' | 'success' | 'error' | 'warning';
-  primaryButtonVariant?: 'solid' | 'outline' | 'link';
+  primaryButtonVariant?:
+    | 'solid'
+    | 'link'
+    | 'primary'
+    | 'outline'
+    | 'ghost'
+    | 'secondary'
+    | 'tertiary'
+    | 'danger'
+    | 'danger-soft';
 
   // HeroUI native Dialog.Content behavior
   isSwipeable?: boolean;
@@ -88,13 +99,15 @@ const Dialog = ({
   secondaryText,
   primaryButtonOnPress,
   secondaryButtonOnPress,
+  primaryButtonDisabled = false,
+  secondaryButtonDisabled = false,
   primaryButtonText,
   secondaryButtonText,
   renderImage,
   items = [],
   textAlign = 'center',
   primaryButtonAction = 'primary',
-  primaryButtonVariant = 'link',
+  primaryButtonVariant = 'ghost',
   children,
   isSwipeable = false,
   closeOnOverlayPress = true,
@@ -104,6 +117,19 @@ const Dialog = ({
 
   const sizeStyle = useMemo(() => getSizeStyle(size), [size]);
   const hasFooter = Boolean(primaryButtonText) || Boolean(secondaryButtonText);
+  const heroPrimaryButtonVariant = useMemo(() => {
+    if (primaryButtonVariant === 'solid') {
+      if (primaryButtonAction === 'error') return 'danger';
+      if (primaryButtonAction === 'secondary') return 'secondary';
+      return 'primary';
+    }
+
+    if (primaryButtonVariant === 'link') {
+      return 'ghost';
+    }
+
+    return primaryButtonVariant;
+  }, [primaryButtonAction, primaryButtonVariant]);
 
   const itemsHeight = useMemo(() => {
     if (!items || items.length === 0) return 0;
@@ -197,22 +223,25 @@ const Dialog = ({
                 <HeroButton
                   variant="secondary"
                   style={[styles.footerButton, { borderRadius: 8 }]}
-                  onPress={secondaryButtonOnPress}
+                  isDisabled={secondaryButtonDisabled}
+                  onPress={secondaryButtonDisabled ? undefined : secondaryButtonOnPress}
                 >
                   <Text size="sm">{secondaryButtonText}</Text>
                 </HeroButton>
               )}
               {primaryButtonText && (
-                <Button
-                  action={primaryButtonAction}
-                  variant={primaryButtonVariant}
-                  onPress={primaryButtonOnPress}
-                  style={[styles.footerButton, primaryButtonVariant === 'solid' ? { borderRadius: 10 } : undefined]}
+                <HeroButton
+                  variant={heroPrimaryButtonVariant}
+                  isDisabled={primaryButtonDisabled}
+                  onPress={primaryButtonDisabled ? undefined : primaryButtonOnPress}
+                  style={styles.footerButton}
                 >
-                  <Text size="sm" style={primaryButtonVariant === 'solid' ? { color: 'white' } : undefined}>
+                  <HeroButton.Label
+                    style={['primary', 'danger'].includes(heroPrimaryButtonVariant) ? { color: 'white' } : undefined}
+                  >
                     {primaryButtonText}
-                  </Text>
-                </Button>
+                  </HeroButton.Label>
+                </HeroButton>
               )}
             </View>
           )}
@@ -265,6 +294,7 @@ const styles = StyleSheet.create({
   },
   footerButton: {
     flex: 1,
+    borderRadius: 8,
   },
 });
 

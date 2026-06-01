@@ -92,6 +92,10 @@ export class UnifiedModel {
       const statusMap = new Map();
       snapshot.docs.forEach(doc => {
         const data = doc.data();
+        if (data.residentVisible === false || data.ownerAccountDeleted === true) {
+          return;
+        }
+
         const parentId = data.parentId;
 
         // If we haven't seen this parentId, or if this version is newer, store it

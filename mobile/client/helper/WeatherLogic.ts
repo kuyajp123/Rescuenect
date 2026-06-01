@@ -2,6 +2,13 @@ import index from '@/components/components/weather/index';
 const { ClearDay, ClearNight, Cloudy, DrizzleRain, Fog, PartlyCloudyDay, PartlyCloudyNight, Rainy, ThunderStorm } =
   index;
 
+type WeatherCode = number | string | null | undefined;
+
+const normalizeWeatherCode = (code: WeatherCode, fallback = 10000): number => {
+  const normalizedCode = Number(code);
+  return Number.isFinite(normalizedCode) ? normalizedCode : fallback;
+};
+
 // Helper function to determine if it's day or night
 export const isDayTime = (time?: string | Date): boolean => {
   const now = time ? new Date(time) : new Date();
@@ -10,10 +17,11 @@ export const isDayTime = (time?: string | Date): boolean => {
   return hour >= 6 && hour < 18;
 };
 
-export const getWeatherIcons = (code: number, time?: string | Date) => {
+export const getWeatherIcons = (code: WeatherCode, time?: string | Date) => {
   const isDay = isDayTime(time);
+  const normalizedCode = normalizeWeatherCode(code);
 
-  switch (code) {
+  switch (normalizedCode) {
     // ☀️ Clear conditions - auto detect day/night
     case 10000:
     case 10001:
@@ -62,8 +70,10 @@ export const getWeatherIcons = (code: number, time?: string | Date) => {
 };
 
 // Helper function to get weather condition text from weather code
-export const getWeatherCondition = (code: number | null): string => {
-  switch (code) {
+export const getWeatherCondition = (code: WeatherCode): string => {
+  const normalizedCode = normalizeWeatherCode(code, NaN);
+
+  switch (normalizedCode) {
     // Clear conditions
     case 10000:
     case 10001:
@@ -71,6 +81,12 @@ export const getWeatherCondition = (code: number | null): string => {
       return 'Clear';
 
     // Partly Cloudy conditions
+    case 11000:
+    case 11010:
+    case 11020:
+    case 11001:
+    case 11011:
+    case 11021:
     case 1100:
     case 1101:
     case 1102:
@@ -105,8 +121,10 @@ export const getWeatherCondition = (code: number | null): string => {
   }
 };
 
-export const getWeatherImage = (code: number) => {
-  switch (code) {
+export const getWeatherImage = (code: WeatherCode) => {
+  const normalizedCode = normalizeWeatherCode(code, NaN);
+
+  switch (normalizedCode) {
     // ☀️ Clear Day
     case 10000:
     case 1000:
@@ -165,23 +183,25 @@ export const getImageBackground = (weatherData: any) => {
   const Rainy = require('@/assets/images/weather/image/Rain.png');
   const ThunderStorm = require('@/assets/images/weather/image/ThunderStorm.png');
 
-  if (weatherData?.realtime && weatherData.realtime.length > 0) {
-    switch (getWeatherCondition(weatherData.realtime[0].weatherCode)) {
-      case 'Clear':
-        return isDay ? ClearDay : ClearNight;
-      case 'Partly Cloudy':
-      case 'Cloudy':
-        return isDay ? CloudyDay : CloudyNight;
-      case 'Rain':
-      case 'Light Rain':
-        return Rainy;
-      case 'ThunderStorm':
-        return ThunderStorm;
-      case 'Foggy':
-        return isDay ? CloudyDay : CloudyNight;
-      default:
-        return ClearDay;
-    }
+  if (!weatherData?.realtime?.length) {
+    return isDay ? ClearDay : ClearNight;
+  }
+
+  switch (getWeatherCondition(weatherData.realtime[0].weatherCode)) {
+    case 'Clear':
+      return isDay ? ClearDay : ClearNight;
+    case 'Partly Cloudy':
+    case 'Cloudy':
+      return isDay ? CloudyDay : CloudyNight;
+    case 'Rainy':
+    case 'Light Rain':
+      return Rainy;
+    case 'Thunderstorm':
+      return ThunderStorm;
+    case 'Foggy':
+      return isDay ? CloudyDay : CloudyNight;
+    default:
+      return isDay ? ClearDay : ClearNight;
   }
 };
 

@@ -1,4 +1,5 @@
 import { IconButton } from '@/components/components/button/Button';
+import Dialog from '@/components/ui/Dialog';
 import { Divider } from '@/components/ui/divider';
 import { HStack } from '@/components/ui/hstack';
 import { Body } from '@/components/ui/layout/Body';
@@ -30,7 +31,9 @@ import axios from 'axios';
 import { Avatar } from 'heroui-native';
 import { Calendar, ChevronDown, Mail, MapPin, Phone, Trash2, X } from 'lucide-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
+
+const DELETE_CONFIRMATION_TEXT = 'Confirm';
 
 // Moved InfoItem outside to prevent re-renders losing focus
 const InfoItem = ({
@@ -132,16 +135,20 @@ const InfoItem = ({
 
 const ProfileDetails = () => {
   const { isDark } = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
   const userData = useUserData(state => state.userData);
   const setUserData = useUserData(state => state.setUserData);
   const authUser = useAuth(state => state.authUser);
 
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   const [coverageClient, setCoverageClient] = useState<LocationCoverageClient | undefined>(undefined);
   const [barangayOptions, setBarangayOptions] = useState<BarangayOption[]>([]);
-  const { showSuccess } = useAppToast();
+  const { showDanger, showSuccess } = useAppToast();
 
   // Form State
   const [formData, setFormData] = useState({
@@ -203,6 +210,8 @@ const ProfileDetails = () => {
     () => toResidentLocationSelectionFromCoverageClient(coverageClient, formData.barangay),
     [coverageClient, formData.barangay]
   );
+  const isDeleteConfirmationValid = deleteConfirmationText.trim() === DELETE_CONFIRMATION_TEXT;
+  const deleteDialogWidth = Math.min(360, Math.max(260, windowWidth - 40));
 
   // Format date
   const formatDate = (dateString?: string | number) => {
@@ -271,64 +280,68 @@ const ProfileDetails = () => {
       showSuccess('Profile updated successfully');
     } catch (error) {
       console.error('Error updating profile:', error);
-      Alert.alert('Error', 'Failed to update profile. Please try again.');
+      showDanger('Failed to update profile. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDeleteAccount = () => {
-    Alert.alert('Delete Account', 'Are you sure you want to delete your account? This action cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          setIsLoading(true);
-          try {
-            const idToken = await authUser?.getIdToken();
-            if (authUser?.uid) {
-              // Call backend delete
-              await axios.delete(API_ROUTES.DATA.DELETE_USER, {
-                data: { uid: authUser.uid },
-                headers: { Authorization: `Bearer ${idToken}` },
-              });
-            }
+  const openDeleteDialog = () => {
+    setDeleteConfirmationText('');
+    setDeleteDialogVisible(true);
+  };
 
-            // Cleanup local persisted and in-memory session data.
-            useStatusFormStore.getState().resetFormData();
-            useCoords.getState().resetState?.();
-            useSavedLocationsStore.getState().clearLocations();
-            useImagePickerStore.getState().setImage(null);
-            useUserData.getState().resetResponse();
+  const closeDeleteDialog = () => {
+    if (isDeletingAccount) return;
+    setDeleteDialogVisible(false);
+    setDeleteConfirmationText('');
+  };
 
-            await storageHelpers.clearAll();
-            await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', true);
-            await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'isGuestMode', false);
+  const handleDeleteAccount = async () => {
+    if (!isDeleteConfirmationValid || isDeletingAccount) return;
 
-            useAuth.getState().setAuthUser(null);
-            useAuth.getState().setHasSignedOut(true);
-            useAuth.getState().setGuest(false);
-            useAuth.getState().setGuestIntent(false);
-            useAuth.getState().setShowingSetupComplete(false);
+    setIsDeletingAccount(true);
+    try {
+      const idToken = await authUser?.getIdToken();
+      if (authUser?.uid) {
+        // Call backend delete
+        await axios.delete(API_ROUTES.DATA.DELETE_USER, {
+          data: { uid: authUser.uid },
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+      }
 
-            try {
-              await auth.signOut();
-            } catch (signOutError) {
-              console.warn('Firebase sign out after account deletion failed:', signOutError);
-            }
+      // Cleanup local persisted and in-memory session data.
+      useStatusFormStore.getState().resetFormData();
+      useCoords.getState().resetState?.();
+      useSavedLocationsStore.getState().clearLocations();
+      useImagePickerStore.getState().setImage(null);
+      useUserData.getState().resetResponse();
 
-            console.log('Account deleted successfully');
-            navigateToSignIn();
-          } catch (error) {
-            console.error('Error deleting account:', error);
-            Alert.alert('Error', 'Failed to delete account. Please try again.');
-          } finally {
-            setIsLoading(false);
-          }
-        },
-      },
-    ]);
+      await storageHelpers.clearAll();
+      await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'hasSignedOut', true);
+      await storageHelpers.setField(STORAGE_KEYS.APP_STATE, 'isGuestMode', false);
+
+      useAuth.getState().setAuthUser(null);
+      useAuth.getState().setHasSignedOut(true);
+      useAuth.getState().setGuest(false);
+      useAuth.getState().setGuestIntent(false);
+      useAuth.getState().setShowingSetupComplete(false);
+
+      try {
+        await auth.signOut();
+      } catch (signOutError) {
+        console.warn('Firebase sign out after account deletion failed:', signOutError);
+      }
+
+      console.log('Account deleted successfully');
+      navigateToSignIn();
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      showDanger('Failed to delete account. Please try again.');
+    } finally {
+      setIsDeletingAccount(false);
+    }
   };
 
   return (
@@ -499,7 +512,11 @@ const ProfileDetails = () => {
         </View>
 
         {/* Delete Account Button */}
-        <Pressable onPress={handleDeleteAccount} style={styles.deleteButton}>
+        <Pressable
+          onPress={openDeleteDialog}
+          disabled={isLoading || isDeletingAccount}
+          style={[styles.deleteButton, (isLoading || isDeletingAccount) && styles.disabledDeleteButton]}
+        >
           <Trash2 size={16} color={Colors.semantic.error} style={{ marginRight: 8 }} />
           <Text size="sm" style={{ color: Colors.semantic.error }}>
             Delete Account
@@ -563,6 +580,60 @@ const ProfileDetails = () => {
           </ModalBody>
         </ModalContent>
       </Modal>
+
+      <Dialog
+        modalVisible={deleteDialogVisible}
+        onClose={closeDeleteDialog}
+        size="md"
+        portalStyle={styles.deleteDialogPortal}
+        contentStyle={[styles.deleteDialogSurface, { width: deleteDialogWidth, maxWidth: deleteDialogWidth }]}
+        headerTitle="Delete account"
+        iconOnPress={closeDeleteDialog}
+        closeOnOverlayPress={!isDeletingAccount}
+        primaryButtonText={isDeletingAccount ? 'Deleting...' : 'Delete account'}
+        primaryButtonVariant="danger"
+        primaryButtonOnPress={handleDeleteAccount}
+        primaryButtonDisabled={!isDeleteConfirmationValid || isDeletingAccount}
+        secondaryButtonText="Cancel"
+        secondaryButtonOnPress={closeDeleteDialog}
+        secondaryButtonDisabled={isDeletingAccount}
+      >
+        <View style={styles.deleteDialogContent}>
+          <Text size="sm" style={styles.deleteDialogMessage}>
+            Your resident profile will be removed from the app. Emergency status records may still be retained for admin
+            audit and traceability.
+          </Text>
+          <Text size="sm" bold style={styles.deleteDialogPrompt}>
+            Type Confirm to continue.
+          </Text>
+          <TextInput
+            value={deleteConfirmationText}
+            onChangeText={setDeleteConfirmationText}
+            editable={!isDeletingAccount}
+            autoCapitalize="words"
+            autoCorrect={false}
+            placeholder={DELETE_CONFIRMATION_TEXT}
+            placeholderTextColor={isDark ? Colors.muted.dark.text : Colors.muted.light.text}
+            style={[
+              styles.deleteConfirmInput,
+              {
+                color: isDark ? Colors.text.dark : Colors.text.light,
+                borderColor: isDeleteConfirmationValid
+                  ? Colors.semantic.error
+                  : isDark
+                    ? Colors.border.dark
+                    : Colors.border.light,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff',
+              },
+            ]}
+          />
+          {deleteConfirmationText.length > 0 && !isDeleteConfirmationValid ? (
+            <Text size="xs" style={styles.deleteConfirmHint}>
+              Type Confirm exactly to enable deletion.
+            </Text>
+          ) : null}
+        </View>
+      </Dialog>
     </Body>
   );
 };
@@ -633,6 +704,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
     opacity: 0.7,
   },
+  disabledDeleteButton: {
+    opacity: 0.35,
+  },
   barangayList: {
     maxHeight: 500,
   },
@@ -642,5 +716,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  deleteDialogContent: {
+    gap: 12,
+    paddingTop: 4,
+  },
+  deleteDialogPortal: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  deleteDialogSurface: {
+    alignSelf: 'center',
+  },
+  deleteDialogMessage: {
+    lineHeight: 20,
+    opacity: 0.86,
+  },
+  deleteDialogPrompt: {
+    marginTop: 4,
+  },
+  deleteConfirmInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    fontSize: 16,
+    fontWeight: '700',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  deleteConfirmHint: {
+    color: Colors.semantic.error,
   },
 });

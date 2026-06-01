@@ -33,7 +33,9 @@ export const CardWeather = () => {
   const linerColorDark = ['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.6)'] as const;
 
   const currentRealtime = weatherData?.realtime?.[0];
-  const WeatherIcon = getWeatherIcons(currentRealtime?.weatherCode || 10000);
+  const currentWeatherCode = Number(currentRealtime?.weatherCode ?? 10000);
+  const currentWeatherCondition = getWeatherCondition(currentWeatherCode);
+  const WeatherIcon = getWeatherIcons(currentWeatherCode);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -86,7 +88,7 @@ export const CardWeather = () => {
 
               <View style={styles.locationContainer}>
                 <Text size="2xs" style={styles.locationText}>
-                  {capitalizeWords(userData.barangay)} • {getWeatherCondition(Number(currentRealtime?.temperature))}
+                  {capitalizeWords(userData.barangay)} • {currentWeatherCondition}
                 </Text>
               </View>
             </View>
