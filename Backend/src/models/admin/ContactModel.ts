@@ -1,4 +1,5 @@
 import { db } from '@/db/firestoreConfig';
+import { canonicalizeClientId } from '@/config/locationConfig';
 import { FieldValue } from 'firebase-admin/firestore';
 
 type ContactCategory = {
@@ -29,14 +30,15 @@ type ContactsPayload = {
 
 export class ContactModel {
   private static docRef(clientId: string) {
-    return db.collection('contacts').doc(clientId);
+    return db.collection('contacts').doc(canonicalizeClientId(clientId) ?? clientId);
   }
 
   public static async saveContacts(payload: ContactsPayload, userId: string, clientId: string): Promise<void> {
+    const canonicalClientId = canonicalizeClientId(clientId) ?? clientId;
     try {
-      await this.docRef(clientId).set(
+      await this.docRef(canonicalClientId).set(
         {
-          clientId,
+          clientId: canonicalClientId,
           categories: payload.categories ?? [],
           contacts: payload.contacts ?? [],
           updatedAt: FieldValue.serverTimestamp(),
@@ -51,8 +53,9 @@ export class ContactModel {
   }
 
   public static async getContacts(clientId: string): Promise<Record<string, unknown>> {
+    const canonicalClientId = canonicalizeClientId(clientId) ?? clientId;
     try {
-      const doc = await this.docRef(clientId).get();
+      const doc = await this.docRef(canonicalClientId).get();
       if (!doc.exists) {
         return { categories: [], contacts: [] };
       }

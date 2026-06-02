@@ -19,6 +19,8 @@ export class SignInModel {
     const client = await ClientModel.getClientById(clientId);
     return {
       ...data,
+      clientId: client?.id ?? clientId,
+      clientName: client?.name ?? data.clientName,
       clientStatus: client?.status ?? null,
       clientDeletionEffectiveAt: client?.deletionEffectiveAt ?? null,
       clientDeletionStatus: client?.deletionStatus ?? null,

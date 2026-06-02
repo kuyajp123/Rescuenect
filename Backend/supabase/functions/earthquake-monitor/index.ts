@@ -3,6 +3,7 @@ import {
   fetchUSGSEarthquakesForScope,
   getEarthquakeEventAgeMinutes,
   getEarthquakeHistoryConfig,
+  isEarthquakeEventFresh,
   mergeClientEarthquakes,
   processEarthquakeDataForScope,
   shouldNotify,
@@ -76,22 +77,15 @@ serve(async (req: Request) => {
     const newEarthquakes = processedEarthquakes.filter(
       earthquake => !existingEarthquakes.some(existing => existing.id === earthquake.id)
     );
-
-    if (newEarthquakes.length === 0) {
-      return createResponse({
-        success: true,
-        message: `${historyConfig.historyLookbackDays}-day earthquake history cache updated; no newly discovered events`,
-        new_earthquakes: 0,
-        notifications_sent: 0,
-        total_processed: processedEarthquakes.length,
-        timestamp: new Date().toISOString(),
-      });
-    }
+    const newEarthquakeIds = new Set(newEarthquakes.map(earthquake => earthquake.id));
+    const notificationEarthquakes = processedEarthquakes.filter(
+      earthquake => newEarthquakeIds.has(earthquake.id) || isEarthquakeEventFresh(earthquake)
+    );
 
     let notificationsSent = 0;
     const notificationResults: Array<Record<string, unknown>> = [];
 
-    for (const earthquake of newEarthquakes) {
+    for (const earthquake of notificationEarthquakes) {
       const impacts = earthquake.clientImpacts || [];
 
       for (const impact of impacts) {
@@ -104,11 +98,6 @@ serve(async (req: Request) => {
             'both',
             impact.clientId
           );
-
-          if (tokens.length === 0) {
-            console.log(`No FCM tokens found for earthquake ${earthquake.id} and client ${impact.clientId}`);
-            continue;
-          }
 
           const reservation = await reserveEarthquakeNotification({
             clientId: impact.clientId,
@@ -131,53 +120,59 @@ serve(async (req: Request) => {
             continue;
           }
 
-          const fcmResult = await sendEarthquakeNotification(earthquake, tokens);
+          let fcmResult: { success: number; failure: number; errors: string[] } = {
+            success: 0,
+            failure: 0,
+            errors: [],
+          };
 
-          if (fcmResult.success > 0) {
-            await saveEarthquakeNotification({
-              notificationId: reservation.notificationId,
-              earthquake,
-              impact: { ...impact, clientName, weatherLocationKey },
-              barangays,
-              sentTo: fcmResult.success + fcmResult.failure,
-              deliveryStatus: {
-                success: fcmResult.success,
-                failure: fcmResult.failure,
-                errors: fcmResult.errors.length ? fcmResult.errors : undefined,
-              },
-            });
-
-            earthquake.notification_sent = true;
-            notificationsSent++;
-
-            await updateEarthquakeNotificationReservation(reservation.notificationId, {
-              status: 'sent',
-              sentAt: Date.now(),
-              sentTo: fcmResult.success + fcmResult.failure,
-              deliveryStatus: {
-                success: fcmResult.success,
-                failure: fcmResult.failure,
-                errors: fcmResult.errors.length ? fcmResult.errors : undefined,
-              },
-            });
+          if (tokens.length > 0) {
+            fcmResult = await sendEarthquakeNotification(earthquake, tokens);
           } else {
-            await updateEarthquakeNotificationReservation(reservation.notificationId, {
-              status: 'failed',
-              reason: 'FCM returned no successful deliveries',
-              sentTo: fcmResult.success + fcmResult.failure,
-              deliveryStatus: {
-                success: fcmResult.success,
-                failure: fcmResult.failure,
-                errors: fcmResult.errors.length ? fcmResult.errors : undefined,
-              },
-            });
+            console.log(
+              `No FCM tokens found for earthquake ${earthquake.id} and client ${impact.clientId}; saving in-app notification only`
+            );
           }
+
+          const deliveryStatus: {
+            success: number;
+            failure: number;
+            errors?: string[];
+          } = {
+            success: fcmResult.success,
+            failure: fcmResult.failure,
+          };
+
+          if (fcmResult.errors.length > 0) {
+            deliveryStatus.errors = fcmResult.errors;
+          }
+
+          await saveEarthquakeNotification({
+            notificationId: reservation.notificationId,
+            earthquake,
+            impact: { ...impact, clientName, weatherLocationKey },
+            barangays,
+            sentTo: fcmResult.success + fcmResult.failure,
+            deliveryStatus,
+          });
+
+          earthquake.notification_sent = true;
+          notificationsSent++;
+
+          await updateEarthquakeNotificationReservation(reservation.notificationId, {
+            status: 'sent',
+            sentAt: Date.now(),
+            sentTo: fcmResult.success + fcmResult.failure,
+            deliveryStatus,
+          });
 
           notificationResults.push({
             earthquake_id: earthquake.id,
             clientId: impact.clientId,
             magnitude: earthquake.magnitude,
-            users_notified: fcmResult.success,
+            in_app_notification_saved: true,
+            push_success: fcmResult.success,
+            push_failure: fcmResult.failure,
             errors: fcmResult.errors,
           });
 
@@ -205,7 +200,7 @@ serve(async (req: Request) => {
     }
 
     console.log(
-      `Earthquake monitoring completed: ${newEarthquakes.length} new, ${notificationsSent} client notifications sent`
+      `Earthquake monitoring completed: ${newEarthquakes.length} new, ${notificationEarthquakes.length} notification candidate(s), ${notificationsSent} client notifications sent`
     );
 
     return createResponse({

@@ -92,6 +92,8 @@ export class UserDataModel {
       return {
         id: doc.id,
         ...data,
+        clientId: client?.id ?? clientId,
+        clientName: client?.name ?? data.clientName,
         clientStatus: client?.status ?? null,
         clientDeletionEffectiveAt: client?.deletionEffectiveAt ?? null,
         clientDeletionStatus: client?.deletionStatus ?? null,
