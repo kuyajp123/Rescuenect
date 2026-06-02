@@ -231,10 +231,16 @@ export const MapProvider = ({ children }: MapProviderProps) => {
           {isMapReady &&
             coords &&
             (() => {
+              const markerType = activeStatusCoords ? 'active-status' : 'tapped-location';
               const markerColor = activeStatusCoords ? Colors.semantic.success : Colors.brand.dark;
+              const markerCoordinateKey = `${coords[0].toFixed(6)}-${coords[1].toFixed(6)}`;
 
               return (
-                <MapboxGL.PointAnnotation id="tap-marker" coordinate={coords}>
+                <MapboxGL.PointAnnotation
+                  key={`${markerType}-${markerCoordinateKey}`}
+                  id={`coordinate-marker-${markerType}`}
+                  coordinate={coords}
+                >
                   <View collapsable={false} style={[styles.tapMarker, { backgroundColor: markerColor }]} />
                 </MapboxGL.PointAnnotation>
               );

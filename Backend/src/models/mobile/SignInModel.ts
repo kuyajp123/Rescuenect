@@ -1,10 +1,14 @@
 import { ClientModel, type DynamicResidentLocationSelection } from '@/models/admin/ClientModel';
-import { db } from '@/db/firestoreConfig';
+import { admin, db } from '@/db/firestoreConfig';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export class SignInModel {
   private static userRef = (uid: string) => db.collection('users').doc(uid);
   private static statusRef = (uid: string) => db.collection('status').doc(uid);
+
+  private static normalizeEmail(value: unknown): string {
+    return typeof value === 'string' ? value.trim().toLowerCase() : '';
+  }
 
   private static async withClientStatus(data: Record<string, unknown>): Promise<Record<string, unknown>> {
     const clientId = typeof data.clientId === 'string' && data.clientId.trim() ? data.clientId.trim() : null;
@@ -49,8 +53,54 @@ export class SignInModel {
     });
   }
 
+  private static async deleteStaleResidentProfilesForEmail(activeUid: string, email: unknown): Promise<void> {
+    const normalizedEmail = this.normalizeEmail(email);
+    if (!activeUid || !normalizedEmail) {
+      return;
+    }
+
+    const snapshot = await db.collection('users').where('email', '==', normalizedEmail).get();
+    if (snapshot.empty) {
+      return;
+    }
+
+    const batch = db.batch();
+    let deleteCount = 0;
+
+    for (const doc of snapshot.docs) {
+      if (doc.id === activeUid) {
+        continue;
+      }
+
+      let isStaleProfile = true;
+      try {
+        const authUser = await admin.auth().getUser(doc.id);
+        isStaleProfile = this.normalizeEmail(authUser.email) !== normalizedEmail;
+      } catch (error: any) {
+        if (error?.code !== 'auth/user-not-found') {
+          throw error;
+        }
+      }
+
+      if (!isStaleProfile) {
+        console.warn(`Duplicate resident Auth identity found for ${normalizedEmail}: ${doc.id}`);
+        continue;
+      }
+
+      batch.delete(doc.ref);
+      deleteCount++;
+    }
+
+    if (deleteCount > 0) {
+      await batch.commit();
+      console.warn(`Deleted ${deleteCount} stale resident profile(s) for ${normalizedEmail}`);
+    }
+  }
+
   static async signInUser(uid: string, data: any): Promise<any | null> {
     try {
+      await this.deleteStaleResidentProfilesForEmail(uid, data.email);
+
       const userDoc = await this.userRef(uid).get();
       if (userDoc.exists) {
         const existingData = userDoc.data() ?? {};
