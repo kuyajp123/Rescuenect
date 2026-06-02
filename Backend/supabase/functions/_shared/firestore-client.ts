@@ -802,6 +802,30 @@ export async function reserveEarthquakeNotification(params: {
       const canRetry = ['failed', 'reserved'].includes(status || '') && Date.now() - updatedAt >= EARTHQUAKE_NOTIFICATION_RETRY_AFTER_MS;
 
       if (canRetry) {
+        const notificationSnapshot = await db.collection('notifications').doc(notificationId).get();
+        if (notificationSnapshot.exists) {
+          await dedupRef.set(
+            {
+              notificationId,
+              clientId: params.clientId,
+              clientName: params.clientName ?? params.clientId,
+              earthquakeId: params.earthquakeId,
+              eventTime: params.eventTime,
+              eventTimeIso: new Date(params.eventTime).toISOString(),
+              magnitude: params.magnitude,
+              place: params.place,
+              status: 'sent',
+              recoveredFromNotificationDoc: true,
+              recoveredAt: Date.now(),
+              updatedAt: Date.now(),
+            },
+            { merge: true }
+          );
+
+          console.log(`Skipping earthquake push because notification already exists: ${notificationId}`);
+          return { reserved: false, notificationId };
+        }
+
         await dedupRef.set(
           {
             notificationId,

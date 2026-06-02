@@ -168,7 +168,11 @@ export class LegacyNaicMigrationModel {
         if (data.clientName !== null) update.clientName = null;
       } else {
         const canonicalClientId = canonicalizeClientId(data.clientId, data.municipalityCode);
-        if (isMissing(data.clientId) || canonicalClientId === NAIC_CLIENT_ID) update.clientId = NAIC_CLIENT_ID;
+        if (isMissing(data.clientId)) {
+          update.clientId = NAIC_CLIENT_ID;
+        } else if (canonicalClientId && canonicalClientId !== data.clientId) {
+          update.clientId = canonicalClientId;
+        }
         if (isMissing(data.clientName)) update.clientName = NAIC_LOCATION_CLIENT.name;
       }
 
