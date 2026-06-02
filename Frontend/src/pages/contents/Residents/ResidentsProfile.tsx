@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
 import { usePanelStore } from '@/stores/panelStore';
 import { StatusDataCard } from '@/types/types';
-import { Avatar, Card, CardBody, Skeleton } from '@heroui/react';
+import { Avatar, Card, CardBody, Chip, Skeleton } from '@heroui/react';
 import axios from 'axios';
 import { Calendar, MapPin, Phone, UserRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -20,6 +20,7 @@ const ResidentsProfile = () => {
   const gridClasses = isOpen
     ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3'
     : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+  const isDeletedAccount = Boolean(resident?.accountDeleted);
 
   useEffect(() => {
     return () => {
@@ -161,10 +162,18 @@ const ResidentsProfile = () => {
                     {resident?.barangay ? `Brgy ${resident?.barangay}` : 'No barangay'}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                  <Calendar size={16} className="text-primary shrink-0" />
-                  <span>Registered: {resident?.createdAt ? formatDate(resident.createdAt) : 'Date here'}</span>
-                </div>
+                {isDeletedAccount ? (
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                    <Chip color="danger" size="sm" variant="flat">
+                      Account deleted
+                    </Chip>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                    <Calendar size={16} className="text-primary shrink-0" />
+                    <span>Registered: {resident?.createdAt ? formatDate(resident.createdAt) : 'Date unavailable'}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                   <UserRound size={16} className="text-primary shrink-0" />
                   <span className="break-all">{resident?.email}</span>
