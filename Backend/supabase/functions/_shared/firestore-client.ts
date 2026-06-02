@@ -9,6 +9,7 @@ import { cert, getApps, initializeApp, type ServiceAccount } from 'firebase-admi
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import {
   NAIC_CLIENT_ID,
+  canonicalizeClientId,
   getBarangaysForWeatherLocationKey,
   NAIC_WEATHER_LOCATION_KEY,
   normalizeBarangayValue,
@@ -191,6 +192,21 @@ type ClientCoverage = {
 
 const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+const isNaicClientRecord = (clientId: string, municipalityCode: unknown): boolean =>
+  canonicalizeClientId(clientId, municipalityCode) === NAIC_CLIENT_ID;
+
+const getCanonicalClientId = (clientId: string, data: Record<string, unknown> | undefined | null): string =>
+  canonicalizeClientId(clientId, data?.municipalityCode) ?? clientId;
+
+const getCanonicalWeatherLocationKey = (
+  clientId: string,
+  data: Record<string, unknown> | undefined | null
+): string =>
+  isNaicClientRecord(clientId, data?.municipalityCode)
+    ? NAIC_WEATHER_LOCATION_KEY
+    : typeof data?.weatherLocationKey === 'string' && data.weatherLocationKey.trim()
+    ? data.weatherLocationKey.trim()
+    : clientId;
 
 function getTokensFromData(userData: Record<string, unknown>): string[] {
   const tokens: string[] = [];
@@ -221,56 +237,66 @@ async function getClientCoverageByWeatherLocationKey(
   db: Firestore,
   weatherLocationKey: string
 ): Promise<ClientCoverage | null> {
-  const staticBarangays = getBarangaysForWeatherLocationKey(weatherLocationKey);
+  const canonicalWeatherLocationKey = canonicalizeClientId(weatherLocationKey) ?? weatherLocationKey;
+  const staticBarangays = getBarangaysForWeatherLocationKey(canonicalWeatherLocationKey);
 
   const snapshot = await db
     .collection('clients')
     .where('status', '==', 'active')
-    .where('weatherLocationKey', '==', weatherLocationKey)
+    .where('weatherLocationKey', '==', canonicalWeatherLocationKey)
     .limit(1)
     .get();
 
-  const clientDoc = snapshot.empty ? await db.collection('clients').doc(weatherLocationKey).get() : snapshot.docs[0];
+  const clientDoc = snapshot.empty
+    ? await db.collection('clients').doc(canonicalWeatherLocationKey).get()
+    : snapshot.docs[0];
   const clientData = clientDoc.exists ? clientDoc.data() : null;
 
   if (!clientDoc.exists && staticBarangays.length === 0) return null;
 
-  return {
-    clientId: clientDoc.exists ? clientDoc.id : weatherLocationKey,
-    clientName:
-      typeof clientData?.name === 'string' && clientData.name.trim()
-        ? clientData.name.trim()
-        : weatherLocationKey === NAIC_WEATHER_LOCATION_KEY
-        ? 'Naic'
-        : weatherLocationKey,
-    weatherLocationKey,
-    barangays: getActiveBarangaysFromClientData(clientData).length
-      ? getActiveBarangaysFromClientData(clientData)
-      : staticBarangays,
-  };
-}
-
-async function getClientCoverageById(db: Firestore, clientId: string): Promise<ClientCoverage | null> {
-  const doc = await db.collection('clients').doc(clientId).get();
-  const data = doc.exists ? doc.data() : null;
-
-  if (!doc.exists && clientId !== NAIC_CLIENT_ID) return null;
-
-  const weatherLocationKey =
-    typeof data?.weatherLocationKey === 'string' && data.weatherLocationKey.trim()
-      ? data.weatherLocationKey.trim()
-      : clientId;
-
-  const staticBarangays = getBarangaysForWeatherLocationKey(weatherLocationKey);
+  const clientId = clientDoc.exists ? getCanonicalClientId(clientDoc.id, clientData) : canonicalWeatherLocationKey;
+  const resolvedWeatherLocationKey = clientDoc.exists
+    ? getCanonicalWeatherLocationKey(clientDoc.id, clientData)
+    : canonicalWeatherLocationKey;
+  const resolvedStaticBarangays = getBarangaysForWeatherLocationKey(resolvedWeatherLocationKey);
 
   return {
     clientId,
     clientName:
-      typeof data?.name === 'string' && data.name.trim()
-        ? data.name.trim()
-        : clientId === NAIC_CLIENT_ID
+      clientId === NAIC_CLIENT_ID
         ? 'Naic'
-        : clientId,
+        : typeof clientData?.name === 'string' && clientData.name.trim()
+        ? clientData.name.trim()
+        : canonicalWeatherLocationKey,
+    weatherLocationKey: resolvedWeatherLocationKey,
+    barangays: getActiveBarangaysFromClientData(clientData).length
+      ? getActiveBarangaysFromClientData(clientData)
+      : resolvedStaticBarangays,
+  };
+}
+
+async function getClientCoverageById(db: Firestore, clientId: string): Promise<ClientCoverage | null> {
+  const canonicalClientId = canonicalizeClientId(clientId) ?? clientId;
+  const doc = await db.collection('clients').doc(canonicalClientId).get();
+  const data = doc.exists ? doc.data() : null;
+
+  if (!doc.exists && canonicalClientId !== NAIC_CLIENT_ID) return null;
+
+  const resolvedClientId = getCanonicalClientId(canonicalClientId, data);
+  const weatherLocationKey = doc.exists
+    ? getCanonicalWeatherLocationKey(canonicalClientId, data)
+    : resolvedClientId;
+
+  const staticBarangays = getBarangaysForWeatherLocationKey(weatherLocationKey);
+
+  return {
+    clientId: resolvedClientId,
+    clientName:
+      resolvedClientId === NAIC_CLIENT_ID
+        ? 'Naic'
+        : typeof data?.name === 'string' && data.name.trim()
+        ? data.name.trim()
+        : resolvedClientId,
     weatherLocationKey,
     barangays: getActiveBarangaysFromClientData(data).length
       ? getActiveBarangaysFromClientData(data)
@@ -318,9 +344,11 @@ export async function getUserTokens(
         // if (userData.notificationsEnabled === false) return; // we send notifications to all users regardless of this setting
 
         if (collectionName === 'admin') {
+          const userClientId =
+            typeof userData.clientId === 'string' ? getCanonicalClientId(userData.clientId, userData) : null;
           if (userData.role === 'super_admin') return;
           if (userData.status === 'inactive') return;
-          if (targetClient && userData.clientId !== targetClient.clientId) return;
+          if (targetClient && userClientId !== targetClient.clientId) return;
 
           tokens.push(...getTokensFromData(userData));
           return;
@@ -379,14 +407,18 @@ export async function getUserTokensByClientId(
       const userData = doc.data();
 
       if (collectionName === 'admin') {
+        const userClientId =
+          typeof userData.clientId === 'string' ? getCanonicalClientId(userData.clientId, userData) : null;
         if (userData.role === 'super_admin') return;
         if (userData.status === 'inactive') return;
-        if (userData.clientId !== client.clientId) return;
+        if (userClientId !== client.clientId) return;
         tokens.push(...getTokensFromData(userData));
         return;
       }
 
-      const directClientMatch = userData.clientId === client.clientId;
+      const userClientId =
+        typeof userData.clientId === 'string' ? getCanonicalClientId(userData.clientId, userData) : null;
+      const directClientMatch = userClientId === client.clientId;
       const userBarangays = Array.isArray(userData.barangay) ? userData.barangay : [userData.barangay];
       const matchingBarangays = userBarangays
         .filter((userBarangay: unknown): userBarangay is string => typeof userBarangay === 'string')
@@ -413,8 +445,26 @@ export async function getActiveEarthquakeClientScopes(): Promise<EarthquakeClien
   const scopes: EarthquakeClientScope[] = [];
 
   const snapshot = await db.collection('clients').where('status', '==', 'active').get();
+  const hasCanonicalNaicClient = snapshot.docs.some(doc => doc.id === NAIC_CLIENT_ID);
+  const seenClientIds = new Set<string>();
+
   snapshot.docs.forEach(doc => {
     const data = doc.data();
+    const clientId = getCanonicalClientId(doc.id, data);
+    const weatherLocationKey = getCanonicalWeatherLocationKey(doc.id, data);
+
+    if (clientId === NAIC_CLIENT_ID && doc.id !== NAIC_CLIENT_ID && hasCanonicalNaicClient) {
+      console.warn(`Skipping legacy Naic earthquake scope ${doc.id}; using canonical ${NAIC_CLIENT_ID}`);
+      return;
+    }
+
+    if (seenClientIds.has(clientId)) {
+      console.warn(`Skipping duplicate earthquake scope for client ${clientId}`);
+      return;
+    }
+
+    seenClientIds.add(clientId);
+
     const mapSettings =
       data.mapSettings && typeof data.mapSettings === 'object'
         ? (data.mapSettings as Record<string, unknown>)
@@ -436,17 +486,16 @@ export async function getActiveEarthquakeClientScopes(): Promise<EarthquakeClien
     }
 
     scopes.push({
-      clientId: doc.id,
+      clientId,
       clientName:
-        typeof data.name === 'string' && data.name.trim()
+        clientId === NAIC_CLIENT_ID
+          ? 'Naic'
+          : typeof data.name === 'string' && data.name.trim()
           ? data.name.trim()
           : typeof data.municipalityName === 'string' && data.municipalityName.trim()
           ? data.municipalityName.trim()
-          : doc.id,
-      weatherLocationKey:
-        typeof data.weatherLocationKey === 'string' && data.weatherLocationKey.trim()
-          ? data.weatherLocationKey.trim()
-          : doc.id,
+          : clientId,
+      weatherLocationKey,
       centerLatitude,
       centerLongitude,
       radiusKm: clamp(isFiniteNumber(earthquakeSettings.radiusKm) ? earthquakeSettings.radiusKm : 150, 25, 500),

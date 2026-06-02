@@ -9,7 +9,7 @@ import type { ClientEarthquakeImpact, EarthquakeClientScope, ProcessedEarthquake
 const MINUTE_MS = 60 * 1000;
 const DEFAULT_HISTORY_LOOKBACK_DAYS = 30;
 const DEFAULT_HISTORY_QUERY_LIMIT = 500;
-const DEFAULT_MAX_EVENT_AGE_MINUTES = 2 * 60;
+const DEFAULT_MAX_EVENT_AGE_MINUTES = 12 * 60;
 const DEFAULT_FUTURE_TOLERANCE_MINUTES = 5;
 
 type EarthquakeFetchOptions = {

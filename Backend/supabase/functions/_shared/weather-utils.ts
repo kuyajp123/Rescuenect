@@ -1,10 +1,6 @@
 // supabase/functions/_shared/weather-utils.ts
-import {
-  ACTIVE_WEATHER_LOCATION_KEYS,
-  WEATHER_LOCATION_COORDINATES,
-  WEATHER_LOCATION_LABELS,
-} from './location-config.ts';
 import { initializeFirebase } from './firestore-client.ts';
+import { NAIC_CLIENT_ID, NAIC_WEATHER_LOCATION_KEY, canonicalizeClientId } from './location-config.ts';
 import type { WeatherLocation } from './types.ts';
 
 // Deno type declaration for Edge Functions
@@ -14,20 +10,22 @@ declare const Deno: {
   };
 };
 
-export const WEATHER_LOCATIONS: WeatherLocation[] = ACTIVE_WEATHER_LOCATION_KEYS.map(key => ({
-  key,
-  clientId: key,
-  coordinates: WEATHER_LOCATION_COORDINATES[key],
-  name: WEATHER_LOCATION_LABELS[key],
-}));
-
 const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
 const toCoordinates = (latitude: number, longitude: number): string => `${latitude}, ${longitude}`;
 
+const getWeatherLocationKey = (clientId: string, data: Record<string, unknown>): string =>
+  canonicalizeClientId(clientId, data.municipalityCode) === NAIC_CLIENT_ID
+    ? NAIC_WEATHER_LOCATION_KEY
+    : typeof data.weatherLocationKey === 'string' && data.weatherLocationKey.trim()
+      ? data.weatherLocationKey.trim()
+      : clientId;
+
+const getWeatherClientId = (clientId: string, data: Record<string, unknown>): string =>
+  canonicalizeClientId(clientId, data.municipalityCode) ?? clientId;
+
 export const getWeatherLocations = async (): Promise<WeatherLocation[]> => {
   const locations = new Map<string, WeatherLocation>();
-  WEATHER_LOCATIONS.forEach(location => locations.set(location.key, location));
 
   try {
     const db = initializeFirebase();
@@ -35,10 +33,7 @@ export const getWeatherLocations = async (): Promise<WeatherLocation[]> => {
 
     snapshot.docs.forEach(doc => {
       const data = doc.data();
-      const key =
-        typeof data.weatherLocationKey === 'string' && data.weatherLocationKey.trim()
-          ? data.weatherLocationKey.trim()
-          : doc.id;
+      const key = getWeatherLocationKey(doc.id, data);
       const latitude = data.weatherLatitude;
       const longitude = data.weatherLongitude;
 
@@ -54,15 +49,20 @@ export const getWeatherLocations = async (): Promise<WeatherLocation[]> => {
           ? data.municipalityName.trim()
           : key;
 
+      if (locations.has(key) && doc.id !== key) {
+        console.warn(`Skipping duplicate weather location for legacy client ${doc.id}; using ${key}`);
+        return;
+      }
+
       locations.set(key, {
         key,
-        clientId: doc.id,
+        clientId: getWeatherClientId(doc.id, data),
         coordinates: toCoordinates(latitude, longitude),
         name,
       });
     });
   } catch (error) {
-    console.warn('Unable to load dynamic client weather locations; using static fallback only:', error);
+    console.warn('Unable to load dynamic client weather locations; no weather locations will be processed:', error);
   }
 
   return Array.from(locations.values());

@@ -1,4 +1,4 @@
-import { NAIC_CLIENT_ID, normalizeBarangayValue } from '@/config/locationConfig';
+import { LEGACY_NAIC_CLIENT_IDS, NAIC_CLIENT_ID, canonicalizeClientId, normalizeBarangayValue } from '@/config/locationConfig';
 import { db } from '@/db/firestoreConfig';
 import { ClientModel } from '@/models/admin/ClientModel';
 import type { DynamicClientCutoverAudit, DynamicClientCutoverCollectionAudit } from '@/types/admin';
@@ -27,7 +27,7 @@ const isMissing = (value: unknown): boolean =>
   value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
 
 const normalizeClientId = (value: unknown): string | null =>
-  typeof value === 'string' && value.trim() ? value.trim() : null;
+  canonicalizeClientId(value);
 
 const buildNaicMetadata = (data: FirebaseFirestore.DocumentData, context: AuditContext): Record<string, unknown> => {
   const seed = context.naicSeed;
@@ -37,7 +37,7 @@ const buildNaicMetadata = (data: FirebaseFirestore.DocumentData, context: AuditC
     if (isMissing(data[key])) update[key] = value;
   };
 
-  setIfMissing('clientId', NAIC_CLIENT_ID);
+  if (data.clientId !== NAIC_CLIENT_ID) update.clientId = NAIC_CLIENT_ID;
   setIfMissing('clientName', seed.name);
   setIfMissing('provinceCode', seed.provinceCode);
   setIfMissing('provinceName', seed.provinceName);
@@ -169,6 +169,12 @@ export class DynamicClientCutoverMigrationModel {
         continue;
       }
 
+      if (data.clientId !== clientId) {
+        result.eligibleForNaicMigration++;
+        result.updated++;
+        await this.queueSet(queue, doc.ref, { clientId, updatedAt: FieldValue.serverTimestamp() }, dryRun);
+      }
+
       if (!context.clientIds.has(clientId)) {
         result.invalidClientId++;
         result.errors.push(`${collectionName}/${doc.id} references missing clientId "${clientId}"`);
@@ -200,6 +206,12 @@ export class DynamicClientCutoverMigrationModel {
         result.updated++;
         await this.queueSet(queue, doc.ref, { ...update, updatedAt: FieldValue.serverTimestamp() }, dryRun);
         continue;
+      }
+
+      if (data.clientId !== clientId) {
+        result.eligibleForNaicMigration++;
+        result.updated++;
+        await this.queueSet(queue, doc.ref, { clientId, updatedAt: FieldValue.serverTimestamp() }, dryRun);
       }
 
       if (!context.clientIds.has(clientId)) {
@@ -237,6 +249,12 @@ export class DynamicClientCutoverMigrationModel {
         continue;
       }
 
+      if (data.clientId !== clientId) {
+        result.eligibleForNaicMigration++;
+        result.updated++;
+        await this.queueSet(queue, doc.ref, { clientId, updatedAt: FieldValue.serverTimestamp() }, dryRun);
+      }
+
       if (!context.clientIds.has(clientId)) {
         result.invalidClientId++;
         result.errors.push(`${doc.ref.path} references missing clientId "${clientId}"`);
@@ -259,7 +277,7 @@ export class DynamicClientCutoverMigrationModel {
       result.scanned++;
       const data = doc.data();
       const clientId = normalizeClientId(data.clientId);
-      if (doc.id === 'main') {
+      if (doc.id === 'main' || (LEGACY_NAIC_CLIENT_IDS as readonly string[]).includes(doc.id)) {
         result.missingClientId++;
         result.eligibleForNaicMigration++;
         result.updated++;
@@ -268,7 +286,7 @@ export class DynamicClientCutoverMigrationModel {
             {
               ...data,
               clientId: NAIC_CLIENT_ID,
-              migratedFrom: 'main',
+              migratedFrom: doc.id,
               migratedAt: FieldValue.serverTimestamp(),
               updatedAt: FieldValue.serverTimestamp(),
             },
@@ -281,8 +299,19 @@ export class DynamicClientCutoverMigrationModel {
       if (!clientId && context.clientIds.has(doc.id)) {
         result.missingClientId++;
         result.updated++;
-        await this.queueSet(queue, doc.ref, { clientId: doc.id, updatedAt: FieldValue.serverTimestamp() }, dryRun);
+        await this.queueSet(
+          queue,
+          doc.ref,
+          { clientId: normalizeClientId(doc.id) ?? doc.id, updatedAt: FieldValue.serverTimestamp() },
+          dryRun
+        );
         continue;
+      }
+
+      if (clientId && data.clientId !== clientId) {
+        result.eligibleForNaicMigration++;
+        result.updated++;
+        await this.queueSet(queue, doc.ref, { clientId, updatedAt: FieldValue.serverTimestamp() }, dryRun);
       }
 
       if (!clientId) {
@@ -349,6 +378,18 @@ export class DynamicClientCutoverMigrationModel {
 
       if (isMissing(data.clientId)) {
         result.missingClientId++;
+        result.updated++;
+        await this.queueSet(
+          queue,
+          doc.ref,
+          {
+            clientId: inferredClientId,
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          dryRun
+        );
+      } else if (data.clientId !== inferredClientId) {
+        result.eligibleForNaicMigration++;
         result.updated++;
         await this.queueSet(
           queue,

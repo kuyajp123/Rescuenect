@@ -1,5 +1,6 @@
 import { admin, db } from '@/db/firestoreConfig';
 import { AuthIdentityService } from '@/services/AuthIdentityService';
+import { canonicalizeClientId } from '@/config/locationConfig';
 // import { EmailService } from '@/services/EmailService';
 import type { AdminRole, AdminStatus, AdminUser } from '@/types/admin';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -49,7 +50,7 @@ const toAdminUser = (id: string, data: FirebaseFirestore.DocumentData): AdminUse
     role === 'super_admin'
       ? null
       : typeof data.clientId === 'string' && data.clientId.trim()
-        ? data.clientId.trim()
+        ? canonicalizeClientId(data.clientId, data.municipalityCode)
         : null;
 
   return {
@@ -128,7 +129,7 @@ export class AdminAuthModel {
 
       return {
         role: 'lgu_admin',
-        clientId: invitation.clientId.trim(),
+        clientId: canonicalizeClientId(invitation.clientId) ?? invitation.clientId.trim(),
         clientName: invitation.clientName ?? null,
         source: 'invitation',
       };
@@ -165,7 +166,8 @@ export class AdminAuthModel {
     const existing = snap.exists ? snap.data() ?? {} : {};
 
     const role = allowed.role;
-    const clientId = role === 'super_admin' ? null : existing.clientId || allowed.clientId || null;
+    const clientId =
+      role === 'super_admin' ? null : canonicalizeClientId(existing.clientId || allowed.clientId) || null;
     if (role === 'lgu_admin' && !clientId) {
       return null;
     }
@@ -230,7 +232,7 @@ export class AdminAuthModel {
     const payload = {
       email: normalizeEmail(data.email),
       role: data.role,
-      clientId: data.clientId,
+      clientId: canonicalizeClientId(data.clientId) ?? data.clientId,
       clientName: data.clientName ?? null,
       requestId: data.requestId ?? null,
       status: 'pending',
@@ -326,8 +328,9 @@ export class AdminAuthModel {
   }
 
   static async listAdminsByClient(clientId: string): Promise<AdminUser[]> {
+    const canonicalClientId = canonicalizeClientId(clientId) ?? clientId;
     const admins = await this.listAdmins();
-    return admins.filter(admin => admin.role === 'lgu_admin' && admin.clientId === clientId);
+    return admins.filter(admin => admin.role === 'lgu_admin' && admin.clientId === canonicalClientId);
   }
 
   static async deactivateAdminsForClient(clientId: string, updatedBy: string): Promise<number> {
@@ -393,6 +396,7 @@ export class AdminAuthModel {
 
     return {
       ...adminUser,
+      clientId: client.id,
       clientName: adminUser.clientName || client.name,
       clientStatus: client.status,
       clientDeletionEffectiveAt: client.deletionEffectiveAt,

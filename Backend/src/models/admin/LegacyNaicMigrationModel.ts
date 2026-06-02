@@ -1,4 +1,10 @@
-import { NAIC_CLIENT_ID, NAIC_LOCATION_CLIENT, normalizeBarangayValue } from '@/config/locationConfig';
+import {
+  LEGACY_NAIC_CLIENT_IDS,
+  NAIC_CLIENT_ID,
+  NAIC_LOCATION_CLIENT,
+  canonicalizeClientId,
+  normalizeBarangayValue,
+} from '@/config/locationConfig';
 import { db } from '@/db/firestoreConfig';
 import { AdminAuthModel } from '@/models/admin/AdminAuthModel';
 import { ClientModel } from '@/models/admin/ClientModel';
@@ -27,7 +33,9 @@ const buildPermissions = (role: 'super_admin' | 'lgu_admin'): string[] =>
 const isMissing = (value: unknown): boolean => value === undefined || value === null || value === '';
 
 const getNaicMetadata = (data: FirebaseFirestore.DocumentData = {}) => {
-  if (!isMissing(data.clientId) && data.clientId !== NAIC_CLIENT_ID) {
+  const canonicalClientId = canonicalizeClientId(data.clientId, data.municipalityCode);
+
+  if (!isMissing(data.clientId) && canonicalClientId !== NAIC_CLIENT_ID) {
     return {};
   }
 
@@ -38,7 +46,7 @@ const getNaicMetadata = (data: FirebaseFirestore.DocumentData = {}) => {
     if (isMissing(data[key])) update[key] = value;
   };
 
-  setIfMissing('clientId', NAIC_CLIENT_ID);
+  if (data.clientId !== NAIC_CLIENT_ID) update.clientId = NAIC_CLIENT_ID;
   setIfMissing('clientName', seed.name);
   setIfMissing('provinceCode', seed.provinceCode);
   setIfMissing('provinceName', seed.provinceName);
@@ -56,6 +64,19 @@ const getNaicMetadata = (data: FirebaseFirestore.DocumentData = {}) => {
   }
 
   return update;
+};
+
+const getNaicClientIdUpdate = (data: FirebaseFirestore.DocumentData = {}): Record<string, unknown> => {
+  const canonicalClientId = canonicalizeClientId(data.clientId, data.municipalityCode);
+  return canonicalClientId === NAIC_CLIENT_ID && data.clientId !== NAIC_CLIENT_ID
+    ? { clientId: NAIC_CLIENT_ID }
+    : {};
+};
+
+const hasContactsData = (data: FirebaseFirestore.DocumentData | undefined): boolean => {
+  const categories = Array.isArray(data?.categories) ? data.categories : [];
+  const contacts = Array.isArray(data?.contacts) ? data.contacts : [];
+  return categories.length > 0 || contacts.length > 0;
 };
 
 export class LegacyNaicMigrationModel {
@@ -146,7 +167,8 @@ export class LegacyNaicMigrationModel {
         if (data.clientId !== null) update.clientId = null;
         if (data.clientName !== null) update.clientName = null;
       } else {
-        if (isMissing(data.clientId)) update.clientId = NAIC_CLIENT_ID;
+        const canonicalClientId = canonicalizeClientId(data.clientId, data.municipalityCode);
+        if (isMissing(data.clientId) || canonicalClientId === NAIC_CLIENT_ID) update.clientId = NAIC_CLIENT_ID;
         if (isMissing(data.clientName)) update.clientName = NAIC_LOCATION_CLIENT.name;
       }
 
@@ -172,7 +194,11 @@ export class LegacyNaicMigrationModel {
     for (const doc of snapshot.docs) {
       result.scanned++;
       const data = doc.data();
-      const update = options.includeNaicMetadata ? getNaicMetadata(data) : isMissing(data.clientId) ? { clientId: NAIC_CLIENT_ID } : {};
+      const update = options.includeNaicMetadata
+        ? getNaicMetadata(data)
+        : isMissing(data.clientId)
+          ? { clientId: NAIC_CLIENT_ID }
+          : getNaicClientIdUpdate(data);
 
       if (Object.keys(update).length > 0) {
         result.updated++;
@@ -206,17 +232,27 @@ export class LegacyNaicMigrationModel {
     const result = { scanned: 0, updated: 0 };
     const targetRef = db.collection('contacts').doc(NAIC_CLIENT_ID);
     const legacyRef = db.collection('contacts').doc('main');
-    const [targetSnap, legacySnap] = await Promise.all([targetRef.get(), legacyRef.get()]);
-    result.scanned = legacySnap.exists ? 2 : 1;
+    const legacyNaicRefs = LEGACY_NAIC_CLIENT_IDS.map(id => db.collection('contacts').doc(id));
+    const [targetSnap, legacySnap, ...legacyNaicSnaps] = await Promise.all([
+      targetRef.get(),
+      legacyRef.get(),
+      ...legacyNaicRefs.map(ref => ref.get()),
+    ]);
+    const sourceSnap = legacyNaicSnaps.find(snap => snap.exists) ?? (legacySnap.exists ? legacySnap : null);
+    result.scanned = 1 + (legacySnap.exists ? 1 : 0) + legacyNaicSnaps.filter(snap => snap.exists).length;
 
-    if (!targetSnap.exists && legacySnap.exists) {
+    const targetData = targetSnap.data() ?? {};
+    const sourceData = sourceSnap?.data();
+    const shouldCopySourceContacts = Boolean(sourceSnap && (!targetSnap.exists || !hasContactsData(targetData)) && hasContactsData(sourceData));
+
+    if (shouldCopySourceContacts && sourceSnap) {
       result.updated++;
       if (!dryRun) {
         await targetRef.set(
           {
-            ...legacySnap.data(),
+            ...sourceData,
             clientId: NAIC_CLIENT_ID,
-            migratedFrom: 'main',
+            migratedFrom: sourceSnap.id,
             migratedAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
           },
@@ -226,7 +262,6 @@ export class LegacyNaicMigrationModel {
       return result;
     }
 
-    const targetData = targetSnap.data() ?? {};
     if (isMissing(targetData.clientId)) {
       result.updated++;
       if (!dryRun) {

@@ -43,6 +43,22 @@ export const NAIC_MUNICIPALITY = {
   correspondenceCode: '042115000',
 } as const;
 
+export const LEGACY_NAIC_CLIENT_IDS = [`${NAIC_CLIENT_ID}-${NAIC_MUNICIPALITY.psgcCode}`] as const;
+
+export const isNaicMunicipalityCode = (municipalityCode: unknown): boolean =>
+  String(municipalityCode ?? '') === NAIC_MUNICIPALITY.psgcCode;
+
+export const isLegacyNaicClientId = (clientId: unknown): clientId is (typeof LEGACY_NAIC_CLIENT_IDS)[number] =>
+  typeof clientId === 'string' && (LEGACY_NAIC_CLIENT_IDS as readonly string[]).includes(clientId);
+
+export const canonicalizeClientId = (clientId: unknown, municipalityCode?: unknown): string | null => {
+  if (typeof clientId !== 'string' || !clientId.trim()) return null;
+  const trimmedClientId = clientId.trim();
+  return trimmedClientId === NAIC_CLIENT_ID || isLegacyNaicClientId(trimmedClientId) || isNaicMunicipalityCode(municipalityCode)
+    ? NAIC_CLIENT_ID
+    : trimmedClientId;
+};
+
 // Historical Tomorrow.io zone metadata retained for reference; active weather behavior uses weather location keys.
 export const LEGACY_WEATHER_ZONE_LABELS: Record<LegacyWeatherZoneKey, string> = {
   coastal_west: 'Coastal West',

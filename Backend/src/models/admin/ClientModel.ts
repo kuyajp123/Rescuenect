@@ -1,6 +1,8 @@
 import {
   NAIC_CLIENT_ID,
   NAIC_LOCATION_CLIENT,
+  canonicalizeClientId,
+  isNaicMunicipalityCode,
   normalizeBarangayValue,
   type ClientType,
   type SaveBarangayLocationPayload,
@@ -45,6 +47,16 @@ const toSlug = (value: string): string =>
 
 const activeBarangays = (barangays: ClientCoverageBarangay[]) =>
   barangays.filter(barangay => barangay.isActive !== false);
+
+const isNaicClient = (clientId: string, municipalityCode: unknown): boolean =>
+  canonicalizeClientId(clientId, municipalityCode) === NAIC_CLIENT_ID || isNaicMunicipalityCode(municipalityCode);
+
+const getWeatherLocationKeyForClient = (id: string, data: FirebaseFirestore.DocumentData): string =>
+  isNaicClient(id, data.municipalityCode)
+    ? NAIC_LOCATION_CLIENT.weatherLocationKey
+    : typeof data.weatherLocationKey === 'string' && data.weatherLocationKey.trim()
+      ? data.weatherLocationKey.trim()
+      : toSlug(data.municipalityName || data.name || id);
 
 export const DEFAULT_EARTHQUAKE_SETTINGS: ClientEarthquakeSettings = {
   radiusKm: 150,
@@ -235,6 +247,7 @@ const toFallbackClient = (): ClientLgu => ({
 
 const normalizeClientDoc = (id: string, data: FirebaseFirestore.DocumentData): ClientLgu => {
   const type = data.type === 'city' ? 'city' : 'municipality';
+  const canonicalId = canonicalizeClientId(id, data.municipalityCode) ?? id;
   const rawBarangays = Array.isArray(data.barangays) ? data.barangays : [];
   const weatherLatitude = typeof data.weatherLatitude === 'number' ? data.weatherLatitude : null;
   const weatherLongitude = typeof data.weatherLongitude === 'number' ? data.weatherLongitude : null;
@@ -242,8 +255,8 @@ const normalizeClientDoc = (id: string, data: FirebaseFirestore.DocumentData): C
   const status = statusValues.includes(data.status) ? data.status : 'draft';
 
   return {
-    id,
-    name: data.name || data.municipalityName || id,
+    id: canonicalId,
+    name: data.name || data.municipalityName || canonicalId,
     type,
     status,
     regionCode: data.regionCode ?? null,
@@ -251,9 +264,9 @@ const normalizeClientDoc = (id: string, data: FirebaseFirestore.DocumentData): C
     provinceCode: data.provinceCode || '',
     provinceName: data.provinceName || '',
     municipalityCode: data.municipalityCode || '',
-    municipalityName: data.municipalityName || data.name || id,
+    municipalityName: data.municipalityName || data.name || canonicalId,
     municipalityType: type,
-    weatherLocationKey: data.weatherLocationKey || toSlug(data.municipalityName || data.name || id),
+    weatherLocationKey: getWeatherLocationKeyForClient(id, data),
     weatherLatitude,
     weatherLongitude,
     mapSettings: normalizeMapSettings(data.mapSettings, weatherLatitude, weatherLongitude),
@@ -288,12 +301,28 @@ export class ClientModel {
 
   static async listClients(): Promise<ClientLgu[]> {
     const snapshot = await this.collectionRef().get();
-    const clients = snapshot.docs.map(doc => normalizeClientDoc(doc.id, doc.data())).filter(client => client.status !== 'deleted');
+    const clientsById = new Map<string, ClientLgu>();
+
+    snapshot.docs.forEach(doc => {
+      const client = normalizeClientDoc(doc.id, doc.data());
+      if (client.status === 'deleted') return;
+
+      const existing = clientsById.get(client.id);
+      if (!existing || doc.id === client.id) {
+        clientsById.set(client.id, client);
+      }
+    });
+
+    const clients = Array.from(clientsById.values());
     return clients.sort((left, right) => left.name.localeCompare(right.name));
   }
 
   static async getClientById(clientId: string): Promise<ClientLgu | null> {
-    const snap = await this.collectionRef().doc(clientId).get();
+    const canonicalClientId = canonicalizeClientId(clientId) ?? clientId;
+    let snap = await this.collectionRef().doc(canonicalClientId).get();
+    if (!snap.exists && canonicalClientId !== clientId) {
+      snap = await this.collectionRef().doc(clientId).get();
+    }
     return snap.exists ? normalizeClientDoc(snap.id, snap.data() ?? {}) : null;
   }
 
@@ -359,7 +388,9 @@ export class ClientModel {
 
     const normalizedBarangay = normalizeBarangayValue(payload.barangay);
     const requestedClientId =
-      typeof payload.clientId === 'string' && payload.clientId.trim().length > 0 ? payload.clientId : null;
+      typeof payload.clientId === 'string' && payload.clientId.trim().length > 0
+        ? canonicalizeClientId(payload.clientId)
+        : null;
 
     for (const client of await this.getActiveClients()) {
       if (requestedClientId && requestedClientId !== client.id) {
@@ -422,25 +453,32 @@ export class ClientModel {
 
   static async createDraftClientFromRequest(request: LguRequest): Promise<ClientLgu> {
     const baseClientId = toSlug(request.municipalityName);
-    let clientId = baseClientId;
-    if (clientId === NAIC_CLIENT_ID || request.municipalityCode === NAIC_LOCATION_CLIENT.municipality.psgcCode) {
-      clientId = `${baseClientId}-${request.municipalityCode}`;
-    }
+    const isNaicRequest =
+      baseClientId === NAIC_CLIENT_ID || request.municipalityCode === NAIC_LOCATION_CLIENT.municipality.psgcCode;
+    let clientId = isNaicRequest ? NAIC_CLIENT_ID : baseClientId;
 
     const existing = await this.collectionRef().doc(clientId).get();
+    if (isNaicRequest && existing.exists) {
+      return normalizeClientDoc(existing.id, existing.data() ?? {});
+    }
+
     if (existing.exists) {
       clientId = `${baseClientId}-${request.municipalityCode}`;
     }
 
-    const weatherLocationKey = clientId;
+    const weatherLocationKey = isNaicRequest ? NAIC_LOCATION_CLIENT.weatherLocationKey : clientId;
     const weatherLatitude =
       typeof request.proposedWeatherLatitude === 'number' && Number.isFinite(request.proposedWeatherLatitude)
         ? request.proposedWeatherLatitude
-        : null;
+        : isNaicRequest
+          ? NAIC_LOCATION_CLIENT.weatherLatitude
+          : null;
     const weatherLongitude =
       typeof request.proposedWeatherLongitude === 'number' && Number.isFinite(request.proposedWeatherLongitude)
         ? request.proposedWeatherLongitude
-        : null;
+        : isNaicRequest
+          ? NAIC_LOCATION_CLIENT.weatherLongitude
+          : null;
     const client: ClientLgu = {
       id: clientId,
       name: request.lguName || request.municipalityName,

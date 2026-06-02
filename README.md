@@ -165,7 +165,6 @@ Use this flow when testing the mobile app on a real Android phone from your loca
    ```
 
 7. Choose environment and variant you want to install:
-
    - For local development with the local backend, use the `development` profile (default):
 
      ```bash
@@ -176,18 +175,20 @@ Use this flow when testing the mobile app on a real Android phone from your loca
 
      ```bash
      $env:APP_ENV="staging"
+     $env:APP_VARIANT="staging"
      $env:EXPO_PUBLIC_BACKEND_URL="https://rescuenect-staging-api.onrender.com"
      npx expo prebuild --platform android --clean
-     npx expo run:android --variant release --device <device-id>
+     npx expo run:android --variant release --device
      ```
 
    - For production backend testing, use the `preview` profile:
 
      ```bash
-     $env:APP_ENV="production-preview"
+     $env:APP_ENV="production"
+     $env:APP_VARIANT="production"
      $env:EXPO_PUBLIC_BACKEND_URL="https://rescuenect-backend.onrender.com"
      npx expo prebuild --platform android --clean
-     npx expo run:android --variant release --device <device-id>
+     npx expo run:android --variant release --device
      ```
 
 8. Build and install the local development client on the phone:
@@ -250,8 +251,7 @@ Use this when Wireless debugging is enabled and the dev client is not installed 
    adb devices -l
    ```
 
-7. Choose environment and variant you want to install:
-
+6. Choose environment and variant you want to install:
    - For local development with the local backend, use the `development` profile (default):
 
      ```bash
@@ -262,21 +262,23 @@ Use this when Wireless debugging is enabled and the dev client is not installed 
 
      ```bash
      $env:APP_ENV="staging"
+     $env:APP_VARIANT="staging"
      $env:EXPO_PUBLIC_BACKEND_URL="https://rescuenect-staging-api.onrender.com"
      npx expo prebuild --platform android --clean
-     npx expo run:android --variant release --device <phone-ip>:<debug-port>
+     npx expo run:android --variant release --device
      ```
 
    - For production backend testing, use the `preview` profile:
 
      ```bash
-     $env:APP_ENV="production-preview"
+     $env:APP_ENV="production"
+     $env:APP_VARIANT="production"
      $env:EXPO_PUBLIC_BACKEND_URL="https://rescuenect-backend.onrender.com"
      npx expo prebuild --platform android --clean
-     npx expo run:android --variant release --device <phone-ip>:<debug-port>
+     npx expo run:android --variant release --device
      ```
 
-8. Build and install the local development client on the wireless device:
+7. Build and install the local development client on the wireless device:
 
    ```bash
    cd mobile/client
@@ -289,13 +291,13 @@ Use this when Wireless debugging is enabled and the dev client is not installed 
    npx expo run:android --device <phone-ip>:<debug-port>
    ```
 
-9. Start Metro over the local network:
+8. Start Metro over the local network:
 
    ```bash
    npx expo start --dev-client --lan
    ```
 
-10. Open the installed Rescuenect dev app on the phone or scan the QR code from the terminal.
+9. Open the installed Rescuenect dev app on the phone or scan the QR code from the terminal.
 
 Keep `EXPO_PUBLIC_BACKEND_URL` pointed at your computer's LAN IP when testing the local backend. Do not use `localhost` on a physical phone because it points to the phone itself, not your computer.
 
@@ -347,19 +349,21 @@ Build and install the staging app locally:
 ```powershell
 cd mobile/client
 $env:APP_ENV="staging"
+$env:APP_VARIANT="staging"
 $env:EXPO_PUBLIC_BACKEND_URL="https://rescuenect-staging-api.onrender.com"
 npx expo prebuild --platform android --clean
-npx expo run:android --variant release --device <phone-ip>:<debug-port>
+npx expo run:android --variant release --device
 ```
 
 Build and install the production-preview app locally:
 
 ```powershell
 cd mobile/client
-$env:APP_ENV="production-preview"
+$env:APP_ENV="production"
+$env:APP_VARIANT="production"
 $env:EXPO_PUBLIC_BACKEND_URL="https://rescuenect-backend.onrender.com"
 npx expo prebuild --platform android --clean
-npx expo run:android --variant release --device <phone-ip>:<debug-port>
+npx expo run:android --variant release --device
 ```
 
 Use EAS cloud builds only when you want Expo to build a shareable install link or APK:
@@ -449,8 +453,7 @@ Important notes:
 - Native Firebase config is baked into the built app. Changing `google-services.json` or `staging-google-services.json` requires a new EAS build.
 - The staging Firebase Android app package name must match `com.yajeyps.client.staging` exactly.
 
-
-potential error: 
+potential error:
 
 Failed to delete android code: EBUSY: resource busy or locked, unlink 'C:\Users\Paul\Rescuenect\mobile\client\android\app\build\intermediates\dex\release\mergeDexRelease\classes4.dex'
 

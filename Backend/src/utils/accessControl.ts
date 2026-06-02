@@ -1,3 +1,4 @@
+import { canonicalizeClientId } from '@/config/locationConfig';
 import type { AdminUser, ClientLguStatus } from '@/types/admin';
 
 export const canAccessClientScope = (adminUser: AdminUser | undefined, requestedClientId?: string | null): boolean => {
@@ -5,7 +6,9 @@ export const canAccessClientScope = (adminUser: AdminUser | undefined, requested
   if (adminUser.role === 'super_admin') return true;
   if (adminUser.role !== 'lgu_admin' || !adminUser.clientId) return false;
 
-  return !requestedClientId || requestedClientId === adminUser.clientId;
+  const adminClientId = canonicalizeClientId(adminUser.clientId);
+  const requestedClient = canonicalizeClientId(requestedClientId);
+  return !requestedClient || requestedClient === adminClientId;
 };
 
 export const canLguAdminUseClient = (status: ClientLguStatus | undefined): boolean =>
@@ -88,7 +91,9 @@ export const canAdminReceiveNotification = (
 
   if (adminUser.role !== 'lgu_admin' || !adminUser.clientId) return false;
   if (notification.targetRole === 'super_admin') return false;
-  if (notification.type === 'weather') return notification.clientId === adminUser.clientId;
+  const adminClientId = canonicalizeClientId(adminUser.clientId);
+  const notificationClientId = canonicalizeClientId(notification.clientId);
+  if (notification.type === 'weather') return notificationClientId === adminClientId;
   if (notification.audience === 'users') return false;
-  return !notification.clientId || notification.clientId === adminUser.clientId;
+  return !notificationClientId || notificationClientId === adminClientId;
 };
