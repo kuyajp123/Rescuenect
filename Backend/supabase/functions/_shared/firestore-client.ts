@@ -750,9 +750,136 @@ export async function getNotificationStats(timeframe: 'today' | 'week' | 'month'
 
 const EARTHQUAKE_NOTIFICATION_DEDUP_COLLECTION = 'earthquakeNotificationDedup';
 const EARTHQUAKE_NOTIFICATION_RETRY_AFTER_MS = 5 * 60 * 1000;
+const WEATHER_NOTIFICATION_DEDUP_COLLECTION = 'weatherNotificationDedup';
+const WEATHER_NOTIFICATION_RETRY_AFTER_MS = 5 * 60 * 1000;
+const DEFAULT_WEATHER_NOTIFICATION_COOLDOWN_MINUTES = 6 * 60;
 
 function safeFirestoreDocSegment(value: string): string {
   return value.replace(/[^\w.-]/g, '_').slice(0, 700);
+}
+
+function getWeatherNotificationCooldownMs(): number {
+  const configuredMinutes = Number(Deno.env.get('WEATHER_NOTIFICATION_COOLDOWN_MINUTES'));
+  const minutes =
+    Number.isFinite(configuredMinutes) && configuredMinutes > 0
+      ? configuredMinutes
+      : DEFAULT_WEATHER_NOTIFICATION_COOLDOWN_MINUTES;
+
+  return minutes * 60 * 1000;
+}
+
+export function buildWeatherNotificationDedupId(params: {
+  clientId?: string;
+  location: string;
+  audience: 'admin' | 'users' | 'both';
+  weatherType: 'current' | 'forecast_3h' | 'forecast_tomorrow';
+  category: string;
+  level: string;
+}): string {
+  const ownerKey = params.clientId || params.location;
+  return [
+    'weather',
+    ownerKey,
+    params.location,
+    params.audience,
+    params.weatherType,
+    params.category,
+    params.level,
+  ]
+    .map(safeFirestoreDocSegment)
+    .join('_');
+}
+
+export async function reserveWeatherNotification(params: {
+  clientId?: string;
+  location: string;
+  audience: 'admin' | 'users' | 'both';
+  weatherType: 'current' | 'forecast_3h' | 'forecast_tomorrow';
+  category: string;
+  level: string;
+  title: string;
+}): Promise<{ reserved: boolean; notificationId: string; dedupId: string; cooldownMinutes: number }> {
+  const db = initializeFirebase();
+  const now = Date.now();
+  const cooldownMs = getWeatherNotificationCooldownMs();
+  const cooldownMinutes = Math.round(cooldownMs / (60 * 1000));
+  const dedupId = buildWeatherNotificationDedupId(params);
+  const notificationId = `${dedupId}_${now}`;
+  const dedupRef = db.collection(WEATHER_NOTIFICATION_DEDUP_COLLECTION).doc(dedupId);
+  let reservation = { reserved: false, notificationId, dedupId, cooldownMinutes };
+
+  await db.runTransaction(async transaction => {
+    const existing = await transaction.get(dedupRef);
+    const data = existing.exists ? existing.data() : null;
+    const status = typeof data?.status === 'string' ? data.status : null;
+    const updatedAt = typeof data?.updatedAt === 'number' ? data.updatedAt : 0;
+    const lastNotifiedAt = typeof data?.lastNotifiedAt === 'number' ? data.lastNotifiedAt : 0;
+    const retryCount = typeof data?.retryCount === 'number' ? data.retryCount : 0;
+    const activeReservation = status === 'reserved' && now - updatedAt < WEATHER_NOTIFICATION_RETRY_AFTER_MS;
+    const failedRetryPending = status === 'failed' && now - updatedAt < WEATHER_NOTIFICATION_RETRY_AFTER_MS;
+    const cooldownActive = status !== 'failed' && lastNotifiedAt > 0 && now - lastNotifiedAt < cooldownMs;
+
+    if (existing.exists && (activeReservation || failedRetryPending || cooldownActive)) {
+      const existingNotificationId =
+        typeof data?.notificationId === 'string' ? data.notificationId : notificationId;
+
+      reservation = {
+        reserved: false,
+        notificationId: existingNotificationId,
+        dedupId,
+        cooldownMinutes,
+      };
+      return;
+    }
+
+    transaction.set(
+      dedupRef,
+      {
+        dedupId,
+        notificationId,
+        clientId: params.clientId ?? params.location,
+        location: params.location,
+        audience: params.audience,
+        weatherType: params.weatherType,
+        category: params.category,
+        level: params.level,
+        title: params.title,
+        status: 'reserved',
+        reservedAt: now,
+        retryCount: status === 'failed' ? retryCount + 1 : 0,
+        cooldownMinutes,
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+
+    reservation = { reserved: true, notificationId, dedupId, cooldownMinutes };
+  });
+
+  if (!reservation.reserved) {
+    console.log(
+      `Skipping duplicate weather notification during ${reservation.cooldownMinutes} minute cooldown: ${dedupId}`
+    );
+  }
+
+  return reservation;
+}
+
+export async function updateWeatherNotificationReservation(
+  dedupId: string,
+  update: Record<string, unknown>
+): Promise<void> {
+  const db = initializeFirebase();
+  await db
+    .collection(WEATHER_NOTIFICATION_DEDUP_COLLECTION)
+    .doc(dedupId)
+    .set(
+      {
+        ...update,
+        updatedAt: Date.now(),
+      },
+      { merge: true }
+    );
 }
 
 export function buildEarthquakeNotificationId(clientId: string, earthquakeId: string): string {

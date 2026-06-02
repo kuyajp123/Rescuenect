@@ -32,6 +32,7 @@ export class NotificationService {
    * Create a weather notification
    */
   async createWeatherNotification(params: {
+    notificationId?: string;
     title: string;
     message: string;
     location: string;
@@ -43,7 +44,16 @@ export class NotificationService {
     deliveryStatus?: { success: number; failure: number; errors?: string[] };
   }): Promise<string> {
     const timestamp = Date.now();
-    const notificationId = generateNotificationId('weather', timestamp, params.location);
+    const notificationId = params.notificationId || generateNotificationId('weather', timestamp, params.location);
+    const docRef = this.db.collection(this.collectionName).doc(notificationId);
+
+    if (params.notificationId) {
+      const existing = await docRef.get();
+      if (existing.exists) {
+        console.log(`Weather notification already exists: ${notificationId}`);
+        return notificationId;
+      }
+    }
 
     const notification: Omit<Notification, 'id'> & { id: string } = {
       id: notificationId,
@@ -61,7 +71,7 @@ export class NotificationService {
       data: params.weatherData,
     };
 
-    await this.db.collection(this.collectionName).doc(notificationId).set(notification);
+    await docRef.set(notification);
     console.log(`✅ Weather notification created: ${notificationId}`);
     return notificationId;
   }

@@ -1,5 +1,12 @@
 import { sendFCMNotification } from './fcm-client.ts';
-import { getUserTokens, getWeatherData, getWeatherForecastData, initializeFirebase } from './firestore-client.ts';
+import {
+  getUserTokens,
+  getWeatherData,
+  getWeatherForecastData,
+  initializeFirebase,
+  reserveWeatherNotification,
+  updateWeatherNotificationReservation,
+} from './firestore-client.ts';
 import type { WeatherNotificationData } from './notification-schema.ts';
 import { NotificationService } from './notification-service.ts';
 import { WeatherNotificationSystem, type WeatherData, type WeatherNotification } from './weather-notification-core.ts';
@@ -111,8 +118,16 @@ export class UnifiedWeatherProcessor {
       `📢 Found ${filteredNotifications.length} weather notifications for ${location} (${notifications.length} total conditions detected)`
     );
 
-    // Send notifications for each condition found
-    for (const notification of filteredNotifications) {
+    const notificationsToSend = this.selectPrimaryWeatherNotification(filteredNotifications);
+
+    if (filteredNotifications.length > notificationsToSend.length) {
+      console.log(
+        `Collapsed ${filteredNotifications.length} weather conditions to primary alert for ${location}: ${notificationsToSend[0].title}`
+      );
+    }
+
+    // Send only the strongest weather alert for this location/run to avoid category spam.
+    for (const notification of notificationsToSend) {
       try {
         await this.sendWeatherNotification(notification, location, config, result, clientId);
       } catch (error) {
@@ -122,6 +137,37 @@ export class UnifiedWeatherProcessor {
         result.errors.push(errorMsg);
       }
     }
+  }
+
+  private selectPrimaryWeatherNotification(notifications: WeatherNotification[]): WeatherNotification[] {
+    if (notifications.length <= 1) return notifications;
+
+    return [
+      notifications.reduce((best, current) =>
+        this.getWeatherNotificationRank(current) < this.getWeatherNotificationRank(best) ? current : best
+      ),
+    ];
+  }
+
+  private getWeatherNotificationRank(notification: WeatherNotification): number {
+    const levelRank: Record<WeatherNotification['level'], number> = {
+      CRITICAL: 0,
+      WARNING: 1,
+      ADVISORY: 2,
+      INFO: 3,
+    };
+    const categoryRank: Record<string, number> = {
+      Combined: 0,
+      Storm: 1,
+      Flood: 2,
+      Rain: 3,
+      Wind: 4,
+      Heat: 5,
+      UV: 6,
+      Visibility: 7,
+    };
+
+    return notification.priority * 100 + levelRank[notification.level] * 10 + (categoryRank[notification.category] ?? 9);
   }
 
   /**
@@ -285,6 +331,26 @@ export class UnifiedWeatherProcessor {
 
     // Create notification content with time context
     const notificationContent = this.createNotificationContent(notification, config);
+    const reservation = await reserveWeatherNotification({
+      clientId,
+      location,
+      audience: config.targetAudience,
+      weatherType: config.type,
+      category: notification.category,
+      level: notification.level,
+      title: notificationContent.title,
+    });
+
+    if (!reservation.reserved) {
+      return;
+    }
+
+    await updateWeatherNotificationReservation(reservation.dedupId, {
+      status: 'sent',
+      notificationId: reservation.notificationId,
+      lastNotifiedAt: Date.now(),
+      reservedForPushAt: Date.now(),
+    });
 
     // Send FCM push notification only if tokens are available
     let fcmResult: { success: number; failure: number; errors: string[] } = {
@@ -352,6 +418,7 @@ export class UnifiedWeatherProcessor {
     }
 
     await notificationService.createWeatherNotification({
+      notificationId: reservation.notificationId,
       title: notificationContent.title,
       message: notificationContent.body,
       location: location,
@@ -361,6 +428,16 @@ export class UnifiedWeatherProcessor {
       sentTo: fcmResult.success + fcmResult.failure,
       weatherData: weatherData,
       deliveryStatus: deliveryStatus,
+    });
+
+    await updateWeatherNotificationReservation(reservation.dedupId, {
+      status: 'sent',
+      notificationId: reservation.notificationId,
+      inAppNotificationSavedAt: Date.now(),
+      fcmSuccess: fcmResult.success,
+      fcmFailure: fcmResult.failure,
+      fcmErrors: fcmResult.errors,
+      sentTo: fcmResult.success + fcmResult.failure,
     });
 
     result.notifications_sent++;

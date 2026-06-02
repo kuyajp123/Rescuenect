@@ -846,13 +846,24 @@ export const createStatus = () => {
       }
 
       // console.log('Form submitted successfully:', JSON.stringify(response.data, null, 2));
-      // Save to Zustand store with parentId from response
-      setFormData({
+      const submittedStatus = {
         ...statusForm,
         parentId: response.data?.data?.parentId,
         versionId: response.data?.data?.versionId,
         createdAt: response.data?.data?.createdAt,
-      });
+      };
+      // Save to Zustand store with parentId from response
+      setFormData(submittedStatus);
+
+      if (typeof submittedStatus.lng === 'number' && typeof submittedStatus.lat === 'number') {
+        const submittedCoords: [number, number] = [submittedStatus.lng, submittedStatus.lat];
+        setCoords(submittedCoords);
+        setSelectedCoords(submittedCoords);
+      }
+
+      setHasUserTappedMap(false);
+      setIsGPSselection(false);
+      setActiveStatusCoords(true);
       setOneTimeLocationCoords(null);
       pendingSuccessToastLabel = 'Status submitted successfully!';
     } catch (error: any) {
