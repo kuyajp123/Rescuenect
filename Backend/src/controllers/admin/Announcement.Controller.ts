@@ -1,5 +1,6 @@
 import { AnnouncementModel } from '@/models/admin/AnnouncementModel';
 import { ClientModel } from '@/models/admin/ClientModel';
+import { normalizeBarangayValue } from '@/config/locationConfig';
 import { getClientScopeFromRequest } from '@/utils/adminScope';
 import createDOMPurify, { type WindowLike } from 'dompurify';
 import { Request, Response } from 'express';
@@ -37,6 +38,11 @@ type AnnouncementFieldErrors = Partial<{
   content: string;
   category: string;
 }>;
+
+type NormalizedBarangayResult = {
+  barangays: string[];
+  invalidBarangays: string[];
+};
 
 const sanitizeText = (value: unknown) => {
   if (typeof value !== 'string') return '';
@@ -100,15 +106,52 @@ const isMaxLength = (value: unknown, maxLength: number): boolean => {
   return true;
 };
 
-const validateBarangaysForClient = async (clientId: string, barangays: string[]): Promise<string[]> => {
+const normalizeBarangayLookupKey = (value: unknown): string =>
+  normalizeBarangayValue(String(value ?? ''))
+    .replace(/\./g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const normalizeBarangaysForClient = async (
+  clientId: string,
+  barangays: string[]
+): Promise<NormalizedBarangayResult> => {
   const client = await ClientModel.getClientById(clientId);
-  if (!client) return barangays;
+  if (!client) {
+    return { barangays: [], invalidBarangays: barangays };
+  }
 
-  const allowedBarangays = new Set(
-    client.barangays.filter(barangay => barangay.isActive !== false).map(barangay => barangay.value)
-  );
+  const allowedBarangays = new Map<string, string>();
+  for (const barangay of client.barangays.filter(barangay => barangay.isActive !== false)) {
+    const canonicalValue =
+      typeof barangay.value === 'string' && barangay.value.trim()
+        ? barangay.value.trim()
+        : String(barangay.barangayLabel ?? '').trim();
 
-  return barangays.filter(barangay => !allowedBarangays.has(barangay));
+    if (!canonicalValue) continue;
+
+    [canonicalValue, barangay.value, barangay.barangayLabel, barangay.barangayCode].forEach(alias => {
+      const key = normalizeBarangayLookupKey(alias);
+      if (key) allowedBarangays.set(key, canonicalValue);
+    });
+  }
+
+  const normalizedBarangays: string[] = [];
+  const invalidBarangays: string[] = [];
+
+  for (const barangay of barangays) {
+    const canonicalValue = allowedBarangays.get(normalizeBarangayLookupKey(barangay));
+    if (!canonicalValue) {
+      invalidBarangays.push(barangay);
+      continue;
+    }
+
+    if (!normalizedBarangays.includes(canonicalValue)) {
+      normalizedBarangays.push(canonicalValue);
+    }
+  }
+
+  return { barangays: normalizedBarangays, invalidBarangays };
 };
 
 export class AnnouncementController {
@@ -158,7 +201,7 @@ export class AnnouncementController {
       const rawCategory = sanitizeText(req.body.category).toLowerCase();
       const category = ALLOWED_CATEGORIES.has(rawCategory) ? rawCategory : '';
       const content = sanitizeHtmlContent(req.body.content);
-      const barangays = parseBarangays(req.body.barangays);
+      const requestedBarangays = parseBarangays(req.body.barangays);
       const clientId = getClientScopeFromRequest(req);
       if (!clientId) {
         res.status(400).json({ message: 'clientId is required for announcements' });
@@ -206,7 +249,7 @@ export class AnnouncementController {
         return;
       }
 
-      const invalidBarangays = await validateBarangaysForClient(clientId, barangays);
+      const { barangays, invalidBarangays } = await normalizeBarangaysForClient(clientId, requestedBarangays);
       if (invalidBarangays.length > 0) {
         res.status(400).json({
           message: 'Selected barangays are outside the client coverage',
@@ -258,7 +301,7 @@ export class AnnouncementController {
       const rawCategory = sanitizeText(req.body.category).toLowerCase();
       const category = ALLOWED_CATEGORIES.has(rawCategory) ? rawCategory : '';
       const content = sanitizeHtmlContent(req.body.content);
-      const barangays = parseBarangays(req.body.barangays);
+      const requestedBarangays = parseBarangays(req.body.barangays);
       const clientId = getClientScopeFromRequest(req);
       if (!clientId) {
         res.status(400).json({ message: 'clientId is required for announcements' });
@@ -306,7 +349,7 @@ export class AnnouncementController {
         return;
       }
 
-      const invalidBarangays = await validateBarangaysForClient(clientId, barangays);
+      const { barangays, invalidBarangays } = await normalizeBarangaysForClient(clientId, requestedBarangays);
       if (invalidBarangays.length > 0) {
         res.status(400).json({
           message: 'Selected barangays are outside the client coverage',
