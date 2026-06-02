@@ -57,6 +57,9 @@ interface FirebaseStatusData {
   uid: string;
   statusType: 'current' | 'history' | 'deleted';
   updatedAt?: any;
+  accountDeletedAt?: any;
+  ownerAccountDeleted?: boolean;
+  retainedForAdmin?: boolean;
   category: [];
   people: number;
 }
@@ -252,17 +255,21 @@ export const StatusHistory = () => {
         break;
       case 'user':
         const residentDetail = residents.find(r => r.uid === user.uid || r.id === user.uid || r.id === user.id);
+        const statusSnapshot = user.originalStatus;
+        const accountDeleted = Boolean(statusSnapshot?.ownerAccountDeleted || statusSnapshot?.accountDeletedAt);
         navigate('/status/history/resident-profile', {
           state: {
             resident: {
               id: user.uid || user.id,
-              firstName: residentDetail?.firstName || '',
-              lastName: residentDetail?.lastName || '',
-              phoneNumber: residentDetail?.phoneNumber || '',
-              photo: residentDetail?.photo || '',
-              email: residentDetail?.email || '',
+              firstName: residentDetail?.firstName || statusSnapshot?.firstName || user.firstName || '',
+              lastName: residentDetail?.lastName || statusSnapshot?.lastName || user.lastName || '',
+              phoneNumber: residentDetail?.phoneNumber || statusSnapshot?.phoneNumber || user.phoneNumber || '',
+              photo: residentDetail?.photo || statusSnapshot?.profileImage || user.profileImage || '',
+              email: residentDetail?.email || statusSnapshot?.email || user.email || '',
               barangay: residentDetail?.barangay || '',
               createdAt: residentDetail?.createdAt || '',
+              accountDeleted,
+              accountDeletedAt: statusSnapshot?.accountDeletedAt,
             },
           },
         });

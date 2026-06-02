@@ -211,9 +211,18 @@ export class SignInModel {
     };
 
     for (const doc of snapshot.docs) {
+      const data = doc.data();
+      const wasCurrentStatus = data?.statusType === 'current';
+
       batch.set(
         doc.ref,
         {
+          ...(wasCurrentStatus
+            ? {
+                statusType: 'deleted',
+                deletedAt: FieldValue.serverTimestamp(),
+              }
+            : {}),
           residentVisible: false,
           ownerAccountDeleted: true,
           retainedForAdmin: true,
