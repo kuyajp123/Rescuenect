@@ -1,8 +1,35 @@
 const fs = require('fs');
 
-const appEnv = process.env.APP_ENV || 'production';
-
 type AppVariant = 'local' | 'staging' | 'production';
+
+const normalizeEasBuildProfile = (value?: string): AppVariant | undefined => {
+  switch (value) {
+    case 'development':
+      return 'local';
+    case 'staging':
+      return 'staging';
+    case 'preview':
+    case 'production':
+      return 'production';
+    default:
+      return undefined;
+  }
+};
+
+const getAppEnvForBuildProfile = (value?: string): string | undefined => {
+  switch (value) {
+    case 'development':
+      return 'local';
+    case 'staging':
+      return 'staging';
+    case 'preview':
+      return 'production-preview';
+    case 'production':
+      return 'production';
+    default:
+      return undefined;
+  }
+};
 
 const normalizeAppVariant = (value?: string): AppVariant => {
   switch (value) {
@@ -20,7 +47,10 @@ const normalizeAppVariant = (value?: string): AppVariant => {
   }
 };
 
-const appVariant = normalizeAppVariant(process.env.APP_VARIANT || appEnv);
+const easBuildProfile = process.env.EAS_BUILD_PROFILE;
+const appVariantFromBuildProfile = normalizeEasBuildProfile(easBuildProfile);
+const appEnv = getAppEnvForBuildProfile(easBuildProfile) ?? process.env.APP_ENV ?? 'production';
+const appVariant = appVariantFromBuildProfile ?? normalizeAppVariant(process.env.APP_VARIANT || appEnv);
 
 const variantConfig: Record<
   AppVariant,
@@ -192,6 +222,7 @@ export default ({ config }: { config: any }) => {
       firebaseProjectId: firebaseConfig.projectId,
       appVariant,
       appEnv,
+      easBuildProfile,
       eas: {
         projectId: 'b0c098eb-8a7f-4cbd-b1ea-2e6557df75f7',
       },

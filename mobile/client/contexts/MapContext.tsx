@@ -5,7 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getClientMapBounds, getClientMapCenter, getClientMapZoomSettings } from '@/helper/clientMapScope';
 import { storageHelpers } from '@/helper/storage';
 import { useCoords } from '@/store/useCoords';
-import { useMapSettingsStore } from '@/store/useMapSettings';
+import { isUserMapStyle, type UserMapStyle, useMapSettingsStore } from '@/store/useMapSettings';
 import { useUserData } from '@/store/useBackendResponse';
 import MapboxGL from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
@@ -21,14 +21,20 @@ type MapContextType = {
   coords: coordTypes;
   // locationCoords: coordTypes;
   oneTimeLocationCoords: coordTypes;
-  mapStyle: MapboxGL.StyleURL;
-  setMapStyle: (style: MapboxGL.StyleURL) => void;
+  mapStyle: UserMapStyle;
+  setMapStyle: (style: UserMapStyle) => void;
   showMapStyles: boolean;
   toggleMapStyles: () => void;
   setCameraCenter: (coords: [number, number]) => void;
 };
 
 type MapProviderProps = { children: React.ReactNode };
+
+const MAP_STYLE_OPTIONS: { label: string; value: UserMapStyle }[] = [
+  { label: 'Street', value: MapboxGL.StyleURL.Street },
+  { label: 'Satellite', value: MapboxGL.StyleURL.SatelliteStreet },
+  { label: 'Dark', value: MapboxGL.StyleURL.Dark },
+];
 
 const MapContext = createContext<MapContextType | undefined>(undefined);
 
@@ -45,10 +51,12 @@ export const MapProvider = ({ children }: MapProviderProps) => {
   const followUserLocation = useCoords(state => state.followUserLocation);
   const userData = useUserData(state => state.userData);
 
-  const [mapStyle, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
+  const [mapStyle, setMapStyleState] = useState<UserMapStyle>(MapboxGL.StyleURL.Street);
   const [showMapStyles, setShowMapStyles] = useState(false);
   const hasButtons = useMapSettingsStore(state => state.hasButtons);
   const fastTapEnabled = useMapSettingsStore(state => state.fastTapEnabled);
+  const mapStyleFromSettings = useMapSettingsStore(state => state.mapStyle);
+  const setMapStyleInSettings = useMapSettingsStore(state => state.setMapStyle);
   const router = useRouter();
   const { isDark } = useTheme();
   const [cameraCenter, setCameraCenterState] = useState<[number, number]>(() => getClientMapCenter(userData));
@@ -72,8 +80,9 @@ export const MapProvider = ({ children }: MapProviderProps) => {
     const loadMapStyle = async () => {
       try {
         const savedStyle = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'mapStyle');
-        if (savedStyle && Object.values(MapboxGL.StyleURL).includes(savedStyle as MapboxGL.StyleURL)) {
-          setMapStyleState(savedStyle as MapboxGL.StyleURL);
+        if (isUserMapStyle(savedStyle)) {
+          setMapStyleState(savedStyle);
+          setMapStyleInSettings?.(savedStyle);
         }
       } catch (error) {
         console.error('Error loading map style:', error);
@@ -81,7 +90,13 @@ export const MapProvider = ({ children }: MapProviderProps) => {
     };
 
     loadMapStyle();
-  }, []);
+  }, [setMapStyleInSettings]);
+
+  useEffect(() => {
+    if (isUserMapStyle(mapStyleFromSettings)) {
+      setMapStyleState(mapStyleFromSettings);
+    }
+  }, [mapStyleFromSettings]);
 
   // Update camera center when the user's LGU map scope changes.
   useEffect(() => {
@@ -94,17 +109,18 @@ export const MapProvider = ({ children }: MapProviderProps) => {
     }
   }, [coords, activeStatusCoords, setCameraCenter]);
 
-  const setMapStyle = useCallback(async (style: MapboxGL.StyleURL) => {
+  const setMapStyle = useCallback(async (style: UserMapStyle) => {
     try {
       setIsMapReady(false);
       setMapStyleState(style);
+      setMapStyleInSettings?.(style);
       setShowMapStyles(false);
       // Save the selected style to storage
       await storageHelpers.setField(STORAGE_KEYS.USER_SETTINGS, 'mapStyle', style);
     } catch (error) {
       console.error('Error saving map style:', error);
     }
-  }, []);
+  }, [setMapStyleInSettings]);
 
   const toggleMapStyles = useCallback(() => {
     setShowMapStyles(prev => !prev);
@@ -263,11 +279,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
                   },
                 ]}
               >
-                {[
-                  { label: 'Street', value: MapboxGL.StyleURL.Street },
-                  { label: 'Satellite', value: MapboxGL.StyleURL.SatelliteStreet },
-                  { label: 'Dark', value: MapboxGL.StyleURL.Dark },
-                ].map(option => (
+                {MAP_STYLE_OPTIONS.map(option => (
                   <TouchableOpacity
                     key={option.value}
                     style={[

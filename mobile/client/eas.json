@@ -14,6 +14,7 @@
       "env": {
         "APP_ENV": "local",
         "APP_VARIANT": "local",
+        "EXPO_USE_COMMUNITY_AUTOLINKING": "0",
         "EXPO_PUBLIC_BACKEND_URL": "https://rescuenect-staging-api.onrender.com"
       }
     },
@@ -23,6 +24,7 @@
       "env": {
         "APP_VARIANT": "staging",
         "APP_ENV": "staging",
+        "EXPO_USE_COMMUNITY_AUTOLINKING": "0",
         "EXPO_PUBLIC_BACKEND_URL": "https://rescuenect-staging-api.onrender.com"
       }
     },
@@ -32,6 +34,7 @@
       "env": {
         "APP_VARIANT": "production",
         "APP_ENV": "production-preview",
+        "EXPO_USE_COMMUNITY_AUTOLINKING": "0",
         "EXPO_PUBLIC_BACKEND_URL": "https://rescuenect-backend.onrender.com"
       }
     },
@@ -41,6 +44,7 @@
       "env": {
         "APP_VARIANT": "production",
         "APP_ENV": "production",
+        "EXPO_USE_COMMUNITY_AUTOLINKING": "0",
         "EXPO_PUBLIC_BACKEND_URL": "https://rescuenect-backend.onrender.com"
       }
     }

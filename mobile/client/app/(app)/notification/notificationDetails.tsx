@@ -27,6 +27,10 @@ import {
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
+const EARTHQUAKE_NOTIFICATION_MAP_ZOOM = 6.4;
+const EARTHQUAKE_NOTIFICATION_MIN_ZOOM = 5.5;
+const EARTHQUAKE_NOTIFICATION_MAX_ZOOM = 8;
+
 const notificationDetails = () => {
   const { isDark } = useTheme();
   const router = useRouter();
@@ -265,9 +269,10 @@ const notificationDetails = () => {
                 <View style={styles.map}>
                   <MapView
                     centerCoordinate={[earthquakeData.coordinates.longitude, earthquakeData.coordinates.latitude]}
-                    zoomLevel={9}
-                    minZoomLevel={7}
-                    maxZoomLevel={15}
+                    zoomLevel={EARTHQUAKE_NOTIFICATION_MAP_ZOOM}
+                    minZoomLevel={EARTHQUAKE_NOTIFICATION_MIN_ZOOM}
+                    maxZoomLevel={EARTHQUAKE_NOTIFICATION_MAX_ZOOM}
+                    cameraTriggerKey={`${notification.id}-earthquake-preview`}
                     earthquakeData={{
                       coordinates: earthquakeData.coordinates,
                       severity: earthquakeData.severity,
@@ -275,8 +280,8 @@ const notificationDetails = () => {
                       impact_radii: earthquakeData.impact_radii,
                     }}
                     showButtons={false}
-                    showStyleSelector={true}
-                    interactive={true}
+                    showStyleSelector={false}
+                    interactive={false}
                     show3DBuildings={false}
                     scrollEnabled={false}
                     rotateEnabled={false}

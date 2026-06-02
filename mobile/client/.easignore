@@ -44,6 +44,12 @@ Thumbs.db
 # native
 android/
 ios/
+android/.gradle/
+android/.kotlin/
+android/build/
+android/app/build/
+android/app/.cxx/
+android/**/.cxx/
 
 vscode/
 !google-services.json

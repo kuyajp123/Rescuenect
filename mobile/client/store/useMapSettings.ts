@@ -1,8 +1,16 @@
 import { StyleURL } from '@rnmapbox/maps';
 import { create } from 'zustand';
 
+export type UserMapStyle = StyleURL.Street | StyleURL.SatelliteStreet | StyleURL.Dark;
+
+export const USER_MAP_STYLES: UserMapStyle[] = [StyleURL.Street, StyleURL.SatelliteStreet, StyleURL.Dark];
+
+export const isUserMapStyle = (value: unknown): value is UserMapStyle => {
+  return typeof value === 'string' && USER_MAP_STYLES.includes(value as UserMapStyle);
+};
+
 interface MapStyle {
-  value: StyleURL.Street | StyleURL.SatelliteStreet | StyleURL.Dark;
+  value: UserMapStyle;
 }
 
 type MapButtonStates = {

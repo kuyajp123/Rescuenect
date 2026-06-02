@@ -3,6 +3,7 @@ import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { useMap } from '@/contexts/MapContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import type { UserMapStyle } from '@/store/useMapSettings';
 import MapboxGL from '@rnmapbox/maps';
 import { Check } from 'lucide-react-native';
 import React from 'react';
@@ -12,7 +13,7 @@ const MapSettings = () => {
   const { isDark } = useTheme();
   const { mapStyle, setMapStyle } = useMap();
 
-  const mapOptions = [
+  const mapOptions: { label: string; value: UserMapStyle; image: number }[] = [
     {
       label: 'Default',
       value: MapboxGL.StyleURL.Street,

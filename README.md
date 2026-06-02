@@ -434,6 +434,9 @@ cd mobile/client
 # Local development with an installed dev client
 npx expo start --dev-client --lan
 
+# Build development APK
+eas build --platform android --profile development
+
 # Build staging APK
 eas build --platform android --profile staging
 

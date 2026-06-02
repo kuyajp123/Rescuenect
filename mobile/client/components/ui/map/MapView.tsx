@@ -13,6 +13,7 @@ import {
 import { storageHelpers } from '@/helper/storage';
 import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import { useUserData } from '@/store/useBackendResponse';
+import { isUserMapStyle, useMapSettingsStore } from '@/store/useMapSettings';
 import { CenterType, EvacuationCenter } from '@/types/components';
 import MapboxGL, { FillLayer, Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
@@ -295,6 +296,8 @@ export const MapView: React.FC<MapViewProps> = ({
   const router = useRouter();
   const { isDark } = useTheme();
   const { setMapStyle } = useMap();
+  const mapStyleFromSettings = useMapSettingsStore(state => state.mapStyle);
+  const setMapStyleInSettings = useMapSettingsStore(state => state.setMapStyle);
   const savedLocationsFromStore = useSavedLocationsStore(state => state.savedLocations);
   const userData = useUserData(state => state.userData);
   const savedLocationsList = savedLocations ?? savedLocationsFromStore;
@@ -319,15 +322,22 @@ export const MapView: React.FC<MapViewProps> = ({
     const loadMapStyle = async () => {
       try {
         const savedStyle = await storageHelpers.getField(STORAGE_KEYS.USER_SETTINGS, 'mapStyle');
-        if (savedStyle && Object.values(MapboxGL.StyleURL).includes(savedStyle as MapboxGL.StyleURL)) {
-          setMapStyleState(savedStyle as MapboxGL.StyleURL);
+        if (isUserMapStyle(savedStyle)) {
+          setMapStyleState(savedStyle);
+          setMapStyleInSettings?.(savedStyle);
         }
       } catch (error) {
         console.error('Error loading map style:', error);
       }
     };
     loadMapStyle();
-  }, []);
+  }, [setMapStyleInSettings]);
+
+  useEffect(() => {
+    if (isUserMapStyle(mapStyleFromSettings)) {
+      setMapStyleState(mapStyleFromSettings);
+    }
+  }, [mapStyleFromSettings]);
 
   // Sequential loading: Wait for style -> Wait for Images -> Show Markers
   useEffect(() => {
@@ -387,6 +397,7 @@ export const MapView: React.FC<MapViewProps> = ({
         if (setMapStyle) {
           setMapStyle(style);
         }
+        setMapStyleInSettings?.(style);
         setMapStyleState(style);
         setShowMapStyles(false);
         // Save the selected style to storage
@@ -395,7 +406,7 @@ export const MapView: React.FC<MapViewProps> = ({
         console.error('Error saving map style:', error);
       }
     },
-    [mapStyleState, setMapStyle]
+    [mapStyleState, setMapStyle, setMapStyleInSettings]
   );
 
   // Convert EvacuationCenterFormData[] to GeoJSON FeatureCollection
