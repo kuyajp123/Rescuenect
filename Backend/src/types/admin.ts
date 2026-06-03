@@ -97,6 +97,7 @@ export interface ClientLgu {
   name: string;
   type: ClientLguType;
   status: ClientLguStatus;
+  adminCount?: number;
   regionCode?: string | null;
   regionName?: string | null;
   provinceCode: string;
