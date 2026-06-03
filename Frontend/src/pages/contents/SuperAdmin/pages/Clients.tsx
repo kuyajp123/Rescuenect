@@ -29,7 +29,10 @@ export const SuperAdminClients = () => {
     API_ENDPOINTS.SUPER_ADMIN.CLIENTS,
     'clients'
   );
-  const { data: adminData } = useSuperFetch<{ admins: AdminUser[] }>(API_ENDPOINTS.SUPER_ADMIN.ADMINS, 'client admins');
+  const { data: adminData, refetch: refetchAdmins } = useSuperFetch<{ admins: AdminUser[] }>(
+    API_ENDPOINTS.SUPER_ADMIN.ADMINS,
+    'client admins'
+  );
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [clientToDelete, setClientToDelete] = useState<ClientLgu | null>(null);
@@ -46,12 +49,25 @@ export const SuperAdminClients = () => {
 
   const adminCounts = useMemo(() => {
     const counts = new Map<string, number>();
+    (data?.clients ?? []).forEach(client => {
+      if (typeof client.adminCount === 'number') {
+        counts.set(client.id, client.adminCount);
+      }
+    });
+
     (adminData?.admins ?? []).forEach(admin => {
       if (!admin.clientId) return;
+      if (counts.has(admin.clientId)) return;
       counts.set(admin.clientId, (counts.get(admin.clientId) ?? 0) + 1);
     });
+
     return counts;
-  }, [adminData]);
+  }, [adminData, data]);
+
+  const refreshClients = () => {
+    void refetch();
+    void refetchAdmins();
+  };
 
   const filteredClients = useMemo(() => {
     const term = searchQuery.trim().toLowerCase();
@@ -208,7 +224,7 @@ export const SuperAdminClients = () => {
             Archive
           </Button>
           <Tooltip content="Refresh clients">
-            <Button isIconOnly variant="flat" aria-label="Refresh clients" onPress={refetch} isLoading={loading}>
+            <Button isIconOnly variant="flat" aria-label="Refresh clients" onPress={refreshClients} isLoading={loading}>
               <RefreshCcw size={18} />
             </Button>
           </Tooltip>

@@ -452,7 +452,20 @@ export class SuperAdminController {
 
   static async getClients(_req: Request, res: Response): Promise<void> {
     try {
-      res.status(200).json({ clients: await ClientModel.listClients() });
+      const [clients, admins] = await Promise.all([ClientModel.listClients(), AdminAuthModel.listLguAdmins()]);
+      const adminCounts = new Map<string, number>();
+
+      admins.forEach(admin => {
+        if (!admin.clientId) return;
+        adminCounts.set(admin.clientId, (adminCounts.get(admin.clientId) ?? 0) + 1);
+      });
+
+      res.status(200).json({
+        clients: clients.map(client => ({
+          ...client,
+          adminCount: adminCounts.get(client.id) ?? 0,
+        })),
+      });
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch clients' });
     }
