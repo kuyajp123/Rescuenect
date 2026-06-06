@@ -11,7 +11,7 @@ type AuditOptions = {
 type AuditContext = {
   clientIds: Set<string>;
   weatherKeyToClientId: Map<string, string>;
-  naicSeed: ReturnType<typeof ClientModel.getNaicClientSeed>;
+  naicSeed: ReturnType<typeof ClientModel.getNaicMigrationSeed>;
 };
 
 const emptyCollectionAudit = (): DynamicClientCutoverCollectionAudit => ({
@@ -85,8 +85,8 @@ export class DynamicClientCutoverMigrationModel {
   private static async buildContext(includeNaicSeed: boolean): Promise<AuditContext> {
     const snapshot = await db.collection('clients').get();
     const clients = snapshot.docs.map(doc => ClientModel.getClientById(doc.id));
-    const resolvedClients = (await Promise.all(clients)).filter(Boolean) as Array<ReturnType<typeof ClientModel.getNaicClientSeed>>;
-    const naicSeed = ClientModel.getNaicClientSeed();
+    const resolvedClients = (await Promise.all(clients)).filter(Boolean) as Array<ReturnType<typeof ClientModel.getNaicMigrationSeed>>;
+    const naicSeed = ClientModel.getNaicMigrationSeed();
     const allClients = includeNaicSeed
       ? resolvedClients.some(client => client.id === NAIC_CLIENT_ID)
         ? resolvedClients
@@ -103,7 +103,7 @@ export class DynamicClientCutoverMigrationModel {
   private static async ensureNaicClient(dryRun: boolean): Promise<DynamicClientCutoverCollectionAudit> {
     const result = emptyCollectionAudit();
     result.scanned = 1;
-    const seed = ClientModel.getNaicClientSeed();
+    const seed = ClientModel.getNaicMigrationSeed();
     const ref = db.collection('clients').doc(NAIC_CLIENT_ID);
     const snap = await ref.get();
     const data = snap.exists ? snap.data() ?? {} : {};

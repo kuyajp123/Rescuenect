@@ -2,7 +2,6 @@ import {
   NAIC_CLIENT_ID,
   NAIC_LOCATION_CLIENT,
   canonicalizeClientId,
-  isNaicMunicipalityCode,
   normalizeBarangayValue,
   type ClientType,
   type SaveBarangayLocationPayload,
@@ -48,15 +47,10 @@ const toSlug = (value: string): string =>
 const activeBarangays = (barangays: ClientCoverageBarangay[]) =>
   barangays.filter(barangay => barangay.isActive !== false);
 
-const isNaicClient = (clientId: string, municipalityCode: unknown): boolean =>
-  canonicalizeClientId(clientId, municipalityCode) === NAIC_CLIENT_ID || isNaicMunicipalityCode(municipalityCode);
-
 const getWeatherLocationKeyForClient = (id: string, data: FirebaseFirestore.DocumentData): string =>
-  isNaicClient(id, data.municipalityCode)
-    ? NAIC_LOCATION_CLIENT.weatherLocationKey
-    : typeof data.weatherLocationKey === 'string' && data.weatherLocationKey.trim()
-      ? data.weatherLocationKey.trim()
-      : toSlug(data.municipalityName || data.name || id);
+  typeof data.weatherLocationKey === 'string' && data.weatherLocationKey.trim()
+    ? data.weatherLocationKey.trim()
+    : toSlug(data.municipalityName || data.name || id);
 
 export const DEFAULT_EARTHQUAKE_SETTINGS: ClientEarthquakeSettings = {
   radiusKm: 150,
@@ -64,18 +58,13 @@ export const DEFAULT_EARTHQUAKE_SETTINGS: ClientEarthquakeSettings = {
 };
 
 export const DEFAULT_MAP_SETTINGS: ClientMapSettings = {
-  centerLatitude: NAIC_LOCATION_CLIENT.weatherLatitude,
-  centerLongitude: NAIC_LOCATION_CLIENT.weatherLongitude,
+  centerLatitude: null,
+  centerLongitude: null,
   minZoom: 13,
   zoom: 15,
   maxZoom: 18,
-  maxBounds: {
-    north: NAIC_LOCATION_CLIENT.weatherLatitude + 0.08,
-    south: NAIC_LOCATION_CLIENT.weatherLatitude - 0.08,
-    east: NAIC_LOCATION_CLIENT.weatherLongitude + 0.08,
-    west: NAIC_LOCATION_CLIENT.weatherLongitude - 0.08,
-  },
-  boundarySource: 'naic_default',
+  maxBounds: null,
+  boundarySource: null,
   boundaryVerified: false,
 };
 
@@ -217,7 +206,7 @@ export const parseGeoJsonFromStorage = (value: unknown): Record<string, unknown>
   }
 };
 
-const toFallbackClient = (): ClientLgu => ({
+const buildNaicMigrationSeed = (): ClientLgu => ({
   id: NAIC_LOCATION_CLIENT.id,
   name: NAIC_LOCATION_CLIENT.name,
   type: NAIC_LOCATION_CLIENT.type,
@@ -232,7 +221,25 @@ const toFallbackClient = (): ClientLgu => ({
   weatherLocationKey: NAIC_LOCATION_CLIENT.weatherLocationKey,
   weatherLatitude: NAIC_LOCATION_CLIENT.weatherLatitude,
   weatherLongitude: NAIC_LOCATION_CLIENT.weatherLongitude,
-  mapSettings: DEFAULT_MAP_SETTINGS,
+  mapSettings: normalizeMapSettings(
+    {
+      centerLatitude: NAIC_LOCATION_CLIENT.weatherLatitude,
+      centerLongitude: NAIC_LOCATION_CLIENT.weatherLongitude,
+      minZoom: 13,
+      zoom: 15,
+      maxZoom: 18,
+      maxBounds: {
+        north: NAIC_LOCATION_CLIENT.weatherLatitude + 0.08,
+        south: NAIC_LOCATION_CLIENT.weatherLatitude - 0.08,
+        east: NAIC_LOCATION_CLIENT.weatherLongitude + 0.08,
+        west: NAIC_LOCATION_CLIENT.weatherLongitude - 0.08,
+      },
+      boundarySource: 'naic_migration_seed',
+      boundaryVerified: false,
+    },
+    NAIC_LOCATION_CLIENT.weatherLatitude,
+    NAIC_LOCATION_CLIENT.weatherLongitude
+  ),
   earthquakeSettings: DEFAULT_EARTHQUAKE_SETTINGS,
   barangays: NAIC_LOCATION_CLIENT.barangays.map(barangay => ({
     barangayCode: barangay.psgcCode,
@@ -295,8 +302,8 @@ export class ClientModel {
     return db.collection('clients');
   }
 
-  static getNaicClientSeed(): ClientLgu {
-    return toFallbackClient();
+  static getNaicMigrationSeed(): ClientLgu {
+    return buildNaicMigrationSeed();
   }
 
   static async listClients(): Promise<ClientLgu[]> {

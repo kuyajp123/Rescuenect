@@ -248,15 +248,13 @@ export const ACTIVE_LOCATION_CLIENTS: LocationClient[] = [NAIC_LOCATION_CLIENT];
 export const normalizeBarangayValue = (value: string | null | undefined): string =>
   typeof value === 'string' ? value.trim().toLowerCase() : '';
 
-export const getActiveClient = (): LocationClient => NAIC_LOCATION_CLIENT;
-
 export const getClientById = (clientId: string): LocationClient | undefined =>
   ACTIVE_LOCATION_CLIENTS.find(client => client.id === clientId && client.status === 'active');
 
-export const getBarangaysForClient = (clientId: string = NAIC_CLIENT_ID): BarangayMetadata[] =>
+export const getBarangaysForClient = (clientId: string): BarangayMetadata[] =>
   getClientById(clientId)?.barangays.filter(barangay => barangay.isActive) ?? [];
 
-export const getBarangayOptionsForClient = (clientId: string = NAIC_CLIENT_ID): BarangayOption[] =>
+export const getBarangayOptionsForClient = (clientId: string): BarangayOption[] =>
   getBarangaysForClient(clientId).map(({ label, value }) => ({ label, value }));
 
 const toLocationCoverageClient = (client: LocationClient): LocationCoverageClient => ({
