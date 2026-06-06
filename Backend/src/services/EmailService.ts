@@ -1,3 +1,4 @@
+import { getAppEnv } from '@/config/appEnv';
 import { db } from '@/db/firestoreConfig';
 import type { EmailDeliveryLog } from '@/types/admin';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -21,8 +22,6 @@ const getSecureFlag = (): boolean => {
   const value = process.env.SMTP_SECURE?.trim().toLowerCase();
   return value === 'true' || value === '1' || value === 'yes' || value === 'on';
 };
-
-const getAppEnv = (): string => (process.env.NODE_ENV || process.env.APP_ENV || '').trim().toLowerCase();
 
 const shouldUseResend = (): boolean => getAppEnv() === 'production';
 

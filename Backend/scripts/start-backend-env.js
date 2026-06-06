@@ -9,7 +9,7 @@ const child = spawn(command, args, {
   stdio: 'inherit',
   env: {
     ...process.env,
-    ...(isEnvFile ? { BACKEND_ENV_FILE: environment } : { BACKEND_ENV: environment }),
+    ...(isEnvFile ? { BACKEND_ENV_FILE: environment } : { APP_ENV: environment }),
   },
 });
 

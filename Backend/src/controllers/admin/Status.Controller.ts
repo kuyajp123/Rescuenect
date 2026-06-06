@@ -1,3 +1,4 @@
+import { isDevelopmentAppEnv } from '@/config/appEnv';
 import { StatusModel } from '@/models/admin/StatusModel';
 import { getClientScopeFromRequest } from '@/utils/adminScope';
 import { NextFunction, Request, Response } from 'express';
@@ -40,7 +41,7 @@ export class StatusController {
       res.status(500).json({
         message: 'Internal Server Error',
         error: error instanceof Error ? error.message : 'Unknown error',
-        stack: process.env.NODE_ENV === 'development' ? (error as Error)?.stack : undefined,
+        stack: isDevelopmentAppEnv() ? (error as Error)?.stack : undefined,
       });
       return;
     }
@@ -132,7 +133,7 @@ export class StatusController {
       res.status(500).json({
         message: 'Internal Server Error',
         error: error instanceof Error ? error.message : 'Unknown error',
-        stack: process.env.NODE_ENV === 'development' ? (error as Error)?.stack : undefined,
+        stack: isDevelopmentAppEnv() ? (error as Error)?.stack : undefined,
       });
       return;
     }

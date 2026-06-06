@@ -21,7 +21,7 @@ Primary flow:
 6. Live client-scoped records, LGU admin docs, eligible Firebase Auth users, and the live `clients/{clientId}` doc are removed.
 7. The job is marked `completed` or `failed`.
 
-The backend internal endpoint remains available as a manual/backward fallback, but this function should be the production scheduled path.
+This function is the scheduled deletion processor. The old backend internal endpoint has been retired.
 
 ## Required Secrets
 
