@@ -1,4 +1,5 @@
 const fs = require('fs');
+const packageJson = require('./package.json');
 
 type AppVariant = 'local' | 'staging' | 'production';
 
@@ -153,7 +154,7 @@ export default ({ config }: { config: any }) => {
     ...config,
     name: selectedVariantConfig.name,
     slug: 'client',
-    version: '1.0.0',
+    version: packageJson.version,
     orientation: 'portrait',
     icon: './assets/images/logo/adaptive-icon.png',
     scheme: selectedVariantConfig.scheme,
