@@ -13,6 +13,9 @@ db;
 const PORT = parseInt(process.env.PORT!);
 
 const allowedOrigins = [process.env.FRONTEND_URL, process.env.MOBILE_APP_URL];
+const rateLimitEnabled = [process.env.NODE_ENV, process.env.BACKEND_ENV, process.env.APP_ENV].some(
+  env => env?.trim().toLowerCase() === 'production'
+);
 
 app.use(
   cors({
@@ -42,10 +45,13 @@ app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
-// app.use(limiter); // temporaryly disable rate limiter to prevent issues with mobile app during development, can re-enable later
+
+if (rateLimitEnabled) {
+  app.use(limiter);
+}
+
 app.use('/', mainRouter);
 
-// ... (keep existing code)
 
 app.use((err: ErrorRequestHandler, req: Request, res: Response, next: NextFunction) => {
   if (err instanceof multer.MulterError) {
