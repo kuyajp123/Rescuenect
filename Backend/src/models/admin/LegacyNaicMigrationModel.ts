@@ -39,7 +39,7 @@ const getNaicMetadata = (data: FirebaseFirestore.DocumentData = {}) => {
     return {};
   }
 
-  const seed = ClientModel.getNaicClientSeed();
+  const seed = ClientModel.getNaicMigrationSeed();
   const update: Record<string, unknown> = {};
   const setIfMissing = (key: string, value: unknown) => {
     if (value === undefined || value === null) return;
@@ -110,7 +110,7 @@ export class LegacyNaicMigrationModel {
 
   private static async ensureNaicClient(dryRun: boolean): Promise<MigrationResult> {
     const result = { scanned: 1, updated: 0 };
-    const seed = ClientModel.getNaicClientSeed();
+    const seed = ClientModel.getNaicMigrationSeed();
     const ref = db.collection('clients').doc(NAIC_CLIENT_ID);
     const snap = await ref.get();
     const data = snap.exists ? snap.data() ?? {} : {};

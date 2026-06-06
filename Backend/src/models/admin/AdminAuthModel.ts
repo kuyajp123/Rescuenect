@@ -12,7 +12,7 @@ type AllowedAdminAccess = {
   role: AdminRole;
   clientId: string | null;
   clientName: string | null;
-  source: 'super_admin_allowlist' | 'invitation' | 'existing_admin' | 'legacy_admin_email';
+  source: 'super_admin_allowlist' | 'invitation' | 'existing_admin';
 };
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
@@ -84,10 +84,6 @@ export class AdminAuthModel {
 
   static getSuperAdminEmails(): string[] {
     return parseEmailEnv(process.env.SUPER_ADMIN_EMAILS);
-  }
-
-  static getLguAdminEmails(): string[] {
-    return [];
   }
 
   private static async getAdminRecordByEmail(email: string): Promise<AdminUser | null> {
