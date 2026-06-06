@@ -4,7 +4,6 @@ import mainRouter from '@/routes';
 import compression from 'compression';
 import cors from 'cors';
 import express, { Application, ErrorRequestHandler, NextFunction, Request, Response } from 'express';
-import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import multer from 'multer';
 const app: Application = express();
@@ -13,9 +12,6 @@ db;
 const PORT = parseInt(process.env.PORT!);
 
 const allowedOrigins = [process.env.FRONTEND_URL, process.env.MOBILE_APP_URL];
-const rateLimitEnabled = [process.env.NODE_ENV, process.env.BACKEND_ENV, process.env.APP_ENV].some(
-  env => env?.trim().toLowerCase() === 'production'
-);
 
 app.use(
   cors({
@@ -32,23 +28,10 @@ app.use(
 
 app.set('trust proxy', 1);
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: req => req.path.startsWith('/health'), // Skip rate limiting for health checks
-});
-
 app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
-
-if (rateLimitEnabled) {
-  app.use(limiter);
-}
 
 app.use('/', mainRouter);
 

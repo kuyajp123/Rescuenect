@@ -10,10 +10,6 @@ This document records common backend HTTP requests for manual testing (e.g., Pos
   - authenticated, and
   - an active admin, and
   - `role = super_admin`
-- `cronSecret` – Backend cron secret value (one of these env vars):
-  - `CLIENT_DELETION_CRON_SECRET`, or
-  - `INTERNAL_CRON_SECRET`, or
-  - `CRON_SECRET`
 
 ## Sanity Check (avoid 404s)
 
@@ -38,7 +34,7 @@ The backend endpoint below does **not** delete clients right now:
 - Result: `405 Method Not Allowed`
 - Message: `Immediate client deletion is disabled. Use scheduled deletion with preview and grace period.`
 
-To delete a client via HTTP, use the supported flow: **schedule deletion** (with an optional grace period) and then **process due deletion jobs**.
+To delete a client via HTTP, use the supported flow: **schedule deletion** with an optional grace period. Due deletion jobs are processed by the Supabase `client-deletions-process` scheduled function.
 
 ### 1) Deactivate the client (required if client is `active`)
 
@@ -83,16 +79,9 @@ Notes:
 - Scheduling deletion only works when the client status is `draft` or `inactive`.
 - If the client is currently `active`, you must deactivate it first (step 1).
 
-### 4) Process due deletion jobs (this performs the actual deletion)
+### 4) Wait for the scheduled processor
 
-This endpoint runs the deletion processor and will delete **all due** client deletion jobs.
-
-Purpose: performs the actual cleanup (archive + delete client-scoped data) for any jobs whose effective date is due.
-
-- Method: `POST`
-- URL: `{{baseUrl}}/internal/scheduled/client-deletions/process`
-- Headers:
-  - `Authorization: Bearer {{cronSecret}}`
+The Supabase `client-deletions-process` function performs the actual cleanup for due jobs. It reads `clientDeletionJobs` directly from Firestore, archives the client, deletes live client-scoped data, and marks each job as `completed` or `failed`.
 
 ### Expected result
 
