@@ -1,5 +1,6 @@
 const fs = require('fs');
 const packageJson = require('./package.json');
+const nativeAppVersion = packageJson.version.split(/[+-]/)[0];
 
 type AppVariant = 'local' | 'staging' | 'production';
 
@@ -154,7 +155,7 @@ export default ({ config }: { config: any }) => {
     ...config,
     name: selectedVariantConfig.name,
     slug: 'client',
-    version: packageJson.version,
+    version: nativeAppVersion,
     orientation: 'portrait',
     icon: './assets/images/logo/adaptive-icon.png',
     scheme: selectedVariantConfig.scheme,
@@ -221,6 +222,8 @@ export default ({ config }: { config: any }) => {
       googleWebClientId,
       firebaseConfig,
       firebaseProjectId: firebaseConfig.projectId,
+      releaseVersion: packageJson.version,
+      nativeAppVersion,
       appVariant,
       appEnv,
       easBuildProfile,

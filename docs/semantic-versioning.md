@@ -17,7 +17,9 @@ The mobile version lives in:
 mobile/client/package.json
 ```
 
-The Expo app config reads the mobile version from `mobile/client/package.json`, so do not hardcode a separate version in `mobile/client/app.config.ts`.
+The Expo app config reads from `mobile/client/package.json`, so do not hardcode a separate version in `mobile/client/app.config.ts`.
+
+For native mobile builds, Expo uses the clean base version. For example, if the package version is `2.1.0-staging.1`, the native Expo app version is `2.1.0`, and the full release version is available in Expo config as `extra.releaseVersion`.
 
 ## Version Format
 
@@ -115,7 +117,7 @@ Recommended production behavior:
 
 This lets the team test release candidates without consuming the final production version too early.
 
-Important mobile note: Expo's `version` is the user-facing app version. On Android it maps to `versionName`; on iOS it maps to `CFBundleShortVersionString`. Keep the submitted production mobile version clean, such as `2.1.0`. Use staging prerelease labels for CI tags, build names, release notes, and internal artifacts.
+Important mobile note: Expo's `version` is the user-facing app version. On Android it maps to `versionName`; on iOS it maps to `CFBundleShortVersionString`. Keep the native mobile app version clean, such as `2.1.0`. Use staging prerelease labels for package versions, git tags, GitHub releases, build names, release notes, and internal artifacts.
 
 ## Branch Rules
 
@@ -161,6 +163,16 @@ v2.1.0
 
 7. Build and deploy using that version.
 
+The automation files are:
+
+```text
+.github/workflows/release.yml
+release.config.cjs
+scripts/sync-release-version.cjs
+package.json
+package-lock.json
+```
+
 ## First Release Setup
 
 Because Rescuenect is starting this system at version `2.0.0`, the release setup should create a baseline tag before automated bumping starts:
@@ -170,6 +182,48 @@ v2.0.0
 ```
 
 Without this baseline tag, automation may scan older commits and calculate a bump from old history.
+
+The baseline tag must be reachable from each branch that releases. If `v2.0.0` was created on `staging`, merge that same commit into `main` without squash before the first production release. If the baseline is squash-merged into `main`, recreate the `v2.0.0` tag on the matching `main` commit before enabling the first production release.
+
+## Repository Settings
+
+GitHub Actions must be allowed to write release commits, tags, and GitHub releases.
+
+In GitHub, check:
+
+```text
+Settings -> Actions -> General -> Workflow permissions -> Read and write permissions
+```
+
+If `main` or `staging` has branch protection that blocks GitHub Actions from pushing release commits, create a repository secret named:
+
+```text
+SEMANTIC_RELEASE_TOKEN
+```
+
+Use a fine-grained GitHub token that can write contents for this repository. The workflow will use `SEMANTIC_RELEASE_TOKEN` when it exists, otherwise it falls back to the built-in `GITHUB_TOKEN`.
+
+## Day-to-Day Flow
+
+Work normally on feature branches, then merge into `staging`.
+
+When `staging` receives a commit such as:
+
+```text
+feat: add disaster readiness checklist
+```
+
+semantic-release creates a staging prerelease, for example:
+
+```text
+2.1.0-staging.1
+```
+
+After QA passes on staging, merge the tested code into `main`. The production release will become:
+
+```text
+2.1.0
+```
 
 ## Making This Effective
 
