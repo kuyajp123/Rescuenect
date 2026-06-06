@@ -15,6 +15,7 @@ mainRouter.get('/health/full', HealthController.fullHealthCheck);
 
 mainRouter.use('/admin/auth', routeRateLimiters.auth);
 mainRouter.use('/mobile/auth', routeRateLimiters.auth);
+mainRouter.use('/public/clients', routeRateLimiters.publicRead);
 mainRouter.use('/public/psgc', routeRateLimiters.publicRead);
 mainRouter.use('/public/lgu-requests', routeRateLimiters.publicWrite);
 mainRouter.use('/mobile/api/geoCoding', routeRateLimiters.expensive);

@@ -137,7 +137,7 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
     if (!user) {
       revokeToken();
       await signOut(auth);
-      // navigate('/auth/login');
+      // navigate('/home');
       return;
     }
 

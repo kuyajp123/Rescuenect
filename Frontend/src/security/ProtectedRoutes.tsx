@@ -22,7 +22,7 @@ export default function ProtectedRoute({ children }: Props) {
 
   // 1. Not authenticated -> Login
   if (!userAuth) {
-    return <Navigate to="/auth/login" replace />;
+    return <Navigate to="/home" replace />;
   }
 
   if (accessIssue) {
@@ -56,5 +56,5 @@ export default function ProtectedRoute({ children }: Props) {
     return children;
   }
 
-  return <Navigate to="/auth/login" replace />;
+  return <Navigate to="/home" replace />;
 }
