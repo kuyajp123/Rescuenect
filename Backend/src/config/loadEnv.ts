@@ -22,7 +22,7 @@ const envFileFor = (environment?: string) => {
   }
 };
 
-const selectedEnvironment = process.env.BACKEND_ENV || process.env.APP_ENV;
+const selectedEnvironment = process.env.APP_ENV;
 const selectedEnvFile =
   process.env.BACKEND_ENV_FILE || process.env.DOTENV_CONFIG_PATH || envFileFor(selectedEnvironment);
 
