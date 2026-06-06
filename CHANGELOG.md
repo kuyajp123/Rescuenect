@@ -1,3 +1,9 @@
+## [2.1.0-staging.2](https://github.com/kuyajp123/Rescuenect/compare/v2.1.0-staging.1...v2.1.0-staging.2) (2026-06-06)
+
+### Features
+
+* update homepage content ([83c53f9](https://github.com/kuyajp123/Rescuenect/commit/83c53f91fe79f7bb18b82890f5402a2f875e7973))
+
 ## [2.1.0-staging.1](https://github.com/kuyajp123/Rescuenect/compare/v2.0.0...v2.1.0-staging.1) (2026-06-06)
 
 ### Features
