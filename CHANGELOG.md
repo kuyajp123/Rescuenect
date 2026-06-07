@@ -1,3 +1,9 @@
+## [2.1.0-staging.6](https://github.com/kuyajp123/Rescuenect/compare/v2.1.0-staging.5...v2.1.0-staging.6) (2026-06-07)
+
+### Bug Fixes
+
+* mobile app release upload ([98a6068](https://github.com/kuyajp123/Rescuenect/commit/98a6068b3bafc884fde636d4b70ebd093ae169d5))
+
 ## [2.1.0-staging.5](https://github.com/kuyajp123/Rescuenect/compare/v2.1.0-staging.4...v2.1.0-staging.5) (2026-06-07)
 
 ### Reverts
