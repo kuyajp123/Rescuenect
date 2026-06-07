@@ -9,12 +9,15 @@ import { ColorCombinations, Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { Avatar } from 'heroui-native';
 import { Button } from 'heroui-native/button';
 import { BadgeInfo, ChevronRight, FileText, LogOut, Moon, ReceiptText, Settings, Sun } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+
+const releaseVersion = String(Constants.expoConfig?.extra?.releaseVersion ?? Constants.expoConfig?.version ?? '2.0.0');
 
 export const MenuScreen = () => {
   const { isDark } = useTheme();
@@ -162,6 +165,10 @@ export const MenuScreen = () => {
             </Text>
           </Button.Label>
         </Button>
+
+        <Text emphasis="light" size="xs" style={styles.versionText}>
+          Rescuenect {releaseVersion}
+        </Text>
       </View>
     </Body>
   );
@@ -232,6 +239,11 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     marginLeft: 5,
+  },
+  versionText: {
+    marginTop: 18,
+    marginBottom: 24,
+    textAlign: 'center',
   },
 });
 

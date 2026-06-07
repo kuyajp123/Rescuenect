@@ -11,3 +11,4 @@ interface ImportMeta {
 
 declare const VITE_PORT: number;
 declare const VITE_BACKEND_URL: string;
+declare const __APP_VERSION__: string;

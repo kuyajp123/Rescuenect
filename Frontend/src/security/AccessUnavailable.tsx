@@ -60,7 +60,7 @@ export const AccessUnavailable = ({ issue }: AccessUnavailableProps) => {
     setAuth(null);
     setUserData(null);
     setAccessIssue(null);
-    navigate('/auth/login', { replace: true });
+    navigate('/home', { replace: true });
   };
 
   return (

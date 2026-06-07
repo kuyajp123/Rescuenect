@@ -2,11 +2,22 @@ import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
 import { getAccessIssueFromError, useAuth, UserData } from '@/stores/useAuth';
 import { useErrorStore } from '@/stores/useErrorMessage';
+import type { ButtonProps } from '@heroui/react';
 import axios from 'axios';
 import { GoogleAuthProvider, signInWithCredential, signInWithPopup } from 'firebase/auth';
 import { SecondaryButton } from './';
 
-export const GoogleButton = () => {
+type GoogleButtonProps = Omit<ButtonProps, 'children' | 'isDisabled' | 'onPress' | 'startContent'> & {
+  label?: string;
+  loadingLabel?: string;
+};
+
+export const GoogleButton = ({
+  className = '',
+  label = 'Sign in with Google',
+  loadingLabel = 'Signing in...',
+  ...props
+}: GoogleButtonProps) => {
   const isLoading = useAuth(state => state.isLoading);
   const isVerifying = useAuth(state => state.isVerifying);
   const setUserData = useAuth(state => state.setUserData);
@@ -52,7 +63,6 @@ export const GoogleButton = () => {
       // Set loading states to false BEFORE navigation
       setVerifying(false);
       setLoading(false);
-
     } catch (error: any) {
       const accessIssue = getAccessIssueFromError(error);
       if (accessIssue) {
@@ -74,9 +84,10 @@ export const GoogleButton = () => {
 
   return (
     <SecondaryButton
+      {...props}
       onPress={handleGoogleLogin}
       isDisabled={isVerifying || isLoading}
-      className="inline-flex items-center justify-center gap-3 py-6 text-sm font-normal text-gray-700 transition-colors border-none bg-gray-200 rounded-lg px-7 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10"
+      className={`inline-flex items-center justify-center gap-3 py-6 text-sm font-normal text-gray-700 transition-colors border-none bg-gray-200 rounded-lg px-7 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10 ${className}`}
       startContent={
         isVerifying || isLoading ? (
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-gray-100"></div>
@@ -102,7 +113,7 @@ export const GoogleButton = () => {
         )
       }
     >
-      {isVerifying || isLoading ? 'Signing in...' : 'Sign in with Google'}
+      {isVerifying || isLoading ? loadingLabel : label}
     </SecondaryButton>
   );
 };

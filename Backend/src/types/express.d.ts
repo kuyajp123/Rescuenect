@@ -6,6 +6,7 @@ declare global {
     interface Request {
       user?: DecodedIdToken;
       adminUser?: AdminUser;
+      rawBody?: Buffer;
     }
   }
 }

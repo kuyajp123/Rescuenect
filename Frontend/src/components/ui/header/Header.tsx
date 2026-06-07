@@ -46,7 +46,7 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
       setUserData(null);
       setAuth(null);
       await signOut(auth);
-      navigate('/auth/login', { replace: true });
+      navigate('/home', { replace: true });
     } catch (error) {
       console.error('Error signing out:', error);
     }

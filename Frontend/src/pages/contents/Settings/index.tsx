@@ -264,6 +264,8 @@ const Settings = () => {
           </Link>
         </CardBody>
       </Card>
+
+      <p className="pb-6 text-center text-xs text-default-400">Rescuenect {__APP_VERSION__}</p>
     </div>
   );
 };

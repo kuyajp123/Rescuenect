@@ -29,7 +29,13 @@ app.use(
 app.set('trust proxy', 1);
 
 app.use(compression());
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req: Request, _res, buffer) => {
+      req.rawBody = Buffer.from(buffer);
+    },
+  })
+);
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
 

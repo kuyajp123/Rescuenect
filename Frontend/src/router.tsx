@@ -82,6 +82,14 @@ const Router = () => {
 
   useEffect(() => {
     const path = location.pathname;
+    const customTitles: Record<string, string> = {
+      '/home': 'Rescuenect - Home',
+    };
+
+    if (customTitles[path]) {
+      document.title = customTitles[path];
+      return;
+    }
 
     if (path === '/' || path === '') {
       document.title = 'Rescuenect';
@@ -159,7 +167,8 @@ const Router = () => {
 
         {/* Auth layout */}
         <Route element={<AuthLayout />}>
-          <Route path="/auth/login" element={<Login />} />
+          <Route path="/home" element={<Login />} />
+          <Route path="/auth/login" element={<Navigate to="/home" replace />} />
         </Route>
 
         <Route path="/terms-and-condition" element={<TermsAndCondition />} />

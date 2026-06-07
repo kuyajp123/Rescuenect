@@ -97,6 +97,73 @@ ci: update workflow permissions
 build: adjust vite config
 ```
 
+## Breaking Changes
+
+Use `!` when the change breaks compatibility for existing users, deployed apps, API clients, environment setup, or saved data.
+
+Breaking changes increase the major version:
+
+```text
+2.1.0 -> 3.0.0
+```
+
+A breaking change does not have to be a large code change. For example, this can be a major release:
+
+```text
+feat!: change incident route response format
+```
+
+If the old API returned:
+
+```json
+{
+  "id": "123",
+  "status": "pending"
+}
+```
+
+And the new API returns:
+
+```json
+{
+  "incidentId": "123",
+  "state": "pending"
+}
+```
+
+Existing frontend or mobile code may break unless it is updated. That is why this is a major version change.
+
+Use this question when deciding:
+
+```text
+Will existing users, deployed apps, old API clients, old environment setup, or existing data keep working without changes?
+```
+
+If the answer is no, use a breaking change commit.
+
+Major release examples:
+
+```text
+feat!: require region id when creating incidents
+feat!: replace user roles with permission scopes
+feat!: remove legacy announcement endpoints
+feat!: change auth token storage format
+feat!: migrate report status values
+feat!: require email verification before login
+feat!: change Firebase project configuration keys
+feat!: remove support for old mobile app versions
+feat!: change database schema for incident locations
+feat!: rename disaster category identifiers
+```
+
+A breaking change can also be a fix:
+
+```text
+fix!: enforce stricter responder access rules
+```
+
+Use `fix!:` when the change corrects a bug but also breaks compatibility or blocks behavior that previously worked.
+
 ## Staging Releases
 
 Yes, staging should participate in versioning, but staging should be treated as a test release lane.

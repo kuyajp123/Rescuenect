@@ -304,7 +304,7 @@ const LguRequest = () => {
                 The Rescuenect super admin team will review the LGU scope before activation.
               </p>
             </div>
-            <Button as={Link} to="/auth/login" color="primary">
+            <Button as={Link} to="/home" color="primary">
               Go to Admin Login
             </Button>
           </CardBody>
@@ -326,7 +326,7 @@ const LguRequest = () => {
               <p className="text-sm text-default-500">Municipality and city LGU onboarding</p>
             </div>
           </div>
-          <Button as={Link} to="/auth/login" variant="flat">
+          <Button as={Link} to="/home" variant="flat">
             Admin Login
           </Button>
         </div>

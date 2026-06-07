@@ -37,7 +37,7 @@ export const setupAxiosInterceptors = () => {
 
         // Optional: Redirect to login or show a toast
         // Window location reload might be aggressive but ensures clean slate
-        // window.location.href = '/auth/login';
+        // window.location.href = '/home';
       }
 
       return Promise.reject(error);
