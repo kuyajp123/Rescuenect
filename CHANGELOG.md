@@ -1,3 +1,9 @@
+## [2.1.0-staging.7](https://github.com/kuyajp123/Rescuenect/compare/v2.1.0-staging.6...v2.1.0-staging.7) (2026-06-07)
+
+### Bug Fixes
+
+* stream mobile app release upload ([c7ea3fe](https://github.com/kuyajp123/Rescuenect/commit/c7ea3fe5f9f808012adc45a39c9351658003ec34))
+
 ## [2.1.0-staging.6](https://github.com/kuyajp123/Rescuenect/compare/v2.1.0-staging.5...v2.1.0-staging.6) (2026-06-07)
 
 ### Bug Fixes
