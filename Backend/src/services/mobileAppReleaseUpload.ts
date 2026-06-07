@@ -16,8 +16,21 @@ export type EasBuildWebhookPayload = {
   id?: string;
   accountName?: string;
   projectName?: string;
+  project?: {
+    name?: string;
+    slug?: string;
+    ownerAccount?: {
+      name?: string;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
   platform?: string;
   status?: string;
+  buildProfile?: string;
+  appVersion?: string;
+  appBuildVersion?: string;
+  appIdentifier?: string;
   buildDetailsPageUrl?: string;
   completedAt?: string;
   artifacts?: {
@@ -44,7 +57,27 @@ export type MobileAppReleaseProcessResult = {
 const stringOrNull = (value: unknown): string | null =>
   typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 
+const lowerStringOrNull = (value: unknown): string | null => stringOrNull(value)?.toLowerCase() ?? null;
+
 const envOrNull = (name: string): string | null => stringOrNull(process.env[name]);
+
+const getAccountName = (payload: EasBuildWebhookPayload): string | null =>
+  stringOrNull(payload.accountName) ?? stringOrNull(payload.project?.ownerAccount?.name);
+
+const getProjectName = (payload: EasBuildWebhookPayload): string | null =>
+  stringOrNull(payload.projectName) ?? stringOrNull(payload.project?.slug) ?? stringOrNull(payload.project?.name);
+
+const getBuildProfile = (payload: EasBuildWebhookPayload): string | null =>
+  stringOrNull(payload.metadata?.buildProfile) ?? stringOrNull(payload.buildProfile);
+
+const getAppVersion = (payload: EasBuildWebhookPayload): string | null =>
+  stringOrNull(payload.metadata?.appVersion) ?? stringOrNull(payload.appVersion);
+
+const getAppBuildVersion = (payload: EasBuildWebhookPayload): string | null =>
+  stringOrNull(payload.metadata?.appBuildVersion) ?? stringOrNull(payload.appBuildVersion);
+
+const getAppIdentifier = (payload: EasBuildWebhookPayload): string | null =>
+  stringOrNull(payload.metadata?.appIdentifier) ?? stringOrNull(payload.appIdentifier);
 
 const getBucketName = (): string => envOrNull('MOBILE_APK_BUCKET') ?? DEFAULT_BUCKET_NAME;
 
@@ -133,11 +166,11 @@ export class MobileAppReleaseUploadService {
   }
 
   private static validateTargetBuild(payload: EasBuildWebhookPayload): string | null {
-    if (payload.status !== 'finished') {
+    if (lowerStringOrNull(payload.status) !== 'finished') {
       return 'Build is not finished.';
     }
 
-    if (payload.platform !== 'android') {
+    if (lowerStringOrNull(payload.platform) !== 'android') {
       return 'Build is not an Android build.';
     }
 
@@ -145,22 +178,22 @@ export class MobileAppReleaseUploadService {
       {
         label: 'EAS account',
         expected: envOrNull('MOBILE_APK_ALLOWED_EAS_ACCOUNT'),
-        actual: stringOrNull(payload.accountName),
+        actual: getAccountName(payload),
       },
       {
         label: 'EAS project',
         expected: envOrNull('MOBILE_APK_ALLOWED_EAS_PROJECT'),
-        actual: stringOrNull(payload.projectName),
+        actual: getProjectName(payload),
       },
       {
         label: 'build profile',
         expected: envOrNull('MOBILE_APK_ALLOWED_BUILD_PROFILE'),
-        actual: stringOrNull(payload.metadata?.buildProfile),
+        actual: getBuildProfile(payload),
       },
       {
         label: 'app identifier',
         expected: envOrNull('MOBILE_APK_ALLOWED_APP_IDENTIFIER'),
-        actual: stringOrNull(payload.metadata?.appIdentifier),
+        actual: getAppIdentifier(payload),
       },
     ];
 
@@ -209,8 +242,8 @@ export class MobileAppReleaseUploadService {
 
     const bucketName = await this.ensureApkBucketExists();
     const buildId = stringOrNull(payload.id) ?? `android-${Date.now()}`;
-    const appVersion = stringOrNull(payload.metadata?.appVersion);
-    const buildNumber = stringOrNull(payload.metadata?.appBuildVersion);
+    const appVersion = getAppVersion(payload);
+    const buildNumber = getAppBuildVersion(payload);
     const versionPart = sanitizePathSegment(appVersion ?? 'latest') || 'latest';
     const buildPart = sanitizePathSegment(buildNumber ? `build-${buildNumber}` : buildId) || buildId;
     const fileName = `rescuenect-${versionPart}-${buildPart}.apk`;
@@ -235,12 +268,12 @@ export class MobileAppReleaseUploadService {
     const releaseRecord: MobileAppReleaseRecord = {
       platform: 'android',
       buildId,
-      accountName: stringOrNull(payload.accountName),
-      projectName: stringOrNull(payload.projectName),
-      buildProfile: stringOrNull(payload.metadata?.buildProfile),
+      accountName: getAccountName(payload),
+      projectName: getProjectName(payload),
+      buildProfile: getBuildProfile(payload),
       appVersion,
       appBuildVersion: buildNumber,
-      appIdentifier: stringOrNull(payload.metadata?.appIdentifier),
+      appIdentifier: getAppIdentifier(payload),
       publicUrl,
       downloadUrl,
       fileName,
