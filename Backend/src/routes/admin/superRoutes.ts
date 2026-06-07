@@ -1,15 +1,86 @@
 import { SuperAdminController } from '@/controllers/admin/SuperAdmin.Controller';
 import { AdminMiddleware } from '@/middlewares/AdminMiddleware';
 import { AuthMiddleware } from '@/middlewares/AuthMiddleware';
+import { APK_CONTENT_TYPE } from '@/services/mobileAppReleaseGithub';
+import { mkdirSync } from 'fs';
+import { tmpdir } from 'os';
+import path from 'path';
+import type { NextFunction, Request, Response } from 'express';
 import { Router } from 'express';
+import multer from 'multer';
 
 const superRoutes = Router();
+const DEFAULT_MAX_APK_BYTES = 250 * 1024 * 1024;
+const apkUploadDir = path.join(tmpdir(), 'rescuenect-super-admin-apk-uploads');
+
+mkdirSync(apkUploadDir, { recursive: true });
+
+const getMaxApkBytes = (): number => {
+  const configuredLimit = Number(process.env.MOBILE_APK_MAX_BYTES);
+  return Number.isFinite(configuredLimit) && configuredLimit > 0 ? configuredLimit : DEFAULT_MAX_APK_BYTES;
+};
+
+const safeUploadFileName = (originalName: string): string => {
+  const safeOriginalName = originalName
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 120);
+
+  return `${Date.now()}-${safeOriginalName || 'rescuenect.apk'}`;
+};
+
+const apkUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, callback) => callback(null, apkUploadDir),
+    filename: (_req, file, callback) => callback(null, safeUploadFileName(file.originalname)),
+  }),
+  limits: { fileSize: getMaxApkBytes() },
+  fileFilter: (_req, file, callback) => {
+    const mimeType = file.mimetype.toLowerCase();
+    const isApk =
+      file.originalname.toLowerCase().endsWith('.apk') ||
+      mimeType === APK_CONTENT_TYPE ||
+      mimeType === 'application/octet-stream';
+
+    if (!isApk) {
+      callback(new Error('Only APK files are allowed.'));
+      return;
+    }
+
+    callback(null, true);
+  },
+}).single('apk');
+
+const handleApkUpload = (req: Request, res: Response, next: NextFunction): void => {
+  apkUpload(req, res, error => {
+    if (error instanceof multer.MulterError) {
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        res.status(413).json({
+          message: `APK exceeds the configured ${Math.round(getMaxApkBytes() / (1024 * 1024))}MB upload limit.`,
+        });
+        return;
+      }
+
+      res.status(400).json({ message: error.message });
+      return;
+    }
+
+    if (error instanceof Error) {
+      res.status(400).json({ message: error.message });
+      return;
+    }
+
+    next();
+  });
+};
 
 superRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin, AdminMiddleware.requireSuperAdmin);
 
 superRoutes.get('/overview', SuperAdminController.getOverview);
 superRoutes.get('/logs', SuperAdminController.getOperationLogs);
 superRoutes.delete('/logs/migrations', SuperAdminController.deleteMigrationLogs);
+superRoutes.post('/mobile-app/release', handleApkUpload, SuperAdminController.uploadMobileAppRelease);
 
 superRoutes.post('/migrations/naic-client-id', SuperAdminController.backfillLegacyNaicData);
 superRoutes.get('/migrations/dynamic-client-cutover-audit', SuperAdminController.getDynamicClientCutoverAudit);

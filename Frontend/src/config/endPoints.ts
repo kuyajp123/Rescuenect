@@ -64,6 +64,7 @@ export const API_ENDPOINTS = {
     DYNAMIC_CLIENT_CUTOVER_AUDIT: `${BACKEND_URL}/admin/super/migrations/dynamic-client-cutover-audit`,
     DYNAMIC_CLIENT_CUTOVER: `${BACKEND_URL}/admin/super/migrations/dynamic-client-cutover`,
     DELETE_LGU_REQUEST: (id: string) => `${BACKEND_URL}/admin/super/lgu-requests/${id}`,
+    MOBILE_APP_RELEASE: `${BACKEND_URL}/admin/super/mobile-app/release`,
     APPROVE_LGU_REQUEST: (id: string) => `${BACKEND_URL}/admin/super/lgu-requests/${id}/approve`,
     REJECT_LGU_REQUEST: (id: string) => `${BACKEND_URL}/admin/super/lgu-requests/${id}/reject`,
     CLIENT_CHANGE_REQUESTS: `${BACKEND_URL}/admin/super/client-change-requests`,

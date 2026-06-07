@@ -1,3 +1,5 @@
+import { MobileApkReleasePanel } from '@/pages/contents/Settings/MobileApkReleasePanel';
+import { useAuth } from '@/stores/useAuth';
 import { useMapStyleStore } from '@/stores/useMapStyleStore';
 import { Card, CardBody, CardHeader, Divider, Radio, RadioGroup } from '@heroui/react';
 import { useTheme } from '@heroui/use-theme';
@@ -8,9 +10,11 @@ import { Link } from 'react-router-dom';
 const STORAGE_KEY = 'rescuenect_map_style';
 
 const Settings = () => {
+  const userData = useAuth(state => state.userData);
   const { theme, setTheme } = useTheme();
   const { styleUrl, setMapStyle } = useMapStyleStore();
   const [selectedMapStyle, setSelectedMapStyle] = useState<string>('light');
+  const isSuperAdmin = userData?.role === 'super_admin';
 
   // Initialize map style from localStorage or store
   useEffect(() => {
@@ -213,6 +217,8 @@ const Settings = () => {
           </div>
         </CardBody>
       </Card>
+
+      {isSuperAdmin && <MobileApkReleasePanel />}
 
       {/* Legal Settings Card */}
       <Card className="shadow-lg border border-gray-200 dark:border-gray-700">

@@ -9,6 +9,7 @@ import { LegacyNaicMigrationModel } from '@/models/admin/LegacyNaicMigrationMode
 import { LguRequestModel } from '@/models/admin/LguRequestModel';
 import { OperationLogService } from '@/services/OperationLogService';
 import { PsgcService } from '@/services/PsgcService';
+import { publishManualMobileAppRelease } from '@/services/mobileAppManualRelease';
 import type {
   AdminUser,
   ClientChangeRequest,
@@ -24,6 +25,7 @@ import type {
 } from '@/types/admin';
 import { hasRecordChanges } from '@/utils/changeDetection';
 import { Request, Response } from 'express';
+import { rm } from 'fs/promises';
 
 const REVIEW_NOTE_WORD_LIMIT = 300;
 
@@ -37,6 +39,9 @@ const getReviewNote = (value: unknown): string | undefined => {
   }
   return note;
 };
+
+const requestStringOrNull = (value: unknown): string | null =>
+  typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 
 const activeBarangayCount = (client: ClientLgu): number =>
   client.barangays.filter(barangay => barangay.isActive !== false).length;
@@ -281,6 +286,65 @@ export class SuperAdminController {
           error: error instanceof Error ? error.message : 'Unknown error',
           message: 'Failed to compute overview',
         });
+    }
+  }
+
+  static async uploadMobileAppRelease(req: Request, res: Response): Promise<void> {
+    const uploadedFile = req.file;
+
+    try {
+      if (!uploadedFile) {
+        res.status(400).json({ message: 'APK file is required' });
+        return;
+      }
+
+      const result = await publishManualMobileAppRelease({
+        apkPath: uploadedFile.path,
+        originalFileName: uploadedFile.originalname,
+        fileSize: uploadedFile.size,
+        buildProfile: requestStringOrNull(req.body?.buildProfile),
+        appIdentifier: requestStringOrNull(req.body?.appIdentifier),
+        appVersion: requestStringOrNull(req.body?.appVersion),
+        buildNumber: requestStringOrNull(req.body?.buildNumber),
+        releaseTag: requestStringOrNull(req.body?.releaseTag),
+        releaseName: requestStringOrNull(req.body?.releaseName),
+        releaseSource: 'super-admin-upload',
+        uploadedBy: req.adminUser?.uid ?? null,
+      });
+
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'mobile_app.apk_upload',
+        actionLabel: 'Uploaded mobile APK',
+        targetType: 'mobile_app_release',
+        targetId: result.releaseRecord.buildId,
+        targetName: result.releaseRecord.fileName,
+        message: `${result.releaseRecord.fileName} was published for resident app downloads.`,
+        before: null,
+        after: {
+          buildProfile: result.releaseRecord.buildProfile,
+          appIdentifier: result.releaseRecord.appIdentifier,
+          version: result.releaseRecord.appVersion,
+          buildNumber: result.releaseRecord.appBuildVersion,
+          fileName: result.releaseRecord.fileName,
+          fileSize: result.releaseRecord.fileSize,
+          githubReleaseTag: result.releaseRecord.githubReleaseTag,
+          githubReleaseUrl: result.releaseRecord.githubReleaseUrl,
+        },
+      });
+
+      res.status(200).json({ message: 'Mobile APK published', release: result.release });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to publish mobile APK';
+      const status = message.includes('must be configured') ? 500 : 400;
+      console.error('Failed to publish mobile APK from Super Admin upload:', error);
+      res.status(status).json({ message });
+    } finally {
+      if (uploadedFile?.path) {
+        await rm(uploadedFile.path, { force: true }).catch(error => {
+          console.error('Failed to remove temporary APK upload:', error);
+        });
+      }
     }
   }
 

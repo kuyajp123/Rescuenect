@@ -37,6 +37,8 @@ export type MobileAppReleaseRecord = {
   sourceBuildUrl: string;
   buildDetailsPageUrl: string | null;
   completedAt: string | null;
+  releaseSource?: 'eas-webhook' | 'manual-script' | 'super-admin-upload' | null;
+  uploadedBy?: string | null;
 };
 
 const emptyAndroidRelease = (): PublicMobileAppRelease => ({
