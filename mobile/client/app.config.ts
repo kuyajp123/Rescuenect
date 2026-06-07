@@ -1,6 +1,29 @@
 const fs = require('fs');
+const { withAppBuildGradle } = require('@expo/config-plugins');
 const packageJson = require('./package.json');
 const nativeAppVersion = packageJson.version.split(/[+-]/)[0];
+const androidBundleNodeHeapMb = process.env.EXPO_ANDROID_BUNDLE_NODE_HEAP_MB ?? '8192';
+
+const withAndroidBundleNodeHeap = (expoConfig: any) =>
+  withAppBuildGradle(expoConfig, (pluginConfig: any) => {
+    const heapArg = `--max-old-space-size=${androidBundleNodeHeapMb}`;
+    const nodeExecutableLine = `    nodeExecutableAndArgs = ["node", "${heapArg}"]`;
+    const contents = pluginConfig.modResults.contents;
+
+    if (contents.includes('nodeExecutableAndArgs = ["node", "--max-old-space-size=')) {
+      pluginConfig.modResults.contents = contents.replace(
+        /^\s*nodeExecutableAndArgs = \["node", "--max-old-space-size=\d+"\]\r?$/m,
+        nodeExecutableLine
+      );
+      return pluginConfig;
+    }
+
+    pluginConfig.modResults.contents = contents.replace(
+      /(\s*bundleCommand = "export:embed"\r?\n)/,
+      `$1${nodeExecutableLine}\n`
+    );
+    return pluginConfig;
+  });
 
 type AppVariant = 'local' | 'staging' | 'production';
 
@@ -213,6 +236,7 @@ export default ({ config }: { config: any }) => {
       ],
       '@react-native-firebase/app',
       '@react-native-firebase/messaging',
+      withAndroidBundleNodeHeap,
     ],
     experiments: {
       typedRoutes: true,

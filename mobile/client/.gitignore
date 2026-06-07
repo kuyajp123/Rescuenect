@@ -45,6 +45,7 @@ app-example
 
 /ios
 /android
+/builds/
 
 # google
 google-services.json
