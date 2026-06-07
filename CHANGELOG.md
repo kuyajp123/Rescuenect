@@ -1,3 +1,9 @@
+## [2.1.0-staging.9](https://github.com/kuyajp123/Rescuenect/compare/v2.1.0-staging.8...v2.1.0-staging.9) (2026-06-07)
+
+### Features
+
+* Add mobile APK release management ([714e96f](https://github.com/kuyajp123/Rescuenect/commit/714e96fd1a6b50c18a62577b9f369783e1585f39))
+
 ## [2.1.0-staging.8](https://github.com/kuyajp123/Rescuenect/compare/v2.1.0-staging.7...v2.1.0-staging.8) (2026-06-07)
 
 ### Bug Fixes
