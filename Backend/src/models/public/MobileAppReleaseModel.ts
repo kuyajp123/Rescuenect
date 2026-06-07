@@ -17,6 +17,7 @@ export type PublicMobileAppRelease = {
 
 export type MobileAppReleaseRecord = {
   platform: 'android';
+  storageProvider: 'github-release-assets';
   buildId: string;
   accountName: string | null;
   projectName: string | null;
@@ -29,7 +30,10 @@ export type MobileAppReleaseRecord = {
   fileName: string;
   filePath: string;
   fileSize: number | null;
-  bucketName: string;
+  githubAssetId: number | null;
+  githubReleaseId: number | null;
+  githubReleaseTag: string | null;
+  githubReleaseUrl: string | null;
   sourceBuildUrl: string;
   buildDetailsPageUrl: string | null;
   completedAt: string | null;

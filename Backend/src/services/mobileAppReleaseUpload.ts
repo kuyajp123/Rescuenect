@@ -1,4 +1,3 @@
-import { supabase } from '@/lib/supabase';
 import {
   MobileAppReleaseModel,
   type PublicMobileAppRelease,
@@ -12,11 +11,10 @@ import path from 'path';
 import { Transform } from 'stream';
 import { pipeline } from 'stream/promises';
 
-const DEFAULT_BUCKET_NAME = 'mobile-app-releases';
 const DEFAULT_MAX_APK_BYTES = 250 * 1024 * 1024;
+const DEFAULT_GITHUB_REPOSITORY = 'kuyajp123/Rescuenect';
+const GITHUB_API_URL = 'https://api.github.com';
 const APK_CONTENT_TYPE = 'application/vnd.android.package-archive';
-
-const allowedApkMimeTypes = [APK_CONTENT_TYPE, 'application/octet-stream', 'application/zip'];
 
 export type EasBuildWebhookPayload = {
   id?: string;
@@ -37,6 +35,7 @@ export type EasBuildWebhookPayload = {
   appVersion?: string;
   appBuildVersion?: string;
   appIdentifier?: string;
+  gitCommitHash?: string;
   buildDetailsPageUrl?: string;
   completedAt?: string;
   artifacts?: {
@@ -67,6 +66,14 @@ const lowerStringOrNull = (value: unknown): string | null => stringOrNull(value)
 
 const envOrNull = (name: string): string | null => stringOrNull(process.env[name]);
 
+const parseBooleanEnv = (name: string): boolean | null => {
+  const value = envOrNull(name)?.toLowerCase();
+  if (!value) return null;
+  if (['1', 'true', 'yes', 'on'].includes(value)) return true;
+  if (['0', 'false', 'no', 'off'].includes(value)) return false;
+  return null;
+};
+
 const getAccountName = (payload: EasBuildWebhookPayload): string | null =>
   stringOrNull(payload.accountName) ?? stringOrNull(payload.project?.ownerAccount?.name);
 
@@ -85,7 +92,40 @@ const getAppBuildVersion = (payload: EasBuildWebhookPayload): string | null =>
 const getAppIdentifier = (payload: EasBuildWebhookPayload): string | null =>
   stringOrNull(payload.metadata?.appIdentifier) ?? stringOrNull(payload.appIdentifier);
 
-const getBucketName = (): string => envOrNull('MOBILE_APK_BUCKET') ?? DEFAULT_BUCKET_NAME;
+const getGithubToken = (): string => {
+  const token = envOrNull('MOBILE_APK_GITHUB_TOKEN') ?? envOrNull('GITHUB_RELEASE_TOKEN') ?? envOrNull('GITHUB_TOKEN');
+  if (!token) {
+    throw new Error('MOBILE_APK_GITHUB_TOKEN or GITHUB_RELEASE_TOKEN must be configured to upload APK assets.');
+  }
+  return token;
+};
+
+const getGithubRepository = (): string => {
+  const repository = envOrNull('MOBILE_APK_GITHUB_REPO') ?? envOrNull('GITHUB_REPOSITORY') ?? DEFAULT_GITHUB_REPOSITORY;
+  if (!/^[^/\s]+\/[^/\s]+$/.test(repository)) {
+    throw new Error('MOBILE_APK_GITHUB_REPO must use the owner/repository format.');
+  }
+  return repository;
+};
+
+const getGithubReleaseTag = (payload: EasBuildWebhookPayload): string => {
+  const configuredTag = envOrNull('MOBILE_APK_GITHUB_RELEASE_TAG');
+  if (configuredTag) return configuredTag;
+
+  const buildProfile = sanitizePathSegment(getBuildProfile(payload) ?? 'android') || 'android';
+  return `mobile-app-${buildProfile}`;
+};
+
+const getGithubReleaseName = (payload: EasBuildWebhookPayload, releaseTag: string): string =>
+  envOrNull('MOBILE_APK_GITHUB_RELEASE_NAME') ??
+  `Rescuenect Android APK${getBuildProfile(payload) ? ` (${getBuildProfile(payload)})` : ` - ${releaseTag}`}`;
+
+const getGithubHeaders = (token: string): Record<string, string> => ({
+  Accept: 'application/vnd.github+json',
+  Authorization: `Bearer ${token}`,
+  'X-GitHub-Api-Version': '2022-11-28',
+  'User-Agent': 'rescuenect-mobile-release-upload',
+});
 
 const getMaxApkBytes = (): number => {
   const configuredLimit = Number(process.env.MOBILE_APK_MAX_BYTES);
@@ -180,37 +220,133 @@ const downloadArtifactToTempFile = async (
   };
 };
 
-export class MobileAppReleaseUploadService {
-  private static async ensureApkBucketExists(): Promise<string> {
-    const bucketName = getBucketName();
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+type GithubReleaseAsset = {
+  id: number;
+  name: string;
+  browser_download_url: string;
+};
 
-    if (listError) {
-      throw new Error(`Failed to list Supabase buckets: ${listError.message}`);
+type GithubRelease = {
+  id: number;
+  html_url: string;
+  upload_url: string;
+  tag_name: string;
+};
+
+type GithubUploadResult = {
+  assetId: number;
+  downloadUrl: string;
+  releaseId: number;
+  releaseTag: string;
+  releaseUrl: string;
+};
+
+const getGithubReleaseByTag = async (
+  repository: string,
+  token: string,
+  releaseTag: string
+): Promise<GithubRelease | null> => {
+  try {
+    const response = await axios.get<GithubRelease>(
+      `${GITHUB_API_URL}/repos/${repository}/releases/tags/${encodeURIComponent(releaseTag)}`,
+      { headers: getGithubHeaders(token) }
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return null;
     }
-
-    const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
-    const bucketOptions = {
-      public: true,
-      allowedMimeTypes: allowedApkMimeTypes,
-      fileSizeLimit: getMaxApkBytes(),
-    };
-
-    if (!bucketExists) {
-      const { error: createError } = await supabase.storage.createBucket(bucketName, bucketOptions);
-      if (createError) {
-        throw new Error(`Failed to create APK bucket: ${createError.message}`);
-      }
-    } else {
-      const { error: updateError } = await supabase.storage.updateBucket(bucketName, bucketOptions);
-      if (updateError) {
-        console.warn('Failed to update APK bucket settings:', updateError);
-      }
-    }
-
-    return bucketName;
+    throw error;
   }
+};
 
+const createGithubRelease = async (
+  repository: string,
+  token: string,
+  payload: EasBuildWebhookPayload,
+  releaseTag: string
+): Promise<GithubRelease> => {
+  const prerelease = parseBooleanEnv('MOBILE_APK_GITHUB_RELEASE_PRERELEASE') ?? true;
+  const response = await axios.post<GithubRelease>(
+    `${GITHUB_API_URL}/repos/${repository}/releases`,
+    {
+      tag_name: releaseTag,
+      target_commitish: envOrNull('MOBILE_APK_GITHUB_RELEASE_TARGET') ?? undefined,
+      name: getGithubReleaseName(payload, releaseTag),
+      body: 'Automated Android APK assets published from successful EAS builds.',
+      draft: false,
+      prerelease,
+      make_latest: 'false',
+    },
+    { headers: getGithubHeaders(token) }
+  );
+
+  return response.data;
+};
+
+const ensureGithubRelease = async (
+  repository: string,
+  token: string,
+  payload: EasBuildWebhookPayload,
+  releaseTag: string
+): Promise<GithubRelease> =>
+  (await getGithubReleaseByTag(repository, token, releaseTag)) ??
+  createGithubRelease(repository, token, payload, releaseTag);
+
+const deleteDuplicateGithubAsset = async (
+  repository: string,
+  token: string,
+  releaseId: number,
+  fileName: string
+): Promise<void> => {
+  const response = await axios.get<GithubReleaseAsset[]>(
+    `${GITHUB_API_URL}/repos/${repository}/releases/${releaseId}/assets`,
+    { headers: getGithubHeaders(token), params: { per_page: 100 } }
+  );
+  const duplicateAsset = response.data.find(asset => asset.name === fileName);
+
+  if (!duplicateAsset) return;
+
+  await axios.delete(`${GITHUB_API_URL}/repos/${repository}/releases/assets/${duplicateAsset.id}`, {
+    headers: getGithubHeaders(token),
+  });
+};
+
+const uploadGithubReleaseAsset = async (
+  repository: string,
+  token: string,
+  release: GithubRelease,
+  fileName: string,
+  fileSize: number,
+  filePath: string
+): Promise<GithubUploadResult> => {
+  await deleteDuplicateGithubAsset(repository, token, release.id, fileName);
+
+  const uploadUrl = release.upload_url.split('{')[0];
+  const response = await axios.post<GithubReleaseAsset>(uploadUrl, createReadStream(filePath), {
+    headers: {
+      ...getGithubHeaders(token),
+      'Content-Type': APK_CONTENT_TYPE,
+      'Content-Length': String(fileSize),
+    },
+    params: {
+      name: fileName,
+      label: fileName,
+    },
+    maxBodyLength: Infinity,
+    maxContentLength: Infinity,
+  });
+
+  return {
+    assetId: response.data.id,
+    downloadUrl: response.data.browser_download_url,
+    releaseId: release.id,
+    releaseTag: release.tag_name,
+    releaseUrl: release.html_url,
+  };
+};
+
+export class MobileAppReleaseUploadService {
   private static validateTargetBuild(payload: EasBuildWebhookPayload): string | null {
     if (lowerStringOrNull(payload.status) !== 'finished') {
       return 'Build is not finished.';
@@ -280,7 +416,6 @@ export class MobileAppReleaseUploadService {
     const versionPart = sanitizePathSegment(appVersion ?? 'latest') || 'latest';
     const buildPart = sanitizePathSegment(buildNumber ? `build-${buildNumber}` : buildId) || buildId;
     const fileName = `rescuenect-${versionPart}-${buildPart}.apk`;
-    const filePath = `android/${sanitizePathSegment(buildId)}/${fileName}`;
     const tempDir = path.join(tmpdir(), 'rescuenect-mobile-releases', sanitizePathSegment(buildId));
     const tempFilePath = path.join(tempDir, fileName);
 
@@ -300,28 +435,22 @@ export class MobileAppReleaseUploadService {
         };
       }
 
-      const bucketName = await this.ensureApkBucketExists();
-      const { error: uploadError } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, createReadStream(tempFilePath), {
-          contentType: APK_CONTENT_TYPE,
-          upsert: true,
-          duplex: 'half',
-        });
-
-      if (uploadError) {
-        throw new Error(`Failed to upload APK to Supabase Storage: ${uploadError.message}`);
-      }
-
-      const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(filePath);
-      if (!urlData?.publicUrl) {
-        throw new Error('Failed to generate APK public URL from Supabase Storage.');
-      }
-
-      const publicUrl = urlData.publicUrl;
-      const downloadUrl = `${publicUrl}?download=${encodeURIComponent(fileName)}`;
+      const githubToken = getGithubToken();
+      const githubRepository = getGithubRepository();
+      const githubReleaseTag = getGithubReleaseTag(payload);
+      const githubRelease = await ensureGithubRelease(githubRepository, githubToken, payload, githubReleaseTag);
+      const githubAsset = await uploadGithubReleaseAsset(
+        githubRepository,
+        githubToken,
+        githubRelease,
+        fileName,
+        fileSize,
+        tempFilePath
+      );
+      const downloadUrl = githubAsset.downloadUrl;
       const releaseRecord: MobileAppReleaseRecord = {
         platform: 'android',
+        storageProvider: 'github-release-assets',
         buildId,
         accountName: getAccountName(payload),
         projectName: getProjectName(payload),
@@ -329,12 +458,15 @@ export class MobileAppReleaseUploadService {
         appVersion,
         appBuildVersion: buildNumber,
         appIdentifier: getAppIdentifier(payload),
-        publicUrl,
+        publicUrl: downloadUrl,
         downloadUrl,
         fileName,
-        filePath,
+        filePath: fileName,
         fileSize,
-        bucketName,
+        githubAssetId: githubAsset.assetId,
+        githubReleaseId: githubAsset.releaseId,
+        githubReleaseTag: githubAsset.releaseTag,
+        githubReleaseUrl: githubAsset.releaseUrl,
         sourceBuildUrl: artifactUrl,
         buildDetailsPageUrl: stringOrNull(payload.buildDetailsPageUrl),
         completedAt: stringOrNull(payload.completedAt),
