@@ -465,6 +465,40 @@ cd C:\Users\Paul\Rescuenect\mobile\client\android
 .\gradlew.bat --stop
 ```
 
+### Install apk files on local computer
+
+```bash
+cd C:\Users\Paul\Rescuenect\mobile\client
+
+$env:EAS_BUILD_PROFILE="preview"
+$env:APP_VARIANT="production"
+$env:APP_ENV="production-preview"
+$env:EXPO_USE_COMMUNITY_AUTOLINKING="0"
+$env:EXPO_PUBLIC_BACKEND_URL="https://rescuenect-backend.onrender.com"
+
+npx expo prebuild --platform android --clean
+cd android
+.\gradlew.bat assembleRelease
+```
+
+Your APK should be here:
+
+C:\Users\Paul\Rescuenect\mobile\client\android\app\build\outputs\apk\release\app-release.apk
+
+Copy it to an easy location:
+
+```bash
+New-Item -ItemType Directory -Force C:\Users\Paul\Rescuenect\mobile\client\builds
+Copy-Item .\app\build\outputs\apk\release\app-release.apk C:\Users\Paul\Rescuenect\mobile\client\builds\rescuenect-preview.apk
+```
+
+Important notes:
+
+- This uses your preview config: production package com.yajeyps.client and production backend.
+- `npx expo prebuild --clean` rewrites the native android folder, so make sure your current changes are committed or backed up first.
+- Your current Gradle release config signs with the debug keystore, so this is fine for internal APK testing, not Play Store release.
+- If your phone already has the Play Store/EAS-signed production app installed, uninstall it first because signatures may not match.
+
 ---
 
 ## Supabase Edge Functions

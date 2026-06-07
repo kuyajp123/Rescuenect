@@ -49,6 +49,11 @@ export class PublicMobileAppController {
       }
 
       const result = await MobileAppReleaseUploadService.processEasWebhook(req.body as EasBuildWebhookPayload);
+      if (result.ignored) {
+        console.warn('EAS mobile app webhook ignored:', result.message);
+      } else {
+        console.log('EAS mobile app webhook processed:', result.message);
+      }
       res.status(200).json(result);
     } catch (error) {
       console.error('Failed to process EAS mobile app webhook:', error);

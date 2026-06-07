@@ -1,3 +1,15 @@
+## [2.2.0-staging.1](https://github.com/kuyajp123/Rescuenect/compare/v2.1.0...v2.2.0-staging.1) (2026-06-07)
+
+### Features
+
+* Add mobile APK release management ([714e96f](https://github.com/kuyajp123/Rescuenect/commit/714e96fd1a6b50c18a62577b9f369783e1585f39))
+
+### Bug Fixes
+
+* mobile app release upload ([98a6068](https://github.com/kuyajp123/Rescuenect/commit/98a6068b3bafc884fde636d4b70ebd093ae169d5))
+* stream mobile app release upload ([c7ea3fe](https://github.com/kuyajp123/Rescuenect/commit/c7ea3fe5f9f808012adc45a39c9351658003ec34))
+* update mobile app release upload logic ([55b244e](https://github.com/kuyajp123/Rescuenect/commit/55b244e48db59645e71bff0105e01547215b1f50))
+
 ## [2.1.0](https://github.com/kuyajp123/Rescuenect/compare/v2.0.0...v2.1.0) (2026-06-07)
 
 ### Features

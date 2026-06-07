@@ -1,23 +1,44 @@
-import { supabase } from '@/lib/supabase';
 import {
   MobileAppReleaseModel,
   type PublicMobileAppRelease,
   type MobileAppReleaseRecord,
 } from '@/models/public/MobileAppReleaseModel';
+import {
+  ensureGithubRelease,
+  getGithubRepository,
+  getGithubToken,
+  uploadGithubReleaseAsset,
+} from '@/services/mobileAppReleaseGithub';
 import axios from 'axios';
+import { createWriteStream } from 'fs';
+import { mkdir, rm, stat } from 'fs/promises';
+import { tmpdir } from 'os';
+import path from 'path';
+import { Transform } from 'stream';
+import { pipeline } from 'stream/promises';
 
-const DEFAULT_BUCKET_NAME = 'mobile-app-releases';
 const DEFAULT_MAX_APK_BYTES = 250 * 1024 * 1024;
-const APK_CONTENT_TYPE = 'application/vnd.android.package-archive';
-
-const allowedApkMimeTypes = [APK_CONTENT_TYPE, 'application/octet-stream', 'application/zip'];
 
 export type EasBuildWebhookPayload = {
   id?: string;
   accountName?: string;
   projectName?: string;
+  project?: {
+    name?: string;
+    slug?: string;
+    ownerAccount?: {
+      name?: string;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
   platform?: string;
   status?: string;
+  buildProfile?: string;
+  appVersion?: string;
+  appBuildVersion?: string;
+  appIdentifier?: string;
+  gitCommitHash?: string;
   buildDetailsPageUrl?: string;
   completedAt?: string;
   artifacts?: {
@@ -44,9 +65,47 @@ export type MobileAppReleaseProcessResult = {
 const stringOrNull = (value: unknown): string | null =>
   typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 
+const lowerStringOrNull = (value: unknown): string | null => stringOrNull(value)?.toLowerCase() ?? null;
+
 const envOrNull = (name: string): string | null => stringOrNull(process.env[name]);
 
-const getBucketName = (): string => envOrNull('MOBILE_APK_BUCKET') ?? DEFAULT_BUCKET_NAME;
+const parseBooleanEnv = (name: string): boolean | null => {
+  const value = envOrNull(name)?.toLowerCase();
+  if (!value) return null;
+  if (['1', 'true', 'yes', 'on'].includes(value)) return true;
+  if (['0', 'false', 'no', 'off'].includes(value)) return false;
+  return null;
+};
+
+const getAccountName = (payload: EasBuildWebhookPayload): string | null =>
+  stringOrNull(payload.accountName) ?? stringOrNull(payload.project?.ownerAccount?.name);
+
+const getProjectName = (payload: EasBuildWebhookPayload): string | null =>
+  stringOrNull(payload.projectName) ?? stringOrNull(payload.project?.slug) ?? stringOrNull(payload.project?.name);
+
+const getBuildProfile = (payload: EasBuildWebhookPayload): string | null =>
+  stringOrNull(payload.metadata?.buildProfile) ?? stringOrNull(payload.buildProfile);
+
+const getAppVersion = (payload: EasBuildWebhookPayload): string | null =>
+  stringOrNull(payload.metadata?.appVersion) ?? stringOrNull(payload.appVersion);
+
+const getAppBuildVersion = (payload: EasBuildWebhookPayload): string | null =>
+  stringOrNull(payload.metadata?.appBuildVersion) ?? stringOrNull(payload.appBuildVersion);
+
+const getAppIdentifier = (payload: EasBuildWebhookPayload): string | null =>
+  stringOrNull(payload.metadata?.appIdentifier) ?? stringOrNull(payload.appIdentifier);
+
+const getGithubReleaseTag = (payload: EasBuildWebhookPayload): string => {
+  const configuredTag = envOrNull('MOBILE_APK_GITHUB_RELEASE_TAG');
+  if (configuredTag) return configuredTag;
+
+  const buildProfile = sanitizePathSegment(getBuildProfile(payload) ?? 'android') || 'android';
+  return `mobile-app-${buildProfile}`;
+};
+
+const getGithubReleaseName = (payload: EasBuildWebhookPayload, releaseTag: string): string =>
+  envOrNull('MOBILE_APK_GITHUB_RELEASE_NAME') ??
+  `Rescuenect Android APK${getBuildProfile(payload) ? ` (${getBuildProfile(payload)})` : ` - ${releaseTag}`}`;
 
 const getMaxApkBytes = (): number => {
   const configuredLimit = Number(process.env.MOBILE_APK_MAX_BYTES);
@@ -101,43 +160,53 @@ const isFilterMismatch = (label: string, expected: string | null, actual: string
   return expected === actual ? null : `${label} does not match the configured filter.`;
 };
 
-export class MobileAppReleaseUploadService {
-  private static async ensureApkBucketExists(): Promise<string> {
-    const bucketName = getBucketName();
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+const downloadArtifactToTempFile = async (
+  artifactUrl: string,
+  tempFilePath: string,
+  maxBytes: number
+): Promise<{ contentDispositionFileName: string | null; fileSize: number }> => {
+  const response = await axios.get<NodeJS.ReadableStream>(artifactUrl, {
+    responseType: 'stream',
+    maxBodyLength: Infinity,
+    maxContentLength: Infinity,
+  });
 
-    if (listError) {
-      throw new Error(`Failed to list Supabase buckets: ${listError.message}`);
-    }
-
-    const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
-    const bucketOptions = {
-      public: true,
-      allowedMimeTypes: allowedApkMimeTypes,
-      fileSizeLimit: getMaxApkBytes(),
-    };
-
-    if (!bucketExists) {
-      const { error: createError } = await supabase.storage.createBucket(bucketName, bucketOptions);
-      if (createError) {
-        throw new Error(`Failed to create APK bucket: ${createError.message}`);
-      }
-    } else {
-      const { error: updateError } = await supabase.storage.updateBucket(bucketName, bucketOptions);
-      if (updateError) {
-        console.warn('Failed to update APK bucket settings:', updateError);
-      }
-    }
-
-    return bucketName;
+  const contentDispositionFileName = extractFileNameFromDisposition(response.headers['content-disposition']);
+  const contentLength = Number(response.headers['content-length']);
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+    throw new Error(`APK exceeds the configured ${maxBytes} byte upload limit.`);
   }
 
+  let downloadedBytes = 0;
+  const byteLimit = new Transform({
+    transform(chunk, _encoding, callback) {
+      downloadedBytes += Buffer.byteLength(chunk);
+
+      if (downloadedBytes > maxBytes) {
+        callback(new Error(`APK exceeds the configured ${maxBytes} byte upload limit.`));
+        return;
+      }
+
+      callback(null, chunk);
+    },
+  });
+
+  await pipeline(response.data, byteLimit, createWriteStream(tempFilePath));
+  const fileStats = await stat(tempFilePath);
+
+  return {
+    contentDispositionFileName,
+    fileSize: fileStats.size,
+  };
+};
+
+export class MobileAppReleaseUploadService {
   private static validateTargetBuild(payload: EasBuildWebhookPayload): string | null {
-    if (payload.status !== 'finished') {
+    if (lowerStringOrNull(payload.status) !== 'finished') {
       return 'Build is not finished.';
     }
 
-    if (payload.platform !== 'android') {
+    if (lowerStringOrNull(payload.platform) !== 'android') {
       return 'Build is not an Android build.';
     }
 
@@ -145,22 +214,22 @@ export class MobileAppReleaseUploadService {
       {
         label: 'EAS account',
         expected: envOrNull('MOBILE_APK_ALLOWED_EAS_ACCOUNT'),
-        actual: stringOrNull(payload.accountName),
+        actual: getAccountName(payload),
       },
       {
         label: 'EAS project',
         expected: envOrNull('MOBILE_APK_ALLOWED_EAS_PROJECT'),
-        actual: stringOrNull(payload.projectName),
+        actual: getProjectName(payload),
       },
       {
         label: 'build profile',
         expected: envOrNull('MOBILE_APK_ALLOWED_BUILD_PROFILE'),
-        actual: stringOrNull(payload.metadata?.buildProfile),
+        actual: getBuildProfile(payload),
       },
       {
         label: 'app identifier',
         expected: envOrNull('MOBILE_APK_ALLOWED_APP_IDENTIFIER'),
-        actual: stringOrNull(payload.metadata?.appIdentifier),
+        actual: getAppIdentifier(payload),
       },
     ];
 
@@ -187,77 +256,95 @@ export class MobileAppReleaseUploadService {
       return { ignored: true, message: 'Build did not include a downloadable artifact URL.' };
     }
 
-    const response = await axios.get<ArrayBuffer>(artifactUrl, {
-      responseType: 'arraybuffer',
-      maxBodyLength: Infinity,
-      maxContentLength: Infinity,
-    });
-
-    const contentDispositionFileName = extractFileNameFromDisposition(response.headers['content-disposition']);
-    if (isProbablyAab(contentDispositionFileName, artifactUrl)) {
+    if (isProbablyAab(null, artifactUrl)) {
       return {
         ignored: true,
         message: 'Android build artifact is not an APK. Use an EAS build profile with android.buildType set to apk.',
       };
     }
 
-    const apkBuffer = Buffer.from(response.data);
     const maxApkBytes = getMaxApkBytes();
-    if (apkBuffer.byteLength > maxApkBytes) {
-      throw new Error(`APK exceeds the configured ${maxApkBytes} byte upload limit.`);
-    }
-
-    const bucketName = await this.ensureApkBucketExists();
     const buildId = stringOrNull(payload.id) ?? `android-${Date.now()}`;
-    const appVersion = stringOrNull(payload.metadata?.appVersion);
-    const buildNumber = stringOrNull(payload.metadata?.appBuildVersion);
+    const appVersion = getAppVersion(payload);
+    const buildNumber = getAppBuildVersion(payload);
     const versionPart = sanitizePathSegment(appVersion ?? 'latest') || 'latest';
     const buildPart = sanitizePathSegment(buildNumber ? `build-${buildNumber}` : buildId) || buildId;
     const fileName = `rescuenect-${versionPart}-${buildPart}.apk`;
-    const filePath = `android/${sanitizePathSegment(buildId)}/${fileName}`;
+    const tempDir = path.join(tmpdir(), 'rescuenect-mobile-releases', sanitizePathSegment(buildId));
+    const tempFilePath = path.join(tempDir, fileName);
 
-    const { error: uploadError } = await supabase.storage.from(bucketName).upload(filePath, apkBuffer, {
-      contentType: APK_CONTENT_TYPE,
-      upsert: true,
-    });
+    await mkdir(tempDir, { recursive: true });
 
-    if (uploadError) {
-      throw new Error(`Failed to upload APK to Supabase Storage: ${uploadError.message}`);
+    try {
+      const { contentDispositionFileName, fileSize } = await downloadArtifactToTempFile(
+        artifactUrl,
+        tempFilePath,
+        maxApkBytes
+      );
+
+      if (isProbablyAab(contentDispositionFileName, artifactUrl)) {
+        return {
+          ignored: true,
+          message: 'Android build artifact is not an APK. Use an EAS build profile with android.buildType set to apk.',
+        };
+      }
+
+      const githubToken = getGithubToken();
+      const githubRepository = getGithubRepository();
+      const githubReleaseTag = getGithubReleaseTag(payload);
+      const githubRelease = await ensureGithubRelease({
+        repository: githubRepository,
+        token: githubToken,
+        releaseTag: githubReleaseTag,
+        releaseName: getGithubReleaseName(payload, githubReleaseTag),
+        releaseBody: 'Automated Android APK assets published from successful EAS builds.',
+        prerelease: parseBooleanEnv('MOBILE_APK_GITHUB_RELEASE_PRERELEASE') ?? true,
+        targetCommitish: envOrNull('MOBILE_APK_GITHUB_RELEASE_TARGET'),
+      });
+      const githubAsset = await uploadGithubReleaseAsset({
+        repository: githubRepository,
+        token: githubToken,
+        release: githubRelease,
+        fileName,
+        fileSize,
+        filePath: tempFilePath,
+      });
+      const downloadUrl = githubAsset.downloadUrl;
+      const releaseRecord: MobileAppReleaseRecord = {
+        platform: 'android',
+        storageProvider: 'github-release-assets',
+        buildId,
+        accountName: getAccountName(payload),
+        projectName: getProjectName(payload),
+        buildProfile: getBuildProfile(payload),
+        appVersion,
+        appBuildVersion: buildNumber,
+        appIdentifier: getAppIdentifier(payload),
+        publicUrl: downloadUrl,
+        downloadUrl,
+        fileName,
+        filePath: fileName,
+        fileSize,
+        githubAssetId: githubAsset.assetId,
+        githubReleaseId: githubAsset.releaseId,
+        githubReleaseTag: githubAsset.releaseTag,
+        githubReleaseUrl: githubAsset.releaseUrl,
+        sourceBuildUrl: artifactUrl,
+        buildDetailsPageUrl: stringOrNull(payload.buildDetailsPageUrl),
+        completedAt: stringOrNull(payload.completedAt),
+        releaseSource: 'eas-webhook',
+        uploadedBy: null,
+      };
+
+      await MobileAppReleaseModel.saveLatestAndroidRelease(releaseRecord);
+
+      return {
+        ignored: false,
+        message: 'Latest Android APK release updated.',
+        release: await MobileAppReleaseModel.getLatestAndroidRelease(),
+      };
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
     }
-
-    const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(filePath);
-    if (!urlData?.publicUrl) {
-      throw new Error('Failed to generate APK public URL from Supabase Storage.');
-    }
-
-    const publicUrl = urlData.publicUrl;
-    const downloadUrl = `${publicUrl}?download=${encodeURIComponent(fileName)}`;
-    const releaseRecord: MobileAppReleaseRecord = {
-      platform: 'android',
-      buildId,
-      accountName: stringOrNull(payload.accountName),
-      projectName: stringOrNull(payload.projectName),
-      buildProfile: stringOrNull(payload.metadata?.buildProfile),
-      appVersion,
-      appBuildVersion: buildNumber,
-      appIdentifier: stringOrNull(payload.metadata?.appIdentifier),
-      publicUrl,
-      downloadUrl,
-      fileName,
-      filePath,
-      fileSize: apkBuffer.byteLength,
-      bucketName,
-      sourceBuildUrl: artifactUrl,
-      buildDetailsPageUrl: stringOrNull(payload.buildDetailsPageUrl),
-      completedAt: stringOrNull(payload.completedAt),
-    };
-
-    await MobileAppReleaseModel.saveLatestAndroidRelease(releaseRecord);
-
-    return {
-      ignored: false,
-      message: 'Latest Android APK release updated.',
-      release: await MobileAppReleaseModel.getLatestAndroidRelease(),
-    };
   }
 }
