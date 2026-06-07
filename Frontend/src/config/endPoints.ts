@@ -46,6 +46,7 @@ export const API_ENDPOINTS = {
   },
   PUBLIC: {
     CLIENTS: `${BACKEND_URL}/public/clients`,
+    MOBILE_APP_LATEST: `${BACKEND_URL}/public/mobile-app/latest`,
     PSGC_REGIONS: `${BACKEND_URL}/public/psgc/regions`,
     PSGC_PROVINCES: (regionCode: string) => `${BACKEND_URL}/public/psgc/regions/${regionCode}/provinces`,
     PSGC_REGION_MUNICIPALITIES: (regionCode: string) =>

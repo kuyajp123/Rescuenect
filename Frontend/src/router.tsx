@@ -83,7 +83,7 @@ const Router = () => {
   useEffect(() => {
     const path = location.pathname;
     const customTitles: Record<string, string> = {
-      '/home': 'RescueNect - Home',
+      '/home': 'Rescuenect - Home',
     };
 
     if (customTitles[path]) {
