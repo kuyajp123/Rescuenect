@@ -1,3 +1,9 @@
+## [2.1.0-staging.5](https://github.com/kuyajp123/Rescuenect/compare/v2.1.0-staging.4...v2.1.0-staging.5) (2026-06-07)
+
+### Reverts
+
+* Revert "fix: prevent semantic-release from main" ([87276b4](https://github.com/kuyajp123/Rescuenect/commit/87276b4c398934ea6153a88c4423b917ea888d78))
+
 ## [2.1.0-staging.3](https://github.com/kuyajp123/Rescuenect/compare/v2.1.0-staging.2...v2.1.0-staging.3) (2026-06-07)
 
 ### Features
