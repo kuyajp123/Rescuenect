@@ -1,3 +1,9 @@
+## [2.2.0-staging.6](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.5...v2.2.0-staging.6) (2026-06-10)
+
+### Features
+
+* **super:** Add Supabase monitoring & server wake ([eec86cd](https://github.com/kuyajp123/Rescuenect/commit/eec86cd86dbc75038b4d29717d88281f8c251b3a))
+
 ## [2.2.0-staging.5](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.4...v2.2.0-staging.5) (2026-06-10)
 
 ### Features
