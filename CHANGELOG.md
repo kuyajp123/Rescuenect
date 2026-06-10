@@ -1,3 +1,9 @@
+## [2.2.0-staging.3](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.2...v2.2.0-staging.3) (2026-06-10)
+
+### Bug Fixes
+
+* **LGU Client Requests:** add validation in form ([745b71b](https://github.com/kuyajp123/Rescuenect/commit/745b71ba45247e4b4f9cd6ed126aa16dc61e8d69))
+
 ## [2.2.0-staging.2](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.1...v2.2.0-staging.2) (2026-06-10)
 
 ### Features
