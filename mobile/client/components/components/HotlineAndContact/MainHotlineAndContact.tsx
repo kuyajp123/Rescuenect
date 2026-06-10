@@ -56,6 +56,10 @@ type ContactItem = {
 type ContactsCachePayload = {
   categories?: any[];
   contacts?: any[];
+  logoUrl?: string | null;
+  clientName?: string | null;
+  municipalityName?: string | null;
+  provinceName?: string | null;
   cachedAt?: string;
   clientId?: string;
 };
@@ -79,6 +83,7 @@ const isContactAction = (value: unknown): value is ContactAction =>
   value === 'call' || value === 'copy' || value === 'link' || value === 'display';
 
 const makeId = () => `id-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+const readDisplayString = (value: unknown): string => (typeof value === 'string' && value.trim() ? value.trim() : '');
 
 const getContactsCacheKey = (clientId: string) => `${STORAGE_KEYS.CONTACTS_MAIN}:${clientId}`;
 
@@ -114,6 +119,10 @@ export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactP
   const clientId = useUserData(state => state.userData.clientId);
   const [categories, setCategories] = useState<ContactCategory[]>([]);
   const [contacts, setContacts] = useState<ContactItem[]>([]);
+  const [clientLogoUrl, setClientLogoUrl] = useState<string | null>(null);
+  const [contactClientName, setContactClientName] = useState('');
+  const [contactMunicipalityName, setContactMunicipalityName] = useState('');
+  const [contactProvinceName, setContactProvinceName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const lastScopeRef = useRef<string | null>(null);
@@ -135,6 +144,10 @@ export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactP
 
       setCategories(nextCategories);
       setContacts(nextContacts);
+      setClientLogoUrl(readDisplayString(payload?.logoUrl) || null);
+      setContactClientName(readDisplayString(payload?.clientName));
+      setContactMunicipalityName(readDisplayString(payload?.municipalityName));
+      setContactProvinceName(readDisplayString(payload?.provinceName));
       setIsLoading(false);
       setLoadError(null);
     },
@@ -144,6 +157,10 @@ export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactP
   const clearContacts = useCallback(() => {
     setCategories([]);
     setContacts([]);
+    setClientLogoUrl(null);
+    setContactClientName('');
+    setContactMunicipalityName('');
+    setContactProvinceName('');
     setIsLoading(false);
   }, []);
 
@@ -152,11 +169,19 @@ export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactP
 
     const categories = Array.isArray(payload?.categories) ? payload.categories : [];
     const contacts = Array.isArray(payload?.contacts) ? payload.contacts : [];
+    const logoUrl = readDisplayString(payload?.logoUrl) || null;
+    const clientName = readDisplayString(payload?.clientName) || null;
+    const municipalityName = readDisplayString(payload?.municipalityName) || null;
+    const provinceName = readDisplayString(payload?.provinceName) || null;
 
     try {
       await storageHelpers.setData(cacheKey, {
         categories,
         contacts,
+        logoUrl,
+        clientName,
+        municipalityName,
+        provinceName,
         clientId: normalizedClientId,
         cachedAt: new Date().toISOString(),
       });
@@ -294,6 +319,8 @@ export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactP
     const list = contactsByCategory[categoryId] ?? [];
     return [...list].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   };
+  const displayClientName = contactMunicipalityName || contactClientName || 'Local Government Unit';
+  const displayProvinceName = contactProvinceName || 'Official contacts';
 
   const callNumber = (value: string) => {
     if (!value) return;
@@ -424,9 +451,9 @@ export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactP
         <View style={[styles.logoContainer, styles.shadowCard]}>
           <Image
             className="rounded-2xl"
-            source={require('../../../assets/images/Cavite-Logo 1.png')}
+            source={clientLogoUrl ? { uri: clientLogoUrl } : require('../../../assets/images/Cavite-Logo 1.png')}
             style={styles.logo}
-            alt="Cavite Logo"
+            alt={`${displayClientName} logo`}
           />
         </View>
 
@@ -435,7 +462,10 @@ export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactP
             Emergency Hotlines & Contacts
           </Text>
           <Text size="sm" style={[styles.subtitle]}>
-            Province of Cavite
+            {displayClientName}
+          </Text>
+          <Text size="xs" style={[styles.subtitle]}>
+            {displayProvinceName}
           </Text>
         </View>
       </LinearGradient>

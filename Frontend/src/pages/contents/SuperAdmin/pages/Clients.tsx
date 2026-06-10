@@ -1,5 +1,6 @@
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { ClientDeleteModal } from '@/pages/contents/SuperAdmin/components/ClientDeleteModal';
+import { ClientLogoAvatar } from '@/pages/contents/SuperAdmin/components/ClientLogoAvatar';
 import { useSuperFetch } from '@/pages/contents/SuperAdmin/hooks/useSuperFetch';
 import type { AdminUser, ClientDeletionPreview, ClientLgu } from '@/pages/contents/SuperAdmin/types';
 import { getToken, statusColor } from '@/pages/contents/SuperAdmin/utils';
@@ -280,6 +281,7 @@ export const SuperAdminClients = () => {
               <TableRow key={client.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
+                    <ClientLogoAvatar src={client.logoUrl} name={client.name} size="sm" />
                     <div>
                       <p className="font-semibold">{client.name}</p>
                       <p className="text-xs text-default-500">{client.id}</p>

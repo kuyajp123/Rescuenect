@@ -29,6 +29,8 @@ export class SignInModel {
       bio: string;
       barangay?: string;
       address: string;
+      logoUrl?: string | null;
+      logoPath?: string | null;
     }
   ): Promise<boolean> {
     try {
@@ -62,8 +64,18 @@ export class SignInModel {
           throw new Error('Barangay is not covered by your LGU client');
         }
 
+        const requestedLogoUrl = typeof data.logoUrl === 'string' ? data.logoUrl.trim() : '';
+        if (!client.logoUrl) {
+          throw new Error('LGU logo is required for onboarding');
+        }
+        if (requestedLogoUrl && requestedLogoUrl !== client.logoUrl) {
+          throw new Error('Upload the LGU logo before completing onboarding');
+        }
+
         update.clientId = client.id;
         update.clientName = client.name;
+        update.clientLogoUrl = client.logoUrl;
+        update.clientLogoPath = client.logoPath ?? null;
         update.barangay = normalizedBarangay;
         update.barangayCode = barangay.barangayCode;
         update.barangayLabel = barangay.barangayLabel;

@@ -70,6 +70,11 @@ export type ClientLgu = {
   type?: 'municipality' | 'city';
   status: ClientLguStatus;
   adminCount?: number;
+  logoUrl?: string | null;
+  logoPath?: string | null;
+  logoWidth?: number | null;
+  logoHeight?: number | null;
+  logoUpdatedAt?: unknown;
   regionCode?: string | null;
   regionName?: string | null;
   provinceCode?: string;
@@ -100,6 +105,8 @@ export type AdminUser = {
   role: 'super_admin' | 'lgu_admin';
   clientId: string | null;
   clientName?: string | null;
+  clientLogoUrl?: string | null;
+  clientLogoPath?: string | null;
   status: 'active' | 'inactive' | 'pending';
   clientStatus?: ClientLguStatus | null;
   clientDeletionEffectiveAt?: unknown;
@@ -294,6 +301,7 @@ export type ClientChangeRequest = {
   id: string;
   clientId: string;
   clientName?: string | null;
+  clientLogoUrl?: string | null;
   type: 'weather_coordinates' | 'map_settings' | 'barangay_coverage' | 'client_info' | 'admin_invite' | 'boundary_update';
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   currentSnapshot: Record<string, unknown>;

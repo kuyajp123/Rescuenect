@@ -71,6 +71,8 @@ export interface AdminUser {
   clientBarangays?: ClientCoverageBarangay[];
   clientStatus?: ClientLguStatus | null;
   clientDeletionEffectiveAt?: unknown;
+  clientLogoUrl?: string | null;
+  clientLogoPath?: string | null;
   status: AdminStatus;
   permissionsVersion: number;
   permissions: string[];
@@ -100,6 +102,11 @@ export interface ClientLgu {
   type: ClientLguType;
   status: ClientLguStatus;
   adminCount?: number;
+  logoUrl?: string | null;
+  logoPath?: string | null;
+  logoWidth?: number | null;
+  logoHeight?: number | null;
+  logoUpdatedAt?: unknown;
   regionCode?: string | null;
   regionName?: string | null;
   provinceCode: string;

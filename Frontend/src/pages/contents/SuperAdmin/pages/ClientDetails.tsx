@@ -2,6 +2,7 @@ import { API_ENDPOINTS } from '@/config/endPoints';
 import { ClientAdminsTable } from '@/pages/contents/SuperAdmin/components/ClientAdminsTable';
 import { ClientCoverageEditor } from '@/pages/contents/SuperAdmin/components/ClientCoverageEditor';
 import { ClientDeleteModal } from '@/pages/contents/SuperAdmin/components/ClientDeleteModal';
+import { ClientLogoAvatar } from '@/pages/contents/SuperAdmin/components/ClientLogoAvatar';
 import { MapSettingsHelpModal } from '@/pages/contents/SuperAdmin/components/MapSettingsHelpModal';
 import { MapSettingsPreview } from '@/pages/contents/SuperAdmin/components/MapSettingsPreview';
 import { ClientRequestDetails } from '@/pages/contents/SuperAdmin/components/ClientRequestDetails';
@@ -402,17 +403,20 @@ export const SuperAdminClientDetails = () => {
           <Button variant="flat" startContent={<ArrowLeft size={16} />} onPress={() => navigate('/super/clients')}>
             Back to Clients
           </Button>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-3xl font-bold">{client.name}</h1>
-              <Chip size="sm" color={statusColor(client.status) as any}>
-                {formatStatusLabel(client.status)}
-              </Chip>
+          <div className="flex items-center gap-4">
+            <ClientLogoAvatar src={client.logoUrl} name={client.name} size="lg" />
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-3xl font-bold">{client.name}</h1>
+                <Chip size="sm" color={statusColor(client.status) as any}>
+                  {formatStatusLabel(client.status)}
+                </Chip>
+              </div>
+              <p className="text-sm text-default-500">
+                {client.municipalityName}, {client.provinceName} - {activeBarangayCount} of {coverageDraft.length}{' '}
+                barangays enabled
+              </p>
             </div>
-            <p className="text-sm text-default-500">
-              {client.municipalityName}, {client.provinceName} - {activeBarangayCount} of {coverageDraft.length}{' '}
-              barangays enabled
-            </p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">

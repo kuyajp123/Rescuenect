@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
     ME: `${BACKEND_URL}/admin/me`,
     UPDATE_FCM_TOKEN: `${BACKEND_URL}/admin/config/update-fcm-token`,
     UPDATE_PROFILE: `${BACKEND_URL}/admin/auth/update-profile`,
+    UPLOAD_CLIENT_LOGO: `${BACKEND_URL}/admin/auth/upload-client-logo`,
   },
   STATUS: {
     GET_VERSIONS: `${BACKEND_URL}/admin/status/getVersions`,
@@ -43,6 +44,7 @@ export const API_ENDPOINTS = {
   CONTACTS: {
     GET_CONTACTS: `${BACKEND_URL}/admin/contacts/getContacts`,
     CREATE_CONTACT: `${BACKEND_URL}/admin/contacts/addContact`,
+    UPLOAD_LOGO: `${BACKEND_URL}/admin/contacts/upload-logo`,
   },
   PUBLIC: {
     CLIENTS: `${BACKEND_URL}/public/clients`,

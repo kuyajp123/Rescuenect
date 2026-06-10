@@ -89,6 +89,12 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
       if (currentPath === '/super') {
         return;
       }
+      if (currentPath === '/super/supabase/storage' || currentPath === '/super/supabase') {
+        return;
+      }
+      if (currentPath === '/super/supabase/functions') {
+        return;
+      }
 
       let label = '';
       switch (currentPath) {

@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 
 const AdminInfo = () => {
   const navigate = useNavigate();
-  const { barangay, address } = useOnboardingStore();
+  const { barangay, address, logoUrl, logoPath } = useOnboardingStore();
   const userData = useAuth(state => state.userData);
   const updateUserData = useAuth(state => state.updateUserData);
   const auth = useAuth(state => state.auth);
@@ -33,6 +33,8 @@ const AdminInfo = () => {
       bio,
       barangay: isSuperAdmin ? '' : barangay,
       address,
+      clientLogoUrl: isSuperAdmin ? userData?.clientLogoUrl : logoUrl,
+      clientLogoPath: isSuperAdmin ? userData?.clientLogoPath : logoPath,
       onboardingComplete: true,
     });
     // Clear onboarding store
@@ -64,6 +66,12 @@ const AdminInfo = () => {
         return;
       }
 
+      if (!isSuperAdmin && !logoUrl) {
+        setError('Please upload your municipality logo first');
+        navigate('/address-setup');
+        return;
+      }
+
       await axios.post(
         API_ENDPOINTS.AUTH.UPDATE_PROFILE,
         {
@@ -74,6 +82,7 @@ const AdminInfo = () => {
           bio,
           ...(isSuperAdmin ? {} : { barangay }),
           address,
+          ...(isSuperAdmin ? {} : { logoUrl, logoPath }),
         },
         {
           headers: { Authorization: `Bearer ${idToken}` },
