@@ -6,18 +6,31 @@ export class ConfigController {
     const { uid, fcmToken } = req.body;
 
     try {
-      if (!uid) {
+      if (typeof uid !== 'string' || !uid.trim()) {
         console.error('❌ Missing uid in request body');
         res.status(400).json({ message: 'Missing uid in request body' });
         return;
       }
 
-      if (req.user?.uid !== uid) {
+      const normalizedUid = uid.trim();
+
+      if (req.user?.uid !== normalizedUid) {
         res.status(403).json({ message: 'You can only update your own FCM token' });
         return;
       }
 
-      const result = await ConfigModels.updateFcmToken(uid, fcmToken);
+      if (fcmToken !== null && fcmToken !== undefined && typeof fcmToken !== 'string') {
+        res.status(400).json({ message: 'FCM token must be a string or null' });
+        return;
+      }
+
+      const normalizedToken = typeof fcmToken === 'string' && fcmToken.trim() ? fcmToken.trim() : null;
+      if (normalizedToken && normalizedToken.length > 4096) {
+        res.status(400).json({ message: 'FCM token is too long' });
+        return;
+      }
+
+      const result = await ConfigModels.updateFcmToken(normalizedUid, normalizedToken);
       res.status(200).json({ message: 'FCM Token updated successfully', result });
     } catch (error) {
       console.error('❌ FCM Token update failed:', {

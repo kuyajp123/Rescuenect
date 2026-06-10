@@ -1,5 +1,8 @@
 import { ContactModel } from '@/models/admin/ContactModel';
+import { ClientModel } from '@/models/admin/ClientModel';
+import { ClientLogoUploadService, ClientLogoValidationError } from '@/services/clientLogoUpload';
 import { getClientScopeFromRequest } from '@/utils/adminScope';
+import { canLguAdminCompleteOnboarding } from '@/utils/accessControl';
 import { Request, Response } from 'express';
 
 const MAX_CATEGORY_NAME_LENGTH = 80;
@@ -42,6 +45,13 @@ const validateContactsPayload = (payload: unknown): ContactsFieldErrors => {
 
   if (!categories || !contacts) {
     return { payload: 'Invalid contacts payload' };
+  }
+
+  const logoUrl = asTrimmedString(payload.logoUrl);
+  if (!logoUrl) {
+    fieldErrors.logoUrl = 'LGU logo is required';
+  } else if (!/^https?:\/\//i.test(logoUrl)) {
+    fieldErrors.logoUrl = 'Upload a valid LGU logo first';
   }
 
   categories.forEach((category, index) => {
@@ -152,10 +162,70 @@ export class ContactController {
         error: error instanceof Error ? error.message : error,
         stack: error instanceof Error ? error.stack : undefined,
       });
+      if (error instanceof Error && error.message === 'Client not found') {
+        res.status(404).json({ message: error.message });
+        return;
+      }
+      if (
+        error instanceof Error &&
+        ['LGU logo is required before saving contacts', 'Uploaded LGU logo was not found for this client'].includes(
+          error.message
+        )
+      ) {
+        res.status(400).json({
+          message: 'Validation failed',
+          errors: [error.message],
+          fieldErrors: { logoUrl: error.message },
+        });
+        return;
+      }
+
       res.status(500).json({
         message: 'Failed to save contacts',
         error: typeof error === 'string' ? error : (error as Error).message,
       });
+    }
+  }
+
+  static async uploadClientLogo(req: Request, res: Response): Promise<void> {
+    try {
+      const clientId = getClientScopeFromRequest(req);
+      if (!clientId) {
+        res.status(400).json({ message: 'clientId is required for logo upload' });
+        return;
+      }
+
+      const client = await ClientModel.getClientById(clientId);
+      if (!client) {
+        res.status(404).json({ message: 'Client not found' });
+        return;
+      }
+
+      if (req.adminUser?.role === 'lgu_admin' && !canLguAdminCompleteOnboarding(client.status)) {
+        res.status(403).json({ message: 'LGU client is not ready for logo upload' });
+        return;
+      }
+
+      const uploadedLogo = await ClientLogoUploadService.uploadClientLogo(req.file as Express.Multer.File, client.id);
+      const updatedClient = await ClientModel.updateClientLogo(client.id, uploadedLogo);
+
+      res.status(200).json({
+        message: 'LGU logo uploaded successfully',
+        logoUrl: uploadedLogo.logoUrl,
+        logoPath: uploadedLogo.logoPath,
+        width: uploadedLogo.width,
+        height: uploadedLogo.height,
+        client: updatedClient,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to upload LGU logo';
+      if (error instanceof ClientLogoValidationError) {
+        res.status(400).json({ message });
+        return;
+      }
+
+      console.error('Failed to upload LGU logo:', error);
+      res.status(500).json({ message });
     }
   }
 }

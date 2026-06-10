@@ -1,4 +1,4 @@
-import { permissionAllowed } from '@/config/notificationPermission.ts';
+import { getDesktopNotificationPreference, permissionAllowed } from '@/config/notificationPermission.ts';
 import { useEarthquakeSnapshot } from '@/hooks/useEarthquakeSnapshot';
 import { useResidentsStore } from '@/hooks/useFetchResidents';
 import { useNotificationSubscriber } from '@/hooks/useNotificationSubscriber';
@@ -100,6 +100,10 @@ function App() {
   useEffect(() => {
     const enableNotification = async () => {
       try {
+        if (!VAPID_KEY || !getDesktopNotificationPreference(Boolean(userData?.fcmToken))) {
+          return;
+        }
+
         const fcmToken = await permissionAllowed(VAPID_KEY);
 
         if (fcmToken && authUser && userData?.onboardingComplete) {
@@ -111,7 +115,7 @@ function App() {
       }
     };
     enableNotification();
-  }, [authUser, userData?.onboardingComplete]);
+  }, [VAPID_KEY, authUser, userData?.fcmToken, userData?.onboardingComplete]);
 
   useEarthquakeSnapshot();
 

@@ -1,22 +1,28 @@
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { getToken } from '@/pages/contents/SuperAdmin/utils';
-import { Button, Card, CardBody, CardHeader, Divider, Input, Progress, addToast } from '@heroui/react';
+import { Button, Card, CardBody, CardHeader, Chip, Divider, Input, Progress, addToast } from '@heroui/react';
 import axios from 'axios';
-import { FileArchive, PackageCheck, UploadCloud } from 'lucide-react';
+import { ExternalLink, FileArchive, PackageCheck, RefreshCcw, UploadCloud } from 'lucide-react';
 import type { ChangeEvent, DragEvent, KeyboardEvent } from 'react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+type MobileApkRelease = {
+  available: boolean;
+  platform?: 'android';
+  version: string | null;
+  buildNumber: string | null;
+  buildProfile: string | null;
+  fileName: string | null;
+  fileSize: number | null;
+  uploadedAt?: string | null;
+  completedAt?: string | null;
+  downloadUrl: string | null;
+  publicUrl?: string | null;
+};
 
 type MobileApkUploadResponse = {
   message: string;
-  release: {
-    available: boolean;
-    version: string | null;
-    buildNumber: string | null;
-    buildProfile: string | null;
-    fileName: string | null;
-    fileSize: number | null;
-    downloadUrl: string | null;
-  };
+  release: MobileApkRelease;
 };
 
 const formatBytes = (bytes: number): string => {
@@ -26,6 +32,26 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / 1024 ** exponent).toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`;
 };
 
+const formatDateTime = (value?: string | null): string => {
+  if (!value) return 'Not available';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not available';
+
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+};
+
+const getReleaseLabel = (release: MobileApkRelease | null) =>
+  release
+    ? [release.version, release.buildNumber ? `build ${release.buildNumber}` : null].filter(Boolean).join(' ')
+    : '';
+
 export const MobileApkReleasePanel = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [apkFile, setApkFile] = useState<File | null>(null);
@@ -33,12 +59,32 @@ export const MobileApkReleasePanel = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [publishedLabel, setPublishedLabel] = useState('');
+  const [currentRelease, setCurrentRelease] = useState<MobileApkRelease | null>(null);
+  const [isLoadingCurrentRelease, setIsLoadingCurrentRelease] = useState(false);
   const [releaseForm, setReleaseForm] = useState({
     appVersion: '',
     buildNumber: '',
     buildProfile: '',
     appIdentifier: '',
   });
+
+  const fetchCurrentRelease = async () => {
+    try {
+      setIsLoadingCurrentRelease(true);
+      const response = await axios.get<{ release: MobileApkRelease }>(API_ENDPOINTS.PUBLIC.MOBILE_APP_LATEST);
+      const release = response.data.release;
+      setCurrentRelease(release);
+      setPublishedLabel(release?.available ? getReleaseLabel(release) || release.fileName || 'Latest APK' : '');
+    } catch (error) {
+      setCurrentRelease(null);
+    } finally {
+      setIsLoadingCurrentRelease(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchCurrentRelease();
+  }, []);
 
   const updateField = (field: keyof typeof releaseForm) => (value: string) => {
     setReleaseForm(current => ({ ...current, [field]: value }));
@@ -104,10 +150,9 @@ export const MobileApkReleasePanel = () => {
         },
       });
       const release = response.data.release;
-      const releaseLabel = [release.version, release.buildNumber ? `build ${release.buildNumber}` : null]
-        .filter(Boolean)
-        .join(' ');
+      const releaseLabel = getReleaseLabel(release);
 
+      setCurrentRelease(release);
       setPublishedLabel(releaseLabel || release.fileName || 'Latest APK');
       setApkFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -156,6 +201,81 @@ export const MobileApkReleasePanel = () => {
       </CardHeader>
       <Divider />
       <CardBody className="gap-5 py-6">
+        <div className="rounded-lg border border-default-200 bg-content1 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-semibold">Current APK</p>
+                <Chip size="sm" color={currentRelease?.available ? 'success' : 'default'} variant="flat">
+                  {currentRelease?.available ? 'Published' : 'No APK'}
+                </Chip>
+              </div>
+              <p className="mt-1 text-sm text-default-500">
+                {currentRelease?.available
+                  ? currentRelease.fileName || 'Latest Android APK'
+                  : isLoadingCurrentRelease
+                    ? 'Checking current release...'
+                    : 'No APK is currently shown on the home page.'}
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Button
+                isIconOnly
+                variant="flat"
+                aria-label="Refresh current APK"
+                isLoading={isLoadingCurrentRelease}
+                onPress={fetchCurrentRelease}
+              >
+                <RefreshCcw size={16} />
+              </Button>
+              {currentRelease?.available && currentRelease.downloadUrl && (
+                <Button
+                  as="a"
+                  href={currentRelease.downloadUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  variant="flat"
+                  color="primary"
+                  endContent={<ExternalLink size={16} />}
+                >
+                  Open APK
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {currentRelease?.available && (
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="rounded-md bg-default-50 px-3 py-2">
+                <p className="text-xs text-default-500">Version</p>
+                <p className="truncate text-sm font-medium">{currentRelease.version || 'Not set'}</p>
+              </div>
+              <div className="rounded-md bg-default-50 px-3 py-2">
+                <p className="text-xs text-default-500">Build number</p>
+                <p className="truncate text-sm font-medium">{currentRelease.buildNumber || 'Not set'}</p>
+              </div>
+              <div className="rounded-md bg-default-50 px-3 py-2">
+                <p className="text-xs text-default-500">Build profile</p>
+                <p className="truncate text-sm font-medium">{currentRelease.buildProfile || 'Not set'}</p>
+              </div>
+              <div className="rounded-md bg-default-50 px-3 py-2">
+                <p className="text-xs text-default-500">File size</p>
+                <p className="truncate text-sm font-medium">
+                  {currentRelease.fileSize ? formatBytes(currentRelease.fileSize) : 'Not available'}
+                </p>
+              </div>
+              <div className="rounded-md bg-default-50 px-3 py-2">
+                <p className="text-xs text-default-500">Uploaded</p>
+                <p className="truncate text-sm font-medium">{formatDateTime(currentRelease.uploadedAt)}</p>
+              </div>
+              <div className="rounded-md bg-default-50 px-3 py-2">
+                <p className="text-xs text-default-500">Completed</p>
+                <p className="truncate text-sm font-medium">{formatDateTime(currentRelease.completedAt)}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Input label="Version" placeholder="2.1.0" value={releaseForm.appVersion} onValueChange={updateField('appVersion')} />
           <Input label="Build number" placeholder="8" value={releaseForm.buildNumber} onValueChange={updateField('buildNumber')} />

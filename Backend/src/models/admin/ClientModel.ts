@@ -35,6 +35,8 @@ export type DynamicResidentLocationSelection = {
   weatherLatitude: number | null;
   weatherLongitude: number | null;
   mapSettings: ClientMapSettings;
+  logoUrl?: string | null;
+  logoPath?: string | null;
 };
 
 const toSlug = (value: string): string =>
@@ -211,6 +213,10 @@ const buildNaicMigrationSeed = (): ClientLgu => ({
   name: NAIC_LOCATION_CLIENT.name,
   type: NAIC_LOCATION_CLIENT.type,
   status: 'active',
+  logoUrl: null,
+  logoPath: null,
+  logoWidth: null,
+  logoHeight: null,
   regionCode: '0400000000',
   regionName: 'Region IV-A (CALABARZON)',
   provinceCode: NAIC_LOCATION_CLIENT.province.psgcCode,
@@ -266,6 +272,11 @@ const normalizeClientDoc = (id: string, data: FirebaseFirestore.DocumentData): C
     name: data.name || data.municipalityName || canonicalId,
     type,
     status,
+    logoUrl: typeof data.logoUrl === 'string' && data.logoUrl.trim() ? data.logoUrl.trim() : null,
+    logoPath: typeof data.logoPath === 'string' && data.logoPath.trim() ? data.logoPath.trim() : null,
+    logoWidth: typeof data.logoWidth === 'number' && Number.isFinite(data.logoWidth) ? data.logoWidth : null,
+    logoHeight: typeof data.logoHeight === 'number' && Number.isFinite(data.logoHeight) ? data.logoHeight : null,
+    logoUpdatedAt: data.logoUpdatedAt,
     regionCode: data.regionCode ?? null,
     regionName: data.regionName ?? null,
     provinceCode: data.provinceCode || '',
@@ -359,6 +370,8 @@ export class ClientModel {
         municipalityCode: client.municipalityCode,
         municipalityName: client.municipalityName,
         municipalityType: client.municipalityType,
+        logoUrl: client.logoUrl ?? null,
+        logoPath: client.logoPath ?? null,
         barangays: activeBarangays(client.barangays).map(barangay => ({
           barangayCode: barangay.barangayCode,
           barangayLabel: barangay.barangayLabel,
@@ -452,6 +465,8 @@ export class ClientModel {
         weatherLatitude: client.weatherLatitude,
         weatherLongitude: client.weatherLongitude,
         mapSettings: client.mapSettings,
+        logoUrl: client.logoUrl ?? null,
+        logoPath: client.logoPath ?? null,
       };
     }
 
@@ -491,6 +506,10 @@ export class ClientModel {
       name: request.lguName || request.municipalityName,
       type: request.municipalityType,
       status: 'draft',
+      logoUrl: null,
+      logoPath: null,
+      logoWidth: null,
+      logoHeight: null,
       regionCode: request.regionCode,
       regionName: request.regionName,
       provinceCode: request.provinceCode,
@@ -603,6 +622,50 @@ export class ClientModel {
 
     const updated = await this.getClientById(clientId);
     if (!updated) throw new Error('Client not found');
+    await this.syncContactsMetadata(updated);
+    return updated;
+  }
+
+  static async syncContactsMetadata(client: ClientLgu, extra: Record<string, unknown> = {}): Promise<void> {
+    await db.collection('contacts').doc(client.id).set(
+      {
+        clientId: client.id,
+        clientName: client.name,
+        municipalityName: client.municipalityName,
+        provinceName: client.provinceName,
+        logoUrl: client.logoUrl ?? null,
+        logoPath: client.logoPath ?? null,
+        logoWidth: client.logoWidth ?? null,
+        logoHeight: client.logoHeight ?? null,
+        logoUpdatedAt: client.logoUpdatedAt ?? null,
+        ...extra,
+      },
+      { merge: true }
+    );
+  }
+
+  static async updateClientLogo(
+    clientId: string,
+    logo: { logoUrl: string; logoPath: string; width?: number | null; height?: number | null }
+  ): Promise<ClientLgu> {
+    const client = await this.getClientById(clientId);
+    if (!client) throw new Error('Client not found');
+
+    await this.collectionRef().doc(client.id).set(
+      {
+        logoUrl: logo.logoUrl,
+        logoPath: logo.logoPath,
+        logoWidth: typeof logo.width === 'number' ? logo.width : null,
+        logoHeight: typeof logo.height === 'number' ? logo.height : null,
+        logoUpdatedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    const updated = await this.getClientById(client.id);
+    if (!updated) throw new Error('Client not found');
+    await this.syncContactsMetadata(updated, { logoUpdatedAt: FieldValue.serverTimestamp() });
     return updated;
   }
 
@@ -619,6 +682,10 @@ export class ClientModel {
 
     if (status === 'active' && activeBarangays(client.barangays).length === 0) {
       throw new Error('Client must have at least one active barangay before activation');
+    }
+
+    if (status === 'active' && !client.logoUrl) {
+      throw new Error('Client must have an LGU logo before activation');
     }
 
     if (status === 'active' && !hasUsableWeatherCoordinates(client.weatherLatitude, client.weatherLongitude)) {

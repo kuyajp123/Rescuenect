@@ -2,6 +2,7 @@ import { API_ENDPOINTS } from '@/config/endPoints';
 import { ClientAdminsTable } from '@/pages/contents/SuperAdmin/components/ClientAdminsTable';
 import { ClientCoverageEditor } from '@/pages/contents/SuperAdmin/components/ClientCoverageEditor';
 import { ClientDeleteModal } from '@/pages/contents/SuperAdmin/components/ClientDeleteModal';
+import { ClientLogoAvatar } from '@/pages/contents/SuperAdmin/components/ClientLogoAvatar';
 import { MapSettingsHelpModal } from '@/pages/contents/SuperAdmin/components/MapSettingsHelpModal';
 import { MapSettingsPreview } from '@/pages/contents/SuperAdmin/components/MapSettingsPreview';
 import { ClientRequestDetails } from '@/pages/contents/SuperAdmin/components/ClientRequestDetails';
@@ -19,7 +20,21 @@ import {
   validateMapSettingsDraft,
   weatherCoordinatePlaceholders,
 } from '@/pages/contents/SuperAdmin/utils';
-import { Button, Card, CardBody, Chip, Input, Textarea, Tooltip, addToast } from '@heroui/react';
+import {
+  Button,
+  Card,
+  CardBody,
+  Chip,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Textarea,
+  Tooltip,
+  addToast,
+} from '@heroui/react';
 import axios from 'axios';
 import { ArrowLeft, Save, Trash2, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -53,6 +68,11 @@ export const SuperAdminClientDetails = () => {
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [isSchedulingDeletion, setIsSchedulingDeletion] = useState(false);
   const [isCancellingDeletion, setIsCancellingDeletion] = useState(false);
+  const [statusTarget, setStatusTarget] = useState<'active' | 'inactive' | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isInviteAdminOpen, setIsInviteAdminOpen] = useState(false);
+  const [inviteAdminEmail, setInviteAdminEmail] = useState('');
+  const [isInvitingAdmin, setIsInvitingAdmin] = useState(false);
   const [coordinateErrors, setCoordinateErrors] = useState<ReturnType<typeof validateWeatherCoordinateDraft>>({});
   const [mapErrors, setMapErrors] = useState<ReturnType<typeof validateMapSettingsDraft>>({});
 
@@ -229,6 +249,7 @@ export const SuperAdminClientDetails = () => {
     if (isDeletionLocked) return;
 
     try {
+      setIsUpdatingStatus(true);
       if (status === 'active') {
         const saved = await saveClient({ showToast: false, refetchAfter: false });
         if (!saved) return;
@@ -241,12 +262,15 @@ export const SuperAdminClientDetails = () => {
           : API_ENDPOINTS.SUPER_ADMIN.DEACTIVATE_CLIENT(client.id);
       await axios.post(endpoint, {}, { headers: { Authorization: `Bearer ${token}` } });
       addToast({ title: status === 'active' ? 'Client activated' : 'Client deactivated', color: 'success' });
+      setStatusTarget(null);
       refetch();
     } catch (error) {
       const message = axios.isAxiosError(error)
         ? error.response?.data?.message || 'Failed to update client status'
         : 'Failed to update client status';
       addToast({ title: message, color: 'danger' });
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -305,6 +329,48 @@ export const SuperAdminClientDetails = () => {
     }
   };
 
+  const inviteClientAdmin = async () => {
+    if (!client) return;
+
+    const email = inviteAdminEmail.trim().toLowerCase();
+    if (!email) {
+      addToast({ title: 'Email is required', description: 'Enter the LGU admin email address.', color: 'warning' });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      addToast({ title: 'Valid email is required', color: 'warning' });
+      return;
+    }
+    if (isDeletionLocked) {
+      addToast({ title: 'LGU admin invites are disabled for this client', color: 'warning' });
+      return;
+    }
+
+    try {
+      setIsInvitingAdmin(true);
+      const token = await getToken();
+      await axios.post(
+        API_ENDPOINTS.SUPER_ADMIN.INVITE_ADMIN,
+        { email, role: 'lgu_admin', clientId: client.id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      addToast({ title: 'LGU admin invited', color: 'success' });
+      setInviteAdminEmail('');
+      setIsInviteAdminOpen(false);
+      refetch();
+    } catch (error) {
+      addToast({
+        title: 'Invite failed',
+        description: axios.isAxiosError(error)
+          ? error.response?.data?.message || error.message
+          : 'Failed to invite LGU admin',
+        color: 'danger',
+      });
+    } finally {
+      setIsInvitingAdmin(false);
+    }
+  };
+
   const activeBarangayCount = coverageDraft.filter(barangay => barangay.isActive !== false).length;
 
   if (loading && !client) {
@@ -337,17 +403,20 @@ export const SuperAdminClientDetails = () => {
           <Button variant="flat" startContent={<ArrowLeft size={16} />} onPress={() => navigate('/super/clients')}>
             Back to Clients
           </Button>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-3xl font-bold">{client.name}</h1>
-              <Chip size="sm" color={statusColor(client.status) as any}>
-                {formatStatusLabel(client.status)}
-              </Chip>
+          <div className="flex items-center gap-4">
+            <ClientLogoAvatar src={client.logoUrl} name={client.name} size="lg" />
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-3xl font-bold">{client.name}</h1>
+                <Chip size="sm" color={statusColor(client.status) as any}>
+                  {formatStatusLabel(client.status)}
+                </Chip>
+              </div>
+              <p className="text-sm text-default-500">
+                {client.municipalityName}, {client.provinceName} - {activeBarangayCount} of {coverageDraft.length}{' '}
+                barangays enabled
+              </p>
             </div>
-            <p className="text-sm text-default-500">
-              {client.municipalityName}, {client.provinceName} - {activeBarangayCount} of {coverageDraft.length}{' '}
-              barangays enabled
-            </p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -360,11 +429,11 @@ export const SuperAdminClientDetails = () => {
             Save
           </Button>
           {client.status !== 'active' ? (
-            <Button color="success" isDisabled={isDeletionLocked} onPress={() => setStatus('active')}>
+            <Button color="success" isDisabled={isDeletionLocked} onPress={() => setStatusTarget('active')}>
               Activate
             </Button>
           ) : (
-            <Button color="danger" variant="flat" isDisabled={isDeletionLocked} onPress={() => setStatus('inactive')}>
+            <Button color="danger" variant="flat" isDisabled={isDeletionLocked} onPress={() => setStatusTarget('inactive')}>
               Deactivate
             </Button>
           )}
@@ -593,7 +662,13 @@ export const SuperAdminClientDetails = () => {
         </CardBody>
       </Card>
 
-      <ClientAdminsTable admins={admins} />
+      <ClientAdminsTable
+        admins={admins}
+        clientStatus={client.status}
+        onAdminStatusChanged={refetch}
+        onAddAdmin={() => setIsInviteAdminOpen(true)}
+        isAddAdminDisabled={isDeletionLocked}
+      />
 
       <ClientDeleteModal
         client={client}
@@ -606,6 +681,85 @@ export const SuperAdminClientDetails = () => {
         onReasonChange={setDeletionReason}
         onScheduleDeletion={scheduleClientDeletion}
       />
+
+      <Modal isOpen={Boolean(statusTarget)} onOpenChange={open => !open && setStatusTarget(null)} size="sm">
+        <ModalContent>
+          {onClose => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                {statusTarget === 'active' ? 'Activate LGU client?' : 'Deactivate LGU client?'}
+              </ModalHeader>
+              <ModalBody>
+                {statusTarget === 'active' ? (
+                  <p className="text-sm text-default-600">
+                    Activate <span className="font-semibold">{client.name}</span>? Current setup changes on this page
+                    will be saved before activation.
+                  </p>
+                ) : (
+                  <p className="text-sm text-default-600">
+                    Deactivate <span className="font-semibold">{client.name}</span>? LGU admins and residents will no
+                    longer use this client while it is inactive.
+                  </p>
+                )}
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="flat" onPress={onClose}>
+                  Cancel
+                </Button>
+                <Button
+                  color={statusTarget === 'active' ? 'success' : 'danger'}
+                  variant={statusTarget === 'active' ? 'solid' : 'flat'}
+                  isLoading={isUpdatingStatus}
+                  onPress={() => statusTarget && setStatus(statusTarget)}
+                >
+                  {statusTarget === 'active' ? 'Activate Client' : 'Deactivate Client'}
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      <Modal
+        isOpen={isInviteAdminOpen}
+        onOpenChange={open => {
+          setIsInviteAdminOpen(open);
+          if (!open) setInviteAdminEmail('');
+        }}
+        size="sm"
+        isDismissable={!isInvitingAdmin}
+      >
+        <ModalContent>
+          {onClose => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                <span>Add LGU Admin</span>
+                <span className="text-sm font-normal text-default-500">
+                  Invite an admin for {client.name}. They can sign in with Google after the invite is saved.
+                </span>
+              </ModalHeader>
+              <ModalBody>
+                <Input
+                  label="Email"
+                  type="email"
+                  value={inviteAdminEmail}
+                  onValueChange={setInviteAdminEmail}
+                  isDisabled={isInvitingAdmin}
+                  autoFocus
+                />
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="flat" onPress={onClose} isDisabled={isInvitingAdmin}>
+                  Cancel
+                </Button>
+                <Button color="primary" isLoading={isInvitingAdmin} onPress={inviteClientAdmin}>
+                  Send Invite
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 };

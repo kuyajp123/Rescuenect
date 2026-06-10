@@ -14,6 +14,8 @@ export interface UserData {
   clientName?: string | null;
   clientStatus?: 'draft' | 'active' | 'inactive' | 'deletion_scheduled' | 'deleting' | 'deleted' | null;
   clientDeletionEffectiveAt?: unknown;
+  clientLogoUrl?: string | null;
+  clientLogoPath?: string | null;
   municipalityName?: string | null;
   weatherLocationKey?: string | null;
   weatherLatitude?: number | null;

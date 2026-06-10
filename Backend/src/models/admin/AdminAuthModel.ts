@@ -44,6 +44,8 @@ const buildPermissions = (role: AdminRole): string[] =>
     ? ['super:manage_clients', 'super:manage_requests', 'super:view_system_status', 'lgu:manage_operations']
     : ['lgu:manage_operations'];
 
+const invitationIdForEmail = (email: string) => normalizeEmail(email).replace(/[/.#[\]]/g, '_');
+
 const toAdminUser = (id: string, data: FirebaseFirestore.DocumentData): AdminUser => {
   const role = data.role === 'super_admin' ? 'super_admin' : 'lgu_admin';
   const clientId =
@@ -59,7 +61,9 @@ const toAdminUser = (id: string, data: FirebaseFirestore.DocumentData): AdminUse
     role,
     clientId,
     clientName: data.clientName ?? null,
-    status: data.status === 'inactive' ? 'inactive' : 'active',
+    clientLogoUrl: data.clientLogoUrl ?? null,
+    clientLogoPath: data.clientLogoPath ?? null,
+    status: data.status === 'pending' ? 'pending' : data.status === 'inactive' ? 'inactive' : 'active',
     permissionsVersion: data.permissionsVersion || PERMISSIONS_VERSION,
     permissions: Array.isArray(data.permissions) ? data.permissions : buildPermissions(role),
     onboardingComplete: Boolean(data.onboardingComplete),
@@ -73,13 +77,40 @@ const toAdminUser = (id: string, data: FirebaseFirestore.DocumentData): AdminUse
   };
 };
 
+const toPendingInvitationAdminUser = (id: string, data: FirebaseFirestore.DocumentData): AdminUser => {
+  const clientId =
+    typeof data.clientId === 'string' && data.clientId.trim()
+      ? canonicalizeClientId(data.clientId) ?? data.clientId.trim()
+      : null;
+
+  return {
+    uid: `invitation:${id}`,
+    invitationId: id,
+    isPendingInvitation: true,
+    email: normalizeEmail(String(data.email ?? id)),
+    role: 'lgu_admin',
+    clientId,
+    clientName: data.clientName ?? null,
+    clientLogoUrl: null,
+    clientLogoPath: null,
+    status: 'pending',
+    permissionsVersion: PERMISSIONS_VERSION,
+    permissions: buildPermissions('lgu_admin'),
+    onboardingComplete: false,
+  };
+};
+
 export class AdminAuthModel {
   private static adminRef(uid: string) {
     return db.collection('admin').doc(uid);
   }
 
   private static invitationRef(email: string) {
-    return db.collection('adminInvitations').doc(normalizeEmail(email).replace(/[/.#[\]]/g, '_'));
+    return db.collection('adminInvitations').doc(invitationIdForEmail(email));
+  }
+
+  private static invitationRefById(id: string) {
+    return db.collection('adminInvitations').doc(id);
   }
 
   static getSuperAdminEmails(): string[] {
@@ -290,8 +321,14 @@ export class AdminAuthModel {
   }
 
   static async deleteLguAdmin(uid: string, deletedBy: string): Promise<AdminUser> {
+    if (uid.startsWith('invitation:')) {
+      return this.revokePendingInvitation(uid.slice('invitation:'.length), deletedBy);
+    }
+
     const admin = await this.getAdminByUid(uid);
-    if (!admin) throw new Error('Admin user not found');
+    if (!admin) {
+      return this.revokePendingInvitation(uid, deletedBy);
+    }
     if (admin.role === 'super_admin') throw new Error('Super admins must be managed with SUPER_ADMIN_EMAILS');
 
     await this.adminRef(uid).delete();
@@ -313,6 +350,28 @@ export class AdminAuthModel {
     return admin;
   }
 
+  static async revokePendingInvitation(invitationId: string, revokedBy: string): Promise<AdminUser> {
+    const snap = await this.invitationRefById(invitationId).get();
+    if (!snap.exists) throw new Error('Admin user not found');
+
+    const invitation = snap.data() ?? {};
+    if (invitation.role === 'super_admin') throw new Error('Super admins must be managed with SUPER_ADMIN_EMAILS');
+    if (invitation.status !== 'pending') throw new Error('Only pending invitations can be revoked from this list');
+
+    const pendingAdmin = await this.withClientMetadata(toPendingInvitationAdminUser(snap.id, invitation));
+    await snap.ref.set(
+      {
+        status: 'revoked',
+        revokedBy,
+        revokedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    return pendingAdmin;
+  }
+
   static async listAdmins(): Promise<AdminUser[]> {
     const snapshot = await db.collection('admin').orderBy('email', 'asc').get();
     return Promise.all(snapshot.docs.map(doc => this.withClientMetadata(toAdminUser(doc.id, doc.data()))));
@@ -320,13 +379,31 @@ export class AdminAuthModel {
 
   static async listLguAdmins(): Promise<AdminUser[]> {
     const admins = await this.listAdmins();
-    return admins.filter(admin => admin.role === 'lgu_admin');
+    return this.withPendingInvitations(admins.filter(admin => admin.role === 'lgu_admin'));
   }
 
   static async listAdminsByClient(clientId: string): Promise<AdminUser[]> {
     const canonicalClientId = canonicalizeClientId(clientId) ?? clientId;
-    const admins = await this.listAdmins();
+    const admins = await this.listLguAdmins();
     return admins.filter(admin => admin.role === 'lgu_admin' && admin.clientId === canonicalClientId);
+  }
+
+  private static async withPendingInvitations(admins: AdminUser[]): Promise<AdminUser[]> {
+    const adminEmails = new Set(admins.map(admin => normalizeEmail(admin.email)));
+    const inviteSnapshot = await db.collection('adminInvitations').where('status', '==', 'pending').get();
+    const pendingInvitations = inviteSnapshot.docs
+      .map(doc => ({ id: doc.id, data: doc.data() }))
+      .filter(({ data }) => data.role !== 'super_admin')
+      .filter(({ data }) => {
+        const email = typeof data.email === 'string' ? normalizeEmail(data.email) : '';
+        return email && !adminEmails.has(email);
+      });
+
+    const pendingAdmins = await Promise.all(
+      pendingInvitations.map(({ id, data }) => this.withClientMetadata(toPendingInvitationAdminUser(id, data)))
+    );
+
+    return [...admins, ...pendingAdmins].sort((left, right) => left.email.localeCompare(right.email));
   }
 
   static async deactivateAdminsForClient(clientId: string, updatedBy: string): Promise<number> {
@@ -396,6 +473,8 @@ export class AdminAuthModel {
       clientName: adminUser.clientName || client.name,
       clientStatus: client.status,
       clientDeletionEffectiveAt: client.deletionEffectiveAt,
+      clientLogoUrl: client.logoUrl ?? adminUser.clientLogoUrl ?? null,
+      clientLogoPath: client.logoPath ?? adminUser.clientLogoPath ?? null,
       municipalityName: client.municipalityName,
       weatherLocationKey: client.weatherLocationKey,
       weatherLatitude: client.weatherLatitude,

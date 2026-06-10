@@ -1,19 +1,35 @@
 import { messaging } from '@/lib/firebaseConfig';
 import { deleteToken, getToken } from 'firebase/messaging';
 
-// request permission + get token
-// This should be called from a user interaction (button click) to ensure the prompt appears
+export const DESKTOP_NOTIFICATION_SETTING_KEY = 'rescuenect_desktop_notifications_enabled';
+
+export const getDesktopNotificationPreference = (fallback = false): boolean => {
+  if (typeof localStorage === 'undefined') return fallback;
+
+  const savedPreference = localStorage.getItem(DESKTOP_NOTIFICATION_SETTING_KEY);
+  if (savedPreference === 'true') return true;
+  if (savedPreference === 'false') return false;
+
+  return fallback;
+};
+
+export const setDesktopNotificationPreference = (enabled: boolean) => {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.setItem(DESKTOP_NOTIFICATION_SETTING_KEY, String(enabled));
+};
+
 export async function askForPermissionAndGetToken(vapidKey: string): Promise<string | null> {
   try {
-    // If already granted → get token immediately
+    if (typeof Notification === 'undefined' || typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+      return null;
+    }
+
     const token = await permissionAllowed(vapidKey);
     if (token) return token;
 
-    // If not granted → ask permission
     const permissionGranted = await askPermission();
     if (!permissionGranted) return null;
 
-    // After user grants permission → get token
     return await getFCMtoken(vapidKey);
   } catch (error) {
     console.error('Error while getting notification permission or token:', error);
@@ -22,6 +38,10 @@ export async function askForPermissionAndGetToken(vapidKey: string): Promise<str
 }
 
 export const permissionAllowed = async (vapidKey: string) => {
+  if (typeof Notification === 'undefined' || typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+    return null;
+  }
+
   if (Notification.permission === 'granted') {
     return await getFCMtoken(vapidKey);
   }
@@ -46,7 +66,6 @@ const getFCMtoken = async (vapidKey: string) => {
   }
 };
 
-// Returns true if granted, false if denied/default
 const askPermission = async (): Promise<boolean> => {
   try {
     const permission = await Notification.requestPermission();
@@ -58,7 +77,6 @@ const askPermission = async (): Promise<boolean> => {
   }
 };
 
-// to remove token on logout
 export async function revokeToken() {
   try {
     await deleteToken(messaging);

@@ -1,8 +1,9 @@
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { ClientChangeSummary } from '@/pages/contents/SuperAdmin/components/ClientChangeSummary';
+import { ClientLogoAvatar } from '@/pages/contents/SuperAdmin/components/ClientLogoAvatar';
 import { MapSettingsPreview } from '@/pages/contents/SuperAdmin/components/MapSettingsPreview';
 import { useSuperFetch } from '@/pages/contents/SuperAdmin/hooks/useSuperFetch';
-import type { ClientChangeRequest } from '@/pages/contents/SuperAdmin/types';
+import type { ClientChangeRequest, ClientLgu } from '@/pages/contents/SuperAdmin/types';
 import {
   formatClientChangeRequestType,
   formatDateTime,
@@ -92,6 +93,10 @@ export const SuperAdminClientRequests = () => {
     API_ENDPOINTS.SUPER_ADMIN.CLIENT_CHANGE_REQUESTS,
     'client change requests'
   );
+  const { data: clientData } = useSuperFetch<{ clients: ClientLgu[] }>(
+    API_ENDPOINTS.SUPER_ADMIN.CLIENTS,
+    'clients for request logos'
+  );
   const requests = data?.requests ?? [];
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ClientChangeRequest['status'] | 'all'>('all');
@@ -104,6 +109,10 @@ export const SuperAdminClientRequests = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const reviewPreviewDraft = getMapPreviewDraft(reviewTarget?.request ?? null);
   const reviewNoteWordCount = getWordCount(reviewNote);
+  const clientsById = useMemo(
+    () => new Map((clientData?.clients ?? []).map(client => [client.id, client])),
+    [clientData]
+  );
 
   const filteredRequests = useMemo(() => {
     const term = searchQuery.trim().toLowerCase();
@@ -263,11 +272,27 @@ export const SuperAdminClientRequests = () => {
               <TableBody emptyContent={loading ? 'Loading proposals...' : 'No client requests.'}>
                 {paginatedRequests.map(request => (
                   <TableRow key={request.id}>
-                    <TableCell>{request.clientName || request.clientId}</TableCell>
+                    <TableCell>
+                      <div className="flex min-w-48 items-center gap-3">
+                        <ClientLogoAvatar
+                          src={request.clientLogoUrl ?? clientsById.get(request.clientId)?.logoUrl}
+                          name={request.clientName || clientsById.get(request.clientId)?.name || request.clientId}
+                          size="sm"
+                        />
+                        <div>
+                          <p className="font-semibold">{request.clientName || request.clientId}</p>
+                          <p className="text-xs text-default-500">{request.clientId}</p>
+                        </div>
+                      </div>
+                    </TableCell>
                     <TableCell>{formatDateTime(request.createdAt || request.requestedAt)}</TableCell>
                     <TableCell>{request.requestedByEmail || request.requestedBy}</TableCell>
                     <TableCell>
-                      <Chip size="sm" color={statusColor(request.status) as any}>
+                      <Chip
+                        size="sm"
+                        color={statusColor(request.status) as any}
+                        className={`${request.status === 'cancelled' ? '' : 'text-white'}`}
+                      >
                         {request.status}
                       </Chip>
                     </TableCell>

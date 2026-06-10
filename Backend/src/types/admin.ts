@@ -1,5 +1,5 @@
 export type AdminRole = 'super_admin' | 'lgu_admin';
-export type AdminStatus = 'active' | 'inactive';
+export type AdminStatus = 'active' | 'inactive' | 'pending';
 export type ClientLguStatus = 'draft' | 'active' | 'inactive' | 'deletion_scheduled' | 'deleting' | 'deleted';
 export type ClientLguType = 'municipality' | 'city';
 export type LguRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
@@ -57,6 +57,8 @@ export interface ClientEarthquakeImpact {
 
 export interface AdminUser {
   uid: string;
+  invitationId?: string | null;
+  isPendingInvitation?: boolean;
   email: string;
   role: AdminRole;
   clientId: string | null;
@@ -69,6 +71,8 @@ export interface AdminUser {
   clientBarangays?: ClientCoverageBarangay[];
   clientStatus?: ClientLguStatus | null;
   clientDeletionEffectiveAt?: unknown;
+  clientLogoUrl?: string | null;
+  clientLogoPath?: string | null;
   status: AdminStatus;
   permissionsVersion: number;
   permissions: string[];
@@ -98,6 +102,11 @@ export interface ClientLgu {
   type: ClientLguType;
   status: ClientLguStatus;
   adminCount?: number;
+  logoUrl?: string | null;
+  logoPath?: string | null;
+  logoWidth?: number | null;
+  logoHeight?: number | null;
+  logoUpdatedAt?: unknown;
   regionCode?: string | null;
   regionName?: string | null;
   provinceCode: string;

@@ -1,6 +1,6 @@
 import { SignInModel } from '@/models/admin/SignInModel';
 import { ClientModel } from '@/models/admin/ClientModel';
-import { canLguAdminUseClient } from '@/utils/accessControl';
+import { canLguAdminCompleteOnboarding, canLguAdminUseClient } from '@/utils/accessControl';
 import { Request, Response } from 'express';
 
 export class LoginController {
@@ -28,7 +28,8 @@ export class LoginController {
 
       if (user.role === 'lgu_admin') {
         const client = user.clientId ? await ClientModel.getClientById(user.clientId) : null;
-        if (!client || !canLguAdminUseClient(client.status)) {
+        const canCompleteSetup = !user.onboardingComplete && canLguAdminCompleteOnboarding(client?.status);
+        if (!client || (!canLguAdminUseClient(client.status) && !canCompleteSetup)) {
           res.status(403).json({ message: 'LGU client is not active' });
           return;
         }
@@ -41,7 +42,7 @@ export class LoginController {
   }
 
   static async updateProfile(req: Request, res: Response): Promise<void> {
-    const { uid, firstName, lastName, phone, bio, barangay, address } = req.body;
+    const { uid, firstName, lastName, phone, bio, barangay, address, logoUrl, logoPath } = req.body;
     const isLguAdmin = req.adminUser?.role === 'lgu_admin';
 
     if (!uid || !firstName || !lastName || !phone || !address || (isLguAdmin && !barangay)) {
@@ -62,10 +63,19 @@ export class LoginController {
         bio: bio || 'Rescuenect Administrator',
         barangay,
         address,
+        logoUrl,
+        logoPath,
       });
       res.status(200).json({ message: 'Profile updated successfully', success: true });
     } catch (error) {
-      if (error instanceof Error && error.message === 'Barangay is not covered by your LGU client') {
+      if (
+        error instanceof Error &&
+        [
+          'Barangay is not covered by your LGU client',
+          'LGU logo is required for onboarding',
+          'Upload the LGU logo before completing onboarding',
+        ].includes(error.message)
+      ) {
         res.status(400).json({ message: error.message });
         return;
       }

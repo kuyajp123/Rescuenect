@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
     ME: `${BACKEND_URL}/admin/me`,
     UPDATE_FCM_TOKEN: `${BACKEND_URL}/admin/config/update-fcm-token`,
     UPDATE_PROFILE: `${BACKEND_URL}/admin/auth/update-profile`,
+    UPLOAD_CLIENT_LOGO: `${BACKEND_URL}/admin/auth/upload-client-logo`,
   },
   STATUS: {
     GET_VERSIONS: `${BACKEND_URL}/admin/status/getVersions`,
@@ -43,6 +44,7 @@ export const API_ENDPOINTS = {
   CONTACTS: {
     GET_CONTACTS: `${BACKEND_URL}/admin/contacts/getContacts`,
     CREATE_CONTACT: `${BACKEND_URL}/admin/contacts/addContact`,
+    UPLOAD_LOGO: `${BACKEND_URL}/admin/contacts/upload-logo`,
   },
   PUBLIC: {
     CLIENTS: `${BACKEND_URL}/public/clients`,
@@ -59,6 +61,12 @@ export const API_ENDPOINTS = {
   },
   SUPER_ADMIN: {
     OVERVIEW: `${BACKEND_URL}/admin/super/overview`,
+    SUPABASE_MONITORING: `${BACKEND_URL}/admin/super/supabase`,
+    SUPABASE_FUNCTION: (slug: string) => `${BACKEND_URL}/admin/super/supabase/functions/${encodeURIComponent(slug)}`,
+    SUPABASE_STORAGE_BUCKET: (bucket: string) =>
+      `${BACKEND_URL}/admin/super/supabase/storage/${encodeURIComponent(bucket)}`,
+    SERVER_WAKEUP: `${BACKEND_URL}/admin/super/supabase/server-wakeup/status`,
+    RUN_SERVER_WAKEUP: `${BACKEND_URL}/admin/super/supabase/server-wakeup/run`,
     LOGS: `${BACKEND_URL}/admin/super/logs`,
     LGU_REQUESTS: `${BACKEND_URL}/admin/super/lgu-requests`,
     DYNAMIC_CLIENT_CUTOVER_AUDIT: `${BACKEND_URL}/admin/super/migrations/dynamic-client-cutover-audit`,
@@ -85,8 +93,8 @@ export const API_ENDPOINTS = {
     CLIENT_BOUNDARY: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}/boundary`,
     ADMINS: `${BACKEND_URL}/admin/super/admins`,
     INVITE_ADMIN: `${BACKEND_URL}/admin/super/admins/invite`,
-    UPDATE_ADMIN: (uid: string) => `${BACKEND_URL}/admin/super/admins/${uid}`,
-    DELETE_ADMIN: (uid: string) => `${BACKEND_URL}/admin/super/admins/${uid}`,
+    UPDATE_ADMIN: (uid: string) => `${BACKEND_URL}/admin/super/admins/${encodeURIComponent(uid)}`,
+    DELETE_ADMIN: (uid: string) => `${BACKEND_URL}/admin/super/admins/${encodeURIComponent(uid)}`,
     SYSTEM_STATUS: `${BACKEND_URL}/admin/super/system-status`,
   },
   LGU_ADMIN: {

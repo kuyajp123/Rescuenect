@@ -78,6 +78,12 @@ const handleApkUpload = (req: Request, res: Response, next: NextFunction): void 
 superRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin, AdminMiddleware.requireSuperAdmin);
 
 superRoutes.get('/overview', SuperAdminController.getOverview);
+superRoutes.get('/supabase', SuperAdminController.getSupabaseMonitoring);
+superRoutes.get('/supabase/functions/:slug', SuperAdminController.getSupabaseFunction);
+superRoutes.get('/supabase/storage/:bucket', SuperAdminController.getSupabaseStorageBucket);
+superRoutes.get('/supabase/server-wakeup/status', SuperAdminController.getServerWakeup);
+superRoutes.patch('/supabase/server-wakeup/status', SuperAdminController.updateServerWakeup);
+superRoutes.post('/supabase/server-wakeup/run', SuperAdminController.runServerWakeup);
 superRoutes.get('/logs', SuperAdminController.getOperationLogs);
 superRoutes.delete('/logs/migrations', SuperAdminController.deleteMigrationLogs);
 superRoutes.post('/mobile-app/release', handleApkUpload, SuperAdminController.uploadMobileAppRelease);

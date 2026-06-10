@@ -10,6 +10,42 @@
 * stream mobile app release upload ([c7ea3fe](https://github.com/kuyajp123/Rescuenect/commit/c7ea3fe5f9f808012adc45a39c9351658003ec34))
 * update mobile app release upload logic ([55b244e](https://github.com/kuyajp123/Rescuenect/commit/55b244e48db59645e71bff0105e01547215b1f50))
 
+## [2.2.0-staging.7](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.6...v2.2.0-staging.7) (2026-06-10)
+
+### Features
+
+* Add client logo upload functionality ([11a9aa5](https://github.com/kuyajp123/Rescuenect/commit/11a9aa5ef0e860ad67c566e73fde1b22faf2c79d))
+
+## [2.2.0-staging.6](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.5...v2.2.0-staging.6) (2026-06-10)
+
+### Features
+
+* **super:** Add Supabase monitoring & server wake ([eec86cd](https://github.com/kuyajp123/Rescuenect/commit/eec86cd86dbc75038b4d29717d88281f8c251b3a))
+
+## [2.2.0-staging.5](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.4...v2.2.0-staging.5) (2026-06-10)
+
+### Features
+
+* **LGU admins:** add pending invite to LGU admin ([c6c73a8](https://github.com/kuyajp123/Rescuenect/commit/c6c73a871b6f443f1c4918fe29175f4e3b766639))
+
+## [2.2.0-staging.4](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.3...v2.2.0-staging.4) (2026-06-10)
+
+### Bug Fixes
+
+* update notification system and settings ([e27cc75](https://github.com/kuyajp123/Rescuenect/commit/e27cc75a9cc1082e47fe3b6c136feb8d3451385d))
+
+## [2.2.0-staging.3](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.2...v2.2.0-staging.3) (2026-06-10)
+
+### Bug Fixes
+
+* **LGU Client Requests:** add validation in form ([745b71b](https://github.com/kuyajp123/Rescuenect/commit/745b71ba45247e4b4f9cd6ed126aa16dc61e8d69))
+
+## [2.2.0-staging.2](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.1...v2.2.0-staging.2) (2026-06-10)
+
+### Features
+
+* Add form validation in LGU request access ([f528a1a](https://github.com/kuyajp123/Rescuenect/commit/f528a1ae98aeed39929cf5d0a51359877fcb77f7))
+
 ## [2.2.0-staging.1](https://github.com/kuyajp123/Rescuenect/compare/v2.1.0...v2.2.0-staging.1) (2026-06-07)
 
 ### Features

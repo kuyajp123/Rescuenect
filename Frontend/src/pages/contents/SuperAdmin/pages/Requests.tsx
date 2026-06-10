@@ -18,7 +18,7 @@ import {
   addToast,
 } from '@heroui/react';
 import axios from 'axios';
-import { Trash2 } from 'lucide-react';
+import { RefreshCcw, Trash2 } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -60,7 +60,11 @@ export const SuperAdminRequests = () => {
       action === 'approve'
         ? API_ENDPOINTS.SUPER_ADMIN.APPROVE_LGU_REQUEST(id)
         : API_ENDPOINTS.SUPER_ADMIN.REJECT_LGU_REQUEST(id);
-    await axios.post(endpoint, { reviewNote: reviewNotes[id] || '' }, { headers: { Authorization: `Bearer ${token}` } });
+    await axios.post(
+      endpoint,
+      { reviewNote: reviewNotes[id] || '' },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
     addToast({ title: action === 'approve' ? 'Request approved' : 'Request rejected', color: 'success' });
     refetch();
   };
@@ -118,16 +122,16 @@ export const SuperAdminRequests = () => {
           <h1 className="text-3xl font-bold">LGU Requests</h1>
           <p className="text-sm text-default-500">Review municipality and city onboarding requests.</p>
         </div>
-        <Button variant="flat" onPress={refetch} isLoading={loading}>
-          Refresh
-        </Button>
+        <Tooltip content="Refresh requests">
+          <Button isIconOnly variant="flat" onPress={refetch} isLoading={loading}>
+            <RefreshCcw size={16} />
+          </Button>
+        </Tooltip>
       </div>
       <div className="grid grid-cols-1 gap-4">
         {paginatedRequests.length === 0 && (
           <Card className="border border-default-200">
-            <CardBody className="items-center py-12 text-center text-default-500">
-              No LGU requests found.
-            </CardBody>
+            <CardBody className="items-center py-12 text-center text-default-500">No LGU requests found.</CardBody>
           </Card>
         )}
 
@@ -138,7 +142,11 @@ export const SuperAdminRequests = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-xl font-semibold">{request.lguName}</h2>
-                    <Chip size="sm" color={statusColor(request.status) as any}>
+                    <Chip
+                      size="sm"
+                      color={statusColor(request.status) as any}
+                      className={`${request.status === 'pending' ? '' : 'text-white'}`}
+                    >
                       {request.status}
                     </Chip>
                   </div>

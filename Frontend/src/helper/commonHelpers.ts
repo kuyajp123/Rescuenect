@@ -145,8 +145,8 @@ export const formatTimeRemaining = (dateValue: any): string => {
   }
 };
 
-// save FCM token to database
-export const saveFCMtoken = async (fcmToken: string, user: any) => {
+// save or clear the admin FCM token in the database
+export const saveFCMtoken = async (fcmToken: string | null, user: any) => {
   try {
     // Update token in backend
     if (user && user.uid) {

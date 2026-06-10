@@ -6,6 +6,47 @@ import { ManagementNotificationService } from '@/services/ManagementNotification
 import type { ClientCoverageBarangay, ClientLguType, LguRequest } from '@/types/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
+const FIELD_LIMITS = {
+  lguName: 120,
+  officeDepartment: 120,
+  requesterName: 100,
+  requesterPosition: 100,
+  requesterEmail: 254,
+  requesterPhone: 13,
+  regionCode: 20,
+  regionName: 120,
+  provinceCode: 20,
+  provinceName: 120,
+  municipalityCode: 20,
+  municipalityName: 120,
+  notes: 500,
+  barangayCode: 20,
+  barangayLabel: 120,
+  barangayValue: 120,
+} as const;
+
+const FIELD_LABELS: Record<keyof typeof FIELD_LIMITS, string> = {
+  lguName: 'LGU name',
+  officeDepartment: 'Office or department',
+  requesterName: 'Requester name',
+  requesterPosition: 'Position',
+  requesterEmail: 'Email',
+  requesterPhone: 'Phone',
+  regionCode: 'Region code',
+  regionName: 'Region name',
+  provinceCode: 'Province code',
+  provinceName: 'Province name',
+  municipalityCode: 'Municipality or city code',
+  municipalityName: 'Municipality or city name',
+  notes: 'Notes',
+  barangayCode: 'Barangay code',
+  barangayLabel: 'Barangay name',
+  barangayValue: 'Barangay value',
+};
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PH_MOBILE_DIGITS_PATTERN = /^09\d{9}$/;
+
 const asString = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 const asEmail = (value: unknown): string => asString(value).toLowerCase();
 const asFiniteNumberOrNull = (value: unknown): number | null => {
@@ -17,6 +58,58 @@ const asFiniteNumberOrNull = (value: unknown): number | null => {
   return null;
 };
 
+const formatPhoneNumber = (digits: string): string => `${digits.slice(0, 4)}-${digits.slice(4, 7)}-${digits.slice(7)}`;
+
+const normalizePhoneNumber = (value: unknown, errors: Record<string, string>): string => {
+  const rawPhone = asString(value);
+  const digits = rawPhone.replace(/\D/g, '');
+
+  if (!digits) {
+    errors.requesterPhone = 'Phone is required';
+    return rawPhone;
+  }
+
+  if (!PH_MOBILE_DIGITS_PATTERN.test(digits)) {
+    errors.requesterPhone = 'Enter an 11-digit mobile number starting with 09';
+    return rawPhone;
+  }
+
+  return formatPhoneNumber(digits);
+};
+
+const validateMaxLength = (
+  errors: Record<string, string>,
+  key: keyof typeof FIELD_LIMITS,
+  value: string,
+  errorKey: string = key
+) => {
+  const maxLength = FIELD_LIMITS[key];
+  if (value.length > maxLength) {
+    errors[errorKey] = `${FIELD_LABELS[key]} should not exceed ${maxLength} characters`;
+  }
+};
+
+const requireString = (
+  payload: Record<string, unknown>,
+  key: keyof typeof FIELD_LIMITS,
+  errors: Record<string, string>
+) => {
+  const value = asString(payload[key]);
+  if (!value) errors[key] = `${FIELD_LABELS[key]} is required`;
+  else validateMaxLength(errors, key, value);
+  return value;
+};
+
+const readOptionalString = (
+  payload: Record<string, unknown>,
+  key: keyof typeof FIELD_LIMITS,
+  errors: Record<string, string>
+) => {
+  const value = asString(payload[key]);
+  if (value) validateMaxLength(errors, key, value);
+  return value;
+};
+
 const normalizeBarangay = (value: unknown): ClientCoverageBarangay | null => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const data = value as Record<string, unknown>;
@@ -25,6 +118,13 @@ const normalizeBarangay = (value: unknown): ClientCoverageBarangay | null => {
   const rawValue = asString(data.value) || label;
 
   if (!label || !rawValue) return null;
+  if (
+    label.length > FIELD_LIMITS.barangayLabel ||
+    code.length > FIELD_LIMITS.barangayCode ||
+    rawValue.length > FIELD_LIMITS.barangayValue
+  ) {
+    return null;
+  }
 
   return {
     barangayCode: code || null,
@@ -35,12 +135,6 @@ const normalizeBarangay = (value: unknown): ClientCoverageBarangay | null => {
     longitude: null,
     verified: true,
   };
-};
-
-const requireString = (payload: Record<string, unknown>, key: string, errors: Record<string, string>) => {
-  const value = asString(payload[key]);
-  if (!value) errors[key] = `${key} is required`;
-  return value;
 };
 
 const serializeRequest = (id: string, data: FirebaseFirestore.DocumentData): LguRequest => ({
@@ -79,9 +173,15 @@ export class LguRequestModel {
 
   static async createRequest(payload: Record<string, unknown>): Promise<string> {
     const errors: Record<string, string> = {};
+    const rawSelectedBarangays = Array.isArray(payload.selectedBarangays) ? payload.selectedBarangays : [];
     const selectedBarangays = Array.isArray(payload.selectedBarangays)
-      ? payload.selectedBarangays.map(normalizeBarangay).filter(Boolean)
+      ? payload.selectedBarangays
+          .map(normalizeBarangay)
+          .filter((barangay): barangay is ClientCoverageBarangay => Boolean(barangay))
       : [];
+    const requesterEmail = asEmail(payload.requesterEmail);
+    const proposedWeatherLatitude = asFiniteNumberOrNull(payload.proposedWeatherLatitude);
+    const proposedWeatherLongitude = asFiniteNumberOrNull(payload.proposedWeatherLongitude);
 
     const request = {
       status: 'pending',
@@ -89,8 +189,8 @@ export class LguRequestModel {
       officeDepartment: requireString(payload, 'officeDepartment', errors),
       requesterName: requireString(payload, 'requesterName', errors),
       requesterPosition: requireString(payload, 'requesterPosition', errors),
-      requesterEmail: asEmail(payload.requesterEmail),
-      requesterPhone: requireString(payload, 'requesterPhone', errors),
+      requesterEmail,
+      requesterPhone: normalizePhoneNumber(payload.requesterPhone, errors),
       regionCode: requireString(payload, 'regionCode', errors),
       regionName: requireString(payload, 'regionName', errors),
       provinceCode: requireString(payload, 'provinceCode', errors),
@@ -98,11 +198,11 @@ export class LguRequestModel {
       municipalityCode: requireString(payload, 'municipalityCode', errors),
       municipalityName: requireString(payload, 'municipalityName', errors),
       municipalityType: payload.municipalityType === 'city' ? ('city' as ClientLguType) : ('municipality' as const),
-      proposedWeatherLatitude: asFiniteNumberOrNull(payload.proposedWeatherLatitude),
-      proposedWeatherLongitude: asFiniteNumberOrNull(payload.proposedWeatherLongitude),
+      proposedWeatherLatitude,
+      proposedWeatherLongitude,
       selectedBarangays,
       barangaysVerified: payload.barangaysVerified === true,
-      notes: asString(payload.notes),
+      notes: readOptionalString(payload, 'notes', errors),
       reviewedBy: null,
       reviewedAt: null,
       reviewNote: null,
@@ -111,14 +211,33 @@ export class LguRequestModel {
       updatedAt: FieldValue.serverTimestamp(),
     };
 
-    if (!request.requesterEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(request.requesterEmail)) {
-      errors.requesterEmail = 'Valid requesterEmail is required';
+    if (!request.requesterEmail) {
+      errors.requesterEmail = 'Email is required';
+    } else if (request.requesterEmail.length > FIELD_LIMITS.requesterEmail) {
+      errors.requesterEmail = `Email should not exceed ${FIELD_LIMITS.requesterEmail} characters`;
+    } else if (!EMAIL_PATTERN.test(request.requesterEmail)) {
+      errors.requesterEmail = 'Enter a valid email address';
     }
+
+    if (request.proposedWeatherLatitude === null) {
+      errors.proposedWeatherLatitude = 'Proposed center latitude is required';
+    } else if (request.proposedWeatherLatitude < -90 || request.proposedWeatherLatitude > 90) {
+      errors.proposedWeatherLatitude = 'Proposed center latitude must be between -90 and 90';
+    }
+
+    if (request.proposedWeatherLongitude === null) {
+      errors.proposedWeatherLongitude = 'Proposed center longitude is required';
+    } else if (request.proposedWeatherLongitude < -180 || request.proposedWeatherLongitude > 180) {
+      errors.proposedWeatherLongitude = 'Proposed center longitude must be between -180 and 180';
+    }
+
     if (!request.barangaysVerified) {
       errors.barangaysVerified = 'Barangay verification is required';
     }
-    if (selectedBarangays.length === 0) {
+    if (rawSelectedBarangays.length === 0) {
       errors.selectedBarangays = 'At least one barangay is required';
+    } else if (selectedBarangays.length !== rawSelectedBarangays.length) {
+      errors.selectedBarangays = 'Selected barangays contain invalid entries';
     }
 
     if (Object.keys(errors).length > 0) {

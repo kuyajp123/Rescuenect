@@ -80,8 +80,14 @@ export class LguAdminController {
 
       res.status(201).json({ request });
     } catch (error) {
+      const fieldErrors =
+        error && typeof error === 'object' && 'fieldErrors' in error
+          ? (error as { fieldErrors?: Record<string, string> }).fieldErrors
+          : undefined;
+
       res.status(400).json({
         message: error instanceof Error ? error.message : 'Failed to create change request',
+        ...(fieldErrors ? { fieldErrors, errors: Object.values(fieldErrors) } : {}),
       });
     }
   }

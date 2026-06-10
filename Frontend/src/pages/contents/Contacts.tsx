@@ -1,4 +1,10 @@
 import { API_ENDPOINTS } from '@/config/endPoints';
+import {
+  CLIENT_LOGO_HELP_TEXT,
+  readClientLogoDimensions,
+  validateClientLogoDimensions,
+  validateClientLogoFile,
+} from '@/helper/clientLogo';
 import { useAuth } from '@/stores/useAuth';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -31,6 +37,7 @@ import {
   Flame,
   Globe,
   GripVertical,
+  ImagePlus,
   Link2,
   Mail,
   Phone,
@@ -42,7 +49,7 @@ import {
   Trash2,
   UserRound,
 } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 type ContactAction = 'call' | 'copy' | 'link' | 'display';
 type CategoryType = 'Emergency Hotline' | 'Contact Information';
@@ -69,7 +76,16 @@ type ContactsResponse = {
   data?: {
     categories?: unknown[];
     contacts?: unknown[];
+    logoUrl?: string | null;
+    logoPath?: string | null;
   };
+};
+
+type LogoUploadResponse = {
+  logoUrl: string;
+  logoPath: string;
+  width: number;
+  height: number;
 };
 
 type ContactsApiError = {
@@ -270,6 +286,11 @@ const Contacts = () => {
   const [hasLoadedRemote, setHasLoadedRemote] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState('');
+  const [logoPath, setLogoPath] = useState('');
+  const [logoError, setLogoError] = useState('');
+  const [isLogoUploading, setIsLogoUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
 
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<ContactItem | null>(null);
@@ -405,6 +426,8 @@ const Contacts = () => {
         const remoteContacts = Array.isArray(data?.contacts) ? data.contacts.map(normalizeContact) : [];
 
         if (!isMounted) return;
+        setLogoUrl(typeof data?.logoUrl === 'string' ? data.logoUrl : '');
+        setLogoPath(typeof data?.logoPath === 'string' ? data.logoPath : '');
         if (remoteCategories.length > 0 || remoteContacts.length > 0) {
           setCategories(remoteCategories);
           setContacts(remoteContacts);
@@ -489,15 +512,75 @@ const Contacts = () => {
 
     return {
       updatedAt: new Date().toISOString(),
+      logoUrl,
+      logoPath,
       categories: categoryOrder,
       contacts: contactPayload,
     };
   };
 
+  const handleLogoFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setLogoError('');
+    setSyncError(null);
+
+    const fileError = validateClientLogoFile(file);
+    if (fileError) {
+      setLogoError(fileError);
+      return;
+    }
+
+    try {
+      const dimensionError = validateClientLogoDimensions(await readClientLogoDimensions(file));
+      if (dimensionError) {
+        setLogoError(dimensionError);
+        return;
+      }
+
+      if (!auth) {
+        setLogoError('Missing authenticated user. Please re-login.');
+        return;
+      }
+
+      setIsLogoUploading(true);
+      const idToken = await auth.getIdToken();
+      const formData = new FormData();
+      formData.append('logo', file);
+
+      const response = await axios.post<LogoUploadResponse>(API_ENDPOINTS.CONTACTS.UPLOAD_LOGO, formData, {
+        headers: { Authorization: `Bearer ${idToken}` },
+        withCredentials: true,
+      });
+
+      setLogoUrl(response.data.logoUrl);
+      setLogoPath(response.data.logoPath);
+      addToast({ title: 'LGU logo uploaded', color: 'success' });
+    } catch (error) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || 'Failed to upload LGU logo.'
+        : error instanceof Error
+          ? error.message
+          : 'Failed to upload LGU logo.';
+      setLogoError(message);
+      addToast({ title: message, color: 'danger' });
+    } finally {
+      setIsLogoUploading(false);
+    }
+  };
+
   const handleSyncContacts = async () => {
     if (isSyncing) return;
+    if (!logoUrl) {
+      setLogoError('LGU logo is required.');
+      setSyncError('Upload the LGU logo before saving contacts.');
+      return;
+    }
     setIsSyncing(true);
     setSyncError(null);
+    setLogoError('');
 
     const payload = buildContactsPayload();
 
@@ -526,6 +609,7 @@ const Contacts = () => {
       const fieldErrors = readFieldErrors(error);
       if (fieldErrors) {
         setSyncError(`Validation failed: ${Object.values(fieldErrors).slice(0, 3).join(' | ')}`);
+        if (fieldErrors.logoUrl) setLogoError(fieldErrors.logoUrl);
       } else {
         setSyncError('Failed to save contacts. Please try again.');
       }
@@ -701,6 +785,53 @@ const Contacts = () => {
               </Button>
             </div>
             {syncError && <p className="text-xs text-danger-500">{syncError}</p>}
+          </CardBody>
+        </Card>
+
+        <Card className="border border-default-200/60 bg-white/80 shadow-sm backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/80">
+          <CardBody className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex min-w-0 items-center gap-4">
+              <div
+                className={`flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-default-100 dark:bg-slate-800 ${
+                  logoError ? 'border-danger' : 'border-default-200 dark:border-slate-700'
+                }`}
+              >
+                {logoUrl ? (
+                  <img src={logoUrl} alt="LGU logo preview" className="h-full w-full object-cover" />
+                ) : (
+                  <ImagePlus className="h-9 w-9 text-default-400" />
+                )}
+              </div>
+              <div className="min-w-0 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-lg font-semibold text-default-900 dark:text-slate-100">
+                    LGU Logo <span className="text-danger">*</span>
+                  </h2>
+                  <Chip size="sm" color={logoUrl ? 'success' : 'warning'} variant="flat">
+                    {logoUrl ? 'Uploaded' : 'Required'}
+                  </Chip>
+                </div>
+                <p className="max-w-2xl text-sm text-default-500 dark:text-slate-400">{CLIENT_LOGO_HELP_TEXT}</p>
+                {logoError && <p className="text-sm text-danger">{logoError}</p>}
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                color="primary"
+                variant="flat"
+                isLoading={isLogoUploading}
+                onPress={() => logoInputRef.current?.click()}
+              >
+                {logoUrl ? 'Replace PNG' : 'Choose PNG'}
+              </Button>
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/png"
+                className="hidden"
+                onChange={handleLogoFileChange}
+              />
+            </div>
           </CardBody>
         </Card>
 
