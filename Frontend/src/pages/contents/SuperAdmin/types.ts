@@ -93,11 +93,13 @@ export type ClientLgu = {
 
 export type AdminUser = {
   uid: string;
+  invitationId?: string | null;
+  isPendingInvitation?: boolean;
   email: string;
   role: 'super_admin' | 'lgu_admin';
   clientId: string | null;
   clientName?: string | null;
-  status: 'active' | 'inactive';
+  status: 'active' | 'inactive' | 'pending';
   clientStatus?: ClientLguStatus | null;
   clientDeletionEffectiveAt?: unknown;
 };

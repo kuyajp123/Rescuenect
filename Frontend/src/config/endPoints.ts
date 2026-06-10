@@ -85,8 +85,8 @@ export const API_ENDPOINTS = {
     CLIENT_BOUNDARY: (clientId: string) => `${BACKEND_URL}/admin/super/clients/${clientId}/boundary`,
     ADMINS: `${BACKEND_URL}/admin/super/admins`,
     INVITE_ADMIN: `${BACKEND_URL}/admin/super/admins/invite`,
-    UPDATE_ADMIN: (uid: string) => `${BACKEND_URL}/admin/super/admins/${uid}`,
-    DELETE_ADMIN: (uid: string) => `${BACKEND_URL}/admin/super/admins/${uid}`,
+    UPDATE_ADMIN: (uid: string) => `${BACKEND_URL}/admin/super/admins/${encodeURIComponent(uid)}`,
+    DELETE_ADMIN: (uid: string) => `${BACKEND_URL}/admin/super/admins/${encodeURIComponent(uid)}`,
     SYSTEM_STATUS: `${BACKEND_URL}/admin/super/system-status`,
   },
   LGU_ADMIN: {

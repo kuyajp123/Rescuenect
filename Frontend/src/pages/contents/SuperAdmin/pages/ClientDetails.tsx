@@ -69,6 +69,9 @@ export const SuperAdminClientDetails = () => {
   const [isCancellingDeletion, setIsCancellingDeletion] = useState(false);
   const [statusTarget, setStatusTarget] = useState<'active' | 'inactive' | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isInviteAdminOpen, setIsInviteAdminOpen] = useState(false);
+  const [inviteAdminEmail, setInviteAdminEmail] = useState('');
+  const [isInvitingAdmin, setIsInvitingAdmin] = useState(false);
   const [coordinateErrors, setCoordinateErrors] = useState<ReturnType<typeof validateWeatherCoordinateDraft>>({});
   const [mapErrors, setMapErrors] = useState<ReturnType<typeof validateMapSettingsDraft>>({});
 
@@ -322,6 +325,48 @@ export const SuperAdminClientDetails = () => {
       addToast({ title: message, color: 'danger' });
     } finally {
       setIsCancellingDeletion(false);
+    }
+  };
+
+  const inviteClientAdmin = async () => {
+    if (!client) return;
+
+    const email = inviteAdminEmail.trim().toLowerCase();
+    if (!email) {
+      addToast({ title: 'Email is required', description: 'Enter the LGU admin email address.', color: 'warning' });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      addToast({ title: 'Valid email is required', color: 'warning' });
+      return;
+    }
+    if (isDeletionLocked) {
+      addToast({ title: 'LGU admin invites are disabled for this client', color: 'warning' });
+      return;
+    }
+
+    try {
+      setIsInvitingAdmin(true);
+      const token = await getToken();
+      await axios.post(
+        API_ENDPOINTS.SUPER_ADMIN.INVITE_ADMIN,
+        { email, role: 'lgu_admin', clientId: client.id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      addToast({ title: 'LGU admin invited', color: 'success' });
+      setInviteAdminEmail('');
+      setIsInviteAdminOpen(false);
+      refetch();
+    } catch (error) {
+      addToast({
+        title: 'Invite failed',
+        description: axios.isAxiosError(error)
+          ? error.response?.data?.message || error.message
+          : 'Failed to invite LGU admin',
+        color: 'danger',
+      });
+    } finally {
+      setIsInvitingAdmin(false);
     }
   };
 
@@ -613,7 +658,13 @@ export const SuperAdminClientDetails = () => {
         </CardBody>
       </Card>
 
-      <ClientAdminsTable admins={admins} clientStatus={client.status} onAdminStatusChanged={refetch} />
+      <ClientAdminsTable
+        admins={admins}
+        clientStatus={client.status}
+        onAdminStatusChanged={refetch}
+        onAddAdmin={() => setIsInviteAdminOpen(true)}
+        isAddAdminDisabled={isDeletionLocked}
+      />
 
       <ClientDeleteModal
         client={client}
@@ -658,6 +709,47 @@ export const SuperAdminClientDetails = () => {
                   onPress={() => statusTarget && setStatus(statusTarget)}
                 >
                   {statusTarget === 'active' ? 'Activate Client' : 'Deactivate Client'}
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      <Modal
+        isOpen={isInviteAdminOpen}
+        onOpenChange={open => {
+          setIsInviteAdminOpen(open);
+          if (!open) setInviteAdminEmail('');
+        }}
+        size="sm"
+        isDismissable={!isInvitingAdmin}
+      >
+        <ModalContent>
+          {onClose => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                <span>Add LGU Admin</span>
+                <span className="text-sm font-normal text-default-500">
+                  Invite an admin for {client.name}. They can sign in with Google after the invite is saved.
+                </span>
+              </ModalHeader>
+              <ModalBody>
+                <Input
+                  label="Email"
+                  type="email"
+                  value={inviteAdminEmail}
+                  onValueChange={setInviteAdminEmail}
+                  isDisabled={isInvitingAdmin}
+                  autoFocus
+                />
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="flat" onPress={onClose} isDisabled={isInvitingAdmin}>
+                  Cancel
+                </Button>
+                <Button color="primary" isLoading={isInvitingAdmin} onPress={inviteClientAdmin}>
+                  Send Invite
                 </Button>
               </ModalFooter>
             </>

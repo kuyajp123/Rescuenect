@@ -4,10 +4,10 @@ import { useSuperFetch } from '@/pages/contents/SuperAdmin/hooks/useSuperFetch';
 import type { OperationLog } from '@/pages/contents/SuperAdmin/types';
 import { formatDateTime, statusColor } from '@/pages/contents/SuperAdmin/utils';
 import {
+  Button,
   Card,
   CardBody,
   Chip,
-  Button,
   Input,
   Pagination,
   Select,
@@ -18,6 +18,7 @@ import {
   TableColumn,
   TableHeader,
   TableRow,
+  Tooltip,
 } from '@heroui/react';
 import { RefreshCw, Search } from 'lucide-react';
 import type { ChangeEvent } from 'react';
@@ -29,10 +30,7 @@ const ROLE_LABELS: Record<string, string> = {
   system: 'System',
 };
 
-const formatTargetType = (value: string) =>
-  value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, match => match.toUpperCase());
+const formatTargetType = (value: string) => value.replace(/_/g, ' ').replace(/\b\w/g, match => match.toUpperCase());
 
 export const SuperAdminLogs = () => {
   const { data, loading, refetch } = useSuperFetch<{ logs: OperationLog[] }>(
@@ -154,9 +152,11 @@ export const SuperAdminLogs = () => {
             ))}
           </Select>
         </div>
-        <Button isIconOnly variant="flat" aria-label="Refresh logs" isLoading={loading} onPress={refetch}>
-          <RefreshCw size={16} />
-        </Button>
+        <Tooltip content="Refresh logs" placement="top">
+          <Button isIconOnly variant="flat" aria-label="Refresh logs" isLoading={loading} onPress={refetch}>
+            <RefreshCw size={16} />
+          </Button>
+        </Tooltip>
       </div>
 
       <Card className="border border-default-200">
@@ -190,7 +190,9 @@ export const SuperAdminLogs = () => {
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        <p className="font-medium">{log.targetName || log.targetId || formatTargetType(log.targetType)}</p>
+                        <p className="font-medium">
+                          {log.targetName || log.targetId || formatTargetType(log.targetType)}
+                        </p>
                         <p className="text-xs text-default-400">{formatTargetType(log.targetType)}</p>
                       </div>
                     </TableCell>

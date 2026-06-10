@@ -267,7 +267,11 @@ export const SuperAdminClientRequests = () => {
                     <TableCell>{formatDateTime(request.createdAt || request.requestedAt)}</TableCell>
                     <TableCell>{request.requestedByEmail || request.requestedBy}</TableCell>
                     <TableCell>
-                      <Chip size="sm" color={statusColor(request.status) as any}>
+                      <Chip
+                        size="sm"
+                        color={statusColor(request.status) as any}
+                        className={`${request.status === 'cancelled' ? '' : 'text-white'}`}
+                      >
                         {request.status}
                       </Chip>
                     </TableCell>

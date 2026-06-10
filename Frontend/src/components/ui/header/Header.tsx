@@ -86,6 +86,9 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
       if (currentPath === '/announcement/edit') {
         return;
       }
+      if (currentPath === '/super') {
+        return;
+      }
 
       let label = '';
       switch (currentPath) {

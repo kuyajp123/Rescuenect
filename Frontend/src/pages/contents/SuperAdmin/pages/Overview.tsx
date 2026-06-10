@@ -2,10 +2,21 @@ import { API_ENDPOINTS } from '@/config/endPoints';
 import { useSuperFetch } from '@/pages/contents/SuperAdmin/hooks/useSuperFetch';
 import type { SuperAdminOverview as SuperAdminOverviewData } from '@/pages/contents/SuperAdmin/types';
 import { useAuth } from '@/stores/useAuth';
-import { Button, Card, CardBody, Chip } from '@heroui/react';
+import { Button, Card, CardBody, Chip, Tooltip as HeroTooltip } from '@heroui/react';
 import { Activity, Building2, CheckCircle2, HeartPulse, RefreshCcw, UsersRound } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Link } from 'react-router-dom';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 const COLORS = ['#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -38,7 +49,11 @@ export const SuperAdminOverview = () => {
   const checks = system
     ? [
         { label: 'Backend', value: system.status, ok: system.status === 'healthy' },
-        { label: 'Firebase', value: system.firebase.connected ? 'connected' : 'disconnected', ok: system.firebase.connected },
+        {
+          label: 'Firebase',
+          value: system.firebase.connected ? 'connected' : 'disconnected',
+          ok: system.firebase.connected,
+        },
         { label: 'PSGC API', value: system.psgc.status, ok: system.psgc.configured },
         { label: 'Weather API', value: system.weather.status, ok: system.weather.configured },
         { label: 'Earthquake Monitor', value: system.earthquake.status, ok: system.earthquake.status === 'configured' },
@@ -52,9 +67,11 @@ export const SuperAdminOverview = () => {
           <h1 className="text-3xl font-bold">Super Admin Overview</h1>
           <p className="text-sm text-default-500">Signed in as {userData?.email}</p>
         </div>
-        <Button isIconOnly variant="flat" onPress={refetch} isLoading={loading} aria-label="Refresh overview">
-          <RefreshCcw size={18} />
-        </Button>
+        <HeroTooltip content="Refresh overview data" placement="top">
+          <Button isIconOnly variant="flat" onPress={refetch} isLoading={loading} aria-label="Refresh overview">
+            <RefreshCcw size={18} />
+          </Button>
+        </HeroTooltip>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -81,7 +98,13 @@ export const SuperAdminOverview = () => {
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={data?.charts.clientStatus ?? []} dataKey="value" nameKey="name" innerRadius={62} outerRadius={96}>
+                  <Pie
+                    data={data?.charts.clientStatus ?? []}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={62}
+                    outerRadius={96}
+                  >
                     {(data?.charts.clientStatus ?? []).map((entry, index) => (
                       <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
                     ))}
@@ -101,7 +124,10 @@ export const SuperAdminOverview = () => {
             </div>
             <div className="grid gap-3">
               {checks.map(check => (
-                <div key={check.label} className="flex items-center justify-between rounded-lg border border-default-200 p-3">
+                <div
+                  key={check.label}
+                  className="flex items-center justify-between rounded-lg border border-default-200 p-3"
+                >
                   <div>
                     <p className="text-sm text-default-500">{check.label}</p>
                     <p className="font-semibold">{check.value}</p>

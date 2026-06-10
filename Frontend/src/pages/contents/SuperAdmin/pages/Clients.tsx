@@ -2,7 +2,7 @@ import { API_ENDPOINTS } from '@/config/endPoints';
 import { ClientDeleteModal } from '@/pages/contents/SuperAdmin/components/ClientDeleteModal';
 import { useSuperFetch } from '@/pages/contents/SuperAdmin/hooks/useSuperFetch';
 import type { AdminUser, ClientDeletionPreview, ClientLgu } from '@/pages/contents/SuperAdmin/types';
-import { formatStatusLabel, getToken, statusColor } from '@/pages/contents/SuperAdmin/utils';
+import { getToken, statusColor } from '@/pages/contents/SuperAdmin/utils';
 import type { SortDescriptor } from '@heroui/react';
 import {
   Button,
@@ -19,7 +19,7 @@ import {
   addToast,
 } from '@heroui/react';
 import axios from 'axios';
-import { Archive as ArchiveIcon, Building2, RefreshCcw, Search, Settings, Trash2 } from 'lucide-react';
+import { Archive as ArchiveIcon, RefreshCcw, Search, Settings, Trash2 } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -220,7 +220,11 @@ export const SuperAdminClients = () => {
           <p className="text-sm text-default-500">Search LGU clients, review their status, and open detailed setup.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="flat" startContent={<ArchiveIcon size={16} />} onPress={() => navigate('/super/clients/archive')}>
+          <Button
+            variant="flat"
+            startContent={<ArchiveIcon size={16} />}
+            onPress={() => navigate('/super/clients/archive')}
+          >
             Archive
           </Button>
           <Tooltip content="Refresh clients">
@@ -276,9 +280,6 @@ export const SuperAdminClients = () => {
               <TableRow key={client.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <Building2 size={18} />
-                    </div>
                     <div>
                       <p className="font-semibold">{client.name}</p>
                       <p className="text-xs text-default-500">{client.id}</p>
@@ -292,8 +293,8 @@ export const SuperAdminClients = () => {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Chip size="sm" color={statusColor(client.status) as any}>
-                    {formatStatusLabel(client.status)}
+                  <Chip size="sm" color={statusColor(client.status) as any} className="text-white">
+                    {client.status}
                   </Chip>
                   {Boolean(client.deletionEffectiveAt) && (
                     <p className="mt-1 text-xs text-warning-600">Effective deletion scheduled</p>

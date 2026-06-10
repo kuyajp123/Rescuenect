@@ -1,5 +1,5 @@
 export type AdminRole = 'super_admin' | 'lgu_admin';
-export type AdminStatus = 'active' | 'inactive';
+export type AdminStatus = 'active' | 'inactive' | 'pending';
 export type ClientLguStatus = 'draft' | 'active' | 'inactive' | 'deletion_scheduled' | 'deleting' | 'deleted';
 export type ClientLguType = 'municipality' | 'city';
 export type LguRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
@@ -57,6 +57,8 @@ export interface ClientEarthquakeImpact {
 
 export interface AdminUser {
   uid: string;
+  invitationId?: string | null;
+  isPendingInvitation?: boolean;
   email: string;
   role: AdminRole;
   clientId: string | null;

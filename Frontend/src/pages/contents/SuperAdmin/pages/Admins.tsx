@@ -26,7 +26,7 @@ import {
   addToast,
 } from '@heroui/react';
 import axios from 'axios';
-import { Plus, RefreshCcw, Shield, Trash2, UserCheck, UserX } from 'lucide-react';
+import { Plus, RefreshCcw, Trash2, UserCheck, UserX } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -48,6 +48,7 @@ export const SuperAdminAdmins = () => {
   const [adminStatusTarget, setAdminStatusTarget] = useState<AdminStatusTarget | null>(null);
   const [isUpdatingAdminStatus, setIsUpdatingAdminStatus] = useState(false);
   const [adminToDelete, setAdminToDelete] = useState<AdminUser | null>(null);
+  const [isDeletingAdmin, setIsDeletingAdmin] = useState(false);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
@@ -105,7 +106,11 @@ export const SuperAdminAdmins = () => {
 
   const inviteAdmin = async () => {
     if (!inviteEmail.trim() || !inviteClientId) {
-      addToast({ title: 'Invite details required', description: 'Select a client and enter an email.', color: 'warning' });
+      addToast({
+        title: 'Invite details required',
+        description: 'Select a client and enter an email.',
+        color: 'warning',
+      });
       return;
     }
 
@@ -123,7 +128,9 @@ export const SuperAdminAdmins = () => {
     } catch (error) {
       addToast({
         title: 'Invite failed',
-        description: axios.isAxiosError(error) ? error.response?.data?.message || error.message : 'Failed to invite admin',
+        description: axios.isAxiosError(error)
+          ? error.response?.data?.message || error.message
+          : 'Failed to invite admin',
         color: 'danger',
       });
     }
@@ -161,26 +168,45 @@ export const SuperAdminAdmins = () => {
   const deleteAdmin = async () => {
     if (!adminToDelete) return;
 
-    const token = await getToken();
-    await axios.delete(API_ENDPOINTS.SUPER_ADMIN.DELETE_ADMIN(adminToDelete.uid), {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    addToast({ title: 'LGU admin deleted', color: 'success' });
-    setAdminToDelete(null);
-    refetch();
+    try {
+      setIsDeletingAdmin(true);
+      const token = await getToken();
+      await axios.delete(API_ENDPOINTS.SUPER_ADMIN.DELETE_ADMIN(adminToDelete.uid), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      addToast({
+        title: adminToDelete.isPendingInvitation ? 'Invitation revoked' : 'LGU admin deleted',
+        color: 'success',
+      });
+      setAdminToDelete(null);
+      refetch();
+    } catch (error) {
+      addToast({
+        title: adminToDelete.isPendingInvitation ? 'Revoke failed' : 'Delete failed',
+        description: axios.isAxiosError(error)
+          ? error.response?.data?.message || error.message
+          : 'Failed to update LGU admin access',
+        color: 'danger',
+      });
+    } finally {
+      setIsDeletingAdmin(false);
+    }
   };
 
   const getAdminClientStatus = (admin: AdminUser) =>
-    admin.clientStatus ?? (admin.clientId ? clientStatusById.get(admin.clientId) ?? null : null);
+    admin.clientStatus ?? (admin.clientId ? (clientStatusById.get(admin.clientId) ?? null) : null);
 
   const renderAdminActions = (admin: AdminUser) => {
     const isSelf = admin.uid === userData?.uid;
     const canDelete = admin.role === 'lgu_admin' && !isSelf;
+    const isPending = admin.status === 'pending' || admin.isPendingInvitation;
     const isActive = admin.status === 'active';
     const clientStatus = getAdminClientStatus(admin);
-    const canActivate = !isActive && clientStatus === 'active';
+    const canActivate = !isPending && !isActive && clientStatus === 'active';
     const activationTooltip =
-      clientStatus === 'deleted'
+      isPending
+        ? 'Pending invites become active after the invited admin signs in'
+        : clientStatus === 'deleted'
         ? 'Deleted client admins cannot be activated'
         : clientStatus
           ? 'Assigned client must be active before activation'
@@ -195,13 +221,21 @@ export const SuperAdminAdmins = () => {
             variant="light"
             color={isActive ? 'warning' : 'success'}
             aria-label={isActive ? 'Deactivate admin' : 'Activate admin'}
-            isDisabled={(isSelf && isActive) || (!isActive && !canActivate)}
+            isDisabled={isPending || (isSelf && isActive) || (!isActive && !canActivate)}
             onPress={() => setAdminStatusTarget({ admin, status: isActive ? 'inactive' : 'active' })}
           >
             {isActive ? <UserX size={16} /> : <UserCheck size={16} />}
           </Button>
         </Tooltip>
-        <Tooltip content={canDelete ? 'Delete LGU admin' : 'Only LGU admins can be deleted'}>
+        <Tooltip
+          content={
+            canDelete
+              ? isPending
+                ? 'Revoke LGU admin invite'
+                : 'Delete LGU admin'
+              : 'Only LGU admins can be deleted'
+          }
+        >
           <Button
             isIconOnly
             size="sm"
@@ -289,12 +323,11 @@ export const SuperAdminAdmins = () => {
               <TableRow key={admin.uid}>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <Shield size={18} />
-                    </div>
                     <div>
                       <p className="font-semibold">{admin.email}</p>
-                      <p className="text-xs text-default-500">{admin.uid}</p>
+                      <p className="text-xs text-default-500">
+                        {admin.isPendingInvitation ? 'Pending invite' : admin.uid}
+                      </p>
                     </div>
                   </div>
                 </TableCell>
@@ -305,7 +338,7 @@ export const SuperAdminAdmins = () => {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Chip size="sm" color={statusColor(admin.status) as any}>
+                  <Chip size="sm" color={statusColor(admin.status) as any} className="text-white">
                     {admin.status}
                   </Chip>
                 </TableCell>
@@ -388,23 +421,33 @@ export const SuperAdminAdmins = () => {
         </ModalContent>
       </Modal>
 
-      <Modal isOpen={!!adminToDelete} onOpenChange={open => !open && setAdminToDelete(null)} size="sm">
+      <Modal
+        isOpen={!!adminToDelete}
+        onOpenChange={open => !open && setAdminToDelete(null)}
+        size="sm"
+        isDismissable={!isDeletingAdmin}
+      >
         <ModalContent>
           {onClose => (
             <>
-              <ModalHeader className="flex flex-col gap-1">Delete LGU admin?</ModalHeader>
+              <ModalHeader className="flex flex-col gap-1">
+                {adminToDelete?.isPendingInvitation ? 'Revoke LGU admin invite?' : 'Delete LGU admin?'}
+              </ModalHeader>
               <ModalBody>
                 <p className="text-sm text-default-600">
-                  This removes <span className="font-semibold">{adminToDelete?.email}</span> from admin access and
-                  revokes the matching invite.
+                  {adminToDelete?.isPendingInvitation ? 'This revokes the pending invite for ' : 'This removes '}
+                  <span className="font-semibold">{adminToDelete?.email}</span>
+                  {adminToDelete?.isPendingInvitation
+                    ? ' and prevents that email from accepting access.'
+                    : ' from admin access and revokes the matching invite.'}
                 </p>
               </ModalBody>
               <ModalFooter>
-                <Button variant="flat" onPress={onClose}>
+                <Button variant="flat" onPress={onClose} isDisabled={isDeletingAdmin}>
                   Cancel
                 </Button>
-                <Button color="danger" onPress={deleteAdmin}>
-                  Delete
+                <Button color="danger" isLoading={isDeletingAdmin} onPress={deleteAdmin}>
+                  {adminToDelete?.isPendingInvitation ? 'Revoke Invite' : 'Delete'}
                 </Button>
               </ModalFooter>
             </>
