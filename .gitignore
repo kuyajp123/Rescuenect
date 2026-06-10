@@ -4,3 +4,4 @@ ui-debug.log
 node_modules/
 .kiro
 .amazonq
+.codex-remote-attachments
