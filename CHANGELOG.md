@@ -1,3 +1,17 @@
+## [2.3.0](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0...v2.3.0) (2026-06-10)
+
+### Features
+
+* Add client logo upload functionality ([11a9aa5](https://github.com/kuyajp123/Rescuenect/commit/11a9aa5ef0e860ad67c566e73fde1b22faf2c79d))
+* Add form validation in LGU request access ([f528a1a](https://github.com/kuyajp123/Rescuenect/commit/f528a1ae98aeed39929cf5d0a51359877fcb77f7))
+* **LGU admins:** add pending invite to LGU admin ([c6c73a8](https://github.com/kuyajp123/Rescuenect/commit/c6c73a871b6f443f1c4918fe29175f4e3b766639))
+* **super:** Add Supabase monitoring & server wake ([eec86cd](https://github.com/kuyajp123/Rescuenect/commit/eec86cd86dbc75038b4d29717d88281f8c251b3a))
+
+### Bug Fixes
+
+* **LGU Client Requests:** add validation in form ([745b71b](https://github.com/kuyajp123/Rescuenect/commit/745b71ba45247e4b4f9cd6ed126aa16dc61e8d69))
+* update notification system and settings ([e27cc75](https://github.com/kuyajp123/Rescuenect/commit/e27cc75a9cc1082e47fe3b6c136feb8d3451385d))
+
 ## [2.2.0](https://github.com/kuyajp123/Rescuenect/compare/v2.1.0...v2.2.0) (2026-06-07)
 
 ### Features
