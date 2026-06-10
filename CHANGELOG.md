@@ -1,3 +1,9 @@
+## [2.2.0-staging.7](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.6...v2.2.0-staging.7) (2026-06-10)
+
+### Features
+
+* Add client logo upload functionality ([11a9aa5](https://github.com/kuyajp123/Rescuenect/commit/11a9aa5ef0e860ad67c566e73fde1b22faf2c79d))
+
 ## [2.2.0-staging.6](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.5...v2.2.0-staging.6) (2026-06-10)
 
 ### Features
