@@ -1,7 +1,13 @@
 import { db } from '@/db/firestoreConfig';
 // import { EmailService } from '@/services/EmailService';
 import { ManagementNotificationService } from '@/services/ManagementNotificationService';
-import type { ClientChangeRequest, ClientChangeRequestType, ClientLgu, ClientMapSettings } from '@/types/admin';
+import type {
+  ClientChangeRequest,
+  ClientChangeRequestType,
+  ClientCoverageBarangay,
+  ClientLgu,
+  ClientMapSettings,
+} from '@/types/admin';
 import { areChangeValuesEqual, hasRecordChanges } from '@/utils/changeDetection';
 import { FieldValue } from 'firebase-admin/firestore';
 import { AdminAuthModel } from './AdminAuthModel';
@@ -16,6 +22,49 @@ const allowedTypes: ClientChangeRequestType[] = [
   'boundary_update',
 ];
 
+const FIELD_LIMITS = {
+  weatherLocationKey: 80,
+  clientName: 120,
+  email: 254,
+  regionCode: 20,
+  regionName: 120,
+  provinceCode: 20,
+  provinceName: 120,
+  municipalityCode: 20,
+  municipalityName: 120,
+  boundarySource: 180,
+  barangayCode: 20,
+  barangayLabel: 120,
+  barangayValue: 120,
+} as const;
+
+const FIELD_LABELS: Record<keyof typeof FIELD_LIMITS, string> = {
+  weatherLocationKey: 'Weather key',
+  clientName: 'LGU name',
+  email: 'Email',
+  regionCode: 'Region code',
+  regionName: 'Region name',
+  provinceCode: 'Province code',
+  provinceName: 'Province name',
+  municipalityCode: 'Municipality or city code',
+  municipalityName: 'Municipality or city name',
+  boundarySource: 'Boundary source',
+  barangayCode: 'Barangay code',
+  barangayLabel: 'Barangay name',
+  barangayValue: 'Barangay value',
+};
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+class ChangeRequestValidationError extends Error {
+  fieldErrors: Record<string, string>;
+
+  constructor(fieldErrors: Record<string, string>) {
+    super('Validation failed');
+    this.fieldErrors = fieldErrors;
+  }
+}
+
 const asString = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 const asEmail = (value: unknown): string => asString(value).toLowerCase();
 const asNumberOrNull = (value: unknown): number | null => {
@@ -25,6 +74,62 @@ const asNumberOrNull = (value: unknown): number | null => {
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
+};
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value && typeof value === 'object' && !Array.isArray(value));
+const isWholeNumber = (value: number) => Number.isInteger(value);
+
+const throwIfValidationErrors = (errors: Record<string, string>) => {
+  if (Object.keys(errors).length > 0) throw new ChangeRequestValidationError(errors);
+};
+
+const validateMaxLength = (
+  errors: Record<string, string>,
+  errorKey: string,
+  fieldKey: keyof typeof FIELD_LIMITS,
+  value: string
+) => {
+  const maxLength = FIELD_LIMITS[fieldKey];
+  if (value.length > maxLength) {
+    errors[errorKey] = `${FIELD_LABELS[fieldKey]} should not exceed ${maxLength} characters`;
+  }
+};
+
+const requireString = (
+  payload: Record<string, unknown>,
+  key: string,
+  fieldKey: keyof typeof FIELD_LIMITS,
+  errors: Record<string, string>
+) => {
+  const value = asString(payload[key]);
+  if (!value) errors[key] = `${FIELD_LABELS[fieldKey]} is required`;
+  else validateMaxLength(errors, key, fieldKey, value);
+  return value;
+};
+
+const readOptionalString = (
+  payload: Record<string, unknown>,
+  key: string,
+  fieldKey: keyof typeof FIELD_LIMITS,
+  errors: Record<string, string>
+) => {
+  const value = asString(payload[key]);
+  if (value) validateMaxLength(errors, key, fieldKey, value);
+  return value;
+};
+
+const requireBoundedNumber = (
+  payload: Record<string, unknown>,
+  key: string,
+  label: string,
+  min: number,
+  max: number,
+  errors: Record<string, string>
+) => {
+  const value = asNumberOrNull(payload[key]);
+  if (value === null) errors[key] = `${label} is required`;
+  else if (value < min || value > max) errors[key] = `${label} must be between ${min} and ${max}`;
+  return value;
 };
 
 const serialize = (id: string, data: FirebaseFirestore.DocumentData): ClientChangeRequest => ({
@@ -82,7 +187,10 @@ const hasProposalChanges = (
   }
 
   if (type === 'map_settings') {
-    return !areChangeValuesEqual(currentSnapshot.mapSettings, proposedChanges.mapSettings);
+    return !areChangeValuesEqual(
+      getComparableMapSettings(currentSnapshot.mapSettings),
+      getComparableMapSettings(proposedChanges.mapSettings)
+    );
   }
 
   if (type === 'barangay_coverage') {
@@ -99,19 +207,163 @@ const hasProposalChanges = (
   return hasRecordChanges(currentSnapshot, proposedChanges);
 };
 
+const getComparableMapSettings = (value: unknown): ClientMapSettings => {
+  const settings = isRecord(value) ? value : {};
+  const bounds = isRecord(settings.maxBounds) ? settings.maxBounds : null;
+
+  return {
+    centerLatitude: asNumberOrNull(settings.centerLatitude),
+    centerLongitude: asNumberOrNull(settings.centerLongitude),
+    minZoom: asNumberOrNull(settings.minZoom) ?? 13,
+    zoom: asNumberOrNull(settings.zoom) ?? 15,
+    maxZoom: asNumberOrNull(settings.maxZoom) ?? 18,
+    maxBounds: bounds
+      ? {
+          north: asNumberOrNull(bounds.north) ?? 0,
+          south: asNumberOrNull(bounds.south) ?? 0,
+          east: asNumberOrNull(bounds.east) ?? 0,
+          west: asNumberOrNull(bounds.west) ?? 0,
+        }
+      : null,
+    boundarySource: asString(settings.boundarySource) || null,
+    boundaryVerified: settings.boundaryVerified === true,
+  };
+};
+
+const validateMapSettings = (value: unknown): ClientMapSettings => {
+  const errors: Record<string, string> = {};
+  if (!isRecord(value)) {
+    throw new ChangeRequestValidationError({ mapSettings: 'Map settings are required' });
+  }
+
+  const centerLatitude = requireBoundedNumber(value, 'centerLatitude', 'Center latitude', -90, 90, errors);
+  const centerLongitude = requireBoundedNumber(value, 'centerLongitude', 'Center longitude', -180, 180, errors);
+  const minZoom = requireBoundedNumber(value, 'minZoom', 'Minimum zoom', 12, 13, errors);
+  const zoom = requireBoundedNumber(value, 'zoom', 'Default zoom', 12, 17, errors);
+  const maxZoom = requireBoundedNumber(value, 'maxZoom', 'Maximum zoom', 12, 18, errors);
+  const maxBounds = isRecord(value.maxBounds) ? value.maxBounds : null;
+
+  if (minZoom !== null && !isWholeNumber(minZoom)) errors.minZoom = 'Minimum zoom must be a whole number';
+  if (zoom !== null && !isWholeNumber(zoom)) errors.zoom = 'Default zoom must be a whole number';
+  if (maxZoom !== null && !isWholeNumber(maxZoom)) errors.maxZoom = 'Maximum zoom must be a whole number';
+
+  if (minZoom !== null && zoom !== null && zoom < minZoom) {
+    errors.zoom = 'Default zoom must be greater than or equal to minimum zoom';
+  }
+  if (zoom !== null && maxZoom !== null && maxZoom < zoom) {
+    errors.maxZoom = 'Maximum zoom must be greater than or equal to default zoom';
+  }
+
+  if (!maxBounds) errors.maxBounds = 'Map bounds are required';
+  const north = maxBounds ? requireBoundedNumber(maxBounds, 'north', 'North bound', -90, 90, errors) : null;
+  const south = maxBounds ? requireBoundedNumber(maxBounds, 'south', 'South bound', -90, 90, errors) : null;
+  const east = maxBounds ? requireBoundedNumber(maxBounds, 'east', 'East bound', -180, 180, errors) : null;
+  const west = maxBounds ? requireBoundedNumber(maxBounds, 'west', 'West bound', -180, 180, errors) : null;
+
+  if (north !== null && south !== null && north <= south) {
+    errors.north = 'North bound must be greater than south bound';
+    errors.south = 'South bound must be less than north bound';
+  }
+  if (east !== null && west !== null && east <= west) {
+    errors.east = 'East bound must be greater than west bound';
+    errors.west = 'West bound must be less than east bound';
+  }
+  if (centerLatitude !== null && north !== null && south !== null && (centerLatitude > north || centerLatitude < south)) {
+    errors.centerLatitude = 'Center latitude must be inside the north/south bounds';
+  }
+  if (centerLongitude !== null && east !== null && west !== null && (centerLongitude > east || centerLongitude < west)) {
+    errors.centerLongitude = 'Center longitude must be inside the east/west bounds';
+  }
+
+  const boundarySource = readOptionalString(value, 'boundarySource', 'boundarySource', errors);
+
+  throwIfValidationErrors(errors);
+
+  return {
+    centerLatitude,
+    centerLongitude,
+    minZoom: minZoom as number,
+    zoom: zoom as number,
+    maxZoom: maxZoom as number,
+    maxBounds: {
+      north: north as number,
+      south: south as number,
+      east: east as number,
+      west: west as number,
+    },
+    boundarySource: boundarySource || null,
+    boundaryVerified: value.boundaryVerified === true,
+  };
+};
+
+const normalizeCoverageBarangay = (
+  value: unknown,
+  index: number,
+  errors: Record<string, string>
+): ClientCoverageBarangay | null => {
+  if (!isRecord(value)) {
+    errors[`barangays.${index}`] = 'Barangay entry is invalid';
+    return null;
+  }
+
+  const label = asString(value.barangayLabel || value.name || value.label);
+  const code = asString(value.barangayCode || value.code || value.psgcCode);
+  const rawValue = asString(value.value) || label;
+  const latitude = value.latitude === null || value.latitude === undefined ? null : asNumberOrNull(value.latitude);
+  const longitude = value.longitude === null || value.longitude === undefined ? null : asNumberOrNull(value.longitude);
+
+  if (!label) errors[`barangays.${index}.barangayLabel`] = 'Barangay name is required';
+  else validateMaxLength(errors, `barangays.${index}.barangayLabel`, 'barangayLabel', label);
+  if (!rawValue) errors[`barangays.${index}.value`] = 'Barangay value is required';
+  else validateMaxLength(errors, `barangays.${index}.value`, 'barangayValue', rawValue);
+  if (code) validateMaxLength(errors, `barangays.${index}.barangayCode`, 'barangayCode', code);
+  if (latitude === null && value.latitude !== null && value.latitude !== undefined) {
+    errors[`barangays.${index}.latitude`] = 'Barangay latitude must be a valid number';
+  } else if (latitude !== null && (latitude < -90 || latitude > 90)) {
+    errors[`barangays.${index}.latitude`] = 'Barangay latitude must be between -90 and 90';
+  }
+  if (longitude === null && value.longitude !== null && value.longitude !== undefined) {
+    errors[`barangays.${index}.longitude`] = 'Barangay longitude must be a valid number';
+  } else if (longitude !== null && (longitude < -180 || longitude > 180)) {
+    errors[`barangays.${index}.longitude`] = 'Barangay longitude must be between -180 and 180';
+  }
+
+  if (!label || !rawValue) return null;
+
+  return {
+    barangayCode: code || null,
+    barangayLabel: label,
+    value: rawValue.trim().toLowerCase(),
+    isActive: value.isActive !== false,
+    latitude,
+    longitude,
+    verified: value.verified !== false,
+  };
+};
+
 const sanitizeProposal = (
   type: ClientChangeRequestType,
   proposedChanges: Record<string, unknown>,
   client: ClientLgu
 ): Record<string, unknown> => {
   if (type === 'weather_coordinates') {
+    const errors: Record<string, string> = {};
+    const weatherLocationKey = requireString(proposedChanges, 'weatherLocationKey', 'weatherLocationKey', errors);
     const latitude = asNumberOrNull(proposedChanges.weatherLatitude);
     const longitude = asNumberOrNull(proposedChanges.weatherLongitude);
-    if (latitude === null || longitude === null) throw new Error('Weather latitude and longitude are required');
+    if (latitude === null) errors.weatherLatitude = 'Weather latitude is required';
+    else if (latitude < -90 || latitude > 90) errors.weatherLatitude = 'Weather latitude must be between -90 and 90';
+    if (longitude === null) errors.weatherLongitude = 'Weather longitude is required';
+    else if (longitude < -180 || longitude > 180) {
+      errors.weatherLongitude = 'Weather longitude must be between -180 and 180';
+    }
+
+    throwIfValidationErrors(errors);
+
     return {
       weatherLatitude: latitude,
       weatherLongitude: longitude,
-      weatherLocationKey: asString(proposedChanges.weatherLocationKey) || client.weatherLocationKey,
+      weatherLocationKey,
       mapSettings: normalizeMapSettings(
         {
           ...client.mapSettings,
@@ -125,9 +377,10 @@ const sanitizeProposal = (
   }
 
   if (type === 'map_settings') {
+    const mapSettings = validateMapSettings(proposedChanges.mapSettings);
     return {
       mapSettings: normalizeMapSettings(
-        proposedChanges.mapSettings,
+        mapSettings,
         client.weatherLatitude,
         client.weatherLongitude
       ) as ClientMapSettings,
@@ -135,40 +388,74 @@ const sanitizeProposal = (
   }
 
   if (type === 'barangay_coverage') {
-    if (!Array.isArray(proposedChanges.barangays)) throw new Error('Barangay coverage is required');
-    return { barangays: proposedChanges.barangays };
+    const errors: Record<string, string> = {};
+    if (!Array.isArray(proposedChanges.barangays)) {
+      throw new ChangeRequestValidationError({ barangays: 'Barangay coverage is required' });
+    }
+
+    const barangays = proposedChanges.barangays
+      .map((barangay, index) => normalizeCoverageBarangay(barangay, index, errors))
+      .filter((barangay): barangay is ClientCoverageBarangay => Boolean(barangay));
+
+    if (barangays.length === 0) errors.barangays = 'Barangay coverage is required';
+    else if (!barangays.some(barangay => barangay.isActive !== false)) {
+      errors.barangays = 'At least one barangay must remain enabled';
+    }
+
+    throwIfValidationErrors(errors);
+
+    return { barangays };
   }
 
   if (type === 'client_info') {
+    const errors: Record<string, string> = {};
     const allowed: Record<string, unknown> = {};
-    [
-      'name',
-      'regionCode',
-      'regionName',
-      'provinceCode',
-      'provinceName',
-      'municipalityCode',
-      'municipalityName',
-    ].forEach(key => {
-      if (Object.prototype.hasOwnProperty.call(proposedChanges, key)) allowed[key] = proposedChanges[key];
+    const allowedFields: Array<[string, keyof typeof FIELD_LIMITS]> = [
+      ['name', 'clientName'],
+      ['regionCode', 'regionCode'],
+      ['regionName', 'regionName'],
+      ['provinceCode', 'provinceCode'],
+      ['provinceName', 'provinceName'],
+      ['municipalityCode', 'municipalityCode'],
+      ['municipalityName', 'municipalityName'],
+    ];
+
+    allowedFields.forEach(([key, fieldKey]) => {
+      if (!Object.prototype.hasOwnProperty.call(proposedChanges, key)) return;
+      allowed[key] = requireString(proposedChanges, key, fieldKey, errors);
     });
-    if (Object.keys(allowed).length === 0) throw new Error('At least one client information field is required');
+
+    if (Object.keys(allowed).length === 0) errors.clientInfo = 'At least one client information field is required';
+
+    throwIfValidationErrors(errors);
+
     return allowed;
   }
 
   if (type === 'admin_invite') {
+    const errors: Record<string, string> = {};
     const email = asEmail(proposedChanges.email);
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Valid invite email is required');
+    if (!email) errors.email = 'Email is required';
+    else if (email.length > FIELD_LIMITS.email) errors.email = `Email should not exceed ${FIELD_LIMITS.email} characters`;
+    else if (!EMAIL_PATTERN.test(email)) errors.email = 'Enter a valid email address';
+
+    throwIfValidationErrors(errors);
+
     return { email };
   }
 
   if (type === 'boundary_update') {
-    if (!proposedChanges.geoJson || typeof proposedChanges.geoJson !== 'object') {
-      throw new Error('GeoJSON boundary is required');
+    const errors: Record<string, string> = {};
+    if (!isRecord(proposedChanges.geoJson)) {
+      errors.geoJson = 'GeoJSON boundary is required';
     }
+    const source = readOptionalString(proposedChanges, 'source', 'boundarySource', errors);
+
+    throwIfValidationErrors(errors);
+
     return {
       geoJsonText: stringifyGeoJsonForStorage(proposedChanges.geoJson as Record<string, unknown>),
-      source: asString(proposedChanges.source) || null,
+      source: source || null,
     };
   }
 
