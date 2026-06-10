@@ -1,3 +1,9 @@
+## [2.2.0-staging.4](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.3...v2.2.0-staging.4) (2026-06-10)
+
+### Bug Fixes
+
+* update notification system and settings ([e27cc75](https://github.com/kuyajp123/Rescuenect/commit/e27cc75a9cc1082e47fe3b6c136feb8d3451385d))
+
 ## [2.2.0-staging.3](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.2...v2.2.0-staging.3) (2026-06-10)
 
 ### Bug Fixes
