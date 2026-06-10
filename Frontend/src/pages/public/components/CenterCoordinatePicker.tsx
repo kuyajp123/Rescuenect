@@ -2,11 +2,15 @@ import markerIcon from '@/assets/leaflet/marker-icon-blue.png';
 import { Button, Chip, addToast } from '@heroui/react';
 import L from 'leaflet';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-import { Crosshair, LocateFixed, MapPin } from 'lucide-react';
+import { Crosshair, LocateFixed, MapPin, RotateCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 
 const PHILIPPINES_CENTER: [number, number] = [12.8797, 121.774];
+const PHILIPPINES_BOUNDS: L.LatLngBoundsExpression = [
+  [4.5, 116],
+  [21.5, 127],
+];
 const TILE_URL = 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png';
 const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
@@ -24,7 +28,9 @@ type CenterCoordinatePickerProps = {
   longitude: string;
   municipalityName?: string;
   isDisabled?: boolean;
+  errorMessage?: string;
   onChange: (latitude: string, longitude: string) => void;
+  onReset?: () => void;
 };
 
 const toNumber = (value: string): number | null => {
@@ -45,10 +51,12 @@ const isUsableCoordinate = (latitude: number | null, longitude: number | null) =
 
 const MapSizeBridge = ({
   center,
+  hasMarker,
   zoom,
   isDisabled,
 }: {
   center: [number, number];
+  hasMarker: boolean;
   zoom: number;
   isDisabled: boolean;
 }) => {
@@ -60,8 +68,13 @@ const MapSizeBridge = ({
   }, [map]);
 
   useEffect(() => {
-    map.setView(center, zoom, { animate: true, duration: 0.25 });
-  }, [center, map, zoom]);
+    if (hasMarker) {
+      map.setView(center, zoom, { animate: true, duration: 0.25 });
+      return;
+    }
+
+    map.fitBounds(PHILIPPINES_BOUNDS, { padding: [12, 12], animate: true, duration: 0.25 });
+  }, [center, hasMarker, map, zoom]);
 
   useEffect(() => {
     const method = isDisabled ? 'disable' : 'enable';
@@ -98,7 +111,9 @@ export const CenterCoordinatePicker = ({
   longitude,
   municipalityName,
   isDisabled = false,
+  errorMessage,
   onChange,
+  onReset,
 }: CenterCoordinatePickerProps) => {
   const [isLocating, setIsLocating] = useState(false);
   const latitudeNumber = toNumber(latitude);
@@ -112,6 +127,12 @@ export const CenterCoordinatePicker = ({
 
   const updateCenter = (nextLatitude: number, nextLongitude: number) => {
     onChange(formatCoordinate(nextLatitude), formatCoordinate(nextLongitude));
+  };
+
+  const resetCenter = () => {
+    setIsLocating(false);
+    if (onReset) onReset();
+    else onChange('', '');
   };
 
   const useBrowserLocation = () => {
@@ -145,7 +166,11 @@ export const CenterCoordinatePicker = ({
   };
 
   return (
-    <div className="md:col-span-2 space-y-3 rounded-xl border border-default-200 bg-default-50/40 p-3">
+    <div
+      className={`md:col-span-2 space-y-3 rounded-xl border bg-default-50/40 p-3 ${
+        errorMessage ? 'border-danger' : 'border-default-200'
+      }`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-semibold">Proposed Center Coordinates</h2>
@@ -175,6 +200,15 @@ export const CenterCoordinatePicker = ({
           >
             {isLocating ? 'Locating...' : 'Use my location'}
           </Button>
+          <Button
+            size="sm"
+            variant="flat"
+            startContent={<RotateCcw size={15} />}
+            onPress={resetCenter}
+            isDisabled={isDisabled || isLocating || !hasMarker}
+          >
+            Reset
+          </Button>
         </div>
       </div>
 
@@ -190,7 +224,7 @@ export const CenterCoordinatePicker = ({
           zoomControl
           scrollWheelZoom={!isDisabled}
         >
-          <MapSizeBridge center={center} zoom={zoom} isDisabled={isDisabled} />
+          <MapSizeBridge center={center} hasMarker={hasMarker} zoom={zoom} isDisabled={isDisabled} />
           <MapClickHandler isDisabled={isDisabled} onPick={updateCenter} />
           <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
           {hasMarker && (
@@ -220,6 +254,7 @@ export const CenterCoordinatePicker = ({
         </MapContainer>
       </div>
 
+      {errorMessage && <p className="text-xs text-danger">{errorMessage}</p>}
       <p className="text-xs text-default-500">Click the map or drag the marker to set the submitted center coordinates.</p>
     </div>
   );
