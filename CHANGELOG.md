@@ -1,3 +1,9 @@
+## [2.2.0-staging.2](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.1...v2.2.0-staging.2) (2026-06-10)
+
+### Features
+
+* Add form validation in LGU request access ([f528a1a](https://github.com/kuyajp123/Rescuenect/commit/f528a1ae98aeed39929cf5d0a51359877fcb77f7))
+
 ## [2.2.0-staging.1](https://github.com/kuyajp123/Rescuenect/compare/v2.1.0...v2.2.0-staging.1) (2026-06-07)
 
 ### Features
