@@ -17,7 +17,7 @@ import {
 } from '@heroui/react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Bell, LogOut, PanelLeftClose, PanelLeftOpen, Settings, UserRound } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
@@ -35,8 +35,14 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
   const userData = useAuth(state => state.userData);
   const setAuth = useAuth(state => state.setAuth);
   const setUserData = useAuth(state => state.setUserData);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const unreadCount = useMemo(() => getUnreadCount(uid), [notifications, getUnreadCount]);
+
+  const navigateFromProfileMenu = (path: string) => {
+    setIsProfileMenuOpen(false);
+    navigate(path, { replace: true });
+  };
 
   const handleSignOut = async () => {
     const auth = getAuth();
@@ -199,6 +205,9 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
         <div>
           <Dropdown
             showArrow
+            isOpen={isProfileMenuOpen}
+            onOpenChange={setIsProfileMenuOpen}
+            shouldCloseOnInteractOutside={() => true}
             classNames={{
               base: 'before:bg-default-200', // change arrow background
               content: 'p-0 border-small border-divider bg-background',
@@ -256,7 +265,7 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
                   />
                 </DropdownItem>
                 <DropdownItem
-                  onClick={() => navigate('/profile', { replace: true })}
+                  onPress={() => navigateFromProfileMenu('/profile')}
                   key="dashboard"
                   startContent={<UserRound size={20} />}
                   textValue="Profile"
@@ -264,7 +273,7 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
                   Profile
                 </DropdownItem>
                 <DropdownItem
-                  onClick={() => navigate('/settings', { replace: true })}
+                  onPress={() => navigateFromProfileMenu('/settings')}
                   key="settings"
                   startContent={<Settings size={20} />}
                   textValue="Settings"
@@ -275,7 +284,10 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
               <DropdownSection aria-label="Help & Feedback">
                 <DropdownItem
                   key="logout"
-                  onClick={handleSignOut}
+                  onPress={() => {
+                    setIsProfileMenuOpen(false);
+                    handleSignOut();
+                  }}
                   startContent={<LogOut size={20} />}
                   textValue="Log Out"
                 >

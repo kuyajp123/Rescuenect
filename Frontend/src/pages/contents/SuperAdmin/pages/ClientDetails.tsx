@@ -19,7 +19,21 @@ import {
   validateMapSettingsDraft,
   weatherCoordinatePlaceholders,
 } from '@/pages/contents/SuperAdmin/utils';
-import { Button, Card, CardBody, Chip, Input, Textarea, Tooltip, addToast } from '@heroui/react';
+import {
+  Button,
+  Card,
+  CardBody,
+  Chip,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Textarea,
+  Tooltip,
+  addToast,
+} from '@heroui/react';
 import axios from 'axios';
 import { ArrowLeft, Save, Trash2, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -53,6 +67,8 @@ export const SuperAdminClientDetails = () => {
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [isSchedulingDeletion, setIsSchedulingDeletion] = useState(false);
   const [isCancellingDeletion, setIsCancellingDeletion] = useState(false);
+  const [statusTarget, setStatusTarget] = useState<'active' | 'inactive' | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [coordinateErrors, setCoordinateErrors] = useState<ReturnType<typeof validateWeatherCoordinateDraft>>({});
   const [mapErrors, setMapErrors] = useState<ReturnType<typeof validateMapSettingsDraft>>({});
 
@@ -229,6 +245,7 @@ export const SuperAdminClientDetails = () => {
     if (isDeletionLocked) return;
 
     try {
+      setIsUpdatingStatus(true);
       if (status === 'active') {
         const saved = await saveClient({ showToast: false, refetchAfter: false });
         if (!saved) return;
@@ -241,12 +258,15 @@ export const SuperAdminClientDetails = () => {
           : API_ENDPOINTS.SUPER_ADMIN.DEACTIVATE_CLIENT(client.id);
       await axios.post(endpoint, {}, { headers: { Authorization: `Bearer ${token}` } });
       addToast({ title: status === 'active' ? 'Client activated' : 'Client deactivated', color: 'success' });
+      setStatusTarget(null);
       refetch();
     } catch (error) {
       const message = axios.isAxiosError(error)
         ? error.response?.data?.message || 'Failed to update client status'
         : 'Failed to update client status';
       addToast({ title: message, color: 'danger' });
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -360,11 +380,11 @@ export const SuperAdminClientDetails = () => {
             Save
           </Button>
           {client.status !== 'active' ? (
-            <Button color="success" isDisabled={isDeletionLocked} onPress={() => setStatus('active')}>
+            <Button color="success" isDisabled={isDeletionLocked} onPress={() => setStatusTarget('active')}>
               Activate
             </Button>
           ) : (
-            <Button color="danger" variant="flat" isDisabled={isDeletionLocked} onPress={() => setStatus('inactive')}>
+            <Button color="danger" variant="flat" isDisabled={isDeletionLocked} onPress={() => setStatusTarget('inactive')}>
               Deactivate
             </Button>
           )}
@@ -593,7 +613,7 @@ export const SuperAdminClientDetails = () => {
         </CardBody>
       </Card>
 
-      <ClientAdminsTable admins={admins} />
+      <ClientAdminsTable admins={admins} clientStatus={client.status} onAdminStatusChanged={refetch} />
 
       <ClientDeleteModal
         client={client}
@@ -606,6 +626,44 @@ export const SuperAdminClientDetails = () => {
         onReasonChange={setDeletionReason}
         onScheduleDeletion={scheduleClientDeletion}
       />
+
+      <Modal isOpen={Boolean(statusTarget)} onOpenChange={open => !open && setStatusTarget(null)} size="sm">
+        <ModalContent>
+          {onClose => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                {statusTarget === 'active' ? 'Activate LGU client?' : 'Deactivate LGU client?'}
+              </ModalHeader>
+              <ModalBody>
+                {statusTarget === 'active' ? (
+                  <p className="text-sm text-default-600">
+                    Activate <span className="font-semibold">{client.name}</span>? Current setup changes on this page
+                    will be saved before activation.
+                  </p>
+                ) : (
+                  <p className="text-sm text-default-600">
+                    Deactivate <span className="font-semibold">{client.name}</span>? LGU admins and residents will no
+                    longer use this client while it is inactive.
+                  </p>
+                )}
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="flat" onPress={onClose}>
+                  Cancel
+                </Button>
+                <Button
+                  color={statusTarget === 'active' ? 'success' : 'danger'}
+                  variant={statusTarget === 'active' ? 'solid' : 'flat'}
+                  isLoading={isUpdatingStatus}
+                  onPress={() => statusTarget && setStatus(statusTarget)}
+                >
+                  {statusTarget === 'active' ? 'Activate Client' : 'Deactivate Client'}
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 };

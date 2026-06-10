@@ -30,6 +30,11 @@ import { Plus, RefreshCcw, Shield, Trash2, UserCheck, UserX } from 'lucide-react
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 
+type AdminStatusTarget = {
+  admin: AdminUser;
+  status: 'active' | 'inactive';
+};
+
 export const SuperAdminAdmins = () => {
   const { data, loading, refetch } = useSuperFetch<{ admins: AdminUser[] }>(API_ENDPOINTS.SUPER_ADMIN.ADMINS, 'admins');
   const { data: clientData } = useSuperFetch<{ clients: ClientLgu[] }>(
@@ -40,6 +45,8 @@ export const SuperAdminAdmins = () => {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteClientId, setInviteClientId] = useState('');
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [adminStatusTarget, setAdminStatusTarget] = useState<AdminStatusTarget | null>(null);
+  const [isUpdatingAdminStatus, setIsUpdatingAdminStatus] = useState(false);
   const [adminToDelete, setAdminToDelete] = useState<AdminUser | null>(null);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -122,24 +129,32 @@ export const SuperAdminAdmins = () => {
     }
   };
 
-  const updateAdminStatus = async (admin: AdminUser, status: 'active' | 'inactive') => {
+  const confirmAdminStatusChange = async () => {
+    if (!adminStatusTarget) return;
+
+    const target = adminStatusTarget;
+
     try {
+      setIsUpdatingAdminStatus(true);
       const token = await getToken();
       await axios.patch(
-        API_ENDPOINTS.SUPER_ADMIN.UPDATE_ADMIN(admin.uid),
-        { status },
+        API_ENDPOINTS.SUPER_ADMIN.UPDATE_ADMIN(target.admin.uid),
+        { status: target.status },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      addToast({ title: status === 'active' ? 'Admin activated' : 'Admin deactivated', color: 'success' });
+      addToast({ title: target.status === 'active' ? 'Admin activated' : 'Admin deactivated', color: 'success' });
+      setAdminStatusTarget(null);
       refetch();
     } catch (error) {
       addToast({
-        title: status === 'active' ? 'Activation blocked' : 'Update failed',
+        title: target.status === 'active' ? 'Activation blocked' : 'Update failed',
         description: axios.isAxiosError(error)
           ? error.response?.data?.message || error.message
           : 'Failed to update admin status',
         color: 'danger',
       });
+    } finally {
+      setIsUpdatingAdminStatus(false);
     }
   };
 
@@ -181,7 +196,7 @@ export const SuperAdminAdmins = () => {
             color={isActive ? 'warning' : 'success'}
             aria-label={isActive ? 'Deactivate admin' : 'Activate admin'}
             isDisabled={(isSelf && isActive) || (!isActive && !canActivate)}
-            onPress={() => updateAdminStatus(admin, isActive ? 'inactive' : 'active')}
+            onPress={() => setAdminStatusTarget({ admin, status: isActive ? 'inactive' : 'active' })}
           >
             {isActive ? <UserX size={16} /> : <UserCheck size={16} />}
           </Button>
@@ -329,6 +344,43 @@ export const SuperAdminAdmins = () => {
                 </Button>
                 <Button color="primary" onPress={inviteAdmin}>
                   Save Invite
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      <Modal
+        isOpen={!!adminStatusTarget}
+        onOpenChange={open => !open && setAdminStatusTarget(null)}
+        size="sm"
+        isDismissable={!isUpdatingAdminStatus}
+      >
+        <ModalContent>
+          {onClose => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                {adminStatusTarget?.status === 'active' ? 'Activate LGU admin?' : 'Deactivate LGU admin?'}
+              </ModalHeader>
+              <ModalBody>
+                <p className="text-sm text-default-600">
+                  {adminStatusTarget?.status === 'active'
+                    ? 'Restore admin access for '
+                    : 'Temporarily remove admin access for '}
+                  <span className="font-semibold">{adminStatusTarget?.admin.email}</span>?
+                </p>
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="flat" onPress={onClose} isDisabled={isUpdatingAdminStatus}>
+                  Cancel
+                </Button>
+                <Button
+                  color={adminStatusTarget?.status === 'active' ? 'success' : 'warning'}
+                  isLoading={isUpdatingAdminStatus}
+                  onPress={confirmAdminStatusChange}
+                >
+                  {adminStatusTarget?.status === 'active' ? 'Activate Admin' : 'Deactivate Admin'}
                 </Button>
               </ModalFooter>
             </>

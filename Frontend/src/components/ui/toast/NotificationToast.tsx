@@ -1,19 +1,31 @@
-import { askForPermissionAndGetToken } from '@/config/notificationPermission';
+import {
+  askForPermissionAndGetToken,
+  getDesktopNotificationPreference,
+  setDesktopNotificationPreference,
+} from '@/config/notificationPermission';
 import { saveFCMtoken } from '@/helper/commonHelpers';
 import { useAuth } from '@/stores/useAuth';
 import { Button, Spinner } from '@heroui/react';
 import { Bell } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export const NotificationToast = () => {
   const auth = useAuth(state => state.auth);
-  const [isVisible, setIsVisible] = useState(
-    // Show prompt only if notifications are not granted
-    typeof Notification !== 'undefined' &&
-      (Notification.permission === 'default' || Notification.permission === 'denied')
-  );
+  const userData = useAuth(state => state.userData);
+  const updateUserData = useAuth(state => state.updateUserData);
+  const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+
+  useEffect(() => {
+    const wantsDesktopNotifications = getDesktopNotificationPreference(Boolean(userData?.fcmToken));
+    const canPrompt =
+      typeof Notification !== 'undefined' &&
+      wantsDesktopNotifications &&
+      (Notification.permission === 'default' || Notification.permission === 'denied');
+
+    setIsVisible(canPrompt);
+  }, [userData?.fcmToken]);
 
   const handleEnableNotifications = async () => {
     if (!VAPID_KEY) {
@@ -30,6 +42,8 @@ export const NotificationToast = () => {
       if (fcmToken && auth) {
         // Update token in backend
         await saveFCMtoken(fcmToken, auth);
+        setDesktopNotificationPreference(true);
+        updateUserData({ fcmToken });
       }
     } catch (error) {
       console.error('Failed to enable notifications:', error);
