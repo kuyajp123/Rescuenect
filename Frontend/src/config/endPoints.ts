@@ -59,6 +59,12 @@ export const API_ENDPOINTS = {
   },
   SUPER_ADMIN: {
     OVERVIEW: `${BACKEND_URL}/admin/super/overview`,
+    SUPABASE_MONITORING: `${BACKEND_URL}/admin/super/supabase`,
+    SUPABASE_FUNCTION: (slug: string) => `${BACKEND_URL}/admin/super/supabase/functions/${encodeURIComponent(slug)}`,
+    SUPABASE_STORAGE_BUCKET: (bucket: string) =>
+      `${BACKEND_URL}/admin/super/supabase/storage/${encodeURIComponent(bucket)}`,
+    SERVER_WAKEUP: `${BACKEND_URL}/admin/super/supabase/server-wakeup/status`,
+    RUN_SERVER_WAKEUP: `${BACKEND_URL}/admin/super/supabase/server-wakeup/run`,
     LOGS: `${BACKEND_URL}/admin/super/logs`,
     LGU_REQUESTS: `${BACKEND_URL}/admin/super/lgu-requests`,
     DYNAMIC_CLIENT_CUTOVER_AUDIT: `${BACKEND_URL}/admin/super/migrations/dynamic-client-cutover-audit`,

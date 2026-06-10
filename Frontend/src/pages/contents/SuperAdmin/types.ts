@@ -33,6 +33,7 @@ export type ClientEarthquakeSettings = {
 };
 
 export type ClientLguStatus = 'draft' | 'active' | 'inactive' | 'deletion_scheduled' | 'deleting' | 'deleted';
+export type SupabaseHealthStatus = 'ok' | 'warning' | 'error' | 'unknown' | 'not_configured';
 
 export type LguRequest = {
   id: string;
@@ -169,6 +170,120 @@ export type SystemStatus = {
   earthquake: { status: string };
 };
 
+export type SupabaseFunctionMonitor = {
+  id: string | null;
+  slug: string;
+  name: string;
+  deployed: boolean;
+  status: SupabaseHealthStatus;
+  platformStatus: string;
+  version: number | null;
+  verifyJwt: boolean | null;
+  importMap?: boolean | null;
+  entrypointPath?: string | null;
+  importMapPath?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  recentInvocations: number;
+  recentErrors: number;
+  lastInvocationAt: string | null;
+  lastStatusCode: number | null;
+  lastErrorMessage: string | null;
+};
+
+export type SupabaseStorageMonitor = {
+  id: string;
+  name: string;
+  public: boolean;
+  owner?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  fileSizeLimit?: number | null;
+  allowedMimeTypes?: string[] | null;
+  reachable: boolean;
+  sampleCount: number;
+  checkError: string | null;
+  status: SupabaseHealthStatus;
+  recentRequests: number;
+  recentErrors: number;
+  lastRequestAt: string | null;
+  lastStatusCode: number | null;
+  lastErrorMessage: string | null;
+};
+
+export type SupabaseLogRow = {
+  timestamp?: string;
+  event_message?: string;
+  path?: string;
+  status_code?: number | string;
+};
+
+export type ServerWakeupStatus = {
+  enabled: boolean;
+  scheduled?: boolean;
+  rpcAvailable?: boolean;
+  setupRequired?: boolean;
+  message?: string;
+  jobId?: number | null;
+  jobName: string;
+  cron: string;
+  intervalMinutes: number;
+  backendUrl: string;
+  endpoints: string[];
+  functionSlug: string;
+  lastCheckedAt: string;
+  summary?: {
+    recentInvocations: number;
+    recentErrors: number;
+    lastInvocationAt: string | null;
+    lastStatusCode: number | null;
+    lastErrorMessage: string | null;
+  };
+  logs?: SupabaseLogRow[];
+};
+
+export type SupabaseMonitoringOverview = {
+  configured: boolean;
+  managementConfigured: boolean;
+  projectRef: string | null;
+  lastCheckedAt: string;
+  serviceHealth: Array<Record<string, unknown>>;
+  storageConfig: Record<string, unknown> | null;
+  functions: SupabaseFunctionMonitor[];
+  storage: SupabaseStorageMonitor[];
+  serverWakeup: ServerWakeupStatus;
+  error?: string;
+};
+
+export type SupabaseFunctionDetail = {
+  projectRef: string | null;
+  lastCheckedAt: string;
+  function: (Partial<SupabaseFunctionMonitor> & { slug?: string; name?: string }) | null;
+  status: SupabaseHealthStatus;
+  summary: Pick<
+    SupabaseFunctionMonitor,
+    'recentInvocations' | 'recentErrors' | 'lastInvocationAt' | 'lastStatusCode' | 'lastErrorMessage'
+  >;
+  analytics: Record<string, unknown> | null;
+  logs: SupabaseLogRow[];
+};
+
+export type SupabaseStorageDetail = {
+  projectRef: string | null;
+  lastCheckedAt: string;
+  bucket: Record<string, unknown> | null;
+  storageConfig: Record<string, unknown> | null;
+  reachable: boolean;
+  sampleCount: number;
+  checkError: string | null;
+  status: SupabaseHealthStatus;
+  summary: Pick<
+    SupabaseStorageMonitor,
+    'recentRequests' | 'recentErrors' | 'lastRequestAt' | 'lastStatusCode' | 'lastErrorMessage'
+  >;
+  logs: SupabaseLogRow[];
+};
+
 export type ClientDetailResponse = {
   client: ClientLgu;
   request: LguRequest | null;
@@ -233,6 +348,7 @@ export type SuperAdminOverview = {
     changeRequestTypes: Array<{ name: string; value: number }>;
   };
   system: SystemStatus;
+  supabase?: SupabaseMonitoringOverview;
 };
 
 export type LguClientResponse = {

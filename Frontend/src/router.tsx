@@ -59,6 +59,21 @@ const SuperAdminClientRequests = lazy(() =>
 const SuperAdminLogs = lazy(() =>
   import('@/pages/contents/SuperAdmin/pages/Logs').then(module => ({ default: module.SuperAdminLogs }))
 );
+const SupabaseFunctionDetails = lazy(() =>
+  import('@/pages/contents/SuperAdmin/pages/SupabaseFunctionDetails').then(module => ({
+    default: module.SupabaseFunctionDetails,
+  }))
+);
+const SupabaseStorageDetails = lazy(() =>
+  import('@/pages/contents/SuperAdmin/pages/SupabaseStorageDetails').then(module => ({
+    default: module.SupabaseStorageDetails,
+  }))
+);
+const ServerWakeupDetails = lazy(() =>
+  import('@/pages/contents/SuperAdmin/pages/ServerWakeupDetails').then(module => ({
+    default: module.ServerWakeupDetails,
+  }))
+);
 const LguClientRequests = lazy(() => import('@/pages/contents/LguClientRequests'));
 const NotFound = lazy(() => import('@/pages/NotFound').then(module => ({ default: module.NotFound })));
 
@@ -145,6 +160,9 @@ const Router = () => {
           <Route path="/super/requests" element={<SuperAdminRequests />} />
           <Route path="/super/client-requests" element={<SuperAdminClientRequests />} />
           <Route path="/super/logs" element={<SuperAdminLogs />} />
+          <Route path="/super/supabase/functions/:slug" element={<SupabaseFunctionDetails />} />
+          <Route path="/super/supabase/storage/:bucket" element={<SupabaseStorageDetails />} />
+          <Route path="/super/supabase/server-wakeup" element={<ServerWakeupDetails />} />
           <Route path="/super/clients" element={<SuperAdminClients />} />
           <Route path="/super/clients/archive" element={<SuperAdminArchive />} />
           <Route path="/super/clients/:clientId" element={<SuperAdminClientDetails />} />

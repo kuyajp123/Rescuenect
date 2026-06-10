@@ -6,3 +6,6 @@ export { SuperAdminArchive } from './pages/Archive';
 export { SuperAdminAdmins } from './pages/Admins';
 export { SuperAdminLogs } from './pages/Logs';
 export { SuperAdminSystemStatus } from './pages/SystemStatus';
+export { SupabaseFunctionDetails } from './pages/SupabaseFunctionDetails';
+export { SupabaseStorageDetails } from './pages/SupabaseStorageDetails';
+export { ServerWakeupDetails } from './pages/ServerWakeupDetails';

@@ -9,6 +9,7 @@ import { LegacyNaicMigrationModel } from '@/models/admin/LegacyNaicMigrationMode
 import { LguRequestModel } from '@/models/admin/LguRequestModel';
 import { OperationLogService } from '@/services/OperationLogService';
 import { PsgcService } from '@/services/PsgcService';
+import { SupabaseMonitoringService } from '@/services/SupabaseMonitoringService';
 import { publishManualMobileAppRelease } from '@/services/mobileAppManualRelease';
 import type {
   AdminUser,
@@ -212,14 +213,19 @@ export class SuperAdminController {
 
   static async getOverview(_req: Request, res: Response): Promise<void> {
     try {
-      const [system, clients, lguRequests, changeRequests, admins, residentSnapshot] = await Promise.all([
-        SuperAdminController.buildSystemStatus(),
-        ClientModel.listClients(),
-        LguRequestModel.listRequests(),
-        ClientChangeRequestModel.listAll(),
-        AdminAuthModel.listLguAdmins(),
-        db.collection('users').get(),
-      ]);
+      const [system, clients, lguRequests, changeRequests, admins, residentSnapshot, supabaseMonitoring] =
+        await Promise.all([
+          SuperAdminController.buildSystemStatus(),
+          ClientModel.listClients(),
+          LguRequestModel.listRequests(),
+          ClientChangeRequestModel.listAll(),
+          AdminAuthModel.listLguAdmins(),
+          db.collection('users').get(),
+          SupabaseMonitoringService.getOverview().catch(error => ({
+            configured: false,
+            error: error instanceof Error ? error.message : 'Failed to load Supabase monitoring',
+          })),
+        ]);
 
       const clientCounts: Record<ClientLguStatus, number> = {
         draft: 0,
@@ -278,6 +284,7 @@ export class SuperAdminController {
           changeRequestTypes: Array.from(changeTypeCounts.entries()).map(([name, value]) => ({ name, value })),
         },
         system,
+        supabase: supabaseMonitoring,
       });
     } catch (error: unknown) {
       res
@@ -426,6 +433,96 @@ export class SuperAdminController {
       res.status(500).json({
         message: 'Failed to run dynamic client cutover',
         error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  static async getSupabaseMonitoring(_req: Request, res: Response): Promise<void> {
+    try {
+      res.status(200).json(await SupabaseMonitoringService.getOverview());
+    } catch (error) {
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Failed to load Supabase monitoring',
+      });
+    }
+  }
+
+  static async getSupabaseFunction(req: Request, res: Response): Promise<void> {
+    try {
+      res.status(200).json(await SupabaseMonitoringService.getFunctionDetail(req.params.slug));
+    } catch (error) {
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Failed to load Supabase function details',
+      });
+    }
+  }
+
+  static async getSupabaseStorageBucket(req: Request, res: Response): Promise<void> {
+    try {
+      res.status(200).json(await SupabaseMonitoringService.getStorageDetail(req.params.bucket));
+    } catch (error) {
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Failed to load Supabase storage details',
+      });
+    }
+  }
+
+  static async getServerWakeup(req: Request, res: Response): Promise<void> {
+    try {
+      res.status(200).json(await SupabaseMonitoringService.getServerWakeupStatus());
+    } catch (error) {
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Failed to load server wakeup status',
+      });
+    }
+  }
+
+  static async updateServerWakeup(req: Request, res: Response): Promise<void> {
+    try {
+      if (typeof req.body?.enabled !== 'boolean') {
+        res.status(400).json({ message: 'enabled must be true or false' });
+        return;
+      }
+
+      const before = await SupabaseMonitoringService.getServerWakeupStatus().catch(() => null);
+      const status = await SupabaseMonitoringService.setServerWakeupEnabled(req.body.enabled);
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'system.server_wakeup_update',
+        actionLabel: req.body.enabled ? 'Enabled server wakeup' : 'Disabled server wakeup',
+        targetType: 'supabase_function',
+        targetId: 'server-wakeup',
+        targetName: 'server-wakeup',
+        message: `Server wakeup was ${req.body.enabled ? 'enabled' : 'disabled'} for the fixed 13-minute schedule.`,
+        before: before as Record<string, unknown> | null,
+        after: status,
+      });
+      res.status(200).json(status);
+    } catch (error) {
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Failed to update server wakeup status',
+      });
+    }
+  }
+
+  static async runServerWakeup(req: Request, res: Response): Promise<void> {
+    try {
+      const result = await SupabaseMonitoringService.runServerWakeup();
+      await OperationLogService.create({
+        actor: req.adminUser,
+        action: 'system.server_wakeup_run',
+        actionLabel: 'Ran server wakeup',
+        targetType: 'supabase_function',
+        targetId: 'server-wakeup',
+        targetName: 'server-wakeup',
+        message: 'Server wakeup was manually triggered from the Super Admin dashboard.',
+        before: null,
+        after: result,
+      });
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({
+        message: error instanceof Error ? error.message : 'Failed to run server wakeup',
       });
     }
   }

@@ -16,7 +16,10 @@ Then add the Vault secrets below and run:
 supabase db push
 ```
 
-The scheduled job is created by `supabase/migrations/20260519010000_schedule_server_wakeup.sql` and runs every 13 minutes.
+The fixed 13-minute scheduled job is managed by
+`supabase/migrations/20260610000000_server_wakeup_control.sql`. Push the migration, then Super Admins can enable or
+disable the schedule from the dashboard. Keep the Vault secrets below configured so the cron job can invoke this Edge
+Function.
 
 ## Optional Endpoints
 
