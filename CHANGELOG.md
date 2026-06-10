@@ -1,3 +1,9 @@
+## [2.2.0-staging.5](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.4...v2.2.0-staging.5) (2026-06-10)
+
+### Features
+
+* **LGU admins:** add pending invite to LGU admin ([c6c73a8](https://github.com/kuyajp123/Rescuenect/commit/c6c73a871b6f443f1c4918fe29175f4e3b766639))
+
 ## [2.2.0-staging.4](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.3...v2.2.0-staging.4) (2026-06-10)
 
 ### Bug Fixes
