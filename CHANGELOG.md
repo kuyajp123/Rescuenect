@@ -1,3 +1,9 @@
+## [2.4.0-staging.1](https://github.com/kuyajp123/Rescuenect/compare/v2.3.1-staging.1...v2.4.0-staging.1) (2026-06-11)
+
+### Features
+
+* Add announcement notification service ([3a27736](https://github.com/kuyajp123/Rescuenect/commit/3a27736d28cd30b020a19bddc536aab6609a0b7d))
+
 ## [2.3.1-staging.1](https://github.com/kuyajp123/Rescuenect/compare/v2.3.0...v2.3.1-staging.1) (2026-06-11)
 
 ### Bug Fixes
