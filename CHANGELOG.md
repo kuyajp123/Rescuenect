@@ -1,3 +1,9 @@
+## [2.2.0-staging.8](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.7...v2.2.0-staging.8) (2026-06-11)
+
+### Bug Fixes
+
+* **mobile app:** visual issue in earthquake dialog ([b2ade06](https://github.com/kuyajp123/Rescuenect/commit/b2ade06806ae6ffae05adec6b24f28d56a47ca49))
+
 ## [2.2.0-staging.7](https://github.com/kuyajp123/Rescuenect/compare/v2.2.0-staging.6...v2.2.0-staging.7) (2026-06-10)
 
 ### Features
