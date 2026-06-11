@@ -55,6 +55,9 @@ const getSeverityColor = (severity: EarthquakeData['severity']) => {
   }
 };
 
+const formatSeverityLabel = (severity: EarthquakeData['severity']) =>
+  severity.replace(/\b\w/g, letter => letter.toUpperCase());
+
 const getDistance = (earthquake: EarthquakeData) => {
   return earthquake.clientImpacts?.[0]?.distanceKm ?? earthquake.distance_km ?? null;
 };
@@ -365,7 +368,8 @@ const EarthquakeScreen = () => {
         primaryButtonText="Close"
         primaryButtonOnPress={() => setSelectedEarthquake(null)}
         primaryButtonVariant="solid"
-        size="lg"
+        size="full"
+        contentStyle={styles.dialogShell}
       >
         {selectedEarthquake && (
           <View style={styles.dialogContent}>
@@ -383,19 +387,19 @@ const EarthquakeScreen = () => {
             <View style={styles.dialogGrid}>
               <View style={styles.dialogMetric}>
                 <Text size="xs">Depth</Text>
-                <Text size="sm" bold>
+                <Text size="sm" bold numberOfLines={2} adjustsFontSizeToFit style={styles.dialogMetricValue}>
                   {selectedEarthquake.coordinates.depth} km
                 </Text>
               </View>
               <View style={styles.dialogMetric}>
                 <Text size="xs">Severity</Text>
-                <Text size="sm" bold>
-                  {selectedEarthquake.severity}
+                <Text size="sm" bold numberOfLines={2} adjustsFontSizeToFit style={styles.dialogMetricValue}>
+                  {formatSeverityLabel(selectedEarthquake.severity)}
                 </Text>
               </View>
               <View style={styles.dialogMetric}>
                 <Text size="xs">Distance</Text>
-                <Text size="sm" bold>
+                <Text size="sm" bold numberOfLines={2} adjustsFontSizeToFit style={styles.dialogMetricValue}>
                   {typeof getDistance(selectedEarthquake) === 'number'
                     ? `${getDistance(selectedEarthquake)?.toFixed(1)} km`
                     : 'Not available'}
@@ -564,6 +568,10 @@ const styles = StyleSheet.create({
   dialogContent: {
     alignItems: 'center',
     gap: 12,
+    paddingBottom: 2,
+  },
+  dialogShell: {
+    paddingBottom: 16,
   },
   dialogMagnitude: {
     width: 76,
@@ -574,15 +582,19 @@ const styles = StyleSheet.create({
   },
   dialogGrid: {
     width: '100%',
-    flexDirection: 'row',
-    gap: 8,
+    flexDirection: 'column',
+    gap: 6,
   },
   dialogMetric: {
     flex: 1,
+    minWidth: 0,
     borderRadius: 12,
-    padding: 10,
+    padding: 9,
     backgroundColor: 'rgba(148,163,184,0.12)',
     gap: 2,
+  },
+  dialogMetricValue: {
+    // flexShrink: 1,
   },
   tsunamiNotice: {
     width: '100%',

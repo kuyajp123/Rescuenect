@@ -69,18 +69,18 @@ type DialogProps = {
 const getSizeStyle = (size: DialogSize): ViewStyle => {
   switch (size) {
     case 'xs':
-      return { width: '75%', maxWidth: 360 };
+      return { width: '75%', maxWidth: 360, height: 'auto' };
     case 'sm':
-      return { width: '82%', maxWidth: 420 };
+      return { width: '82%', maxWidth: 420, height: 'auto' };
     case 'md':
-      return { width: '90%', maxWidth: 520 };
+      return { width: '90%', maxWidth: 520, height: 'auto' };
     case 'lg':
-      return { width: '94%', maxWidth: 640 };
+      return { width: '94%', maxWidth: 640, height: 'auto' };
     case 'full':
       // Match the old Gluestack `Modal` behavior: full width, auto height
-      return { width: 1000, maxWidth: '100%' };
+      return { width: 1000, maxWidth: '100%', height: 'auto' };
     default:
-      return { width: '90%', maxWidth: 520 };
+      return { width: '90%', maxWidth: 520, height: 'auto' };
   }
 };
 
@@ -147,7 +147,7 @@ const Dialog = ({
       }}
     >
       <HeroDialog.Portal style={[styles.portal, portalStyle]}>
-        <HeroDialog.Overlay isCloseOnPress={closeOnOverlayPress} />
+        <HeroDialog.Overlay isCloseOnPress={closeOnOverlayPress} style={styles.overlay} />
         <HeroDialog.Content
           isSwipeable={isSwipeable}
           style={[
@@ -174,7 +174,12 @@ const Dialog = ({
             </View>
           )}
 
-          <View style={styles.body}>
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={styles.bodyContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {renderImage && renderImage()}
             {children}
 
@@ -215,7 +220,7 @@ const Dialog = ({
                 {secondaryText}
               </Text>
             )}
-          </View>
+          </ScrollView>
 
           {hasFooter && (
             <View style={styles.footer}>
@@ -258,11 +263,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.58)',
+  },
   content: {
     borderWidth: 1,
     borderRadius: 16,
     padding: 16,
-    maxHeight: '100%',
     alignSelf: 'center',
   },
   header: {
@@ -272,7 +280,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   body: {
-    maxHeight: 520,
+    width: '100%',
+  },
+  bodyContent: {
+    paddingBottom: 4,
   },
   itemsContainer: {
     marginTop: 12,
@@ -288,9 +299,10 @@ const styles = StyleSheet.create({
   },
   footer: {
     width: '100%',
-    marginTop: 20,
+    marginTop: 16,
     flexDirection: 'row',
     gap: 12,
+    flexShrink: 0,
   },
   footerButton: {
     flex: 1,

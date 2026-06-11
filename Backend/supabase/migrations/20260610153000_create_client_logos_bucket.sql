@@ -17,8 +17,6 @@ set
   allowed_mime_types = excluded.allowed_mime_types;
 
 drop policy if exists "Public read client logos" on storage.objects;
-create policy "Public read client logos"
-on storage.objects
-for select
-to public
-using (bucket_id = 'client-logos');
+
+-- Public buckets can serve object URLs without a broad storage.objects SELECT policy.
+-- Keeping this bucket policy-free avoids allowing clients to list every logo file.
