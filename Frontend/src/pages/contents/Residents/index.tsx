@@ -19,7 +19,7 @@ import {
   TableRow,
   User,
 } from '@heroui/react';
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 function capitalize(s: string) {
@@ -86,10 +86,11 @@ const Residents = () => {
   const residents = useResidentsStore(state => state.residents);
   const isLoading = useResidentsStore(state => state.loading);
   const totalCount = useResidentsStore(state => state.totalCount);
-  const [visibleColumns, setVisibleColumns] = React.useState<Selection>(new Set(INITIAL_VISIBLE_COLUMNS));
-  const [statusFilter, setStatusFilter] = React.useState<Selection>('all');
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
-  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+  const [visibleColumns, setVisibleColumns] = useState<Selection>(new Set(INITIAL_VISIBLE_COLUMNS));
+  const [statusFilter, setStatusFilter] = useState<Selection>('all');
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [barangaySearch, setBarangaySearch] = useState('');
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: 'name',
     direction: 'ascending',
   });
@@ -115,6 +116,15 @@ const Residents = () => {
     ],
     [isAllBarangaysSelected]
   );
+
+  const filteredBarangays = useMemo(() => {
+    const query = barangaySearch.trim().toLowerCase();
+    if (!query) return barangayMenuItems;
+    // When searching, hide the toggle-all row and filter by label
+    return barangayMenuItems.filter(
+      b => !b.isToggle && b.label.toLowerCase().includes(query)
+    );
+  }, [barangayMenuItems, barangaySearch]);
 
   const navigate = useNavigate();
 
@@ -338,7 +348,7 @@ const Residents = () => {
             onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
-            <Dropdown>
+            <Dropdown onOpenChange={isOpen => { if (!isOpen) setBarangaySearch(''); }}>
               <DropdownTrigger className="hidden sm:flex">
                 <Button endContent={<ChevronDown size={20} />} variant="flat">
                   Barangays
@@ -349,10 +359,26 @@ const Residents = () => {
                 aria-label="Table Columns"
                 closeOnSelect={false}
                 className="max-h-150 overflow-auto"
-                items={barangayMenuItems}
+                items={filteredBarangays}
                 selectedKeys={selectedBarangayKeys}
                 selectionMode="multiple"
                 onSelectionChange={handleBarangaySelectionChange}
+                topContent={
+                  <div className="sticky top-0 z-10 bg-content1 px-2 pb-1 pt-2">
+                    <Input
+                      aria-label="Search barangays"
+                      placeholder="Search barangay..."
+                      size="sm"
+                      variant="bordered"
+                      startContent={<Search size={14} className="text-default-400" />}
+                      value={barangaySearch}
+                      onValueChange={setBarangaySearch}
+                      isClearable
+                      onClear={() => setBarangaySearch('')}
+                      classNames={{ inputWrapper: 'h-8 min-h-8' }}
+                    />
+                  </div>
+                }
               >
                 {(item: { key: string; label: string; isToggle: boolean }) => (
                   <DropdownItem
@@ -418,6 +444,8 @@ const Residents = () => {
     isAllBarangaysSelected,
     selectedBarangayKeys,
     barangayMenuItems,
+    barangaySearch,
+    filteredBarangays,
   ]);
 
   const bottomContent = React.useMemo(() => {

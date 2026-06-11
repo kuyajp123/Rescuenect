@@ -18,6 +18,8 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
+  Radio,
+  RadioGroup,
   Select,
   SelectItem,
   Tooltip,
@@ -49,6 +51,7 @@ import {
   Quote,
   Redo2,
   RotateCcw,
+  Search,
   Strikethrough,
   Underline as UnderlineIcon,
   Undo2,
@@ -210,6 +213,8 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
     thumbnail: '',
     content: '',
   });
+  const [notificationScope, setNotificationScope] = useState<'all' | 'barangays'>('all');
+  const [barangaySearch, setBarangaySearch] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [initialAnnouncement, setInitialAnnouncement] = useState<AnnouncementDataCard | null>(null);
@@ -349,6 +354,13 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
     }));
   }, [userData?.clientBarangays]);
   const sortedBarangays = sortBarangays(clientBarangays);
+  const filteredBarangays = useMemo(() => {
+    const query = barangaySearch.trim().toLowerCase();
+    if (!query) return sortedBarangays;
+    return sortedBarangays.filter(b => b.label.toLowerCase().includes(query));
+  }, [sortedBarangays, barangaySearch]);
+  const isAllBarangaysSelected =
+    sortedBarangays.length > 0 && selectedBarangayValues.length === sortedBarangays.length;
   const selectedBarangayLabels = selectedBarangayValues.map(
     value => sortedBarangays.find(barangay => barangay.value === value)?.label ?? value
   );
@@ -427,6 +439,7 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
       content: sanitizedHtml,
       category: selectedCategoryKey,
       barangays: selectedBarangayValues,
+      notificationScope,
     };
   };
 
@@ -473,6 +486,7 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
       formData.append('content', payload.content);
       formData.append('category', payload.category);
       formData.append('barangays', JSON.stringify(payload.barangays));
+      formData.append('notificationScope', payload.notificationScope);
       if (thumbnailFile) {
         formData.append('thumbnail', thumbnailFile);
       }
@@ -1096,6 +1110,7 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
                     >
                       {item => <SelectItem key={item.key}>{item.label}</SelectItem>}
                     </Select>
+
                     <Select
                       isRequired
                       className="lg:col-span-5"
@@ -1109,12 +1124,101 @@ const AddAnnouncement = ({ mode = 'create', announcementId }: AddAnnouncementPro
                         setSelectedBarangays(keys);
                         setErrors(prev => ({ ...prev, barangays: '' }));
                       }}
-                      items={sortedBarangays}
+                      items={filteredBarangays}
                       placeholder="Select barangays"
                       isInvalid={Boolean(errors.barangays)}
+                      maxListboxHeight={500}
+                      onOpenChange={isOpen => {
+                        if (!isOpen) setBarangaySearch('');
+                      }}
+                      listboxProps={{
+                        topContent: (
+                          <div className="sticky top-0 z-10 bg-content1 px-2 pb-1.5 pt-2 flex flex-col gap-1.5">
+                            <Input
+                              aria-label="Search barangays"
+                              placeholder="Search barangay..."
+                              size="sm"
+                              variant="bordered"
+                              startContent={<Search size={14} className="text-default-400" />}
+                              value={barangaySearch}
+                              onValueChange={setBarangaySearch}
+                              isClearable
+                              onClear={() => setBarangaySearch('')}
+                              classNames={{ inputWrapper: 'h-8 min-h-8' }}
+                            />
+                            <button
+                              type="button"
+                              className="w-full text-left px-1 py-0.5 text-xs font-medium text-primary hover:underline"
+                              onPointerDown={e => {
+                                // Use onPointerDown to fire before the Select closes
+                                e.preventDefault();
+                                if (barangaySearch.trim()) {
+                                  // When searching: select/deselect only filtered results
+                                  const filteredValues = filteredBarangays.map(b => b.value);
+                                  const currentSet = new Set(selectedBarangayValues);
+                                  const allFilteredSelected = filteredValues.every(v => currentSet.has(v));
+                                  if (allFilteredSelected) {
+                                    filteredValues.forEach(v => currentSet.delete(v));
+                                  } else {
+                                    filteredValues.forEach(v => currentSet.add(v));
+                                  }
+                                  setSelectedBarangays(new Set(currentSet));
+                                } else {
+                                  // No search: toggle all
+                                  if (isAllBarangaysSelected) {
+                                    setSelectedBarangays(new Set());
+                                  } else {
+                                    setSelectedBarangays(new Set(sortedBarangays.map(b => b.value)));
+                                  }
+                                }
+                                setErrors(prev => ({ ...prev, barangays: '' }));
+                              }}
+                            >
+                              {barangaySearch.trim()
+                                ? filteredBarangays.every(b => new Set(selectedBarangayValues).has(b.value))
+                                  ? 'Unselect filtered'
+                                  : 'Select filtered'
+                                : isAllBarangaysSelected
+                                ? 'Unselect all'
+                                : 'Select all'}
+                            </button>
+                          </div>
+                        ),
+                        emptyContent: (
+                          <p className="py-2 text-center text-sm text-default-400">
+                            No barangay found.
+                          </p>
+                        ),
+                      }}
                     >
                       {item => <SelectItem key={item.value}>{item.label}</SelectItem>}
                     </Select>
+                    <div className="lg:col-span-9 flex flex-col gap-1">
+                      <RadioGroup
+                        label="Notify residents"
+                        orientation="horizontal"
+                        value={notificationScope}
+                        onValueChange={v => setNotificationScope(v as 'all' | 'barangays')}
+                        size="sm"
+                        classNames={{ label: 'text-sm text-foreground font-medium' }}
+                      >
+                        <Radio value="all" description="Sends to all residents in this LGU">
+                          All residents
+                        </Radio>
+                        <Radio
+                          value="barangays"
+                          description="Sends only to residents in the selected barangays"
+                          isDisabled={selectedBarangayValues.length === 0}
+                        >
+                          Selected barangays only
+                        </Radio>
+                      </RadioGroup>
+                      {notificationScope === 'barangays' && selectedBarangayValues.length === 0 && (
+                        <p className="text-xs text-warning">
+                          Select at least one barangay to use barangay-scoped notifications.
+                        </p>
+                      )}
+                    </div>
                     <p className="text-sm text-danger min-h-5 lg:col-span-5">{errors.barangays}</p>
                   </div>
 
