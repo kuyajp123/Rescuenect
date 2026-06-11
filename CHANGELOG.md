@@ -1,3 +1,9 @@
+## [2.3.1](https://github.com/kuyajp123/Rescuenect/compare/v2.3.0...v2.3.1) (2026-06-11)
+
+### Bug Fixes
+
+* **mobile app:** visual issue in earthquake dialog ([b2ade06](https://github.com/kuyajp123/Rescuenect/commit/b2ade06806ae6ffae05adec6b24f28d56a47ca49))
+
 ## [2.3.1-staging.1](https://github.com/kuyajp123/Rescuenect/compare/v2.3.0...v2.3.1-staging.1) (2026-06-11)
 
 ### Bug Fixes
