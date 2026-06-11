@@ -451,7 +451,11 @@ export const MainHotlineAndContact = ({ refreshTrigger }: MainHotlineAndContactP
         <View style={[styles.logoContainer, styles.shadowCard]}>
           <Image
             className="rounded-2xl"
-            source={clientLogoUrl ? { uri: clientLogoUrl } : require('../../../assets/images/Cavite-Logo 1.png')}
+            source={
+              clientLogoUrl
+                ? { uri: clientLogoUrl }
+                : require('../../../assets/images/logo/adaptive-icon.png')
+            }
             style={styles.logo}
             alt={`${displayClientName} logo`}
           />

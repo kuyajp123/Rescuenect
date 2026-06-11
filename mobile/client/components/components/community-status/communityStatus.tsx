@@ -6,7 +6,7 @@ import { useStatusStore } from '@/store/useCurrentStatusStore';
 import { useRouter } from 'expo-router';
 import { Button } from 'heroui-native/button';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { BarChart, PieChart } from 'react-native-gifted-charts';
 
 type StatusKey = 'safe' | 'affected' | 'evacuated' | 'missing';
@@ -26,13 +26,18 @@ const CATEGORY_BAR_SPACING = 34;
 const CATEGORY_LABEL_SLOT_WIDTH = CATEGORY_BAR_WIDTH + CATEGORY_BAR_SPACING;
 const CATEGORY_LABEL_WIDTH = 92;
 const CATEGORY_LABEL_HEIGHT = 96;
+const CATEGORY_CHART_HORIZONTAL_PADDING = 64;
 
 export const CommunityStatus = () => {
   const { isDark } = useTheme();
+  const { width } = useWindowDimensions();
   const router = useRouter();
   const { statusCounts, statusData } = useStatusStore();
   const totalCount = Object.values(statusCounts).reduce((sum, value) => sum + value, 0);
   const chartTextColor = isDark ? Colors.text.dark : Colors.text.light;
+  const categoryChartWidth = Math.max(240, width - CATEGORY_CHART_HORIZONTAL_PADDING);
+  const categoryRulesLength = Math.max(180, categoryChartWidth - 36);
+  const categoryRuleColor = isDark ? 'rgba(148,163,184,0.18)' : 'rgba(15,23,42,0.12)';
 
   const formatCategoryLabel = (value: string) => {
     return value.replace(/-/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
@@ -155,9 +160,10 @@ export const CommunityStatus = () => {
                 <BarChart
                   data={barData}
                   height={150}
+                  width={categoryChartWidth}
                   barWidth={CATEGORY_BAR_WIDTH}
                   spacing={CATEGORY_BAR_SPACING}
-                  initialSpacing={18}
+                  initialSpacing={40}
                   endSpacing={42}
                   disableScroll={barData.length <= 3}
                   showScrollIndicator={barData.length > 3}
@@ -171,6 +177,10 @@ export const CommunityStatus = () => {
                   hideYAxisText={false}
                   yAxisThickness={0}
                   xAxisThickness={0}
+                  rulesType="solid"
+                  rulesColor={categoryRuleColor}
+                  rulesThickness={1}
+                  rulesLength={categoryRulesLength}
                   xAxisLabelTextStyle={{
                     color: chartTextColor,
                     fontSize: 10,
@@ -274,7 +284,7 @@ const styles = StyleSheet.create({
   categoryChartFrame: {
     minHeight: 268,
     paddingTop: 4,
-    overflow: 'visible',
+    overflow: 'hidden',
   },
   categoryLabelSlot: {
     width: CATEGORY_LABEL_SLOT_WIDTH,
