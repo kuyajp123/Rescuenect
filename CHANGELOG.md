@@ -1,3 +1,9 @@
+## [2.4.1](https://github.com/kuyajp123/Rescuenect/compare/v2.4.0...v2.4.1) (2026-06-12)
+
+### Bug Fixes
+
+* Update notification system and admin auth. ([4da705b](https://github.com/kuyajp123/Rescuenect/commit/4da705ba2cc619e3078ef65a097fbc01a40ed0d5))
+
 ## [2.4.0](https://github.com/kuyajp123/Rescuenect/compare/v2.3.1...v2.4.0) (2026-06-12)
 
 ### Features
