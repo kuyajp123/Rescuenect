@@ -31,7 +31,7 @@ export class SignInModel {
       address: string;
       logoUrl?: string | null;
       logoPath?: string | null;
-      onboardingComplete: boolean;
+      onboardingComplete?: boolean;
     }
   ): Promise<boolean> {
     try {
@@ -46,9 +46,12 @@ export class SignInModel {
         phone: data.phone,
         bio: data.bio,
         address: data.address,
-        onboardingComplete: data.onboardingComplete,
         updatedAt: new Date(),
       };
+
+      if (typeof data.onboardingComplete === 'boolean') {
+        update.onboardingComplete = data.onboardingComplete;
+      }
 
       if (adminUser.role === 'lgu_admin') {
         if (!data.barangay) {

@@ -24,7 +24,7 @@ import {
   ThermometerSun,
   Wind,
 } from 'lucide-react';
-import { useMemo } from 'react';
+import { type KeyboardEvent, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export const Notification = () => {
@@ -35,26 +35,31 @@ export const Notification = () => {
     return await auth.currentUser?.getIdToken();
   };
 
-  if (!uid) {
-    return (
-      <Card className="w-full border border-default-100" shadow="none">
-        <div className="p-4">
-          <p className="text-3xl font-bold">Notifications</p>
-        </div>
-        <div className="p-8 text-center text-danger">
-          <AlertTriangle size={48} className="mx-auto mb-4" />
-          <p className="text-lg font-semibold">User not authenticated</p>
-          <p className="text-sm text-default-500 mt-2">Please log in to view your notifications.</p>
-        </div>
-      </Card>
-    );
-  }
-
-  const { notifications, isLoading, error, markAsRead, markAsHidden, getUnreadCount, markAllAsRead, markAllAsHidden } =
-    useNotificationStore();
+  const {
+    notifications,
+    isLoading,
+    error,
+    markAsRead,
+    markAsHidden,
+    getUnreadCount,
+    markAllAsRead,
+    markAllAsHidden,
+    markIndicatorAsSeen,
+  } = useNotificationStore();
 
   // Get unread count
-  const unreadCount = useMemo(() => getUnreadCount(uid), [notifications, getUnreadCount]);
+  const unreadCount = useMemo(() => getUnreadCount(uid), [notifications, getUnreadCount, uid]);
+
+  useEffect(() => {
+    if (!uid || isLoading) return;
+
+    const latestVisibleNotificationAt = notifications.reduce(
+      (latest, notification) => Math.max(latest, getNotificationDisplayTimestamp(notification)),
+      Date.now()
+    );
+
+    markIndicatorAsSeen(uid, latestVisibleNotificationAt);
+  }, [uid, isLoading, notifications, markIndicatorAsSeen]);
 
   // Get notification icon based on type
   const getNotificationIcon = (notification: BaseNotification) => {
@@ -167,7 +172,7 @@ export const Notification = () => {
 
   // Check if notification is read by current user
   const isRead = (notification: BaseNotification): boolean => {
-    return notification.readBy?.includes(uid) || false;
+    return Boolean(uid && notification.readBy?.includes(uid));
   };
 
   // Format timestamp
@@ -200,6 +205,28 @@ export const Notification = () => {
       },
     });
   };
+
+  const handleNotificationKeyDown = (event: KeyboardEvent<HTMLDivElement>, notification: BaseNotification) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+
+    event.preventDefault();
+    handleNotificationClick(notification);
+  };
+
+  if (!uid) {
+    return (
+      <Card className="w-full border border-default-100" shadow="none">
+        <div className="p-4">
+          <p className="text-3xl font-bold">Notifications</p>
+        </div>
+        <div className="p-8 text-center text-danger">
+          <AlertTriangle size={48} className="mx-auto mb-4" />
+          <p className="text-lg font-semibold">User not authenticated</p>
+          <p className="text-sm text-default-500 mt-2">Please log in to view your notifications.</p>
+        </div>
+      </Card>
+    );
+  }
 
   // Handle delete notification
   const handleDelete = async (notification: BaseNotification) => {
@@ -334,7 +361,7 @@ export const Notification = () => {
           <div className="p-8 text-center text-default-500">
             <Bell size={48} className="mx-auto mb-4 opacity-50" />
             <p className="text-lg font-semibold">No notifications</p>
-            <p className="text-sm mt-2">You're all caught up!</p>
+            <p className="text-sm mt-2">You are all caught up!</p>
           </div>
         ) : (
           notifications.map(notification => {
@@ -346,6 +373,9 @@ export const Notification = () => {
                   read ? 'bg-bg dark:bg-bg-dark' : 'bg-content1'
                 }`}
                 onClick={() => handleNotificationClick(notification)}
+                onKeyDown={event => handleNotificationKeyDown(event, notification)}
+                role="button"
+                tabIndex={0}
               >
                 <div className="mt-1">{getNotificationIcon(notification)}</div>
 

@@ -28,7 +28,8 @@ interface HeaderProps {
 const Header = ({ onToggle, isOpen }: HeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const getUnreadCount = useNotificationStore(state => state.getUnreadCount);
+  const getIndicatorCount = useNotificationStore(state => state.getIndicatorCount);
+  const indicatorSeenAtByUser = useNotificationStore(state => state.indicatorSeenAtByUser);
   const notifications = useNotificationStore(state => state.notifications);
   const uid = auth.currentUser?.uid;
   const admin = useAuth(state => state.auth);
@@ -37,7 +38,11 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
   const setUserData = useAuth(state => state.setUserData);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
-  const unreadCount = useMemo(() => getUnreadCount(uid), [notifications, getUnreadCount]);
+  const indicatorSeenAt = uid ? indicatorSeenAtByUser[uid] : 0;
+  const indicatorCount = useMemo(
+    () => getIndicatorCount(uid),
+    [notifications, getIndicatorCount, indicatorSeenAt, uid]
+  );
 
   const navigateFromProfileMenu = (path: string) => {
     setIsProfileMenuOpen(false);
@@ -205,9 +210,9 @@ const Header = ({ onToggle, isOpen }: HeaderProps) => {
           >
             <Bell size={20} />
           </SecondaryButton>
-          {unreadCount > 0 && (
+          {indicatorCount > 0 && (
             <span className="absolute -top-1 -right-1 z-10 min-w-5 h-5 bg-red-500 rounded-full border border-white flex items-center justify-center text-white text-xs font-semibold px-1">
-              {unreadCount}
+              {indicatorCount}
             </span>
           )}
         </div>

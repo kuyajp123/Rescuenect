@@ -12,7 +12,7 @@ export default function AppLayout() {
   const { isDark } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
-  const unreadCount = useNotificationStore(state => state.unreadCount);
+  const indicatorCount = useNotificationStore(state => state.indicatorCount);
   const [exitModalVisible, setExitModalVisible] = useState(false);
 
   const handleBack = () => {
@@ -25,7 +25,7 @@ export default function AppLayout() {
         <IconButton onPress={() => router.push('/notification' as any)} style={styles.notificationButton}>
           <Bell size={20} color={isDark ? Colors.text.dark : Colors.text.light} />
         </IconButton>
-        {unreadCount > 0 && (
+        {indicatorCount > 0 && (
           <View
             style={{
               position: 'absolute',

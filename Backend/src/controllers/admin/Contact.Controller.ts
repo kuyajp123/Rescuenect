@@ -206,8 +206,27 @@ export class ContactController {
         return;
       }
 
-      const uploadedLogo = await ClientLogoUploadService.uploadClientLogo(req.file as Express.Multer.File, client.id, client.logoPath);
-      const updatedClient = await ClientModel.updateClientLogo(client.id, uploadedLogo);
+      const uploadedLogo = await ClientLogoUploadService.uploadClientLogo(req.file as Express.Multer.File, client.id);
+      let updatedClient;
+
+      try {
+        updatedClient = await ClientModel.updateClientLogo(client.id, uploadedLogo);
+      } catch (updateError) {
+        try {
+          await ClientLogoUploadService.removeClientLogo(uploadedLogo.logoPath);
+        } catch (cleanupError) {
+          console.warn('Failed to remove uploaded LGU logo after client update failed:', cleanupError);
+        }
+        throw updateError;
+      }
+
+      if (client.logoPath && client.logoPath !== uploadedLogo.logoPath) {
+        try {
+          await ClientLogoUploadService.removeClientLogo(client.logoPath);
+        } catch (cleanupError) {
+          console.warn('Failed to remove old LGU logo after replacement:', cleanupError);
+        }
+      }
 
       res.status(200).json({
         message: 'LGU logo uploaded successfully',

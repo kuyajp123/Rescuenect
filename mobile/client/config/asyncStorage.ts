@@ -11,6 +11,7 @@ export const STORAGE_KEYS = {
   USER_SETTINGS: '@user_settings',
   SAVED_LOCATIONS: '@saved_locations',
   GUEST_PREFS: '@guest_prefs',
+  NOTIFICATION_INDICATOR_SEEN_AT: '@notification_indicator_seen_at',
   HAS_SEEN_ONBOARDING: '@has_seen_onboarding',
   EVACUATION_CENTERS: '@evacuation_centers',
   CONTACTS_MAIN: '@contacts_main',

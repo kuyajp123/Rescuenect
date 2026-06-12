@@ -1,8 +1,10 @@
 import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { normalizeBarangayValue } from '@/config/locationConfig';
 import { storageHelpers } from '@/helper/storage';
 import { getNotificationDisplayTimestamp, isStaleEarthquakeNotification } from '@/helper/notificationTime';
 import { db } from '@/lib/firebaseConfig';
 import { useNotificationStore } from '@/store/useNotificationStore';
+import { NOTIFICATION_INDICATOR_GUEST_ID } from '@/store/useNotificationStore';
 import { useUserData } from '@/store/useBackendResponse';
 import type { BaseNotification } from '@/types/notification';
 import { collection, doc, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
@@ -19,13 +21,36 @@ export const useNotificationSubscriber = ({
   userId,
   maxNotifications = 50,
 }: UseNotificationSubscriberProps = {}) => {
-  const { setNotifications, setUserId, guestReadIds, guestHiddenIds, setGuestPreferences } = useNotificationStore();
+  const {
+    setNotifications,
+    setUserId,
+    guestReadIds,
+    guestHiddenIds,
+    setGuestPreferences,
+    loadIndicatorSeenAt,
+  } = useNotificationStore();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [globalNotifications, setGlobalNotifications] = useState<BaseNotification[]>([]);
   const [userNotifications, setUserNotifications] = useState<BaseNotification[]>([]);
   const userClientId = useUserData(state => state.userData.clientId);
   const userWeatherLocationKey = useUserData(state => state.userData.weatherLocationKey);
+
+  const isBarangayScopedAnnouncement = useCallback((notification: BaseNotification) => {
+    const data = notification.data as { notificationScope?: unknown } | undefined;
+    return notification.type === 'announcement' && data?.notificationScope === 'barangays';
+  }, []);
+
+  const isRelevantBarangayScopedNotification = useCallback((notification: BaseNotification) => {
+    const normalizedUserLocation = normalizeBarangayValue(userLocation);
+    if (!normalizedUserLocation) {
+      return false;
+    }
+
+    return (notification.barangays ?? []).some(
+      barangay => normalizeBarangayValue(barangay) === normalizedUserLocation
+    );
+  }, [userLocation]);
 
   const isRelevantLocationNotification = useCallback((notification: BaseNotification) => {
     if (!userLocation) {
@@ -41,10 +66,9 @@ export const useNotificationSubscriber = ({
 
   useEffect(() => {
     // Set userId in store for unread count calculation
-    if (userId) {
-      setUserId(userId);
-    }
-  }, [userId, setUserId]);
+    setUserId(userId ?? null);
+    loadIndicatorSeenAt(userId ?? NOTIFICATION_INDICATOR_GUEST_ID);
+  }, [userId, setUserId, loadIndicatorSeenAt]);
 
   // Load guest preferences on mount
   useEffect(() => {
@@ -113,6 +137,10 @@ export const useNotificationSubscriber = ({
                 if (isRelevantLocationNotification(notification)) {
                   allNotifications.push(notification);
                 }
+              } else if (isBarangayScopedAnnouncement(notification)) {
+                if (isRelevantBarangayScopedNotification(notification)) {
+                  allNotifications.push(notification);
+                }
               } else {
                 allNotifications.push(notification);
               }
@@ -143,7 +171,14 @@ export const useNotificationSubscriber = ({
     }
 
     return () => unsubscribe();
-  }, [isRelevantLocationNotification, userClientId, userId, maxNotifications]);
+  }, [
+    isBarangayScopedAnnouncement,
+    isRelevantBarangayScopedNotification,
+    isRelevantLocationNotification,
+    userClientId,
+    userId,
+    maxNotifications,
+  ]);
 
   // User-Specific Notifications Subscription
   useEffect(() => {

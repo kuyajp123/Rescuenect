@@ -11,14 +11,15 @@ import { getNotificationDisplayTimestamp } from '@/helper/notificationTime';
 import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
 import { useNotificationStore } from '@/store/useNotificationStore';
+import { NOTIFICATION_INDICATOR_GUEST_ID } from '@/store/useNotificationStore';
 import type { BaseNotification } from '@/types/notification';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { Activity, AlertCircle, Bell, Cloud, MapPin, Megaphone } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-const index = () => {
+const NotificationScreen = () => {
   const { isDark } = useTheme();
   const router = useRouter();
   const guestReadIds = useNotificationStore(state => state.guestReadIds);
@@ -27,8 +28,10 @@ const index = () => {
   const markAsHidden = useNotificationStore(state => state.markAsHidden);
   const markAllAsRead = useNotificationStore(state => state.markAllAsRead);
   const markAllAsGuestRead = useNotificationStore(state => state.markAllAsGuestRead);
+  const markIndicatorAsSeen = useNotificationStore(state => state.markIndicatorAsSeen);
   const userData = useUserData((state: any) => state.userData);
   const authUser = useAuth(state => state.authUser);
+  const indicatorViewerId = authUser?.uid ?? NOTIFICATION_INDICATOR_GUEST_ID;
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletting, setDeletting] = useState(false);
 
@@ -50,6 +53,15 @@ const index = () => {
 
   const showFeedback = (title: string, message: string) =>
     setFeedbackDialog({ open: true, title, message });
+
+  useEffect(() => {
+    const latestVisibleNotificationAt = notifications.reduce(
+      (latest, notification) => Math.max(latest, getNotificationDisplayTimestamp(notification)),
+      Date.now()
+    );
+
+    markIndicatorAsSeen(indicatorViewerId, latestVisibleNotificationAt);
+  }, [indicatorViewerId, markIndicatorAsSeen, notifications]);
 
   // Get icon based on notification type
   const getNotificationIcon = (type: BaseNotification['type']) => {
@@ -190,7 +202,7 @@ const index = () => {
             No notifications yet
           </Text>
           <Text size="sm" style={{ marginTop: 8, opacity: 0.5, textAlign: 'center' }}>
-            You'll be notified about earthquakes and weather alerts
+            You will be notified about earthquakes and weather alerts
           </Text>
         </View>
       </Body>
@@ -376,7 +388,7 @@ const index = () => {
   );
 };
 
-export default index;
+export default NotificationScreen;
 
 const styles = StyleSheet.create({
   headerContainer: {
