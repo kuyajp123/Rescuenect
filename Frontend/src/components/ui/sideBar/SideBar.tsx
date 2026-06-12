@@ -12,6 +12,7 @@ import {
   Phone,
   ScrollText,
   Shield,
+  TriangleAlert,
   UserCog,
   UsersRound,
 } from 'lucide-react';
@@ -51,6 +52,7 @@ const SideBar = ({ isOpen }: SideBarProps) => {
     { path: '/earthquake', icon: Activity, label: 'Earthquake' },
     { path: '/residents', icon: UsersRound, label: 'Residents' },
     { path: '/evacuation', icon: HousePlus, label: 'Evacuation' },
+    { path: '/danger-zones', icon: TriangleAlert, label: 'Danger Zones' },
     { path: '/announcement', icon: Megaphone, label: 'Announcement' },
     { path: '/contacts', icon: Phone, label: 'Contacts' },
     { path: '/carousel', icon: Image, label: 'Carousel' },
