@@ -1,6 +1,8 @@
 import { HoveredButton, IconButton } from '@/components/components/button/Button';
 import Body from '@/components/ui/layout/Body';
+import { LoadingOverlay } from '@/components/ui/loading/LoadingOverlay';
 import { Text } from '@/components/ui/text';
+import Dialog from '@/components/ui/Dialog';
 import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -12,9 +14,9 @@ import { useNotificationStore } from '@/store/useNotificationStore';
 import type { BaseNotification } from '@/types/notification';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
-import { Activity, AlertCircle, Bell, Cloud, MapPin } from 'lucide-react-native';
+import { Activity, AlertCircle, Bell, Cloud, MapPin, Megaphone } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 const index = () => {
   const { isDark } = useTheme();
@@ -28,6 +30,26 @@ const index = () => {
   const userData = useUserData((state: any) => state.userData);
   const authUser = useAuth(state => state.authUser);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletting, setDeletting] = useState(false);
+
+  // Dialog state
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; notification: BaseNotification | null }>({
+    open: false,
+    notification: null,
+  });
+  const [markAllDialog, setMarkAllDialog] = useState<{
+    open: boolean;
+    count: number;
+    notificationIds: string[];
+  }>({ open: false, count: 0, notificationIds: [] });
+  const [feedbackDialog, setFeedbackDialog] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+  }>({ open: false, title: '', message: '' });
+
+  const showFeedback = (title: string, message: string) =>
+    setFeedbackDialog({ open: true, title, message });
 
   // Get icon based on notification type
   const getNotificationIcon = (type: BaseNotification['type']) => {
@@ -42,6 +64,8 @@ const index = () => {
         return <AlertCircle color={iconColor} size={24} />;
       case 'status_resolved':
         return <MapPin color={iconColor} size={24} />;
+      case 'announcement':
+        return <Megaphone color={iconColor} size={24} />;
       default:
         return <Bell color={iconColor} size={24} />;
     }
@@ -77,6 +101,8 @@ const index = () => {
         return isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)';
       case 'emergency':
         return isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.08)';
+      case 'announcement':
+        return isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)';
       default:
         return isDark ? Colors.background.dark : Colors.background.light;
     }
@@ -84,96 +110,77 @@ const index = () => {
 
   // Handle notification deletion
   const handleNotificationAction = async (notification: BaseNotification) => {
+    setDeleteDialog({ open: true, notification });
+  };
+
+  const confirmDelete = async () => {
+    const notification = deleteDialog.notification;
+    if (!notification) return;
+    setDeleteDialog({ open: false, notification: null });
+
     const idToken = authUser ? await authUser.getIdToken() : null;
+    setDeletingId(notification.id);
+    setDeletting(true);
 
-    // Allow guests to delete (locally hide)
-    // if (!authUser?.uid) {
-    //   Alert.alert('Error', 'You must be logged in to delete notifications');
-    //   return;
-    // }
+    if (!authUser?.uid) {
+      useNotificationStore.getState().markAsGuestHidden(notification.id);
+      setDeletting(false);
+      setDeletingId(null);
+      return;
+    }
 
-    Alert.alert('Delete Notification', 'Are you sure you want to delete this notification?', [
-      {
-        text: 'Cancel',
-        style: 'cancel',
-      },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          if (!authUser?.uid) {
-            // Guest mode deletion/hiding
-            // For guests, we treat "delete" as "hide" locally
-            useNotificationStore.getState().markAsGuestHidden(notification.id);
-            return;
-          }
-
-          console.log(notification);
-          if (notification.type === 'status_resolved') {
-            notificationMarkAsDeleted(notification.id, authUser.uid, idToken);
-          } else {
-            notificationMarkAsHidden(notification.id, authUser.uid, idToken);
-          }
-        },
-      },
-    ]);
+    if (notification.type === 'status_resolved') {
+      notificationMarkAsDeleted(notification.id, authUser.uid, idToken);
+    } else {
+      notificationMarkAsHidden(notification.id, authUser.uid, idToken);
+    }
   };
 
   const notificationMarkAsHidden = async (id: BaseNotification['id'], uid: string, idToken: any) => {
     try {
-      // Call API to mark as hidden
       const response = await axios.post(
         API_ROUTES.NOTIFICATION.MARK_AS_HIDDEN,
-        {
-          notificationId: id,
-          uid: uid,
-        },
-        {
-          headers: { Authorization: `Bearer ${idToken}` },
-        }
+        { notificationId: id, uid },
+        { headers: { Authorization: `Bearer ${idToken}` } }
       );
-
       if (response.status === 500 || response.status === 400) {
         throw new Error('Failed to delete notification');
       }
-
-      // Update local state
       markAsHidden(id, uid);
+      setDeletting(false);
+      setDeletingId(null);
     } catch (error) {
       console.error('Error deleting notification:', error);
-      Alert.alert('Error', 'Failed to delete notification. Please try again.');
+      showFeedback('Error', 'Failed to delete notification. Please try again.');
+      setDeletting(false);
+      setDeletingId(null);
     }
   };
 
   const notificationMarkAsDeleted = async (id: BaseNotification['id'], uid: string, idToken: any) => {
     try {
-      // Call API to mark as deleted
       const response = await axios.post(
         API_ROUTES.NOTIFICATION.MARK_AS_DELETED,
-        {
-          notificationId: id,
-          uid: uid,
-        },
-        {
-          headers: { Authorization: `Bearer ${idToken}` },
-        }
+        { notificationId: id, uid },
+        { headers: { Authorization: `Bearer ${idToken}` } }
       );
-
       if (response.status === 500 || response.status === 400) {
         throw new Error('Failed to delete notification');
       }
-
-      // Update local state
       markAsHidden(id, uid);
+      setDeletting(false);
+      setDeletingId(null);
     } catch (error) {
       console.error('Error deleting notification:', error);
-      Alert.alert('Error', 'Failed to delete notification. Please try again.');
+      showFeedback('Error', 'Failed to delete notification. Please try again.');
+      setDeletting(false);
+      setDeletingId(null);
     }
   };
 
   if (notifications.length === 0) {
     return (
-      <Body style={{ padding: 0 }}>
+      <Body style={{ padding: 20 }}>
         <Text size="3xl" bold style={styles.header}>
           Notifications
         </Text>
@@ -192,69 +199,48 @@ const index = () => {
 
   // Handle mark all as read
   const handleMarkAllAsRead = async () => {
-    // Determine unread notifications based on auth state
     const unreadNotifications = authUser?.uid
       ? notifications.filter(notif => !notif.readBy?.includes(authUser.uid))
       : notifications.filter(notif => !guestReadIds.includes(notif.id));
 
     if (unreadNotifications.length === 0) {
-      Alert.alert('Info', 'All notifications are already marked as read');
+      showFeedback('Info', 'All notifications are already marked as read.');
       return;
     }
 
-    const notificationToBeUpdated = unreadNotifications.map(notif => notif.id);
+    setMarkAllDialog({
+      open: true,
+      count: unreadNotifications.length,
+      notificationIds: unreadNotifications.map(n => n.id),
+    });
+  };
 
-    Alert.alert(
-      'Mark All as Read',
-      `Are you sure you want to mark ${unreadNotifications.length} notification${
-        unreadNotifications.length > 1 ? 's' : ''
-      } as read?`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Mark All',
-          onPress: async () => {
-            // Guest handling
-            if (!authUser?.uid) {
-              markAllAsGuestRead();
-              Alert.alert('Success', 'All notifications marked as read');
-              return;
-            }
+  const confirmMarkAllAsRead = async () => {
+    const { notificationIds } = markAllDialog;
+    setMarkAllDialog(prev => ({ ...prev, open: false }));
 
-            try {
-              // Get ID token from Firebase Auth
-              const idToken = await authUser.getIdToken();
+    if (!authUser?.uid) {
+      markAllAsGuestRead();
+      showFeedback('Success', 'All notifications marked as read.');
+      return;
+    }
 
-              // Call API to mark all as read
-              const response = await axios.post(
-                API_ROUTES.NOTIFICATION.MARK_ALL_AS_READ,
-                {
-                  uid: authUser.uid,
-                  notificationIds: notificationToBeUpdated,
-                },
-                {
-                  headers: { Authorization: `Bearer ${idToken}` },
-                }
-              );
-
-              if (response.status === 500 || response.status === 400) {
-                throw new Error('Failed to mark all notifications as read');
-              }
-
-              // Update local state
-              markAllAsRead(authUser.uid);
-              Alert.alert('Success', 'All notifications marked as read');
-            } catch (error) {
-              console.error('Error marking all as read:', error);
-              Alert.alert('Error', 'Failed to mark notifications as read. Please try again.');
-            }
-          },
-        },
-      ]
-    );
+    try {
+      const idToken = await authUser.getIdToken();
+      const response = await axios.post(
+        API_ROUTES.NOTIFICATION.MARK_ALL_AS_READ,
+        { uid: authUser.uid, notificationIds },
+        { headers: { Authorization: `Bearer ${idToken}` } }
+      );
+      if (response.status === 500 || response.status === 400) {
+        throw new Error('Failed to mark all notifications as read');
+      }
+      markAllAsRead(authUser.uid);
+      showFeedback('Success', 'All notifications marked as read.');
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+      showFeedback('Error', 'Failed to mark notifications as read. Please try again.');
+    }
   };
 
   return (
@@ -289,7 +275,9 @@ const index = () => {
                       ? Colors.semantic.error
                       : notification.type === 'weather'
                         ? Colors.semantic.info
-                        : Colors.brand.dark,
+                        : notification.type === 'announcement'
+                          ? Colors.semantic.success
+                          : Colors.brand.dark,
                   opacity: deletingId === notification.id ? 0.5 : 1,
                 },
               ]}
@@ -340,6 +328,50 @@ const index = () => {
           );
         })}
       </ScrollView>
+      <LoadingOverlay visible={deletting} message="Deleting notification..." />
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        size="sm"
+        isOpen={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, notification: null })}
+        primaryText="Delete Notification"
+        secondaryText="Are you sure you want to delete this notification? This action cannot be undone."
+        primaryButtonText="Delete"
+        primaryButtonVariant="solid"
+        primaryButtonAction="error"
+        primaryButtonOnPress={confirmDelete}
+        secondaryButtonText="Cancel"
+        secondaryButtonOnPress={() => setDeleteDialog({ open: false, notification: null })}
+      />
+
+      {/* Mark all as read confirmation dialog */}
+      <Dialog
+        size="sm"
+        isOpen={markAllDialog.open}
+        onClose={() => setMarkAllDialog(prev => ({ ...prev, open: false }))}
+        primaryText="Mark All as Read"
+        secondaryText={`Are you sure you want to mark ${markAllDialog.count} notification${
+          markAllDialog.count > 1 ? 's' : ''
+        } as read?`}
+        primaryButtonText="Mark All"
+        primaryButtonVariant="solid"
+        primaryButtonOnPress={confirmMarkAllAsRead}
+        secondaryButtonText="Cancel"
+        secondaryButtonOnPress={() => setMarkAllDialog(prev => ({ ...prev, open: false }))}
+      />
+
+      {/* Feedback dialog (info / success / error) */}
+      <Dialog
+        size="lg"
+        isOpen={feedbackDialog.open}
+        onClose={() => setFeedbackDialog(prev => ({ ...prev, open: false }))}
+        primaryText={feedbackDialog.title}
+        secondaryText={feedbackDialog.message}
+        primaryButtonText="OK"
+        primaryButtonVariant="solid"
+        primaryButtonOnPress={() => setFeedbackDialog(prev => ({ ...prev, open: false }))}
+      />
     </Body>
   );
 };

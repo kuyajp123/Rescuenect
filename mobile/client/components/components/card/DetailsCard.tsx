@@ -112,12 +112,17 @@ const ProgressiveEvacuationImage = ({ uri, isActive }: { uri: string; isActive: 
   );
 };
 
+const clampIndex = (index: number, length: number) => {
+  if (length <= 0) return 0;
+  return Math.max(0, Math.min(length - 1, index));
+};
+
 const DetailsCard: React.FC<DetailsCardProps> = ({ selectedMarker, isDark, onClose }) => {
   const [activeIndex, setActiveIndex] = React.useState(0);
 
   React.useEffect(() => {
     setActiveIndex(0);
-  }, [selectedMarker?.id]);
+  }, [selectedMarker?.id, selectedMarker?.name]);
 
   if (!selectedMarker) return null;
 
@@ -127,9 +132,12 @@ const DetailsCard: React.FC<DetailsCardProps> = ({ selectedMarker, isDark, onClo
       }))
     : [];
 
+  const safeActiveIndex = clampIndex(activeIndex, data.length);
+  const carouselKey = `${selectedMarker.id ?? selectedMarker.name}-${data.length}`;
+
   const renderItem = ({ item, index }: { item: Images; index: number }) => (
     <View style={styles.carouselItemContainer}>
-      <ProgressiveEvacuationImage uri={item.uri} isActive={index === activeIndex} />
+      <ProgressiveEvacuationImage uri={item.uri} isActive={index === safeActiveIndex} />
     </View>
   );
 
@@ -138,13 +146,22 @@ const DetailsCard: React.FC<DetailsCardProps> = ({ selectedMarker, isDark, onClo
       {data.length > 0 ? (
         <View style={styles.carouselContainer}>
           <Carousel
+            key={carouselKey}
             loop={false}
             width={screenWidth}
             height={220}
             data={data}
             scrollAnimationDuration={300}
             renderItem={renderItem}
-            onSnapToItem={index => setActiveIndex(index)}
+            onProgressChange={(_, absoluteProgress) => {
+              const nextIndex = clampIndex(Math.round(absoluteProgress), data.length);
+              setActiveIndex(prev => {
+                return prev === nextIndex ? prev : nextIndex;
+              });
+            }}
+            onSnapToItem={index => {
+              setActiveIndex(clampIndex(index, data.length));
+            }}
             pagingEnabled
           />
           {/* Pagination dots */}
@@ -157,8 +174,8 @@ const DetailsCard: React.FC<DetailsCardProps> = ({ selectedMarker, isDark, onClo
                     styles.paginationDot,
                     {
                       backgroundColor:
-                        index === activeIndex ? Colors.brand.dark : isDark ? Colors.border.dark : Colors.border.light,
-                      opacity: index === activeIndex ? 1 : 0.5,
+                        index === safeActiveIndex ? Colors.brand.dark : isDark ? Colors.border.dark : Colors.border.light,
+                      opacity: index === safeActiveIndex ? 1 : 0.5,
                     },
                   ]}
                 />

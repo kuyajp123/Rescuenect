@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
     ME: `${BACKEND_URL}/admin/me`,
     UPDATE_FCM_TOKEN: `${BACKEND_URL}/admin/config/update-fcm-token`,
     UPDATE_PROFILE: `${BACKEND_URL}/admin/auth/update-profile`,
+    COMPLETE_ONBOARDING: `${BACKEND_URL}/admin/auth/complete-onboarding`,
     UPLOAD_CLIENT_LOGO: `${BACKEND_URL}/admin/auth/upload-client-logo`,
   },
   STATUS: {
@@ -40,6 +41,14 @@ export const API_ENDPOINTS = {
     GET_ANNOUNCEMENT_DETAILS: (id: string) => `${BACKEND_URL}/admin/announcement/details/${id}`,
     DELETE_ANNOUNCEMENT: `${BACKEND_URL}/admin/announcement/deleteAnnouncement`,
     UPDATE_ANNOUNCEMENT: `${BACKEND_URL}/admin/announcement/updateAnnouncement`,
+  },
+  CAROUSEL: {
+    GET_ALL: `${BACKEND_URL}/admin/carousel/all`,
+    CREATE: `${BACKEND_URL}/admin/carousel/create`,
+    UPDATE: (id: string) => `${BACKEND_URL}/admin/carousel/update/${id}`,
+    DELETE: (id: string) => `${BACKEND_URL}/admin/carousel/delete/${id}`,
+    REORDER: `${BACKEND_URL}/admin/carousel/reorder`,
+    SAVE_ALL: `${BACKEND_URL}/admin/carousel/save-all`,
   },
   CONTACTS: {
     GET_CONTACTS: `${BACKEND_URL}/admin/contacts/getContacts`,

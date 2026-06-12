@@ -17,4 +17,6 @@ authRoutes.post(
 );
 authRoutes.post('/update-profile', AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin, LoginController.updateProfile);
 
+authRoutes.post('/complete-onboarding', AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin, LoginController.completeOnboarding);
+
 export default authRoutes;

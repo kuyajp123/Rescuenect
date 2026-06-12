@@ -29,7 +29,7 @@ export default function ProtectedRoute({ children }: Props) {
     return <AccessUnavailable issue={accessIssue} />;
   }
 
-  const isOnboardingRoute = ['/Welcome', '/address-setup', '/info-setup'].includes(location.pathname);
+  const isOnboardingRoute = ['/Welcome', '/address-setup', '/info-setup', '/carousel-setup'].includes(location.pathname);
 
   // 2. Authenticated but Incomplete Onboarding
   if (userData && !userData.onboardingComplete) {

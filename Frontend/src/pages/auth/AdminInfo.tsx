@@ -25,7 +25,7 @@ const AdminInfo = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
 
-  const handleGoToDashboard = () => {
+  const handleGoToCarouselSetup = () => {
     updateUserData({
       firstName,
       lastName,
@@ -35,11 +35,8 @@ const AdminInfo = () => {
       address,
       clientLogoUrl: isSuperAdmin ? userData?.clientLogoUrl : logoUrl,
       clientLogoPath: isSuperAdmin ? userData?.clientLogoPath : logoPath,
-      onboardingComplete: true,
     });
-    // Clear onboarding store
-    useOnboardingStore.getState().reset();
-    navigate('/');
+    navigate('/carousel-setup');
   };
 
   const handleSubmit = async () => {
@@ -107,12 +104,12 @@ const AdminInfo = () => {
         <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-6">
           <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
         </div>
-        <h2 className="text-3xl font-bold mb-2">You're all set!</h2>
+        <h2 className="text-3xl font-bold mb-2">Profile Saved!</h2>
         <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-sm">
-          Your admin profile has been created successfully. Welcome to Rescuenect Admin.
+          Your admin profile has been created successfully. Next, let's set up the carousel.
         </p>
-        <Button color="primary" size="lg" onPress={handleGoToDashboard}>
-          Go to Dashboard
+        <Button color="primary" size="lg" onPress={handleGoToCarouselSetup}>
+          Next: Carousel Setup
         </Button>
       </div>
     );
@@ -160,7 +157,7 @@ const AdminInfo = () => {
           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
           <Button color="primary" size="lg" className="w-full mt-4" isLoading={isLoading} onPress={handleSubmit}>
-            Complete Setup
+            Next Step
           </Button>
         </div>
       </div>

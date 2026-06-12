@@ -22,9 +22,9 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Skeleton,
   Select,
   SelectItem,
+  Skeleton,
   Switch,
   Textarea,
   Tooltip,
@@ -285,6 +285,7 @@ const Contacts = () => {
   const auth = useAuth(state => state.auth);
   const [hasLoadedRemote, setHasLoadedRemote] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState('');
   const [logoPath, setLogoPath] = useState('');
@@ -437,6 +438,7 @@ const Contacts = () => {
           );
         }
 
+        setHasChanges(false);
         setHasLoadedRemote(true);
       } catch (error) {
         console.error('[Contacts Load Error]', error);
@@ -481,6 +483,7 @@ const Contacts = () => {
         return next;
       });
     });
+    setHasChanges(true);
   };
 
   const buildContactsPayload = () => {
@@ -557,6 +560,7 @@ const Contacts = () => {
 
       setLogoUrl(response.data.logoUrl);
       setLogoPath(response.data.logoPath);
+      setHasChanges(true);
       addToast({ title: 'LGU logo uploaded', color: 'success' });
     } catch (error) {
       const message = axios.isAxiosError(error)
@@ -604,6 +608,7 @@ const Contacts = () => {
         timeout: 3500,
         color: 'success',
       });
+      setHasChanges(false);
     } catch (error) {
       console.error('[Sync Contacts Error]', error);
       const fieldErrors = readFieldErrors(error);
@@ -677,6 +682,7 @@ const Contacts = () => {
       setContacts(prev => [...prev, { ...contactForm, id: makeId() }]);
     }
 
+    setHasChanges(true);
     handleContactModalChange(false);
   };
 
@@ -726,6 +732,7 @@ const Contacts = () => {
       setCategories(prev => [...prev, newCategory]);
       setSelectedCategoryId(newCategory.id);
     }
+    setHasChanges(true);
     handleCategoryModalChange(false);
   };
 
@@ -738,10 +745,12 @@ const Contacts = () => {
       return next;
     });
     setContacts(prev => prev.filter(contact => contact.categoryId !== categoryId));
+    setHasChanges(true);
   };
 
   const deleteContact = (contactId: string) => {
     setContacts(prev => prev.filter(contact => contact.id !== contactId));
+    setHasChanges(true);
   };
 
   const selectedIcon = ICONS[contactForm.iconKey] ?? Phone;
@@ -778,7 +787,7 @@ const Contacts = () => {
                 color="primary"
                 onPress={handleSyncContacts}
                 isLoading={isSyncing}
-                isDisabled={isSyncing}
+                isDisabled={isSyncing || !hasChanges}
                 startContent={isSyncing ? undefined : <Save size={18} />}
               >
                 Save Changes
@@ -848,64 +857,62 @@ const Contacts = () => {
             </CardHeader>
             <Divider />
             <CardBody className="flex flex-col gap-3">
-              {isInitialLoading ? (
-                Array.from({ length: 4 }).map((_, index) => (
-                  <div
-                    key={`category-skeleton-${index}`}
-                    className="flex w-full flex-col gap-2 rounded-xl border border-default-200/70 bg-white/60 px-4 py-3 dark:border-slate-800/70 dark:bg-slate-900/60"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-3/5 rounded-lg" />
-                        <Skeleton className="h-3 w-2/5 rounded-lg" />
-                      </div>
-                      <Skeleton className="h-6 w-8 rounded-full" />
-                    </div>
-                    <div className="space-y-2">
-                      <Skeleton className="h-3 w-4/5 rounded-lg" />
-                      <Skeleton className="h-3 w-2/3 rounded-lg" />
-                    </div>
-                  </div>
-                ))
-              ) : (
-                categories.map(category => (
-                  <div
-                    key={category.id}
-                    className={`flex w-full flex-col gap-2 rounded-xl border px-4 py-3 text-left transition ${
-                      selectedCategoryId === category.id
-                        ? 'border-primary/40 bg-primary/10 dark:border-primary/40 dark:bg-primary/20'
-                        : 'border-default-200/70 bg-white/60 hover:border-primary/40 hover:bg-primary/5 dark:border-slate-800/70 dark:bg-slate-900/60 dark:hover:border-primary/40 dark:hover:bg-slate-800/70'
-                    }`}
-                    onClick={() => setSelectedCategoryId(category.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-semibold text-default-900 dark:text-slate-100">
-                          {category.name}
+              {isInitialLoading
+                ? Array.from({ length: 4 }).map((_, index) => (
+                    <div
+                      key={`category-skeleton-${index}`}
+                      className="flex w-full flex-col gap-2 rounded-xl border border-default-200/70 bg-white/60 px-4 py-3 dark:border-slate-800/70 dark:bg-slate-900/60"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-4 w-3/5 rounded-lg" />
+                          <Skeleton className="h-3 w-2/5 rounded-lg" />
                         </div>
-                        <div className="text-xs text-default-500 dark:text-slate-400">{category.type}</div>
+                        <Skeleton className="h-6 w-8 rounded-full" />
                       </div>
-                      <Chip size="sm" variant="flat">
-                        {contacts.filter(contact => contact.categoryId === category.id).length}
-                      </Chip>
+                      <div className="space-y-2">
+                        <Skeleton className="h-3 w-4/5 rounded-lg" />
+                        <Skeleton className="h-3 w-2/3 rounded-lg" />
+                      </div>
                     </div>
-                    <div className="text-xs text-default-500 dark:text-slate-400">{category.description}</div>
-                    <div className="flex items-center gap-2">
-                      <Button size="sm" variant="light" onPress={() => openEditCategory(category)}>
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        color="danger"
-                        variant="light"
-                        onPress={() => setConfirmDelete({ type: 'category', id: category.id, label: category.name })}
-                      >
-                        Delete
-                      </Button>
+                  ))
+                : categories.map(category => (
+                    <div
+                      key={category.id}
+                      className={`flex w-full flex-col gap-2 rounded-xl border px-4 py-3 text-left transition ${
+                        selectedCategoryId === category.id
+                          ? 'border-primary/40 bg-primary/10 dark:border-primary/40 dark:bg-primary/20'
+                          : 'border-default-200/70 bg-white/60 hover:border-primary/40 hover:bg-primary/5 dark:border-slate-800/70 dark:bg-slate-900/60 dark:hover:border-primary/40 dark:hover:bg-slate-800/70'
+                      }`}
+                      onClick={() => setSelectedCategoryId(category.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-semibold text-default-900 dark:text-slate-100">
+                            {category.name}
+                          </div>
+                          <div className="text-xs text-default-500 dark:text-slate-400">{category.type}</div>
+                        </div>
+                        <Chip size="sm" variant="flat">
+                          {contacts.filter(contact => contact.categoryId === category.id).length}
+                        </Chip>
+                      </div>
+                      <div className="text-xs text-default-500 dark:text-slate-400">{category.description}</div>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="light" onPress={() => openEditCategory(category)}>
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          color="danger"
+                          variant="light"
+                          onPress={() => setConfirmDelete({ type: 'category', id: category.id, label: category.name })}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
+                  ))}
             </CardBody>
           </Card>
 
@@ -1035,11 +1042,12 @@ const Contacts = () => {
                             contact={contact}
                             onEdit={openEditContact}
                             onDelete={item => setConfirmDelete({ type: 'contact', id: item.id, label: item.name })}
-                            onToggle={(id, value) =>
+                            onToggle={(id, value) => {
                               setContacts(prev =>
                                 prev.map(item => (item.id === id ? { ...item, isActive: value } : item))
-                              )
-                            }
+                              );
+                              setHasChanges(true);
+                            }}
                           />
                         ))}
                       </div>

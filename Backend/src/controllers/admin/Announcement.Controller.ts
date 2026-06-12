@@ -2,6 +2,7 @@ import { AnnouncementModel } from '@/models/admin/AnnouncementModel';
 import { ClientModel } from '@/models/admin/ClientModel';
 import { normalizeBarangayValue } from '@/config/locationConfig';
 import { getClientScopeFromRequest } from '@/utils/adminScope';
+import { AnnouncementNotificationService, type AnnouncementNotificationScope } from '@/services/AnnouncementNotificationService';
 import createDOMPurify, { type WindowLike } from 'dompurify';
 import { Request, Response } from 'express';
 import { JSDOM } from 'jsdom';
@@ -259,6 +260,9 @@ export class AnnouncementController {
         return;
       }
 
+      const rawScope = typeof req.body.notificationScope === 'string' ? req.body.notificationScope.trim() : 'all';
+      const notificationScope: AnnouncementNotificationScope = rawScope === 'barangays' ? 'barangays' : 'all';
+
       const payload: Record<string, unknown> = {
         content,
         category,
@@ -270,6 +274,23 @@ export class AnnouncementController {
 
       const file = req.file as Express.Multer.File | undefined;
       const announcementId = await AnnouncementModel.addAnnouncement(payload, file, userId, clientId);
+
+      // Fire-and-forget: send push + save in-app notification record
+      // We do NOT await this so the HTTP response is not delayed.
+      // Even if FCM tokens are missing, the in-app record is always saved.
+      AnnouncementNotificationService.sendAnnouncementNotification({
+        announcementId,
+        title: title || 'New Announcement',
+        subtitle: subtitle || undefined,
+        // Pass the HTML content – the service strips tags to extract plain text
+        contentText: content,
+        category,
+        clientId,
+        barangays,
+        notificationScope,
+      }).catch(err =>
+        console.error('❌ Failed to send announcement notification:', err instanceof Error ? err.message : err)
+      );
 
       res.status(201).json({ message: 'Announcement created', id: announcementId });
     } catch (error) {

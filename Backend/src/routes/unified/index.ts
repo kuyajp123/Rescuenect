@@ -12,6 +12,8 @@ unifiedRoutes.get('/announcements', UnifiedController.getAllAnnouncements);
 
 unifiedRoutes.get('/announcementDetails', UnifiedController.getAnnouncementDetails);
 
+unifiedRoutes.get('/carouselSlides', UnifiedController.getCarouselSlides);
+
 // protected routes in the following
 
 unifiedRoutes.use(AuthMiddleware.verifyToken, AuthMiddleware.requireOwnUid);
