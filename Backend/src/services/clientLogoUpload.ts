@@ -82,7 +82,16 @@ const ensureClientLogoBucketExists = async (): Promise<void> => {
 };
 
 export class ClientLogoUploadService {
-  static async uploadClientLogo(file: Express.Multer.File, clientId: string, oldLogoPath?: string | null): Promise<ClientLogoUploadResult> {
+  static async removeClientLogo(logoPath: string | null | undefined): Promise<void> {
+    if (!logoPath) return;
+
+    const { error } = await supabase.storage.from(CLIENT_LOGO_BUCKET).remove([logoPath]);
+    if (error) {
+      throw new Error(`Failed to remove LGU logo (${logoPath}): ${error.message}`);
+    }
+  }
+
+  static async uploadClientLogo(file: Express.Multer.File, clientId: string): Promise<ClientLogoUploadResult> {
     if (!file) {
       throw new ClientLogoValidationError('LGU logo file is required.');
     }
@@ -102,14 +111,6 @@ export class ClientLogoUploadService {
     await ensureClientLogoBucketExists();
 
     const safeClientId = clientId.trim().replace(/[^a-zA-Z0-9_-]+/g, '-');
-
-    if (oldLogoPath) {
-      const { error: removeError } = await supabase.storage.from(CLIENT_LOGO_BUCKET).remove([oldLogoPath]);
-      if (removeError) {
-        console.warn(`Failed to remove old LGU logo (${oldLogoPath}):`, removeError.message);
-      }
-    }
-
     const logoPath = `${safeClientId}/logo-${Date.now()}.png`;
     const { error: uploadError } = await supabase.storage
       .from(CLIENT_LOGO_BUCKET)

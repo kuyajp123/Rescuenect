@@ -42,7 +42,7 @@ export class LoginController {
   }
 
   static async updateProfile(req: Request, res: Response): Promise<void> {
-    const { uid, firstName, lastName, phone, bio, barangay, address, logoUrl, logoPath } = req.body;
+    const { uid, firstName, lastName, phone, bio, barangay, address, logoUrl, logoPath, onboardingComplete } = req.body;
     const isLguAdmin = req.adminUser?.role === 'lgu_admin';
 
     if (!uid || !firstName || !lastName || !phone || !address || (isLguAdmin && !barangay)) {
@@ -65,7 +65,7 @@ export class LoginController {
         address,
         logoUrl,
         logoPath,
-        onboardingComplete: false,
+        ...(typeof onboardingComplete === 'boolean' ? { onboardingComplete } : {}),
       });
       res.status(200).json({ message: 'Profile updated successfully', success: true });
     } catch (error) {
