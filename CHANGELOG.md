@@ -1,3 +1,9 @@
+## [2.4.0-staging.2](https://github.com/kuyajp123/Rescuenect/compare/v2.4.0-staging.1...v2.4.0-staging.2) (2026-06-12)
+
+### Features
+
+* **carousel:** Add carousel management features ([5cf1344](https://github.com/kuyajp123/Rescuenect/commit/5cf1344c7781fcdd8fa60f5dd234d7049fe3d120))
+
 ## [2.4.0-staging.1](https://github.com/kuyajp123/Rescuenect/compare/v2.3.1-staging.1...v2.4.0-staging.1) (2026-06-11)
 
 ### Features
