@@ -20,6 +20,7 @@ mainRouter.use('/public/psgc', routeRateLimiters.publicRead);
 mainRouter.use('/public/lgu-requests', routeRateLimiters.publicWrite);
 mainRouter.use('/mobile/api/geoCoding', routeRateLimiters.expensive);
 mainRouter.use('/mobile/status/createStatus', routeRateLimiters.expensive);
+mainRouter.use('/mobile/danger-zones/createReport', routeRateLimiters.expensive);
 mainRouter.use('/admin/super', routeRateLimiters.sensitive);
 mainRouter.use('/admin', routeRateLimiters.authenticatedApi);
 mainRouter.use('/mobile', routeRateLimiters.authenticatedApi);

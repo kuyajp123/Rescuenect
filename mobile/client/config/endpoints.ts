@@ -39,6 +39,11 @@ export const API_ROUTES = {
   EVACUATION: {
     GET_CENTERS: `${BASE_URL}/unified/getCenters`,
   },
+  DANGER_ZONES: {
+    CREATE_REPORT: `${BASE_URL}/mobile/danger-zones/createReport`,
+    MY_REPORTS: `${BASE_URL}/mobile/danger-zones/myReports`,
+    PUBLIC: `${BASE_URL}/unified/danger-zones/public`,
+  },
   NOTIFICATION: {
     GET_NOTIFICATION_DETAILS: `${BASE_URL}/unified/getNotificationDetails`,
     MARK_AS_READ: `${BASE_URL}/unified/markNotificationAsRead`,

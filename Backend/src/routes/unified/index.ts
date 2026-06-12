@@ -1,6 +1,7 @@
 import { UnifiedController } from '@/controllers/unified/Unified.Controller';
 import { AuthMiddleware } from '@/middlewares/AuthMiddleware';
 import { Router } from 'express';
+import dangerZoneRoutes from './dangerZoneRoutes';
 
 const unifiedRoutes = Router();
 
@@ -13,6 +14,8 @@ unifiedRoutes.get('/announcements', UnifiedController.getAllAnnouncements);
 unifiedRoutes.get('/announcementDetails', UnifiedController.getAnnouncementDetails);
 
 unifiedRoutes.get('/carouselSlides', UnifiedController.getCarouselSlides);
+
+unifiedRoutes.use('/danger-zones', dangerZoneRoutes);
 
 // protected routes in the following
 

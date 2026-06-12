@@ -24,6 +24,14 @@ export const API_ENDPOINTS = {
     DELETE_CENTER: `${BACKEND_URL}/admin/evacuation/deleteCenter`,
     UPDATE_CENTER: `${BACKEND_URL}/admin/evacuation/updateCenter`,
   },
+  DANGER_ZONES: {
+    GET_REPORTS: `${BACKEND_URL}/admin/danger-zones/getReports`,
+    GET_ZONES: `${BACKEND_URL}/admin/danger-zones/getZones`,
+    CREATE_OFFICIAL: `${BACKEND_URL}/admin/danger-zones/createOfficial`,
+    VERIFY_REPORT: `${BACKEND_URL}/admin/danger-zones/verifyReport`,
+    REJECT_REPORT: `${BACKEND_URL}/admin/danger-zones/rejectReport`,
+    RESOLVE_ZONE: `${BACKEND_URL}/admin/danger-zones/resolveZone`,
+  },
   NOTIFICATION: {
     MARK_AS_READ: `${BACKEND_URL}/unified/markNotificationAsRead`,
     MARK_AS_HIDDEN: `${BACKEND_URL}/unified/markNotificationAsHidden`,
