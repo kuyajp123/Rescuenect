@@ -8,6 +8,7 @@ import announcementRoutes from './announcementRoutes';
 import contactRoutes from './contactRoutes';
 import lguRoutes from './lguRoutes';
 import superRoutes from './superRoutes';
+import carouselRoutes from './carouselRoutes';
 import { AuthMiddleware } from '@/middlewares/AuthMiddleware';
 import { AdminMiddleware } from '@/middlewares/AdminMiddleware';
 
@@ -39,5 +40,7 @@ adminRouter.use('/residents', residentsRoutes);
 adminRouter.use('/announcement', announcementRoutes);
 
 adminRouter.use('/contacts', contactRoutes);
+
+adminRouter.use('/carousel', carouselRoutes);
 
 export default adminRouter;

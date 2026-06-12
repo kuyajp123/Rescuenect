@@ -1,4 +1,5 @@
 import { UnifiedModel } from '@/models/unified/index';
+import { db } from '@/db/firestoreConfig';
 import { Request, Response } from 'express';
 
 const getAuthenticatedUid = (req: Request, res: Response): string | null => {
@@ -228,6 +229,25 @@ export class UnifiedController {
       });
       res.status(500).json({
         message: 'Failed to get announcement details',
+        error: typeof error === 'string' ? error : (error as Error).message,
+      });
+    }
+  }
+  static async getCarouselSlides(req: Request, res: Response): Promise<void> {
+    try {
+      const clientId = typeof req.query.clientId === 'string' ? req.query.clientId : undefined;
+      if (!clientId) {
+        res.status(400).json({ message: 'clientId is required' });
+        return;
+      }
+      const slides = await UnifiedModel.getCarouselSlides(clientId);
+      res.status(200).json({ slides });
+    } catch (error) {
+      console.error('❌ Failed to get carousel slides:', {
+        error: error instanceof Error ? error.message : error,
+      });
+      res.status(500).json({
+        message: 'Failed to get carousel slides',
         error: typeof error === 'string' ? error : (error as Error).message,
       });
     }

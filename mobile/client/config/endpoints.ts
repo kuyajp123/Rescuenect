@@ -51,5 +51,8 @@ export const API_ROUTES = {
     GET_ANNOUNCEMENTS: `${BASE_URL}/unified/announcements`,
     GET_ANNOUNCEMENT_DETAILS: (announcementId: string) =>
       `${BASE_URL}/unified/announcementDetails?id=${encodeURIComponent(announcementId)}`,
-  }
+  },
+  CAROUSEL: {
+    GET_SLIDES: `${BASE_URL}/unified/carouselSlides`,
+  },
 };

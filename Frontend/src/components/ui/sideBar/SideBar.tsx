@@ -4,6 +4,7 @@ import {
   ClipboardList,
   Cloud,
   HousePlus,
+  Image,
   LayoutDashboard,
   MapPin,
   Megaphone,
@@ -52,6 +53,7 @@ const SideBar = ({ isOpen }: SideBarProps) => {
     { path: '/evacuation', icon: HousePlus, label: 'Evacuation' },
     { path: '/announcement', icon: Megaphone, label: 'Announcement' },
     { path: '/contacts', icon: Phone, label: 'Contacts' },
+    { path: '/carousel', icon: Image, label: 'Carousel' },
     { path: '/client-requests', icon: MessageSquareText, label: 'LGU Coordination' },
   ];
   const superNavigationItems = [

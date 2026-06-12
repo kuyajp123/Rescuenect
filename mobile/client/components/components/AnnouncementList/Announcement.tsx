@@ -7,7 +7,7 @@ import axios from 'axios';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Dimensions, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 const formatAnnouncementDate = (createdAt: AnnouncementDataCard['createdAt']): string => {
   const seconds = createdAt?._seconds ?? createdAt?.seconds;
@@ -125,62 +125,76 @@ const Announcement = ({ refreshTrigger }: AnnouncementProps = {}) => {
         </Text>
       </View>
 
-      {announcements.map((announcement, index) => (
-        <React.Fragment key={announcement.id + index}>
-          <Pressable
-            onPress={() => handleAnnouncementPress(announcement.id)}
-            style={({ pressed }) => [
-              styles.announcementCard,
-              {
-                backgroundColor: isDark ? '#374151' : '#FFFFFF',
-                borderColor: isDark ? '#4B5563' : '#E5E7EB',
-                transform: [{ scale: pressed ? 0.98 : 1 }],
-                opacity: pressed ? 0.9 : 1,
-              },
-            ]}
-          >
-            <View style={styles.cardContent}>
-              <View style={styles.textContent}>
-                <Text
-                  size="md"
-                  bold
-                  style={[styles.announcementTitle, { color: isDark ? '#FFFFFF' : '#1F2937' }]}
-                  numberOfLines={2}
-                >
-                  {announcement.title}
-                </Text>
-                <Text
-                  size="sm"
-                  style={[styles.announcementSubtitle, { color: isDark ? '#E5E7EB' : '#4B5563' }]}
-                  numberOfLines={2}
-                >
-                  {announcement.subtitle}
-                </Text>
-                <Text size="xs" style={[styles.announcementDate, { color: isDark ? '#60A5FA' : '#2563EB' }]}>
-                  {formatAnnouncementDate(announcement.createdAt)}
-                </Text>
-              </View>
-              <View style={styles.imageContent}>
-                <View style={styles.thumbnailContainer}>
-                  <Image
-                    source={{ uri: announcement.thumbnail }}
-                    contentFit="cover"
-                    transition={200}
-                    style={styles.thumbnail}
-                  />
+      <ScrollView
+        style={styles.scrollList}
+        showsVerticalScrollIndicator={true}
+        nestedScrollEnabled={true}
+        bounces={false}
+        persistentScrollbar={true}
+      >
+        {announcements.map((announcement, index) => (
+          <React.Fragment key={announcement.id + index}>
+            <Pressable
+              onPress={() => handleAnnouncementPress(announcement.id)}
+              style={({ pressed }) => [
+                styles.announcementCard,
+                {
+                  backgroundColor: isDark ? '#374151' : '#FFFFFF',
+                  borderColor: isDark ? '#4B5563' : '#E5E7EB',
+                  transform: [{ scale: pressed ? 0.98 : 1 }],
+                  opacity: pressed ? 0.9 : 1,
+                },
+              ]}
+            >
+              <View style={styles.cardContent}>
+                <View style={styles.textContent}>
+                  <Text
+                    size="md"
+                    bold
+                    style={[styles.announcementTitle, { color: isDark ? '#FFFFFF' : '#1F2937' }]}
+                    numberOfLines={2}
+                  >
+                    {announcement.title}
+                  </Text>
+                  <Text
+                    size="sm"
+                    style={[styles.announcementSubtitle, { color: isDark ? '#E5E7EB' : '#4B5563' }]}
+                    numberOfLines={2}
+                  >
+                    {announcement.subtitle}
+                  </Text>
+                  <Text size="xs" style={[styles.announcementDate, { color: isDark ? '#60A5FA' : '#2563EB' }]}>
+                    {formatAnnouncementDate(announcement.createdAt)}
+                  </Text>
+                </View>
+                <View style={styles.imageContent}>
+                  <View style={styles.thumbnailContainer}>
+                    <Image
+                      source={{ uri: announcement.thumbnail }}
+                      contentFit="cover"
+                      transition={200}
+                      style={styles.thumbnail}
+                    />
+                  </View>
                 </View>
               </View>
-            </View>
-          </Pressable>
-          
-          {/* Add divider between announcements, but not after the last one */}
-          {index < announcements.length - 1 && (
-            <View style={styles.dividerContainer}>
-              <View style={[styles.divider, { backgroundColor: isDark ? '#4B5563' : '#E5E7EB' }]} />
-            </View>
-          )}
-        </React.Fragment>
-      ))}
+            </Pressable>
+
+            {/* Add divider between announcements, but not after the last one */}
+            {index < announcements.length - 1 && (
+              <View style={styles.dividerContainer}>
+                <View style={[styles.divider, { backgroundColor: isDark ? '#4B5563' : '#E5E7EB' }]} />
+              </View>
+            )}
+          </React.Fragment>
+        ))}
+      </ScrollView>
+
+      {announcements.length > 3 && (
+        <Text size="xs" style={[styles.scrollHint, { color: isDark ? '#6B7280' : '#9CA3AF' }]}>
+          Scroll to see more
+        </Text>
+      )}
     </View>
   );
 };
@@ -189,7 +203,6 @@ const { width: screenWidth } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -318,6 +331,15 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 200,
     opacity: 0.3,
+  },
+  scrollList: {
+    maxHeight: 320,
+  },
+  scrollHint: {
+    textAlign: 'center',
+    marginTop: 6,
+    fontSize: 11,
+    opacity: 0.6,
   },
 });
 

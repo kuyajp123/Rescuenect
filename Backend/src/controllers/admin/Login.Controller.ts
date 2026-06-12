@@ -65,6 +65,7 @@ export class LoginController {
         address,
         logoUrl,
         logoPath,
+        onboardingComplete: false,
       });
       res.status(200).json({ message: 'Profile updated successfully', success: true });
     } catch (error) {
@@ -81,6 +82,27 @@ export class LoginController {
       }
 
       res.status(500).json({ message: `Failed to update profile: ${error}` });
+    }
+  }
+
+  static async completeOnboarding(req: Request, res: Response): Promise<void> {
+    const uid = req.user?.uid;
+    if (!uid) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    try {
+      await import('@/db/firestoreConfig').then(({ db }) => {
+        return db.collection('admin').doc(uid).update({
+          onboardingComplete: true,
+          updatedAt: new Date(),
+        });
+      });
+      res.status(200).json({ message: 'Onboarding completed successfully', success: true });
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+      res.status(500).json({ message: 'Failed to complete onboarding' });
     }
   }
 }

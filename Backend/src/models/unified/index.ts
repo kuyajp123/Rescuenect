@@ -255,4 +255,17 @@ export class UnifiedModel {
       throw error;
     }
   }
+  static async getCarouselSlides(clientId: string): Promise<FirebaseFirestore.DocumentData[]> {
+    try {
+      const snap = await db
+        .collection('carouselSlides')
+        .where('clientId', '==', clientId)
+        .orderBy('order', 'asc')
+        .get();
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (error) {
+      console.error('❌ Error in UnifiedModel.getCarouselSlides:', error);
+      throw error;
+    }
+  }
 }

@@ -30,6 +30,7 @@ const AddAnnouncement = lazy(() => import('@/pages/contents/announcement/add-ann
 const AnnouncementDetails = lazy(() => import('@/pages/contents/announcement/announcement-details'));
 const EditAnnouncement = lazy(() => import('@/pages/contents/announcement/edit-announcement'));
 const Contacts = lazy(() => import('@/pages/contents/Contacts'));
+const Carousel = lazy(() => import('@/pages/contents/Carousel'));
 const LguRequest = lazy(() => import('@/pages/public/LguRequest'));
 const SuperAdminOverview = lazy(() =>
   import('@/pages/contents/SuperAdmin/pages/Overview').then(module => ({ default: module.SuperAdminOverview }))
@@ -86,6 +87,7 @@ const Settings = lazy(() => import('./pages/contents/Settings'));
 // Lazy load auth pages
 const AddressForm = lazy(() => import('./pages/auth/AddressForm'));
 const AdminInfo = lazy(() => import('./pages/auth/AdminInfo'));
+const CarouselSetup = lazy(() => import('./pages/auth/CarouselSetup'));
 const Login = lazy(() => import('./pages/auth/Login'));
 const Welcome = lazy(() => import('./pages/auth/Welcome'));
 
@@ -155,6 +157,7 @@ const Router = () => {
           <Route path="/announcement/details/:id" element={<AnnouncementDetails />} />
           <Route path="/announcement/edit/:id" element={<EditAnnouncement />} />
           <Route path="/contacts" element={<Contacts />} />
+          <Route path="/carousel" element={<Carousel />} />
           <Route path="/client-requests" element={<LguClientRequests />} />
           <Route path="/super" element={<SuperAdminOverview />} />
           <Route path="/super/requests" element={<SuperAdminRequests />} />
@@ -181,6 +184,7 @@ const Router = () => {
           <Route path="/Welcome" element={<Welcome />} />
           <Route path="/address-setup" element={<AddressForm />} />
           <Route path="/info-setup" element={<AdminInfo />} />
+          <Route path="/carousel-setup" element={<CarouselSetup />} />
         </Route>
 
         {/* Auth layout */}

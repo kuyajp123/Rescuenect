@@ -31,6 +31,7 @@ export class SignInModel {
       address: string;
       logoUrl?: string | null;
       logoPath?: string | null;
+      onboardingComplete: boolean;
     }
   ): Promise<boolean> {
     try {
@@ -45,7 +46,7 @@ export class SignInModel {
         phone: data.phone,
         bio: data.bio,
         address: data.address,
-        onboardingComplete: true,
+        onboardingComplete: data.onboardingComplete,
         updatedAt: new Date(),
       };
 
