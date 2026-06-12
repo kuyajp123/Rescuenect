@@ -4,8 +4,8 @@ import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { DangerZoneGeometryType, DangerZoneSeverity, DangerZoneReportForm } from '@/types/dangerZone';
-import React from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { LayoutChangeEvent, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 const DANGER_TYPES = [
   { key: 'flooded_road', label: 'Flooded Road' },
@@ -27,6 +27,14 @@ const SEVERITIES: { key: DangerZoneSeverity; label: string }[] = [
   { key: 'critical', label: 'Critical' },
 ];
 
+const RADIUS_MIN = 10;
+const RADIUS_MAX = 10000;
+const RADIUS_STEP = 25;
+const RADIUS_PRESETS = [50, 100, 250, 500];
+
+const clampRadius = (value: number) => Math.max(RADIUS_MIN, Math.min(RADIUS_MAX, Math.round(value)));
+const formatRadius = (value = 0) => (value >= 1000 ? `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)} km` : `${value} m`);
+
 interface DangerZoneFormProps {
   form: DangerZoneReportForm;
   onChange: <K extends keyof DangerZoneReportForm>(key: K, value: DangerZoneReportForm[K]) => void;
@@ -37,6 +45,7 @@ interface DangerZoneFormProps {
 
 export const DangerZoneForm = ({ form, onChange, onSubmit, isSubmitting, error }: DangerZoneFormProps) => {
   const { isDark } = useTheme();
+  const [radiusRailWidth, setRadiusRailWidth] = useState(1);
   const inputStyle = [
     styles.input,
     {
@@ -63,6 +72,29 @@ export const DangerZoneForm = ({ form, onChange, onSubmit, isSubmitting, error }
       </Text>
     </Pressable>
   );
+  const currentRadius = clampRadius(form.radiusMeters || 100);
+  const radiusProgress = useMemo(
+    () => Math.max(0, Math.min(1, (currentRadius - RADIUS_MIN) / (RADIUS_MAX - RADIUS_MIN))),
+    [currentRadius]
+  );
+  const radiusThumbLeft = Math.max(0, radiusProgress * radiusRailWidth - 11);
+
+  const setRadiusFromLocationX = useCallback(
+    (locationX: number) => {
+      const progress = Math.max(0, Math.min(1, locationX / Math.max(1, radiusRailWidth)));
+      const nextRadius = clampRadius(RADIUS_MIN + progress * (RADIUS_MAX - RADIUS_MIN));
+      onChange('radiusMeters', Math.round(nextRadius / RADIUS_STEP) * RADIUS_STEP);
+    },
+    [onChange, radiusRailWidth]
+  );
+
+  const handleRadiusRailLayout = (event: LayoutChangeEvent) => {
+    setRadiusRailWidth(Math.max(1, event.nativeEvent.layout.width));
+  };
+
+  const adjustRadius = (delta: number) => {
+    onChange('radiusMeters', clampRadius(currentRadius + delta));
+  };
 
   return (
     <View style={styles.container}>
@@ -110,17 +142,45 @@ export const DangerZoneForm = ({ form, onChange, onSubmit, isSubmitting, error }
 
       {form.geometryType === 'circle' ? (
         <View style={styles.section}>
-          <Text size="sm" emphasis="medium">
-            Radius in meters
-          </Text>
-          <TextInput
-            value={form.radiusMeters ? String(form.radiusMeters) : ''}
-            onChangeText={value => onChange('radiusMeters', Number(value) || 0)}
-            keyboardType="numeric"
-            placeholder="100"
-            placeholderTextColor={isDark ? Colors.muted.dark.text : Colors.muted.light.text}
-            style={inputStyle}
-          />
+          <View style={styles.radiusHeader}>
+            <View>
+              <Text size="sm" emphasis="medium">
+                Radius
+              </Text>
+              <Text size="2xs" emphasis="light">
+                Drag the orange map handle or adjust it here.
+              </Text>
+            </View>
+            <Text size="sm" emphasis="bold" style={{ color: Colors.semantic.error }}>
+              {formatRadius(currentRadius)}
+            </Text>
+          </View>
+          <View
+            style={styles.radiusRail}
+            onLayout={handleRadiusRailLayout}
+            onStartShouldSetResponder={() => true}
+            onMoveShouldSetResponder={() => true}
+            onResponderGrant={event => setRadiusFromLocationX(event.nativeEvent.locationX)}
+            onResponderMove={event => setRadiusFromLocationX(event.nativeEvent.locationX)}
+          >
+            <View style={[styles.radiusRailFill, { width: `${radiusProgress * 100}%` }]} />
+            <View style={[styles.radiusThumb, { left: radiusThumbLeft }]} />
+          </View>
+          <View style={styles.radiusActions}>
+            <Pressable style={styles.radiusButton} onPress={() => adjustRadius(-RADIUS_STEP)}>
+              <Text size="sm" emphasis="bold">
+                -
+              </Text>
+            </Pressable>
+            <Pressable style={styles.radiusButton} onPress={() => adjustRadius(RADIUS_STEP)}>
+              <Text size="sm" emphasis="bold">
+                +
+              </Text>
+            </Pressable>
+            {RADIUS_PRESETS.map(radius =>
+              renderChip(`${radius}m`, String(radius), currentRadius === radius, () => onChange('radiusMeters', radius))
+            )}
+          </View>
         </View>
       ) : null}
 
@@ -173,6 +233,47 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 8,
+  },
+  radiusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  radiusRail: {
+    height: 36,
+    justifyContent: 'center',
+  },
+  radiusRailFill: {
+    position: 'absolute',
+    left: 0,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: '#F97316',
+  },
+  radiusThumb: {
+    position: 'absolute',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    backgroundColor: '#F97316',
+  },
+  radiusActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    alignItems: 'center',
+  },
+  radiusButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border.light,
   },
   input: {
     borderWidth: 1,

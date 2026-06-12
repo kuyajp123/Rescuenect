@@ -1,6 +1,6 @@
 import { DangerZoneForm } from '@/components/components/danger-zone/DangerZoneForm';
 import { DangerZoneMapPicker } from '@/components/components/danger-zone/DangerZoneMapPicker';
-import Body from '@/components/ui/layout/Body';
+import { Body } from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -11,8 +11,10 @@ import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
 import { useImagePickerStore } from '@/store/useImagePicker';
 import { DangerZoneReportForm } from '@/types/dangerZone';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import { LocateFixed, MapPin } from 'lucide-react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 const createInitialForm = (center: { lat: number; lng: number }): DangerZoneReportForm => ({
@@ -41,6 +43,9 @@ const DangerZoneCreateScreen = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [cameraTriggerKey, setCameraTriggerKey] = useState(0);
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  const snapPoints = useMemo(() => ['24%', '58%', '88%'], []);
 
   useEffect(() => {
     setImage(null);
@@ -59,6 +64,7 @@ const DangerZoneCreateScreen = () => {
       if (coords) {
         const [lng, lat] = coords;
         updateForm('center', { lat, lng });
+        setCameraTriggerKey(prev => prev + 1);
       }
     } finally {
       setIsLocating(false);
@@ -118,46 +124,83 @@ const DangerZoneCreateScreen = () => {
   };
 
   return (
-    <Body gap={18} contentContainerStyle={{ paddingBottom: 40 }}>
-      <View style={styles.header}>
-        <Text size="lg" emphasis="bold">
-          Report Danger Zone
-        </Text>
-        <Text size="xs" emphasis="light">
-          Resident reports are reviewed by your LGU before appearing publicly.
-        </Text>
+    <Body scrollEnabled={false} style={styles.screen}>
+      <View style={StyleSheet.absoluteFill}>
+        <DangerZoneMapPicker
+          center={form.center}
+          geometryType={form.geometryType}
+          radiusMeters={form.radiusMeters}
+          cameraTriggerKey={cameraTriggerKey}
+          containerStyle={StyleSheet.absoluteFill}
+          onPick={center => updateForm('center', center)}
+          onRadiusChange={radiusMeters => updateForm('radiusMeters', radiusMeters)}
+        />
       </View>
 
-      <View style={styles.locationActions}>
-        <View>
-          <Text size="sm" emphasis="medium">
-            Location
-          </Text>
-          <Text size="2xs" emphasis="light">
-            {form.center.lat.toFixed(6)}, {form.center.lng.toFixed(6)}
-          </Text>
+      <View pointerEvents="box-none" style={styles.mapOverlay}>
+        <View
+          style={[
+            styles.locationPill,
+            { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.92)' },
+          ]}
+        >
+          <MapPin size={16} color={Colors.semantic.error} />
+          <View style={styles.locationText}>
+            <Text size="2xs" emphasis="medium">
+              Selected location
+            </Text>
+            <Text size="2xs" emphasis="light">
+              {form.center.lat.toFixed(6)}, {form.center.lng.toFixed(6)}
+            </Text>
+          </View>
         </View>
+
         <Pressable
           onPress={useCurrentLocation}
           style={[
-            styles.locationButton,
-            { backgroundColor: isDark ? Colors.muted.dark.background : Colors.muted.light.background },
+            styles.locateButton,
+            { backgroundColor: isDark ? Colors.background.dark : Colors.background.light },
           ]}
         >
-          <Text size="xs" style={{ color: isDark ? Colors.text.dark : Colors.text.light }}>
-            {isLocating ? 'Locating...' : 'Use Current'}
+          <LocateFixed size={18} color={isDark ? Colors.icons.dark : Colors.icons.light} />
+          <Text size="2xs" style={{ color: isDark ? Colors.text.dark : Colors.text.light }}>
+            {isLocating ? 'Locating' : 'Current'}
           </Text>
         </Pressable>
       </View>
 
-      <DangerZoneMapPicker
-        center={form.center}
-        geometryType={form.geometryType}
-        radiusMeters={form.radiusMeters}
-        onPick={center => updateForm('center', center)}
-      />
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={0}
+        snapPoints={snapPoints}
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
+        android_keyboardInputMode="adjustPan"
+        enablePanDownToClose={false}
+        backgroundStyle={{
+          backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+        }}
+        handleIndicatorStyle={{
+          backgroundColor: isDark ? Colors.border.dark : Colors.border.light,
+        }}
+      >
+        <BottomSheetScrollView
+          contentContainerStyle={styles.sheetContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.sheetHeader}>
+            <Text size="lg" emphasis="bold">
+              Report Danger Zone
+            </Text>
+            <Text size="xs" emphasis="light">
+              Tap the map, drag the pin, then add the report details for LGU verification.
+            </Text>
+          </View>
 
-      <DangerZoneForm form={form} onChange={updateForm} onSubmit={submit} isSubmitting={isSubmitting} error={error} />
+          <DangerZoneForm form={form} onChange={updateForm} onSubmit={submit} isSubmitting={isSubmitting} error={error} />
+        </BottomSheetScrollView>
+      </BottomSheet>
     </Body>
   );
 };
@@ -165,18 +208,56 @@ const DangerZoneCreateScreen = () => {
 export default DangerZoneCreateScreen;
 
 const styles = StyleSheet.create({
-  header: {
-    gap: 4,
+  screen: {
+    padding: 0,
+    paddingBottom: 0,
   },
-  locationActions: {
+  mapOverlay: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    right: 14,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 12,
   },
-  locationButton: {
+  locationPill: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  locationText: {
+    flex: 1,
+  },
+  locateButton: {
+    minHeight: 48,
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  sheetContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 42,
+  },
+  sheetHeader: {
+    gap: 4,
+    marginBottom: 18,
   },
 });
