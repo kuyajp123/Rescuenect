@@ -206,7 +206,7 @@ export class ContactController {
         return;
       }
 
-      const uploadedLogo = await ClientLogoUploadService.uploadClientLogo(req.file as Express.Multer.File, client.id);
+      const uploadedLogo = await ClientLogoUploadService.uploadClientLogo(req.file as Express.Multer.File, client.id, client.logoPath);
       const updatedClient = await ClientModel.updateClientLogo(client.id, uploadedLogo);
 
       res.status(200).json({
