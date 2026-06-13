@@ -30,6 +30,7 @@ export const API_ENDPOINTS = {
     CREATE_OFFICIAL: `${BACKEND_URL}/admin/danger-zones/createOfficial`,
     VERIFY_REPORT: `${BACKEND_URL}/admin/danger-zones/verifyReport`,
     REJECT_REPORT: `${BACKEND_URL}/admin/danger-zones/rejectReport`,
+    UPDATE_ZONE: `${BACKEND_URL}/admin/danger-zones/updateZone`,
     RESOLVE_ZONE: `${BACKEND_URL}/admin/danger-zones/resolveZone`,
   },
   NOTIFICATION: {

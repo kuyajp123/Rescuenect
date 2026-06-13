@@ -1,7 +1,8 @@
-import Body from '@/components/ui/layout/Body';
+import { Body } from '@/components/ui/layout/Body';
 import { MapView } from '@/components/ui/map/MapView';
 import { API_ROUTES } from '@/config/endpoints';
 import { EvacuationCenter } from '@/types/components';
+import { DangerZoneRecord } from '@/types/dangerZone';
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
@@ -11,10 +12,12 @@ import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { storageHelpers } from '@/helper/storage';
 import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import { useUserData } from '@/store/useBackendResponse';
+import { fetchPublicDangerZones } from '@/services/dangerZoneService';
 
-export const evacuation = () => {
+export const Evacuation = () => {
   const insets = useSafeAreaInsets();
   const [evacuationCenters, setEvacuationCenters] = useState<EvacuationCenter[] | null>(null);
+  const [dangerZones, setDangerZones] = useState<DangerZoneRecord[]>([]);
   const savedLocations = useSavedLocationsStore(state => state.savedLocations);
   const clientId = useUserData(state => state.userData.clientId);
 
@@ -43,6 +46,16 @@ export const evacuation = () => {
       } catch (error) {
         console.error('Error fetching evacuation centers:', error);
       }
+
+      try {
+        if (clientId) {
+          setDangerZones(await fetchPublicDangerZones(clientId));
+        } else {
+          setDangerZones([]);
+        }
+      } catch (error) {
+        console.error('Error fetching danger zones:', error);
+      }
     };
 
     loadData();
@@ -63,13 +76,14 @@ export const evacuation = () => {
         showStyleSelector={true}
         showEvacuationLegend={true}
         data={evacuationCenters ?? undefined}
+        dangerZones={dangerZones}
         savedLocations={savedLocations}
       />
     </Body>
   );
 };
 
-export default evacuation;
+export default Evacuation;
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 0 },

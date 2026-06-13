@@ -8,11 +8,13 @@ import { useAuth } from '@/stores/useAuth';
 import { useDangerZoneStore } from '@/stores/useDangerZoneStore';
 import {
   DangerZoneCreateOfficialPayload,
+  DangerZoneGeoJson,
   DangerZoneGeometryType,
   DangerZoneRecord,
   DangerZoneSeverity,
   DangerZoneStatus,
 } from '@/types/dangerZone';
+import { getDangerZoneCoordinateCount, normalizeDangerZoneGeoJson } from '@/utils/dangerZoneGeometry';
 import {
   Button,
   Chip,
@@ -27,7 +29,7 @@ import {
   Spinner,
   Textarea,
 } from '@heroui/react';
-import { Check, CircleAlert, Eye, MapPin, Plus, X } from 'lucide-react';
+import { Check, CircleAlert, Eye, MapPin, Pencil, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 const STATUS_OPTIONS: Array<{ key: DangerZoneStatus | 'all'; label: string }> = [
@@ -118,6 +120,8 @@ type CreateFormState = {
   geometryType: DangerZoneGeometryType;
   center: { lat: number; lng: number } | null;
   radiusMeters: number;
+  geojson: DangerZoneGeoJson | null;
+  affectedWidthMeters: number;
 };
 
 const defaultCreateForm: CreateFormState = {
@@ -127,7 +131,33 @@ const defaultCreateForm: CreateFormState = {
   geometryType: 'point',
   center: null,
   radiusMeters: 100,
+  geojson: null,
+  affectedWidthMeters: 30,
 };
+
+const getGeometrySummary = (zone: Pick<DangerZoneRecord, 'geometryType' | 'radiusMeters' | 'affectedWidthMeters' | 'geojson'>) => {
+  switch (zone.geometryType) {
+    case 'circle':
+      return `Circle, ${zone.radiusMeters ?? 0}m`;
+    case 'line':
+      return `Line, ${getDangerZoneCoordinateCount(zone.geojson)} points`;
+    case 'polygon':
+      return `Polygon, ${getDangerZoneCoordinateCount(zone.geojson)} points`;
+    default:
+      return 'Point';
+  }
+};
+
+const zoneToCreateForm = (zone: DangerZoneRecord): CreateFormState => ({
+  type: zone.type,
+  severity: zone.severity,
+  description: zone.description,
+  geometryType: zone.geometryType,
+  center: zone.center ?? null,
+  radiusMeters: zone.radiusMeters ?? 100,
+  geojson: normalizeDangerZoneGeoJson(zone.geojson),
+  affectedWidthMeters: zone.affectedWidthMeters ?? 30,
+});
 
 const DangerZonesPage = () => {
   const userData = useAuth(state => state.userData);
@@ -135,13 +165,14 @@ const DangerZonesPage = () => {
   const mapZoom = getClientMapZoomSettings(userData);
   const maxBounds = getClientConfiguredMapBounds(userData);
 
-  const { zones, reports, isLoading, isMutating, error, fetchReports, fetchZones, createOfficialZone, verifyReport, rejectReport, resolveZone } =
+  const { zones, reports, isLoading, isMutating, error, fetchReports, fetchZones, createOfficialZone, verifyReport, rejectReport, updateZone, resolveZone } =
     useDangerZoneStore();
 
   const [statusFilter, setStatusFilter] = useState<DangerZoneStatus | 'all'>('all');
   const [selectedZone, setSelectedZone] = useState<DangerZoneRecord | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<CreateFormState>(defaultCreateForm);
+  const [editingZone, setEditingZone] = useState<DangerZoneRecord | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -160,18 +191,39 @@ const DangerZonesPage = () => {
 
   const resetCreateForm = () => {
     setCreateForm(defaultCreateForm);
+    setEditingZone(null);
     setCreateError(null);
+  };
+
+  const handleCreateModalOpenChange = (open: boolean) => {
+    setIsCreateOpen(open);
+    if (!open) resetCreateForm();
   };
 
   const updateCreateForm = <K extends keyof CreateFormState>(key: K, value: CreateFormState[K]) => {
     setCreateForm(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleCreateOfficial = async () => {
+  const handleGeometryTypeChange = (geometryType: DangerZoneGeometryType) => {
+    setCreateForm(prev => ({
+      ...prev,
+      geometryType,
+      center: geometryType === 'line' || geometryType === 'polygon' ? null : prev.center,
+      radiusMeters: geometryType === 'circle' ? prev.radiusMeters || 100 : 100,
+      geojson: prev.geojson?.type === 'LineString' && geometryType === 'line'
+        ? prev.geojson
+        : prev.geojson?.type === 'Polygon' && geometryType === 'polygon'
+          ? prev.geojson
+          : null,
+      affectedWidthMeters: geometryType === 'line' ? prev.affectedWidthMeters || 30 : 30,
+    }));
+  };
+
+  const handleSaveOfficial = async () => {
     setCreateError(null);
 
-    if (!createForm.center) {
-      setCreateError('Select a location on the map or enter coordinates.');
+    if ((createForm.geometryType === 'point' || createForm.geometryType === 'circle') && !createForm.center) {
+      setCreateError('Draw a marker/circle on the map or enter coordinates.');
       return;
     }
     if (!createForm.description.trim()) {
@@ -182,18 +234,30 @@ const DangerZonesPage = () => {
       setCreateError('Circle radius must be greater than 0.');
       return;
     }
+    if ((createForm.geometryType === 'line' || createForm.geometryType === 'polygon') && !createForm.geojson) {
+      setCreateError(`Draw a ${createForm.geometryType === 'line' ? 'road segment' : 'polygon'} on the map.`);
+      return;
+    }
 
     const payload: DangerZoneCreateOfficialPayload = {
       type: createForm.type,
       severity: createForm.severity,
       description: createForm.description.trim(),
       geometryType: createForm.geometryType,
-      center: createForm.center,
+      center: createForm.center ?? null,
       radiusMeters: createForm.geometryType === 'circle' ? createForm.radiusMeters : undefined,
+      geojson: createForm.geometryType === 'line' || createForm.geometryType === 'polygon' ? createForm.geojson : null,
+      affectedWidthMeters: createForm.geometryType === 'line' ? createForm.affectedWidthMeters : null,
     };
 
-    await createOfficialZone(payload);
-    setActionMessage('Official danger zone created.');
+    if (editingZone) {
+      await updateZone(editingZone.id, payload);
+      setActionMessage('Danger zone updated.');
+    } else {
+      await createOfficialZone(payload);
+      setActionMessage('Official danger zone created.');
+    }
+
     setIsCreateOpen(false);
     resetCreateForm();
   };
@@ -205,13 +269,21 @@ const DangerZonesPage = () => {
     setRejectionReason('');
   };
 
+  const openEditModal = (zone: DangerZoneRecord) => {
+    setCreateError(null);
+    setEditingZone(zone);
+    setCreateForm(zoneToCreateForm(zone));
+    setSelectedZone(null);
+    setIsCreateOpen(true);
+  };
+
   return (
     <div className="flex h-full w-full flex-col gap-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Danger Zones</h1>
           <p className="mt-1 text-sm text-default-500">
-            Review resident reports and create official Point or Circle danger zones.
+            Review resident reports and create official Point, Circle, Line, or Polygon danger zones.
           </p>
         </div>
         <Button
@@ -297,9 +369,7 @@ const DangerZonesPage = () => {
               >
                 <div className="min-w-0">
                   <div className="font-medium text-foreground">{formatLabel(zone.type)}</div>
-                  <div className="truncate text-xs text-default-500">
-                    {zone.geometryType === 'circle' ? `Circle, ${zone.radiusMeters ?? 0}m` : 'Point'}
-                  </div>
+                  <div className="truncate text-xs text-default-500">{getGeometrySummary(zone)}</div>
                 </div>
                 <span className="text-default-600">
                   {zone.source === 'resident_report' ? zone.reporterName || 'Resident report' : 'LGU official'}
@@ -351,7 +421,7 @@ const DangerZonesPage = () => {
                         </div>
                         <div>
                           <div className="text-default-500">Geometry</div>
-                          <div>{selectedZone.geometryType === 'circle' ? `Circle (${selectedZone.radiusMeters ?? 0}m)` : 'Point'}</div>
+                          <div>{getGeometrySummary(selectedZone)}</div>
                         </div>
                         <div>
                           <div className="text-default-500">Created</div>
@@ -428,14 +498,24 @@ const DangerZonesPage = () => {
                     </>
                   )}
                   {selectedZone.status === 'verified' && selectedZone.isActive && (
-                    <Button
-                      color="primary"
-                      variant="flat"
-                      isLoading={isMutating}
-                      onPress={() => runAction(() => resolveZone(selectedZone.id), 'Danger zone resolved.')}
-                    >
-                      Mark Resolved
-                    </Button>
+                    <>
+                      <Button
+                        color="warning"
+                        variant="flat"
+                        startContent={<Pencil size={16} />}
+                        onPress={() => openEditModal(selectedZone)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        color="primary"
+                        variant="flat"
+                        isLoading={isMutating}
+                        onPress={() => runAction(() => resolveZone(selectedZone.id), 'Danger zone resolved.')}
+                      >
+                        Mark Resolved
+                      </Button>
+                    </>
                   )}
                 </ModalFooter>
               </>
@@ -444,11 +524,13 @@ const DangerZonesPage = () => {
         </ModalContent>
       </Modal>
 
-      <Modal isOpen={isCreateOpen} onOpenChange={open => (!open ? setIsCreateOpen(false) : setIsCreateOpen(true))} size="4xl" scrollBehavior="inside">
+      <Modal isOpen={isCreateOpen} onOpenChange={handleCreateModalOpenChange} size="4xl" scrollBehavior="inside">
         <ModalContent>
           {onClose => (
             <>
-              <ModalHeader className="flex flex-col gap-1">Create Official Danger Zone</ModalHeader>
+              <ModalHeader className="flex flex-col gap-1">
+                {editingZone ? 'Edit Danger Zone' : 'Create Official Danger Zone'}
+              </ModalHeader>
               <ModalBody>
                 {createError && (
                   <div className="rounded-md border border-danger-200 bg-danger-50 px-3 py-2 text-sm text-danger-700">
@@ -481,10 +563,12 @@ const DangerZonesPage = () => {
                       label="Geometry"
                       labelPlacement="outside"
                       selectedKeys={[createForm.geometryType]}
-                      onChange={event => updateCreateForm('geometryType', event.target.value as DangerZoneGeometryType)}
+                      onChange={event => handleGeometryTypeChange(event.target.value as DangerZoneGeometryType)}
                     >
                       <SelectItem key="point">Point</SelectItem>
                       <SelectItem key="circle">Circle</SelectItem>
+                      <SelectItem key="line">Line / Road Segment</SelectItem>
+                      <SelectItem key="polygon">Polygon / Custom Area</SelectItem>
                     </Select>
                     {createForm.geometryType === 'circle' && (
                       <Input
@@ -496,32 +580,45 @@ const DangerZonesPage = () => {
                         onValueChange={value => updateCreateForm('radiusMeters', Number(value) || 0)}
                       />
                     )}
-                    <div className="grid grid-cols-2 gap-3">
+                    {createForm.geometryType === 'line' && (
                       <Input
-                        label="Latitude"
+                        label="Affected width in meters"
                         labelPlacement="outside"
                         type="number"
-                        value={createForm.center ? String(createForm.center.lat) : ''}
-                        onValueChange={value =>
-                          updateCreateForm('center', {
-                            lat: Number(value),
-                            lng: createForm.center?.lng ?? mapCenter[1],
-                          })
-                        }
+                        min={5}
+                        max={100}
+                        value={String(createForm.affectedWidthMeters)}
+                        onValueChange={value => updateCreateForm('affectedWidthMeters', Number(value) || 30)}
                       />
-                      <Input
-                        label="Longitude"
-                        labelPlacement="outside"
-                        type="number"
-                        value={createForm.center ? String(createForm.center.lng) : ''}
-                        onValueChange={value =>
-                          updateCreateForm('center', {
-                            lat: createForm.center?.lat ?? mapCenter[0],
-                            lng: Number(value),
-                          })
-                        }
-                      />
-                    </div>
+                    )}
+                    {(createForm.geometryType === 'point' || createForm.geometryType === 'circle') && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <Input
+                          label="Latitude"
+                          labelPlacement="outside"
+                          type="number"
+                          value={createForm.center ? String(createForm.center.lat) : ''}
+                          onValueChange={value =>
+                            updateCreateForm('center', {
+                              lat: Number(value),
+                              lng: createForm.center?.lng ?? mapCenter[1],
+                            })
+                          }
+                        />
+                        <Input
+                          label="Longitude"
+                          labelPlacement="outside"
+                          type="number"
+                          value={createForm.center ? String(createForm.center.lng) : ''}
+                          onValueChange={value =>
+                            updateCreateForm('center', {
+                              lat: createForm.center?.lat ?? mapCenter[0],
+                              lng: Number(value),
+                            })
+                          }
+                        />
+                      </div>
+                    )}
                     <Textarea
                       label="Description"
                       labelPlacement="outside"
@@ -533,7 +630,7 @@ const DangerZonesPage = () => {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-default-500">
                       <MapPin size={16} />
-                      Click the map to set the danger-zone center.
+                      Use the map drawing toolbar for {createForm.geometryType === 'line' ? 'a road segment' : createForm.geometryType === 'polygon' ? 'a custom area' : 'the selected shape'}.
                     </div>
                     <AdminDangerZoneMap
                       center={mapCenter}
@@ -542,8 +639,21 @@ const DangerZonesPage = () => {
                       maxZoom={mapZoom.maxZoom}
                       maxBounds={maxBounds}
                       pickedCenter={createForm.center}
+                      pickedGeometryType={createForm.geometryType}
                       pickedRadiusMeters={createForm.geometryType === 'circle' ? createForm.radiusMeters : 0}
-                      onPickCenter={center => updateCreateForm('center', center)}
+                      pickedGeojson={createForm.geojson}
+                      affectedWidthMeters={createForm.affectedWidthMeters}
+                      enableDrawing
+                      onDrawGeometry={geometry =>
+                        setCreateForm(prev => ({
+                          ...prev,
+                          ...geometry,
+                          center: geometry.center ?? null,
+                          geojson: geometry.geojson ?? null,
+                          radiusMeters: geometry.radiusMeters ?? prev.radiusMeters,
+                          affectedWidthMeters: geometry.affectedWidthMeters ?? prev.affectedWidthMeters,
+                        }))
+                      }
                       height="430px"
                     />
                   </div>
@@ -553,8 +663,8 @@ const DangerZonesPage = () => {
                 <Button variant="light" onPress={onClose}>
                   Cancel
                 </Button>
-                <Button color="primary" isLoading={isMutating} onPress={handleCreateOfficial}>
-                  Create Official
+                <Button color="primary" isLoading={isMutating} onPress={handleSaveOfficial}>
+                  {editingZone ? 'Save Changes' : 'Create Official'}
                 </Button>
               </ModalFooter>
             </>

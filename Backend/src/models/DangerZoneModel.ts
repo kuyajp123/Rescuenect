@@ -1,5 +1,6 @@
 import { ClientModel } from '@/models/admin/ClientModel';
 import { DangerZoneEvidenceUploadService } from '@/services/DangerZoneEvidenceUploadService';
+import { DangerZoneFirestoreGeometryService } from '@/services/DangerZoneFirestoreGeometryService';
 import { DangerZoneGeometryService } from '@/services/DangerZoneGeometryService';
 import { AdminUser } from '@/types/admin';
 import { DangerZoneRecord, DangerZoneStatus } from '@/types/dangerZone';
@@ -50,7 +51,12 @@ export class DangerZoneModel {
   }
 
   private static toRecord(doc: FirebaseFirestore.QueryDocumentSnapshot | FirebaseFirestore.DocumentSnapshot): DangerZoneRecord {
-    return { id: doc.id, ...(doc.data() ?? {}) } as DangerZoneRecord;
+    const data = doc.data() ?? {};
+    return {
+      id: doc.id,
+      ...data,
+      geojson: DangerZoneFirestoreGeometryService.fromFirestoreGeoJson(data.geojson),
+    } as DangerZoneRecord;
   }
 
   private static sortNewestFirst(records: DangerZoneRecord[]): DangerZoneRecord[] {
@@ -177,11 +183,11 @@ export class DangerZoneModel {
 
   static async createOfficialZone(adminUser: AdminUser, rawPayload: unknown): Promise<DangerZoneRecord> {
     const clientId = this.getAdminClientId(adminUser, (rawPayload as { clientId?: unknown } | null)?.clientId, true) as string;
-    const input = DangerZoneGeometryService.validatePointCirclePayload(rawPayload);
+    const input = DangerZoneGeometryService.validateAdminPayload(rawPayload);
     const docRef = this.pathRef().doc();
 
     await docRef.set({
-      ...input,
+      ...DangerZoneFirestoreGeometryService.toFirestoreInput(input),
       clientId,
       source: 'lgu_official',
       status: 'verified',
@@ -203,6 +209,31 @@ export class DangerZoneModel {
     });
 
     const snap = await docRef.get();
+    return this.toRecord(snap);
+  }
+
+  static async updateZone(adminUser: AdminUser, id: unknown, rawPayload: unknown): Promise<DangerZoneRecord> {
+    const record = await this.getRecordForAdmin(adminUser, id);
+    if (record.status !== 'verified' || record.isActive !== true) {
+      throw new DangerZoneModelError(400, 'Only active verified danger zones can be edited');
+    }
+
+    const input = DangerZoneGeometryService.validateAdminPayload(rawPayload);
+    const storageInput = DangerZoneFirestoreGeometryService.toFirestoreInput(input);
+    await this.pathRef().doc(record.id).update({
+      type: storageInput.type,
+      severity: storageInput.severity,
+      description: storageInput.description,
+      geometryType: storageInput.geometryType,
+      center: storageInput.center ?? null,
+      radiusMeters: storageInput.radiusMeters ?? null,
+      geojson: storageInput.geojson,
+      affectedWidthMeters: storageInput.affectedWidthMeters ?? null,
+      avoidGeojson: null,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    const snap = await this.pathRef().doc(record.id).get();
     return this.toRecord(snap);
   }
 

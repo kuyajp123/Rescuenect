@@ -1,12 +1,25 @@
-import { DangerZoneCreateInput, DangerZoneGeometryType, DangerZoneSeverity } from '@/types/dangerZone';
+import {
+  DangerZoneCoordinates,
+  DangerZoneCreateInput,
+  DangerZoneGeometryType,
+  DangerZoneLineString,
+  DangerZonePolygon,
+  DangerZoneSeverity,
+} from '@/types/dangerZone';
 
 const ALLOWED_SEVERITIES = new Set<DangerZoneSeverity>(['low', 'medium', 'high', 'critical']);
-const ALLOWED_GEOMETRIES = new Set<DangerZoneGeometryType>(['point', 'circle']);
+const RESIDENT_GEOMETRIES = new Set<DangerZoneGeometryType>(['point', 'circle']);
+const ADMIN_GEOMETRIES = new Set<DangerZoneGeometryType>(['point', 'circle', 'line', 'polygon']);
 const MAX_TYPE_LENGTH = 80;
 const MAX_DESCRIPTION_LENGTH = 1000;
 const MAX_RADIUS_METERS = 10_000;
+const DEFAULT_LINE_WIDTH_METERS = 30;
+const MIN_LINE_WIDTH_METERS = 5;
+const MAX_LINE_WIDTH_METERS = 100;
 
-export type DangerZoneFieldErrors = Partial<Record<'type' | 'severity' | 'description' | 'geometryType' | 'center' | 'radiusMeters', string>>;
+export type DangerZoneFieldErrors = Partial<
+  Record<'type' | 'severity' | 'description' | 'geometryType' | 'center' | 'radiusMeters' | 'geojson' | 'affectedWidthMeters', string>
+>;
 
 export class DangerZonePayloadError extends Error {
   constructor(
@@ -44,8 +57,65 @@ const asFiniteNumber = (value: unknown): number | null => {
   return Number.isFinite(numberValue) ? numberValue : null;
 };
 
+const isValidLatLng = (lat: number | null, lng: number | null): lat is number =>
+  lat !== null && lng !== null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+
+const parseCenter = (rawPayload: Record<string, unknown>): DangerZoneCoordinates | null => {
+  const centerPayload = parseJsonObject(rawPayload.center);
+  const lat = centerPayload ? asFiniteNumber(centerPayload.lat) : asFiniteNumber(rawPayload.lat);
+  const lng = centerPayload ? asFiniteNumber(centerPayload.lng) : asFiniteNumber(rawPayload.lng);
+  return isValidLatLng(lat, lng) ? { lat, lng: lng as number } : null;
+};
+
+const parsePosition = (value: unknown): [number, number] | null => {
+  if (!Array.isArray(value) || value.length < 2) return null;
+  const lng = asFiniteNumber(value[0]);
+  const lat = asFiniteNumber(value[1]);
+  return isValidLatLng(lat, lng) ? [lng as number, lat] : null;
+};
+
+const samePosition = (a: [number, number], b: [number, number]): boolean =>
+  Math.abs(a[0] - b[0]) <= 1e-9 && Math.abs(a[1] - b[1]) <= 1e-9;
+
+const parseLineString = (geojson: Record<string, unknown> | null): DangerZoneLineString | null => {
+  if (!geojson || geojson.type !== 'LineString' || !Array.isArray(geojson.coordinates)) return null;
+  const coordinates = geojson.coordinates.map(parsePosition);
+  if (coordinates.length < 2 || coordinates.some(position => !position)) return null;
+  return { type: 'LineString', coordinates: coordinates as [number, number][] };
+};
+
+const parsePolygon = (geojson: Record<string, unknown> | null): DangerZonePolygon | null => {
+  if (!geojson || geojson.type !== 'Polygon' || !Array.isArray(geojson.coordinates)) return null;
+  if (geojson.coordinates.length !== 1 || !Array.isArray(geojson.coordinates[0])) return null;
+
+  const ring = (geojson.coordinates[0] as unknown[]).map(parsePosition);
+  if (ring.length < 4 || ring.some(position => !position)) return null;
+
+  const normalizedRing = ring as [number, number][];
+  if (!samePosition(normalizedRing[0], normalizedRing[normalizedRing.length - 1])) return null;
+
+  return { type: 'Polygon', coordinates: [normalizedRing] };
+};
+
+const parseLineWidth = (value: unknown): number => {
+  const width = asFiniteNumber(value);
+  return width === null ? DEFAULT_LINE_WIDTH_METERS : width;
+};
+
 export class DangerZoneGeometryService {
   static validatePointCirclePayload(rawPayload: unknown): DangerZoneCreateInput {
+    return this.validatePayload(rawPayload, RESIDENT_GEOMETRIES, 'Only point and circle danger zones are supported for resident reports');
+  }
+
+  static validateAdminPayload(rawPayload: unknown): DangerZoneCreateInput {
+    return this.validatePayload(rawPayload, ADMIN_GEOMETRIES, 'Only point, circle, line, and polygon danger zones are supported');
+  }
+
+  private static validatePayload(
+    rawPayload: unknown,
+    allowedGeometries: Set<DangerZoneGeometryType>,
+    unsupportedGeometryMessage: string
+  ): DangerZoneCreateInput {
     if (!isPlainObject(rawPayload)) {
       throw new DangerZonePayloadError('Invalid danger-zone payload', { type: 'Invalid payload' });
     }
@@ -71,44 +141,68 @@ export class DangerZoneGeometryService {
       fieldErrors.description = `Description must be ${MAX_DESCRIPTION_LENGTH} characters or fewer`;
     }
 
-    const geometryType = asTrimmedString(rawPayload.geometryType).toLowerCase();
-    if (!ALLOWED_GEOMETRIES.has(geometryType as DangerZoneGeometryType)) {
-      fieldErrors.geometryType = 'Only point and circle danger zones are supported in this phase';
+    const geometryType = asTrimmedString(rawPayload.geometryType).toLowerCase() as DangerZoneGeometryType;
+    if (!allowedGeometries.has(geometryType)) {
+      fieldErrors.geometryType = unsupportedGeometryMessage;
     }
 
-    const centerPayload = parseJsonObject(rawPayload.center);
-    const lat = centerPayload ? asFiniteNumber(centerPayload.lat) : asFiniteNumber(rawPayload.lat);
-    const lng = centerPayload ? asFiniteNumber(centerPayload.lng) : asFiniteNumber(rawPayload.lng);
+    const input: DangerZoneCreateInput = {
+      type,
+      severity: severity as DangerZoneSeverity,
+      description,
+      geometryType,
+      center: null,
+      radiusMeters: null,
+      geojson: null,
+      affectedWidthMeters: null,
+      avoidGeojson: null,
+    };
 
-    if (lat === null || lng === null || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      fieldErrors.center = 'A valid center latitude and longitude are required';
+    if (geometryType === 'point' || geometryType === 'circle') {
+      const center = parseCenter(rawPayload);
+      if (!center) {
+        fieldErrors.center = 'A valid center latitude and longitude are required';
+      } else {
+        input.center = center;
+      }
     }
 
-    const radiusMeters = asFiniteNumber(rawPayload.radiusMeters);
     if (geometryType === 'circle') {
+      const radiusMeters = asFiniteNumber(rawPayload.radiusMeters);
       if (radiusMeters === null || radiusMeters <= 0 || radiusMeters > MAX_RADIUS_METERS) {
         fieldErrors.radiusMeters = `Circle radius must be between 1 and ${MAX_RADIUS_METERS} meters`;
+      } else {
+        input.radiusMeters = radiusMeters;
+      }
+    }
+
+    if (geometryType === 'line') {
+      const lineString = parseLineString(parseJsonObject(rawPayload.geojson));
+      if (!lineString) {
+        fieldErrors.geojson = 'Line danger zones require a valid GeoJSON LineString with at least two [lng, lat] coordinates';
+      } else {
+        input.geojson = lineString;
+      }
+
+      const affectedWidthMeters = parseLineWidth(rawPayload.affectedWidthMeters);
+      if (affectedWidthMeters < MIN_LINE_WIDTH_METERS || affectedWidthMeters > MAX_LINE_WIDTH_METERS) {
+        fieldErrors.affectedWidthMeters = `Line width must be between ${MIN_LINE_WIDTH_METERS} and ${MAX_LINE_WIDTH_METERS} meters`;
+      } else {
+        input.affectedWidthMeters = affectedWidthMeters;
+      }
+    }
+
+    if (geometryType === 'polygon') {
+      const polygon = parsePolygon(parseJsonObject(rawPayload.geojson));
+      if (!polygon) {
+        fieldErrors.geojson = 'Polygon danger zones require one closed outer ring with valid [lng, lat] coordinates';
+      } else {
+        input.geojson = polygon;
       }
     }
 
     if (Object.keys(fieldErrors).length > 0) {
       throw new DangerZonePayloadError('Invalid danger-zone payload', fieldErrors);
-    }
-
-    const normalizedGeometry = geometryType as DangerZoneGeometryType;
-    const input: DangerZoneCreateInput = {
-      type,
-      severity: severity as DangerZoneSeverity,
-      description,
-      geometryType: normalizedGeometry,
-      center: {
-        lat: lat as number,
-        lng: lng as number,
-      },
-    };
-
-    if (normalizedGeometry === 'circle') {
-      input.radiusMeters = radiusMeters as number;
     }
 
     return input;

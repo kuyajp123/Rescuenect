@@ -15,6 +15,7 @@ interface DangerZoneStore {
   createOfficialZone: (payload: DangerZoneCreateOfficialPayload) => Promise<DangerZoneRecord>;
   verifyReport: (id: string) => Promise<DangerZoneRecord>;
   rejectReport: (id: string, rejectionReason: string) => Promise<DangerZoneRecord>;
+  updateZone: (id: string, payload: DangerZoneCreateOfficialPayload) => Promise<DangerZoneRecord>;
   resolveZone: (id: string) => Promise<DangerZoneRecord>;
 }
 
@@ -120,6 +121,25 @@ export const useDangerZoneStore = create<DangerZoneStore>((set, get) => ({
       return response.data.data;
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to reject danger-zone report');
+      set({ isMutating: false, error: message });
+      throw new Error(message);
+    }
+  },
+
+  updateZone: async (id, payload) => {
+    set({ isMutating: true, error: null });
+    try {
+      const headers = await getAuthHeaders();
+      const response = await axios.patch<{ data: DangerZoneRecord }>(
+        API_ENDPOINTS.DANGER_ZONES.UPDATE_ZONE,
+        { id, ...payload },
+        { headers }
+      );
+      await get().fetchZones();
+      set({ isMutating: false });
+      return response.data.data;
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to update danger zone');
       set({ isMutating: false, error: message });
       throw new Error(message);
     }

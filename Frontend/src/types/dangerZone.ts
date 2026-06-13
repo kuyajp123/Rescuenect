@@ -1,12 +1,24 @@
 export type DangerZoneSource = 'resident_report' | 'lgu_official';
 export type DangerZoneStatus = 'pending' | 'verified' | 'rejected' | 'resolved' | 'expired';
 export type DangerZoneSeverity = 'low' | 'medium' | 'high' | 'critical';
-export type DangerZoneGeometryType = 'point' | 'circle';
+export type DangerZoneGeometryType = 'point' | 'circle' | 'line' | 'polygon';
 
 export interface DangerZoneCoordinates {
   lat: number;
   lng: number;
 }
+
+export type DangerZoneLineString = {
+  type: 'LineString';
+  coordinates: [number, number][];
+};
+
+export type DangerZonePolygon = {
+  type: 'Polygon';
+  coordinates: [number, number][][];
+};
+
+export type DangerZoneGeoJson = DangerZoneLineString | DangerZonePolygon;
 
 export interface DangerZoneRecord {
   id: string;
@@ -18,8 +30,11 @@ export interface DangerZoneRecord {
   severity: DangerZoneSeverity;
   description: string;
   geometryType: DangerZoneGeometryType;
-  center: DangerZoneCoordinates;
-  radiusMeters?: number;
+  center?: DangerZoneCoordinates | null;
+  radiusMeters?: number | null;
+  geojson?: DangerZoneGeoJson | null;
+  affectedWidthMeters?: number | null;
+  avoidGeojson?: null;
   photoUrls: string[];
   reportedBy: string;
   reportedByRole: 'resident' | 'lgu_admin' | 'super_admin';
@@ -46,7 +61,10 @@ export interface DangerZoneCreateOfficialPayload {
   severity: DangerZoneSeverity;
   description: string;
   geometryType: DangerZoneGeometryType;
-  center: DangerZoneCoordinates;
-  radiusMeters?: number;
+  center?: DangerZoneCoordinates | null;
+  radiusMeters?: number | null;
+  geojson?: DangerZoneGeoJson | null;
+  affectedWidthMeters?: number | null;
+  avoidGeojson?: null;
   clientId?: string;
 }

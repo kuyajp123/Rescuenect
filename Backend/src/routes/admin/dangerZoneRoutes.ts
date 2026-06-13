@@ -29,6 +29,12 @@ dangerZoneRoutes.patch(
 );
 
 dangerZoneRoutes.patch(
+  '/updateZone',
+  AdminMiddleware.blockLguWritesWhenClientDeletionScheduled,
+  DangerZoneController.updateZone
+);
+
+dangerZoneRoutes.patch(
   '/resolveZone',
   AdminMiddleware.blockLguWritesWhenClientDeletionScheduled,
   DangerZoneController.resolveZone

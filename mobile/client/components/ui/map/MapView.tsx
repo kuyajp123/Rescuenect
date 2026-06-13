@@ -15,7 +15,8 @@ import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import { useUserData } from '@/store/useBackendResponse';
 import { isUserMapStyle, useMapSettingsStore } from '@/store/useMapSettings';
 import { CenterType, EvacuationCenter } from '@/types/components';
-import MapboxGL, { FillLayer, Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
+import { DangerZoneRecord } from '@/types/dangerZone';
+import MapboxGL, { CircleLayer, FillLayer, Images, LineLayer, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
 import type { FeatureCollection } from 'geojson';
 import { Bookmark, ChevronLeft, List, MapIcon } from 'lucide-react-native';
@@ -61,9 +62,9 @@ interface EarthquakeData {
     moderate_shaking_radius_km: number;
     strong_shaking_radius_km: number;
   };
-  clientImpacts?: Array<{
+  clientImpacts?: {
     radiusKm?: number;
-  }>;
+  }[];
 }
 
 type EarthquakeRadiusRing = {
@@ -185,6 +186,7 @@ interface MapViewProps {
   children?: React.ReactNode;
   coords?: { lat: number; lng: number };
   data?: EvacuationCenter[];
+  dangerZones?: DangerZoneRecord[];
   earthquakeData?: EarthquakeData;
   earthquakeDataList?: EarthquakeData[];
   handleMapPress?: (event: any) => void;
@@ -260,10 +262,17 @@ const EVACUATION_CENTER_LEGEND: { type: CenterType; label: string; icon: number 
   { type: 'other', label: 'Other', icon: require('@/assets/images/marker/evacuation-center-marker/others-marker.png') },
 ];
 
+const formatDangerZoneLabel = (value: string) =>
+  value
+    .split('_')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
 export const MapView: React.FC<MapViewProps> = ({
   children,
   coords,
   data,
+  dangerZones,
   earthquakeData,
   earthquakeDataList,
   handleMapPress,
@@ -312,6 +321,7 @@ export const MapView: React.FC<MapViewProps> = ({
   const [showMapStyles, setShowMapStyles] = useState(false);
   const [mapStyleState, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
   const [selectedMarker, setSelectedMarker] = useState<EvacuationCenter | null>(null);
+  const [selectedDangerZone, setSelectedDangerZone] = useState<DangerZoneRecord | null>(null);
   const [isStyleLoaded, setIsStyleLoaded] = useState(false);
   const [areMarkersReady, setAreMarkersReady] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -362,6 +372,10 @@ export const MapView: React.FC<MapViewProps> = ({
   // Handle hardware back press
   useEffect(() => {
     const handleBackPress = () => {
+      if (selectedDangerZone) {
+        setSelectedDangerZone(null);
+        return true;
+      }
       if (selectedMarker) {
         setSelectedMarker(null);
         return true; // Prevent default behavior (navigation back)
@@ -372,7 +386,7 @@ export const MapView: React.FC<MapViewProps> = ({
     const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
 
     return () => backHandler.remove();
-  }, [selectedMarker]);
+  }, [selectedDangerZone, selectedMarker]);
 
   const toggleMapStyles = useCallback(() => {
     setShowMapStyles(prev => !prev);
@@ -433,6 +447,70 @@ export const MapView: React.FC<MapViewProps> = ({
           })),
       }
     : undefined;
+
+  const dangerZoneAreaGeoJson: FeatureCollection | undefined = dangerZones?.length
+    ? {
+        type: 'FeatureCollection',
+        features: dangerZones.flatMap(zone => {
+          if (zone.geometryType === 'circle' && zone.center && zone.radiusMeters) {
+            const circle = createRadiusPolygon(zone.center.lng, zone.center.lat, zone.radiusMeters / 1000).features[0];
+            return [{ ...circle, id: zone.id, properties: { ...circle.properties, id: zone.id } }];
+          }
+          if (zone.geometryType === 'polygon' && zone.geojson?.type === 'Polygon') {
+            return [
+              {
+                type: 'Feature' as const,
+                id: zone.id,
+                geometry: zone.geojson,
+                properties: { id: zone.id },
+              },
+            ];
+          }
+          return [];
+        }),
+      }
+    : undefined;
+
+  const dangerZoneLineGeoJson: FeatureCollection | undefined = dangerZones?.length
+    ? {
+        type: 'FeatureCollection',
+        features: dangerZones
+          .filter(zone => zone.geometryType === 'line' && zone.geojson?.type === 'LineString')
+          .map(zone => ({
+            type: 'Feature' as const,
+            id: zone.id,
+            geometry: zone.geojson!,
+            properties: { id: zone.id },
+          })),
+      }
+    : undefined;
+
+  const dangerZonePointGeoJson: FeatureCollection | undefined = dangerZones?.length
+    ? {
+        type: 'FeatureCollection',
+        features: dangerZones
+          .filter(zone => zone.geometryType === 'point' && zone.center)
+          .map(zone => ({
+            type: 'Feature' as const,
+            id: zone.id,
+            geometry: {
+              type: 'Point' as const,
+              coordinates: [zone.center!.lng, zone.center!.lat],
+            },
+            properties: { id: zone.id },
+          })),
+      }
+    : undefined;
+
+  const handleDangerZonePress = (event: any) => {
+    const feature = event.features?.[0];
+    const dangerZoneId = String(feature?.id ?? feature?.properties?.id ?? '');
+    const dangerZone = dangerZones?.find(zone => zone.id === dangerZoneId);
+    if (!dangerZone) return;
+    setSelectedMarker(null);
+    setSelectedDangerZone(dangerZone);
+    setIsLegendOpen(false);
+  };
 
   return (
     <View style={styles.mapStyle}>
@@ -517,6 +595,49 @@ export const MapView: React.FC<MapViewProps> = ({
                   }}
                 />
               </MapboxGL.VectorSource>
+            )}
+
+            {dangerZoneAreaGeoJson && dangerZoneAreaGeoJson.features.length > 0 && (
+              <ShapeSource id="danger-zone-area-source" shape={dangerZoneAreaGeoJson} onPress={handleDangerZonePress}>
+                <FillLayer
+                  id="danger-zone-area-layer"
+                  style={{
+                    fillColor: '#DC2626',
+                    fillOpacity: 0.22,
+                    fillOutlineColor: '#B91C1C',
+                  }}
+                />
+              </ShapeSource>
+            )}
+
+            {dangerZoneLineGeoJson && dangerZoneLineGeoJson.features.length > 0 && (
+              <ShapeSource id="danger-zone-line-source" shape={dangerZoneLineGeoJson} onPress={handleDangerZonePress}>
+                <LineLayer
+                  id="danger-zone-line-layer"
+                  style={{
+                    lineColor: '#DC2626',
+                    lineWidth: 5,
+                    lineOpacity: 0.9,
+                    lineCap: 'round',
+                    lineJoin: 'round',
+                  }}
+                />
+              </ShapeSource>
+            )}
+
+            {dangerZonePointGeoJson && dangerZonePointGeoJson.features.length > 0 && (
+              <ShapeSource id="danger-zone-point-source" shape={dangerZonePointGeoJson} onPress={handleDangerZonePress}>
+                <CircleLayer
+                  id="danger-zone-point-layer"
+                  style={{
+                    circleRadius: 8,
+                    circleColor: '#DC2626',
+                    circleOpacity: 0.95,
+                    circleStrokeColor: '#FFFFFF',
+                    circleStrokeWidth: 2,
+                  }}
+                />
+              </ShapeSource>
             )}
 
             {/* Marker source - Only render when images are ready to prevent race condition */}
@@ -677,6 +798,36 @@ export const MapView: React.FC<MapViewProps> = ({
         <View style={styles.detailsOverlay} pointerEvents="box-none">
           <Pressable style={styles.detailsBackdrop} onPress={() => setSelectedMarker(null)} />
           <DetailsCard selectedMarker={selectedMarker} isDark={isDark} onClose={() => setSelectedMarker(null)} />
+        </View>
+      )}
+
+      {selectedDangerZone && (
+        <View style={styles.detailsOverlay} pointerEvents="box-none">
+          <Pressable style={styles.detailsBackdrop} onPress={() => setSelectedDangerZone(null)} />
+          <View
+            style={[
+              styles.dangerZoneCard,
+              { backgroundColor: isDark ? Colors.background.dark : Colors.background.light },
+            ]}
+          >
+            <Text size="lg" bold>
+              {formatDangerZoneLabel(selectedDangerZone.type)}
+            </Text>
+            <Text size="xs" emphasis="light">
+              {selectedDangerZone.geometryType.toUpperCase()} - {selectedDangerZone.severity.toUpperCase()} - {selectedDangerZone.status}
+            </Text>
+            <Text size="sm" style={styles.dangerZoneDescription}>
+              {selectedDangerZone.description}
+            </Text>
+            <HoveredButton
+              onPress={() => setSelectedDangerZone(null)}
+              style={[styles.dangerZoneCloseButton, { backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light }]}
+            >
+              <Text size="sm" style={{ color: '#fff' }}>
+                Close
+              </Text>
+            </HoveredButton>
+          </View>
         </View>
       )}
 
@@ -937,6 +1088,29 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
+  },
+  dangerZoneCard: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 24,
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+  },
+  dangerZoneDescription: {
+    lineHeight: 20,
+  },
+  dangerZoneCloseButton: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
   legendWrapper: {
     position: 'absolute',

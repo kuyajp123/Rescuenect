@@ -49,3 +49,10 @@ export const createDangerZoneReport = async (
 
   return response.data.data;
 };
+
+export const fetchPublicDangerZones = async (clientId?: string | null): Promise<DangerZoneRecord[]> => {
+  const response = await axios.get<{ zones: DangerZoneRecord[] }>(API_ROUTES.DANGER_ZONES.PUBLIC, {
+    params: clientId ? { clientId } : undefined,
+  });
+  return response.data.zones;
+};

@@ -79,6 +79,18 @@ export class DangerZoneController {
     }
   }
 
+  static async updateZone(req: Request, res: Response): Promise<void> {
+    const adminUser = getAdminUser(req, res);
+    if (!adminUser) return;
+
+    try {
+      const zone = await DangerZoneModel.updateZone(adminUser, req.body?.id, req.body);
+      res.status(200).json({ message: 'Danger zone updated', data: zone });
+    } catch (error) {
+      sendDangerZoneError(res, error, 'Failed to update danger zone');
+    }
+  }
+
   static async resolveZone(req: Request, res: Response): Promise<void> {
     const adminUser = getAdminUser(req, res);
     if (!adminUser) return;
