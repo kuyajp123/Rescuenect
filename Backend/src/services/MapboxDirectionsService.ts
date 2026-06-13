@@ -18,10 +18,22 @@ type MapboxDirectionsResponse = {
 
 const MAPBOX_DIRECTIONS_BASE_URL = 'https://api.mapbox.com/directions/v5';
 const MAPBOX_DRIVING_PROFILE = 'mapbox/driving';
+const MAPBOX_EXCLUDE_POINT_LIMIT = 50;
 
 const getMapboxDirectionsToken = (): string => process.env.MAPBOX_DIRECTIONS_TOKEN?.trim() || '';
 
 const coordinateToPathSegment = (coordinate: RouteCoordinates): string => `${coordinate.lng},${coordinate.lat}`;
+
+const isValidRouteCoordinate = (coordinate: RouteCoordinates): boolean =>
+  Number.isFinite(coordinate.lat) &&
+  Number.isFinite(coordinate.lng) &&
+  coordinate.lat >= -90 &&
+  coordinate.lat <= 90 &&
+  coordinate.lng >= -180 &&
+  coordinate.lng <= 180;
+
+const coordinateToExcludePoint = (coordinate: RouteCoordinates): string =>
+  `point(${coordinate.lng} ${coordinate.lat})`;
 
 const isLineStringGeometry = (geometry?: MapboxRoute['geometry']): geometry is RouteLineString =>
   geometry?.type === 'LineString' &&
@@ -44,7 +56,8 @@ export class MapboxDirectionsError extends Error {
 export class MapboxDirectionsService {
   static async getDrivingRoute(
     origin: RouteCoordinates,
-    destination: RouteCoordinates
+    destination: RouteCoordinates,
+    options: { excludePoints?: RouteCoordinates[] } = {}
   ): Promise<ProviderRouteResult> {
     const accessToken = getMapboxDirectionsToken();
     if (!accessToken) {
@@ -52,6 +65,11 @@ export class MapboxDirectionsService {
     }
 
     const coordinates = `${coordinateToPathSegment(origin)};${coordinateToPathSegment(destination)}`;
+    const excludePoints = (options.excludePoints ?? [])
+      .filter(isValidRouteCoordinate)
+      .slice(0, MAPBOX_EXCLUDE_POINT_LIMIT)
+      .map(coordinateToExcludePoint);
+
     const response = await axios.get<MapboxDirectionsResponse>(
       `${MAPBOX_DIRECTIONS_BASE_URL}/${MAPBOX_DRIVING_PROFILE}/${coordinates}`,
       {
@@ -59,6 +77,7 @@ export class MapboxDirectionsService {
           geometries: 'geojson',
           overview: 'full',
           steps: false,
+          ...(excludePoints.length > 0 ? { exclude: excludePoints.join(',') } : {}),
           access_token: accessToken,
         },
         timeout: 15000,

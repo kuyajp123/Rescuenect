@@ -2,10 +2,11 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
-  DANGER_ZONE_BASELINE_WARNING,
   EvacuationRouteSelectionService,
   EvacuationRoutingError,
+  MAPBOX_EXCLUDE_POINTS_WARNING,
   ROUTE_ADVISORY_WARNING,
+  SAFER_ROUTING_UNAVAILABLE_WARNING,
   haversineDistanceMeters,
 } = require('../dist/src/services/EvacuationRouteSelectionService');
 
@@ -124,10 +125,36 @@ test('route selection reports unavailable selected centers and provider failure'
   );
 });
 
-test('route warnings include danger-zone baseline warning only when needed', () => {
-  assert.deepEqual(EvacuationRouteSelectionService.buildWarnings(0), [ROUTE_ADVISORY_WARNING]);
-  assert.deepEqual(EvacuationRouteSelectionService.buildWarnings(2), [
+test('route warnings describe fallback avoidance states', () => {
+  assert.deepEqual(
+    EvacuationRouteSelectionService.buildWarnings({
+      avoidanceMethod: 'none',
+      providerFallback: false,
+    }),
+    [ROUTE_ADVISORY_WARNING]
+  );
+
+  assert.deepEqual(
+    EvacuationRouteSelectionService.buildWarnings({
+      avoidanceMethod: 'ors_avoid_polygons',
+      providerFallback: false,
+    }),
+    [ROUTE_ADVISORY_WARNING]
+  );
+
+  assert.deepEqual(EvacuationRouteSelectionService.buildWarnings({
+    avoidanceMethod: 'mapbox_exclude_points',
+    providerFallback: true,
+  }), [
     ROUTE_ADVISORY_WARNING,
-    DANGER_ZONE_BASELINE_WARNING,
+    MAPBOX_EXCLUDE_POINTS_WARNING,
+  ]);
+
+  assert.deepEqual(EvacuationRouteSelectionService.buildWarnings({
+    avoidanceMethod: 'none',
+    providerFallback: true,
+  }), [
+    ROUTE_ADVISORY_WARNING,
+    SAFER_ROUTING_UNAVAILABLE_WARNING,
   ]);
 });

@@ -10,6 +10,10 @@ export interface RouteLineString {
   coordinates: [number, number][];
 }
 
+export type RouteProvider = 'mapbox' | 'openrouteservice';
+export type RouteProfile = 'mapbox/driving' | 'driving-car';
+export type RouteAvoidanceMethod = 'none' | 'ors_avoid_polygons' | 'mapbox_exclude_points';
+
 export interface EvacuationCenterRouteCandidate {
   id: string;
   clientId: string;
@@ -20,8 +24,8 @@ export interface EvacuationCenterRouteCandidate {
 }
 
 export interface ProviderRouteResult {
-  provider: 'mapbox';
-  profile: 'mapbox/driving';
+  provider: RouteProvider;
+  profile: RouteProfile;
   geometry: RouteLineString;
   distanceMeters: number;
   durationSeconds: number;
@@ -32,7 +36,9 @@ export interface BestEvacuationRouteResponse {
   route: ProviderRouteResult;
   dangerZoneSummary: {
     verifiedActiveCount: number;
-    avoidanceApplied: false;
+    avoidanceApplied: boolean;
+    avoidanceMethod: RouteAvoidanceMethod;
+    providerFallback: boolean;
   };
   warnings: string[];
 }

@@ -568,6 +568,7 @@ SUPABASE_URL=your_supabase_project_url
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 FIREBASE_PROJECT_ID=your_firebase_project_id
 MAPBOX_DIRECTIONS_TOKEN=your_mapbox_directions_token
+OPENROUTESERVICE_API_KEY=your_openrouteservice_api_key
 ```
 
 ### Frontend — `Frontend/.env`

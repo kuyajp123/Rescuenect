@@ -9,12 +9,14 @@ import {
   RouteCoordinates,
 } from '@/types/evacuationRoute';
 import { getEffectiveClientId } from '@/utils/adminScope';
+import { DangerZoneAvoidanceGeometryService } from './DangerZoneAvoidanceGeometryService';
 import {
   EvacuationRouteSelectionService,
   EvacuationRoutingError,
   isValidRouteCoordinate,
 } from './EvacuationRouteSelectionService';
 import { MapboxDirectionsService } from './MapboxDirectionsService';
+import { OpenRouteService } from './OpenRouteService';
 
 type BestRoutePayload = {
   clientId: string;
@@ -47,7 +49,7 @@ const parsePayload = (payload: unknown): BestRoutePayload => {
 
   const travelMode = asTrimmedString(rawPayload.travelMode || 'driving');
   if (travelMode && travelMode !== 'driving') {
-    throw new EvacuationRoutingError(400, 'Only driving routes are supported in Phase 3');
+    throw new EvacuationRoutingError(400, 'Only driving routes are supported');
   }
 
   const targetCenterId = asTrimmedString(rawPayload.targetCenterId);
@@ -102,28 +104,143 @@ export class EvacuationRoutingService {
     return EvacuationRouteSelectionService.filterAvailableCenters(rawCenters, clientId);
   }
 
+  private static buildResponse(params: {
+    selectedCenter: EvacuationCenterRouteCandidate;
+    route: BestEvacuationRouteResponse['route'];
+    verifiedActiveCount: number;
+    avoidanceApplied: boolean;
+    avoidanceMethod: BestEvacuationRouteResponse['dangerZoneSummary']['avoidanceMethod'];
+    providerFallback: boolean;
+  }): BestEvacuationRouteResponse {
+    const { selectedCenter, route, verifiedActiveCount, avoidanceApplied, avoidanceMethod, providerFallback } = params;
+    return {
+      selectedCenter,
+      route,
+      dangerZoneSummary: {
+        verifiedActiveCount,
+        avoidanceApplied,
+        avoidanceMethod,
+        providerFallback,
+      },
+      warnings: EvacuationRouteSelectionService.buildWarnings({
+        avoidanceMethod,
+        providerFallback,
+      }),
+    };
+  }
+
+  private static isProviderAllCandidatesFailure(error: unknown): error is EvacuationRoutingError {
+    return error instanceof EvacuationRoutingError && error.statusCode === 502;
+  }
+
   static async getBestRoute(uid: string, rawPayload: unknown): Promise<BestEvacuationRouteResponse> {
     const payload = parsePayload(rawPayload);
     await this.assertResidentClientScope(uid, payload.clientId);
 
     const centers = await this.getAvailableCenters(payload.clientId);
     const verifiedActiveDangerZones = await DangerZoneModel.listPublicVerifiedActive(payload.clientId);
+    const verifiedActiveCount = verifiedActiveDangerZones.length;
 
-    const { center, route } = await EvacuationRouteSelectionService.chooseRoute({
-      origin: payload.origin,
-      centers,
-      targetCenterId: payload.targetCenterId,
-      routeProvider: candidate => MapboxDirectionsService.getDrivingRoute(payload.origin, candidate.coordinates),
-    });
+    if (verifiedActiveCount === 0) {
+      const { center, route } = await EvacuationRouteSelectionService.chooseRoute({
+        origin: payload.origin,
+        centers,
+        targetCenterId: payload.targetCenterId,
+        routeProvider: candidate => MapboxDirectionsService.getDrivingRoute(payload.origin, candidate.coordinates),
+      });
 
-    return {
-      selectedCenter: center,
-      route,
-      dangerZoneSummary: {
-        verifiedActiveCount: verifiedActiveDangerZones.length,
+      return this.buildResponse({
+        selectedCenter: center,
+        route,
+        verifiedActiveCount,
         avoidanceApplied: false,
-      },
-      warnings: EvacuationRouteSelectionService.buildWarnings(verifiedActiveDangerZones.length),
-    };
+        avoidanceMethod: 'none',
+        providerFallback: false,
+      });
+    }
+
+    const avoidPolygons = DangerZoneAvoidanceGeometryService.buildOpenRouteServiceAvoidPolygons(verifiedActiveDangerZones);
+    const excludePoints = DangerZoneAvoidanceGeometryService.buildMapboxExcludePoints(verifiedActiveDangerZones);
+    const providerFailures: Record<string, unknown> = {};
+
+    if (avoidPolygons) {
+      try {
+        const { center, route } = await EvacuationRouteSelectionService.chooseRoute({
+          origin: payload.origin,
+          centers,
+          targetCenterId: payload.targetCenterId,
+          routeProvider: candidate =>
+            OpenRouteService.getDrivingRoute(payload.origin, candidate.coordinates, avoidPolygons),
+        });
+
+        return this.buildResponse({
+          selectedCenter: center,
+          route,
+          verifiedActiveCount,
+          avoidanceApplied: true,
+          avoidanceMethod: 'ors_avoid_polygons',
+          providerFallback: false,
+        });
+      } catch (error) {
+        if (!this.isProviderAllCandidatesFailure(error)) throw error;
+        providerFailures.openRouteService = error.details;
+      }
+    } else {
+      providerFailures.openRouteService = {
+        message: 'No valid OpenRouteService avoid polygons could be generated from verified danger zones',
+      };
+    }
+
+    if (excludePoints.length > 0) {
+      try {
+        const { center, route } = await EvacuationRouteSelectionService.chooseRoute({
+          origin: payload.origin,
+          centers,
+          targetCenterId: payload.targetCenterId,
+          routeProvider: candidate =>
+            MapboxDirectionsService.getDrivingRoute(payload.origin, candidate.coordinates, { excludePoints }),
+        });
+
+        return this.buildResponse({
+          selectedCenter: center,
+          route,
+          verifiedActiveCount,
+          avoidanceApplied: true,
+          avoidanceMethod: 'mapbox_exclude_points',
+          providerFallback: true,
+        });
+      } catch (error) {
+        if (!this.isProviderAllCandidatesFailure(error)) throw error;
+        providerFailures.mapboxExcludePoints = error.details;
+      }
+    } else {
+      providerFailures.mapboxExcludePoints = {
+        message: 'No valid Mapbox exclude points could be generated from verified danger zones',
+      };
+    }
+
+    try {
+      const { center, route } = await EvacuationRouteSelectionService.chooseRoute({
+        origin: payload.origin,
+        centers,
+        targetCenterId: payload.targetCenterId,
+        routeProvider: candidate => MapboxDirectionsService.getDrivingRoute(payload.origin, candidate.coordinates),
+      });
+
+      return this.buildResponse({
+        selectedCenter: center,
+        route,
+        verifiedActiveCount,
+        avoidanceApplied: false,
+        avoidanceMethod: 'none',
+        providerFallback: true,
+      });
+    } catch (error) {
+      if (!this.isProviderAllCandidatesFailure(error)) throw error;
+      throw new EvacuationRoutingError(502, 'Route computation failed for all providers', {
+        ...providerFailures,
+        mapboxNormal: error.details,
+      });
+    }
   }
 }

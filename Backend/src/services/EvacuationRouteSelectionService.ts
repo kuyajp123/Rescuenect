@@ -1,13 +1,16 @@
 import {
   EvacuationCenterRouteCandidate,
   ProviderRouteResult,
+  RouteAvoidanceMethod,
   RouteCoordinates,
 } from '@/types/evacuationRoute';
 
 export const ROUTE_ADVISORY_WARNING =
   'This is suggested route guidance only. During emergencies, follow LGU officials and emergency responders.';
-export const DANGER_ZONE_BASELINE_WARNING =
-  'Verified danger zones exist, but this Phase 3 route does not avoid them yet.';
+export const MAPBOX_EXCLUDE_POINTS_WARNING =
+  'OpenRouteService polygon avoidance is unavailable. Mapbox best-effort point exclusions were used, but this route may still enter verified danger zones.';
+export const SAFER_ROUTING_UNAVAILABLE_WARNING =
+  'Safer routing is unavailable right now. Showing a normal route that may cross verified danger zones.';
 
 const EARTH_RADIUS_METERS = 6_371_008.8;
 
@@ -77,10 +80,12 @@ export class EvacuationRouteSelectionService {
       .slice(0, limit);
   }
 
-  static buildWarnings(verifiedDangerZoneCount: number): string[] {
+  static buildWarnings(params: { avoidanceMethod: RouteAvoidanceMethod; providerFallback: boolean }): string[] {
+    const { avoidanceMethod, providerFallback } = params;
     return [
       ROUTE_ADVISORY_WARNING,
-      ...(verifiedDangerZoneCount > 0 ? [DANGER_ZONE_BASELINE_WARNING] : []),
+      ...(providerFallback && avoidanceMethod === 'mapbox_exclude_points' ? [MAPBOX_EXCLUDE_POINTS_WARNING] : []),
+      ...(providerFallback && avoidanceMethod === 'none' ? [SAFER_ROUTING_UNAVAILABLE_WARNING] : []),
     ];
   }
 
@@ -122,7 +127,7 @@ export class EvacuationRouteSelectionService {
     }
 
     if (!best) {
-      throw new EvacuationRoutingError(502, 'Mapbox route computation failed for all candidates', {
+      throw new EvacuationRoutingError(502, 'Route computation failed for all candidates', {
         failures,
       });
     }

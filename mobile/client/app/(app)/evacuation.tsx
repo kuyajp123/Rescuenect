@@ -24,6 +24,25 @@ const getRouteErrorMessage = (error: unknown): string => {
   return error instanceof Error ? error.message : 'Unable to compute evacuation route.';
 };
 
+const getRouteProviderLabel = (routeResult: BestEvacuationRouteResponse): string => {
+  const providerName = routeResult.route.provider === 'openrouteservice' ? 'OpenRouteService' : 'Mapbox';
+  const avoidanceMethod = routeResult.dangerZoneSummary.avoidanceMethod;
+
+  if (avoidanceMethod === 'ors_avoid_polygons') {
+    return `Danger zones avoided - ${providerName}`;
+  }
+
+  if (avoidanceMethod === 'mapbox_exclude_points') {
+    return `Limited avoidance - ${providerName}`;
+  }
+
+  if (routeResult.dangerZoneSummary.providerFallback && routeResult.dangerZoneSummary.verifiedActiveCount > 0) {
+    return `Avoidance unavailable - ${providerName}`;
+  }
+
+  return providerName;
+};
+
 export const Evacuation = () => {
   const insets = useSafeAreaInsets();
   const [evacuationCenters, setEvacuationCenters] = useState<EvacuationCenter[] | null>(null);
@@ -153,7 +172,7 @@ export const Evacuation = () => {
                 selectedCenterName: routeResult.selectedCenter.name,
                 distanceMeters: routeResult.route.distanceMeters,
                 durationSeconds: routeResult.route.durationSeconds,
-                provider: routeResult.route.provider,
+                provider: getRouteProviderLabel(routeResult),
               }
             : null
         }
