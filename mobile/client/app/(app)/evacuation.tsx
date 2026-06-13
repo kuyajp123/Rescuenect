@@ -3,21 +3,36 @@ import { MapView } from '@/components/ui/map/MapView';
 import { API_ROUTES } from '@/config/endpoints';
 import { EvacuationCenter } from '@/types/components';
 import { DangerZoneRecord } from '@/types/dangerZone';
-import axios from 'axios';
-import React, { useEffect, useState } from 'react';
+import axios, { isAxiosError } from 'axios';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { STORAGE_KEYS } from '@/config/asyncStorage';
+import { getCurrentPositionOnce } from '@/helper/commonHelpers';
 import { storageHelpers } from '@/helper/storage';
+import { requestBestEvacuationRoute } from '@/services/evacuationRouteService';
 import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import { useUserData } from '@/store/useBackendResponse';
 import { fetchPublicDangerZones } from '@/services/dangerZoneService';
+import { BestEvacuationRouteResponse } from '@/types/evacuationRoute';
+
+const getRouteErrorMessage = (error: unknown): string => {
+  if (isAxiosError(error)) {
+    return (error.response?.data as { message?: string } | undefined)?.message ?? error.message;
+  }
+  return error instanceof Error ? error.message : 'Unable to compute evacuation route.';
+};
 
 export const Evacuation = () => {
   const insets = useSafeAreaInsets();
   const [evacuationCenters, setEvacuationCenters] = useState<EvacuationCenter[] | null>(null);
   const [dangerZones, setDangerZones] = useState<DangerZoneRecord[]>([]);
+  const [routeResult, setRouteResult] = useState<BestEvacuationRouteResponse | null>(null);
+  const [routeError, setRouteError] = useState<string | null>(null);
+  const [routeWarnings, setRouteWarnings] = useState<string[]>([]);
+  const [selectedRouteCenterId, setSelectedRouteCenterId] = useState<string | null>(null);
+  const [isRouteLoading, setIsRouteLoading] = useState(false);
   const savedLocations = useSavedLocationsStore(state => state.savedLocations);
   const clientId = useUserData(state => state.userData.clientId);
 
@@ -61,6 +76,54 @@ export const Evacuation = () => {
     loadData();
   }, [clientId]);
 
+  const clearRoute = useCallback(() => {
+    setRouteResult(null);
+    setRouteError(null);
+    setRouteWarnings([]);
+    setSelectedRouteCenterId(null);
+  }, []);
+
+  const requestRoute = useCallback(
+    async (targetCenter?: EvacuationCenter) => {
+      if (!clientId) {
+        setRouteError('Your profile is missing an LGU client assignment.');
+        setRouteResult(null);
+        setRouteWarnings([]);
+        return;
+      }
+
+      setIsRouteLoading(true);
+      setRouteError(null);
+      setRouteWarnings([]);
+      setSelectedRouteCenterId(targetCenter?.id ?? null);
+
+      try {
+        const currentPosition = await getCurrentPositionOnce();
+        if (!currentPosition) {
+          throw new Error('Unable to get your current location.');
+        }
+
+        const [lng, lat] = currentPosition;
+        const result = await requestBestEvacuationRoute({
+          clientId,
+          origin: { lat, lng },
+          targetCenterId: targetCenter?.id,
+        });
+
+        setRouteResult(result);
+        setRouteWarnings(result.warnings ?? []);
+        setSelectedRouteCenterId(result.selectedCenter.id);
+      } catch (error) {
+        setRouteResult(null);
+        setRouteError(getRouteErrorMessage(error));
+        setRouteWarnings([]);
+      } finally {
+        setIsRouteLoading(false);
+      }
+    },
+    [clientId]
+  );
+
   return (
     <Body
       style={[
@@ -77,6 +140,24 @@ export const Evacuation = () => {
         showEvacuationLegend={true}
         data={evacuationCenters ?? undefined}
         dangerZones={dangerZones}
+        routeGeoJson={routeResult?.route.geometry ?? null}
+        selectedRouteCenterId={selectedRouteCenterId}
+        onRequestBestRoute={() => void requestRoute()}
+        onRequestRouteToCenter={center => void requestRoute(center)}
+        isRouteLoading={isRouteLoading}
+        routeWarnings={routeWarnings}
+        routeError={routeError}
+        routeSummary={
+          routeResult
+            ? {
+                selectedCenterName: routeResult.selectedCenter.name,
+                distanceMeters: routeResult.route.distanceMeters,
+                durationSeconds: routeResult.route.durationSeconds,
+                provider: routeResult.route.provider,
+              }
+            : null
+        }
+        onClearRoute={clearRoute}
         savedLocations={savedLocations}
       />
     </Body>

@@ -38,6 +38,7 @@ export const API_ROUTES = {
   },
   EVACUATION: {
     GET_CENTERS: `${BASE_URL}/unified/getCenters`,
+    GET_BEST_ROUTE: `${BASE_URL}/unified/getBestEvacuationRoute`,
   },
   DANGER_ZONES: {
     CREATE_REPORT: `${BASE_URL}/mobile/danger-zones/createReport`,

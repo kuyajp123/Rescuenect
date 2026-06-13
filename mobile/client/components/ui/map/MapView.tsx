@@ -16,10 +16,11 @@ import { useUserData } from '@/store/useBackendResponse';
 import { isUserMapStyle, useMapSettingsStore } from '@/store/useMapSettings';
 import { CenterType, EvacuationCenter } from '@/types/components';
 import { DangerZoneRecord } from '@/types/dangerZone';
+import { RouteLineString } from '@/types/evacuationRoute';
 import MapboxGL, { CircleLayer, FillLayer, Images, LineLayer, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
 import type { FeatureCollection } from 'geojson';
-import { Bookmark, ChevronLeft, List, MapIcon } from 'lucide-react-native';
+import { Bookmark, ChevronLeft, List, MapIcon, Navigation } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { BackHandler, Image, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '../text';
@@ -187,6 +188,20 @@ interface MapViewProps {
   coords?: { lat: number; lng: number };
   data?: EvacuationCenter[];
   dangerZones?: DangerZoneRecord[];
+  routeGeoJson?: RouteLineString | null;
+  selectedRouteCenterId?: string | null;
+  onRequestBestRoute?: () => void;
+  onRequestRouteToCenter?: (center: EvacuationCenter) => void;
+  isRouteLoading?: boolean;
+  routeWarnings?: string[];
+  routeError?: string | null;
+  routeSummary?: {
+    selectedCenterName: string;
+    distanceMeters: number;
+    durationSeconds: number;
+    provider: string;
+  } | null;
+  onClearRoute?: () => void;
   earthquakeData?: EarthquakeData;
   earthquakeDataList?: EarthquakeData[];
   handleMapPress?: (event: any) => void;
@@ -268,11 +283,34 @@ const formatDangerZoneLabel = (value: string) =>
     .map(part => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 
+const formatRouteDistance = (meters: number) => {
+  if (!Number.isFinite(meters)) return 'Unknown distance';
+  return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${Math.round(meters)} m`;
+};
+
+const formatRouteDuration = (seconds: number) => {
+  if (!Number.isFinite(seconds)) return 'Unknown time';
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes > 0 ? `${hours} hr ${remainingMinutes} min` : `${hours} hr`;
+};
+
 export const MapView: React.FC<MapViewProps> = ({
   children,
   coords,
   data,
   dangerZones,
+  routeGeoJson,
+  selectedRouteCenterId,
+  onRequestBestRoute,
+  onRequestRouteToCenter,
+  isRouteLoading = false,
+  routeWarnings = [],
+  routeError,
+  routeSummary,
+  onClearRoute,
   earthquakeData,
   earthquakeDataList,
   handleMapPress,
@@ -502,6 +540,19 @@ export const MapView: React.FC<MapViewProps> = ({
       }
     : undefined;
 
+  const routeFeatureCollection: FeatureCollection | undefined = routeGeoJson
+    ? {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature' as const,
+            geometry: routeGeoJson,
+            properties: { id: 'best-evacuation-route' },
+          },
+        ],
+      }
+    : undefined;
+
   const handleDangerZonePress = (event: any) => {
     const feature = event.features?.[0];
     const dangerZoneId = String(feature?.id ?? feature?.properties?.id ?? '');
@@ -635,6 +686,21 @@ export const MapView: React.FC<MapViewProps> = ({
                     circleOpacity: 0.95,
                     circleStrokeColor: '#FFFFFF',
                     circleStrokeWidth: 2,
+                  }}
+                />
+              </ShapeSource>
+            )}
+
+            {routeFeatureCollection && (
+              <ShapeSource id="evacuation-route-source" shape={routeFeatureCollection}>
+                <LineLayer
+                  id="evacuation-route-layer"
+                  style={{
+                    lineColor: '#2563EB',
+                    lineWidth: 6,
+                    lineOpacity: 0.95,
+                    lineCap: 'round',
+                    lineJoin: 'round',
                   }}
                 />
               </ShapeSource>
@@ -797,7 +863,20 @@ export const MapView: React.FC<MapViewProps> = ({
       {selectedMarker && (
         <View style={styles.detailsOverlay} pointerEvents="box-none">
           <Pressable style={styles.detailsBackdrop} onPress={() => setSelectedMarker(null)} />
-          <DetailsCard selectedMarker={selectedMarker} isDark={isDark} onClose={() => setSelectedMarker(null)} />
+          <DetailsCard
+            selectedMarker={selectedMarker}
+            isDark={isDark}
+            onClose={() => setSelectedMarker(null)}
+            onRequestRoute={
+              onRequestRouteToCenter
+                ? center => {
+                    setSelectedMarker(null);
+                    onRequestRouteToCenter(center);
+                  }
+                : undefined
+            }
+            isRouteLoading={isRouteLoading && selectedRouteCenterId === selectedMarker.id}
+          />
         </View>
       )}
 
@@ -876,6 +955,45 @@ export const MapView: React.FC<MapViewProps> = ({
         </View>
       )}
 
+      {(routeSummary || routeError) && !selectedMarker && !selectedDangerZone && (
+        <View
+          style={[
+            styles.routeStatusCard,
+            { backgroundColor: isDark ? Colors.background.dark : Colors.background.light },
+          ]}
+        >
+          {routeSummary ? (
+            <>
+              <Text size="sm" bold>
+                Route to {routeSummary.selectedCenterName}
+              </Text>
+              <Text size="xs" emphasis="light">
+                {formatRouteDistance(routeSummary.distanceMeters)} - {formatRouteDuration(routeSummary.durationSeconds)} - {routeSummary.provider}
+              </Text>
+            </>
+          ) : (
+            <Text size="sm" bold style={styles.routeErrorText}>
+              {routeError}
+            </Text>
+          )}
+          {routeWarnings.map(warning => (
+            <Text key={warning} size="xs" emphasis="light" style={styles.routeWarningText}>
+              {warning}
+            </Text>
+          ))}
+          {onClearRoute && (
+            <HoveredButton
+              onPress={onClearRoute}
+              style={[styles.clearRouteButton, { backgroundColor: isDark ? Colors.border.dark : Colors.border.light }]}
+            >
+              <Text size="xs" bold>
+                Clear route
+              </Text>
+            </HoveredButton>
+          )}
+        </View>
+      )}
+
       {(showButtons || showStyleSelector) && (
         <>
           {showButtons && (
@@ -899,6 +1017,32 @@ export const MapView: React.FC<MapViewProps> = ({
               ]}
             >
               <MapIcon size={24} color={Colors.border.light} />
+            </HoveredButton>
+          )}
+
+          {showButtons && onRequestBestRoute && (
+            <HoveredButton
+              onPress={
+                isRouteLoading
+                  ? undefined
+                  : () => {
+                      setSelectedMarker(null);
+                      setSelectedDangerZone(null);
+                      onRequestBestRoute();
+                    }
+              }
+              style={[
+                styles.bestRouteButton,
+                {
+                  backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light,
+                  opacity: isRouteLoading ? 0.65 : 1,
+                },
+              ]}
+            >
+              <Navigation size={18} color="#fff" />
+              <Text size="sm" bold style={styles.bestRouteButtonText}>
+                {isRouteLoading ? 'Routing...' : 'Best Route'}
+              </Text>
             </HoveredButton>
           )}
 
@@ -1039,7 +1183,7 @@ const styles = StyleSheet.create({
   },
   savedLocationsButton: {
     position: 'absolute',
-    top: 135,
+    top: 190,
     right: 20,
     padding: 12,
     alignSelf: 'flex-start',
@@ -1049,6 +1193,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 4,
+  },
+  bestRouteButton: {
+    position: 'absolute',
+    top: 135,
+    right: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    alignSelf: 'flex-start',
+    borderRadius: 24,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  bestRouteButtonText: {
+    color: '#fff',
   },
   mapStyleSelector: {
     position: 'absolute',
@@ -1111,6 +1275,32 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 8,
+  },
+  routeStatusCard: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 78,
+    borderRadius: 14,
+    padding: 14,
+    gap: 7,
+    elevation: 7,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 7,
+  },
+  routeWarningText: {
+    lineHeight: 17,
+  },
+  routeErrorText: {
+    color: Colors.semantic.error,
+  },
+  clearRouteButton: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   legendWrapper: {
     position: 'absolute',
