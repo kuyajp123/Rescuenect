@@ -15,7 +15,7 @@ import { requestBestEvacuationRoute } from '@/services/evacuationRouteService';
 import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import { useUserData } from '@/store/useBackendResponse';
 import { fetchPublicDangerZones } from '@/services/dangerZoneService';
-import { BestEvacuationRouteResponse } from '@/types/evacuationRoute';
+import { BestEvacuationRouteResponse, EvacuationTravelMode } from '@/types/evacuationRoute';
 
 const getRouteErrorMessage = (error: unknown): string => {
   if (isAxiosError(error)) {
@@ -43,6 +43,30 @@ const getRouteProviderLabel = (routeResult: BestEvacuationRouteResponse): string
   return providerName;
 };
 
+const getRoadConditionLabel = (routeResult: BestEvacuationRouteResponse): string => {
+  const condition = routeResult.roadConditionSummary.worstCondition;
+  const hasSpeedForUnknownCondition = routeResult.roadConditionSegments.some(
+    segment => segment.condition === 'unknown' && Boolean(segment.speedMetersPerSecond)
+  );
+
+  switch (condition) {
+    case 'closed':
+      return 'Road closure';
+    case 'incident':
+      return 'Incident reported';
+    case 'severe':
+      return 'Severe traffic';
+    case 'heavy':
+      return 'Heavy traffic';
+    case 'moderate':
+      return 'Moderate traffic';
+    case 'low':
+      return 'Low traffic';
+    default:
+      return hasSpeedForUnknownCondition ? 'Traffic data limited' : 'Traffic data unavailable';
+  }
+};
+
 export const Evacuation = () => {
   const insets = useSafeAreaInsets();
   const [evacuationCenters, setEvacuationCenters] = useState<EvacuationCenter[] | null>(null);
@@ -52,6 +76,7 @@ export const Evacuation = () => {
   const [routeWarnings, setRouteWarnings] = useState<string[]>([]);
   const [selectedRouteCenterId, setSelectedRouteCenterId] = useState<string | null>(null);
   const [isRouteLoading, setIsRouteLoading] = useState(false);
+  const [travelMode, setTravelMode] = useState<EvacuationTravelMode>('driving');
   const savedLocations = useSavedLocationsStore(state => state.savedLocations);
   const clientId = useUserData(state => state.userData.clientId);
 
@@ -127,6 +152,7 @@ export const Evacuation = () => {
           clientId,
           origin: { lat, lng },
           targetCenterId: targetCenter?.id,
+          travelMode,
         });
 
         setRouteResult(result);
@@ -140,7 +166,15 @@ export const Evacuation = () => {
         setIsRouteLoading(false);
       }
     },
-    [clientId]
+    [clientId, travelMode]
+  );
+
+  const handleTravelModeChange = useCallback(
+    (mode: EvacuationTravelMode) => {
+      setTravelMode(mode);
+      clearRoute();
+    },
+    [clearRoute]
   );
 
   return (
@@ -160,7 +194,10 @@ export const Evacuation = () => {
         data={evacuationCenters ?? undefined}
         dangerZones={dangerZones}
         routeGeoJson={routeResult?.route.geometry ?? null}
+        routeConditionSegments={routeResult?.roadConditionSegments ?? []}
         selectedRouteCenterId={selectedRouteCenterId}
+        travelMode={travelMode}
+        onTravelModeChange={handleTravelModeChange}
         onRequestBestRoute={() => void requestRoute()}
         onRequestRouteToCenter={center => void requestRoute(center)}
         isRouteLoading={isRouteLoading}
@@ -172,7 +209,12 @@ export const Evacuation = () => {
                 selectedCenterName: routeResult.selectedCenter.name,
                 distanceMeters: routeResult.route.distanceMeters,
                 durationSeconds: routeResult.route.durationSeconds,
+                durationTypicalSeconds: routeResult.route.durationTypicalSeconds,
                 provider: getRouteProviderLabel(routeResult),
+                travelMode: routeResult.travelMode,
+                roadConditionLabel: routeResult.roadConditionSummary.available
+                  ? getRoadConditionLabel(routeResult)
+                  : 'Unavailable',
               }
             : null
         }

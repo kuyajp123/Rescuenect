@@ -16,11 +16,16 @@ import { useUserData } from '@/store/useBackendResponse';
 import { isUserMapStyle, useMapSettingsStore } from '@/store/useMapSettings';
 import { CenterType, EvacuationCenter } from '@/types/components';
 import { DangerZoneRecord } from '@/types/dangerZone';
-import { RouteLineString } from '@/types/evacuationRoute';
+import {
+  EvacuationTravelMode,
+  RoadCondition,
+  RoadConditionSegment,
+  RouteLineString,
+} from '@/types/evacuationRoute';
 import MapboxGL, { CircleLayer, FillLayer, Images, LineLayer, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
 import type { FeatureCollection } from 'geojson';
-import { Bookmark, ChevronLeft, List, MapIcon, Navigation } from 'lucide-react-native';
+import { Bookmark, Car, ChevronLeft, Footprints, List, MapIcon, Navigation } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { BackHandler, Image, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '../text';
@@ -189,7 +194,10 @@ interface MapViewProps {
   data?: EvacuationCenter[];
   dangerZones?: DangerZoneRecord[];
   routeGeoJson?: RouteLineString | null;
+  routeConditionSegments?: RoadConditionSegment[];
   selectedRouteCenterId?: string | null;
+  travelMode?: EvacuationTravelMode;
+  onTravelModeChange?: (mode: EvacuationTravelMode) => void;
   onRequestBestRoute?: () => void;
   onRequestRouteToCenter?: (center: EvacuationCenter) => void;
   isRouteLoading?: boolean;
@@ -199,7 +207,10 @@ interface MapViewProps {
     selectedCenterName: string;
     distanceMeters: number;
     durationSeconds: number;
+    durationTypicalSeconds?: number | null;
     provider: string;
+    travelMode: EvacuationTravelMode;
+    roadConditionLabel?: string;
   } | null;
   onClearRoute?: () => void;
   earthquakeData?: EarthquakeData;
@@ -297,13 +308,56 @@ const formatRouteDuration = (seconds: number) => {
   return remainingMinutes > 0 ? `${hours} hr ${remainingMinutes} min` : `${hours} hr`;
 };
 
+const formatTravelMode = (mode: EvacuationTravelMode) => (mode === 'walking' ? 'Walking' : 'Driving');
+
+const getRoadConditionColor = (condition: RoadCondition) => {
+  switch (condition) {
+    case 'closed':
+      return '#7F1D1D';
+    case 'incident':
+      return '#7E22CE';
+    case 'severe':
+      return '#DC2626';
+    case 'heavy':
+      return '#F97316';
+    case 'moderate':
+      return '#F59E0B';
+    case 'low':
+      return '#16A34A';
+    default:
+      return '#64748B';
+  }
+};
+
+const getRoadConditionDisplayLabel = (segment: RoadConditionSegment) => {
+  if (segment.condition === 'unknown') {
+    return segment.speedMetersPerSecond ? 'Traffic data limited' : 'Traffic data unavailable';
+  }
+  return segment.label;
+};
+
+const getRoadConditionDetailText = (segment: RoadConditionSegment) => {
+  if (segment.condition === 'unknown') {
+    if (segment.speedMetersPerSecond) {
+      return 'Traffic details are limited here, but we still received an estimated travel speed.';
+    }
+    return 'Traffic details are not available for this part of the route.';
+  }
+
+  if (segment.incidentDescription) return segment.incidentDescription;
+  return null;
+};
+
 export const MapView: React.FC<MapViewProps> = ({
   children,
   coords,
   data,
   dangerZones,
   routeGeoJson,
+  routeConditionSegments = [],
   selectedRouteCenterId,
+  travelMode = 'driving',
+  onTravelModeChange,
   onRequestBestRoute,
   onRequestRouteToCenter,
   isRouteLoading = false,
@@ -360,6 +414,7 @@ export const MapView: React.FC<MapViewProps> = ({
   const [mapStyleState, setMapStyleState] = useState<MapboxGL.StyleURL>(MapboxGL.StyleURL.Street);
   const [selectedMarker, setSelectedMarker] = useState<EvacuationCenter | null>(null);
   const [selectedDangerZone, setSelectedDangerZone] = useState<DangerZoneRecord | null>(null);
+  const [selectedRoadCondition, setSelectedRoadCondition] = useState<RoadConditionSegment | null>(null);
   const [isStyleLoaded, setIsStyleLoaded] = useState(false);
   const [areMarkersReady, setAreMarkersReady] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -410,6 +465,10 @@ export const MapView: React.FC<MapViewProps> = ({
   // Handle hardware back press
   useEffect(() => {
     const handleBackPress = () => {
+      if (selectedRoadCondition) {
+        setSelectedRoadCondition(null);
+        return true;
+      }
       if (selectedDangerZone) {
         setSelectedDangerZone(null);
         return true;
@@ -424,7 +483,7 @@ export const MapView: React.FC<MapViewProps> = ({
     const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
 
     return () => backHandler.remove();
-  }, [selectedDangerZone, selectedMarker]);
+  }, [selectedDangerZone, selectedMarker, selectedRoadCondition]);
 
   const toggleMapStyles = useCallback(() => {
     setShowMapStyles(prev => !prev);
@@ -553,6 +612,22 @@ export const MapView: React.FC<MapViewProps> = ({
       }
     : undefined;
 
+  const routeConditionFeatureCollection: FeatureCollection | undefined = routeConditionSegments.length
+    ? {
+        type: 'FeatureCollection',
+        features: routeConditionSegments.map(segment => ({
+          type: 'Feature' as const,
+          id: segment.id,
+          geometry: segment.geometry,
+          properties: {
+            id: segment.id,
+            condition: segment.condition,
+            label: segment.label,
+          },
+        })),
+      }
+    : undefined;
+
   const handleDangerZonePress = (event: any) => {
     const feature = event.features?.[0];
     const dangerZoneId = String(feature?.id ?? feature?.properties?.id ?? '');
@@ -560,6 +635,17 @@ export const MapView: React.FC<MapViewProps> = ({
     if (!dangerZone) return;
     setSelectedMarker(null);
     setSelectedDangerZone(dangerZone);
+    setIsLegendOpen(false);
+  };
+
+  const handleRoadConditionPress = (event: any) => {
+    const feature = event.features?.[0];
+    const segmentId = String(feature?.id ?? feature?.properties?.id ?? '');
+    const segment = routeConditionSegments.find(item => item.id === segmentId);
+    if (!segment) return;
+    setSelectedMarker(null);
+    setSelectedDangerZone(null);
+    setSelectedRoadCondition(segment);
     setIsLegendOpen(false);
   };
 
@@ -699,6 +785,41 @@ export const MapView: React.FC<MapViewProps> = ({
                     lineColor: '#2563EB',
                     lineWidth: 6,
                     lineOpacity: 0.95,
+                    lineCap: 'round',
+                    lineJoin: 'round',
+                  }}
+                />
+              </ShapeSource>
+            )}
+
+            {routeConditionFeatureCollection && (
+              <ShapeSource
+                id="evacuation-route-condition-source"
+                shape={routeConditionFeatureCollection}
+                onPress={handleRoadConditionPress}
+              >
+                <LineLayer
+                  id="evacuation-route-condition-layer"
+                  style={{
+                    lineColor: [
+                      'match',
+                      ['get', 'condition'],
+                      'closed',
+                      getRoadConditionColor('closed'),
+                      'incident',
+                      getRoadConditionColor('incident'),
+                      'severe',
+                      getRoadConditionColor('severe'),
+                      'heavy',
+                      getRoadConditionColor('heavy'),
+                      'moderate',
+                      getRoadConditionColor('moderate'),
+                      'low',
+                      getRoadConditionColor('low'),
+                      getRoadConditionColor('unknown'),
+                    ],
+                    lineWidth: 8,
+                    lineOpacity: 0.94,
                     lineCap: 'round',
                     lineJoin: 'round',
                   }}
@@ -955,7 +1076,60 @@ export const MapView: React.FC<MapViewProps> = ({
         </View>
       )}
 
-      {(routeSummary || routeError) && !selectedMarker && !selectedDangerZone && (
+      {selectedRoadCondition && (
+        <View style={styles.detailsOverlay} pointerEvents="box-none">
+          <Pressable style={styles.detailsBackdrop} onPress={() => setSelectedRoadCondition(null)} />
+          <View
+            style={[
+              styles.roadConditionCard,
+              { backgroundColor: isDark ? Colors.background.dark : Colors.background.light },
+            ]}
+          >
+            <View style={styles.roadConditionHeader}>
+              <View
+                style={[
+                  styles.roadConditionSwatch,
+                  { backgroundColor: getRoadConditionColor(selectedRoadCondition.condition) },
+                ]}
+              />
+              <View style={styles.roadConditionTitleGroup}>
+                <Text size="lg" bold>
+                  {getRoadConditionDisplayLabel(selectedRoadCondition)}
+                </Text>
+              </View>
+            </View>
+            {getRoadConditionDetailText(selectedRoadCondition) && (
+              <Text size="sm" style={styles.dangerZoneDescription}>
+                {getRoadConditionDetailText(selectedRoadCondition)}
+              </Text>
+            )}
+            {selectedRoadCondition.condition !== 'unknown' ? (
+              <Text size="xs" emphasis="light">
+                Condition: {selectedRoadCondition.condition.toUpperCase()}
+                {selectedRoadCondition.congestionNumeric !== null &&
+                selectedRoadCondition.congestionNumeric !== undefined
+                  ? ` - Traffic level ${selectedRoadCondition.congestionNumeric}`
+                  : ''}
+              </Text>
+            ) : null}
+            {selectedRoadCondition.speedMetersPerSecond ? (
+              <Text size="xs" emphasis="light">
+                Estimated speed: {(selectedRoadCondition.speedMetersPerSecond * 3.6).toFixed(1)} km/h
+              </Text>
+            ) : null}
+            <HoveredButton
+              onPress={() => setSelectedRoadCondition(null)}
+              style={[styles.dangerZoneCloseButton, { backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light }]}
+            >
+              <Text size="sm" style={{ color: '#fff' }}>
+                Close
+              </Text>
+            </HoveredButton>
+          </View>
+        </View>
+      )}
+
+      {(routeSummary || routeError) && !selectedMarker && !selectedDangerZone && !selectedRoadCondition && (
         <View
           style={[
             styles.routeStatusCard,
@@ -968,7 +1142,21 @@ export const MapView: React.FC<MapViewProps> = ({
                 Route to {routeSummary.selectedCenterName}
               </Text>
               <Text size="xs" emphasis="light">
-                {formatRouteDistance(routeSummary.distanceMeters)} - {formatRouteDuration(routeSummary.durationSeconds)} - {routeSummary.provider}
+                {formatTravelMode(routeSummary.travelMode)} - {formatRouteDistance(routeSummary.distanceMeters)} -{' '}
+                {formatRouteDuration(routeSummary.durationSeconds)} - {routeSummary.provider}
+              </Text>
+              {routeSummary.durationTypicalSeconds ? (
+                <Text size="xs" emphasis="light">
+                  Typical time: {formatRouteDuration(routeSummary.durationTypicalSeconds)}
+                </Text>
+              ) : null}
+              {routeSummary.roadConditionLabel ? (
+                <Text size="xs" emphasis="light">
+                  Road condition: {routeSummary.roadConditionLabel}
+                </Text>
+              ) : null}
+              <Text size="xs" emphasis="light" style={styles.routeLegendText}>
+                Blue is the route. Colored parts show road conditions.
               </Text>
             </>
           ) : (
@@ -1044,6 +1232,50 @@ export const MapView: React.FC<MapViewProps> = ({
                 {isRouteLoading ? 'Routing...' : 'Best Route'}
               </Text>
             </HoveredButton>
+          )}
+
+          {showButtons && onTravelModeChange && (
+            <View
+              style={[
+                styles.travelModeSelector,
+                {
+                  backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+                  borderColor: isDark ? Colors.border.dark : Colors.border.light,
+                },
+              ]}
+            >
+              {([
+                { mode: 'driving' as const, label: 'Driving', icon: Car },
+                { mode: 'walking' as const, label: 'Walking', icon: Footprints },
+              ]).map(option => {
+                const Icon = option.icon;
+                const isActive = travelMode === option.mode;
+                return (
+                  <TouchableOpacity
+                    key={option.mode}
+                    onPress={() => {
+                      setSelectedMarker(null);
+                      setSelectedDangerZone(null);
+                      setSelectedRoadCondition(null);
+                      onTravelModeChange(option.mode);
+                    }}
+                    style={[
+                      styles.travelModeOption,
+                      { backgroundColor: isActive ? Colors.brand.light : 'transparent' },
+                    ]}
+                  >
+                    <Icon size={14} color={isActive ? '#fff' : isDark ? Colors.text.dark : Colors.text.light} />
+                    <Text
+                      size="xs"
+                      bold={isActive}
+                      style={{ color: isActive ? '#fff' : isDark ? Colors.text.dark : Colors.text.light }}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           )}
 
           {showButtons && savedLocationsList.length > 0 && (
@@ -1214,6 +1446,29 @@ const styles = StyleSheet.create({
   bestRouteButtonText: {
     color: '#fff',
   },
+  travelModeSelector: {
+    position: 'absolute',
+    top: 80,
+    left: 20,
+    flexDirection: 'row',
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 4,
+    gap: 4,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.16,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+  },
+  travelModeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: 14,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+  },
   mapStyleSelector: {
     position: 'absolute',
     top: 130,
@@ -1276,6 +1531,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
+  roadConditionCard: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 24,
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+  },
+  roadConditionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  roadConditionSwatch: {
+    width: 14,
+    height: 36,
+    borderRadius: 999,
+  },
+  roadConditionTitleGroup: {
+    flex: 1,
+    minWidth: 0,
+  },
   routeStatusCard: {
     position: 'absolute',
     left: 16,
@@ -1291,6 +1574,9 @@ const styles = StyleSheet.create({
     shadowRadius: 7,
   },
   routeWarningText: {
+    lineHeight: 17,
+  },
+  routeLegendText: {
     lineHeight: 17,
   },
   routeErrorText: {

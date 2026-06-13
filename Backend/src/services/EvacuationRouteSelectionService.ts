@@ -11,6 +11,8 @@ export const MAPBOX_EXCLUDE_POINTS_WARNING =
   'OpenRouteService polygon avoidance is unavailable. Mapbox best-effort point exclusions were used, but this route may still enter verified danger zones.';
 export const SAFER_ROUTING_UNAVAILABLE_WARNING =
   'Safer routing is unavailable right now. Showing a normal route that may cross verified danger zones.';
+export const ROAD_CONDITION_UNAVAILABLE_WARNING =
+  'Road-condition details are unavailable for this route.';
 
 const EARTH_RADIUS_METERS = 6_371_008.8;
 

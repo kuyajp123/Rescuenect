@@ -1,5 +1,11 @@
 import { AvoidPolygonGeoJson } from '@/services/DangerZoneAvoidanceGeometryService';
-import { ProviderRouteResult, RouteCoordinates, RouteLineString } from '@/types/evacuationRoute';
+import {
+  EvacuationTravelMode,
+  ProviderRouteResult,
+  RouteCoordinates,
+  RouteLineString,
+  RouteProfile,
+} from '@/types/evacuationRoute';
 import axios from 'axios';
 
 type OpenRouteServiceFeature = {
@@ -22,6 +28,7 @@ type OpenRouteServiceResponse = {
 
 const DEFAULT_OPENROUTESERVICE_BASE_URL = 'https://api.openrouteservice.org';
 const OPENROUTESERVICE_DRIVING_PROFILE = 'driving-car';
+const OPENROUTESERVICE_WALKING_PROFILE = 'foot-walking';
 
 const getOpenRouteServiceApiKey = (): string => process.env.OPENROUTESERVICE_API_KEY?.trim() || '';
 
@@ -47,18 +54,24 @@ export class OpenRouteServiceError extends Error {
 }
 
 export class OpenRouteService {
-  static async getDrivingRoute(
+  static getProfileForTravelMode(travelMode: EvacuationTravelMode): RouteProfile {
+    return travelMode === 'walking' ? OPENROUTESERVICE_WALKING_PROFILE : OPENROUTESERVICE_DRIVING_PROFILE;
+  }
+
+  static async getRoute(
     origin: RouteCoordinates,
     destination: RouteCoordinates,
-    avoidPolygons: AvoidPolygonGeoJson
+    avoidPolygons: AvoidPolygonGeoJson,
+    travelMode: EvacuationTravelMode
   ): Promise<ProviderRouteResult> {
     const apiKey = getOpenRouteServiceApiKey();
     if (!apiKey) {
       throw new OpenRouteServiceError('OPENROUTESERVICE_API_KEY is not configured');
     }
+    const profile = this.getProfileForTravelMode(travelMode);
 
     const response = await axios.post<OpenRouteServiceResponse>(
-      `${getOpenRouteServiceBaseUrl()}/v2/directions/${OPENROUTESERVICE_DRIVING_PROFILE}/geojson`,
+      `${getOpenRouteServiceBaseUrl()}/v2/directions/${profile}/geojson`,
       {
         coordinates: [
           [origin.lng, origin.lat],
@@ -91,7 +104,7 @@ export class OpenRouteService {
 
     return {
       provider: 'openrouteservice',
-      profile: OPENROUTESERVICE_DRIVING_PROFILE,
+      profile,
       geometry: {
         type: 'LineString',
         coordinates: feature.geometry.coordinates.map(
@@ -101,5 +114,13 @@ export class OpenRouteService {
       distanceMeters,
       durationSeconds,
     };
+  }
+
+  static async getDrivingRoute(
+    origin: RouteCoordinates,
+    destination: RouteCoordinates,
+    avoidPolygons: AvoidPolygonGeoJson
+  ): Promise<ProviderRouteResult> {
+    return this.getRoute(origin, destination, avoidPolygons, 'driving');
   }
 }

@@ -1,13 +1,31 @@
-import { ProviderRouteResult, RouteCoordinates, RouteLineString } from '@/types/evacuationRoute';
+import {
+  EvacuationTravelMode,
+  ProviderRouteResult,
+  RouteCoordinates,
+  RouteLineString,
+  RouteProfile,
+} from '@/types/evacuationRoute';
 import axios from 'axios';
+import { MapboxRouteConditionInput, RouteRoadConditionService } from './RouteRoadConditionService';
 
 type MapboxRoute = {
   distance?: number;
   duration?: number;
+  duration_typical?: number;
   geometry?: {
     type?: string;
     coordinates?: unknown;
   };
+  legs?: Array<{
+    incidents?: unknown[];
+    closures?: unknown[];
+    annotation?: {
+      congestion?: unknown[];
+      congestion_numeric?: unknown[];
+      speed?: unknown[];
+      duration?: unknown[];
+    };
+  }>;
 };
 
 type MapboxDirectionsResponse = {
@@ -17,7 +35,8 @@ type MapboxDirectionsResponse = {
 };
 
 const MAPBOX_DIRECTIONS_BASE_URL = 'https://api.mapbox.com/directions/v5';
-const MAPBOX_DRIVING_PROFILE = 'mapbox/driving';
+const MAPBOX_DRIVING_TRAFFIC_PROFILE = 'mapbox/driving-traffic';
+const MAPBOX_WALKING_PROFILE = 'mapbox/walking';
 const MAPBOX_EXCLUDE_POINT_LIMIT = 50;
 
 const getMapboxDirectionsToken = (): string => process.env.MAPBOX_DIRECTIONS_TOKEN?.trim() || '';
@@ -54,16 +73,21 @@ export class MapboxDirectionsError extends Error {
 }
 
 export class MapboxDirectionsService {
-  static async getDrivingRoute(
+  static getProfileForTravelMode(travelMode: EvacuationTravelMode): RouteProfile {
+    return travelMode === 'walking' ? MAPBOX_WALKING_PROFILE : MAPBOX_DRIVING_TRAFFIC_PROFILE;
+  }
+
+  static async getRoute(
     origin: RouteCoordinates,
     destination: RouteCoordinates,
-    options: { excludePoints?: RouteCoordinates[] } = {}
+    options: { travelMode: EvacuationTravelMode; excludePoints?: RouteCoordinates[] }
   ): Promise<ProviderRouteResult> {
     const accessToken = getMapboxDirectionsToken();
     if (!accessToken) {
       throw new MapboxDirectionsError('MAPBOX_DIRECTIONS_TOKEN is not configured');
     }
 
+    const profile = this.getProfileForTravelMode(options.travelMode);
     const coordinates = `${coordinateToPathSegment(origin)};${coordinateToPathSegment(destination)}`;
     const excludePoints = (options.excludePoints ?? [])
       .filter(isValidRouteCoordinate)
@@ -71,13 +95,18 @@ export class MapboxDirectionsService {
       .map(coordinateToExcludePoint);
 
     const response = await axios.get<MapboxDirectionsResponse>(
-      `${MAPBOX_DIRECTIONS_BASE_URL}/${MAPBOX_DRIVING_PROFILE}/${coordinates}`,
+      `${MAPBOX_DIRECTIONS_BASE_URL}/${profile}/${coordinates}`,
       {
         params: {
           geometries: 'geojson',
           overview: 'full',
           steps: false,
-          ...(excludePoints.length > 0 ? { exclude: excludePoints.join(',') } : {}),
+          ...(profile === MAPBOX_DRIVING_TRAFFIC_PROFILE
+            ? { annotations: 'distance,duration,speed,congestion,congestion_numeric,closure' }
+            : {}),
+          ...(profile === MAPBOX_DRIVING_TRAFFIC_PROFILE && excludePoints.length > 0
+            ? { exclude: excludePoints.join(',') }
+            : {}),
           access_token: accessToken,
         },
         timeout: 15000,
@@ -95,17 +124,39 @@ export class MapboxDirectionsService {
       throw new MapboxDirectionsError('Mapbox did not return valid route distance and duration', response.data);
     }
 
+    const geometry: RouteLineString = {
+      type: 'LineString',
+      coordinates: route.geometry.coordinates.map(
+        coordinate => [Number(coordinate[0]), Number(coordinate[1])] as [number, number]
+      ),
+    };
+    const durationTypicalSeconds = Number(route.duration_typical);
+    const roadConditions =
+      profile === MAPBOX_DRIVING_TRAFFIC_PROFILE
+        ? RouteRoadConditionService.buildFromMapboxDirections({
+            geometry,
+            durationTypicalSeconds: Number.isFinite(durationTypicalSeconds) ? durationTypicalSeconds : null,
+            legs: route.legs as MapboxRouteConditionInput['legs'],
+          })
+        : undefined;
+
     return {
       provider: 'mapbox',
-      profile: MAPBOX_DRIVING_PROFILE,
-      geometry: {
-        type: 'LineString',
-        coordinates: route.geometry.coordinates.map(
-          coordinate => [Number(coordinate[0]), Number(coordinate[1])] as [number, number]
-        ),
-      },
+      profile,
+      geometry,
       distanceMeters,
       durationSeconds,
+      durationTypicalSeconds: Number.isFinite(durationTypicalSeconds) ? durationTypicalSeconds : null,
+      roadConditionSummary: roadConditions?.summary,
+      roadConditionSegments: roadConditions?.segments,
     };
+  }
+
+  static async getDrivingRoute(
+    origin: RouteCoordinates,
+    destination: RouteCoordinates,
+    options: { excludePoints?: RouteCoordinates[] } = {}
+  ): Promise<ProviderRouteResult> {
+    return this.getRoute(origin, destination, { travelMode: 'driving', ...options });
   }
 }

@@ -9,6 +9,8 @@ const {
   SAFER_ROUTING_UNAVAILABLE_WARNING,
   haversineDistanceMeters,
 } = require('../dist/src/services/EvacuationRouteSelectionService');
+const { MapboxDirectionsService } = require('../dist/src/services/MapboxDirectionsService');
+const { OpenRouteService } = require('../dist/src/services/OpenRouteService');
 
 const origin = { lat: 14.2919325, lng: 120.7752839 };
 
@@ -23,7 +25,7 @@ const center = (overrides) => ({
 
 const route = (durationSeconds) => ({
   provider: 'mapbox',
-  profile: 'mapbox/driving',
+  profile: 'mapbox/driving-traffic',
   geometry: {
     type: 'LineString',
     coordinates: [
@@ -33,6 +35,13 @@ const route = (durationSeconds) => ({
   },
   distanceMeters: durationSeconds * 10,
   durationSeconds,
+});
+
+test('maps supported travel modes to provider profiles', () => {
+  assert.equal(MapboxDirectionsService.getProfileForTravelMode('driving'), 'mapbox/driving-traffic');
+  assert.equal(MapboxDirectionsService.getProfileForTravelMode('walking'), 'mapbox/walking');
+  assert.equal(OpenRouteService.getProfileForTravelMode('driving'), 'driving-car');
+  assert.equal(OpenRouteService.getProfileForTravelMode('walking'), 'foot-walking');
 });
 
 test('filters available same-client centers with valid coordinates', () => {

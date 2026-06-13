@@ -6,6 +6,7 @@ import {
   BestEvacuationRouteResponse,
   EvacuationCenterRouteCandidate,
   EvacuationTravelMode,
+  ProviderRouteResult,
   RouteCoordinates,
 } from '@/types/evacuationRoute';
 import { getEffectiveClientId } from '@/utils/adminScope';
@@ -14,9 +15,12 @@ import {
   EvacuationRouteSelectionService,
   EvacuationRoutingError,
   isValidRouteCoordinate,
+  ROAD_CONDITION_UNAVAILABLE_WARNING,
 } from './EvacuationRouteSelectionService';
 import { MapboxDirectionsService } from './MapboxDirectionsService';
+import { MapboxTrafficTilequeryService } from './MapboxTrafficTilequeryService';
 import { OpenRouteService } from './OpenRouteService';
+import { EMPTY_ROAD_CONDITION_SUMMARY } from './RouteRoadConditionService';
 
 type BestRoutePayload = {
   clientId: string;
@@ -47,9 +51,9 @@ const parsePayload = (payload: unknown): BestRoutePayload => {
     throw new EvacuationRoutingError(400, 'A valid origin latitude and longitude are required');
   }
 
-  const travelMode = asTrimmedString(rawPayload.travelMode || 'driving');
-  if (travelMode && travelMode !== 'driving') {
-    throw new EvacuationRoutingError(400, 'Only driving routes are supported');
+  const travelMode = asTrimmedString(rawPayload.travelMode || 'driving') as EvacuationTravelMode;
+  if (travelMode && travelMode !== 'driving' && travelMode !== 'walking') {
+    throw new EvacuationRoutingError(400, 'Only driving and walking routes are supported');
   }
 
   const targetCenterId = asTrimmedString(rawPayload.targetCenterId);
@@ -61,7 +65,7 @@ const parsePayload = (payload: unknown): BestRoutePayload => {
       lng: Number(rawPayload.origin.lng),
     },
     targetCenterId: targetCenterId || undefined,
-    travelMode: 'driving',
+    travelMode,
   };
 };
 
@@ -104,28 +108,76 @@ export class EvacuationRoutingService {
     return EvacuationRouteSelectionService.filterAvailableCenters(rawCenters, clientId);
   }
 
-  private static buildResponse(params: {
-    selectedCenter: EvacuationCenterRouteCandidate;
+  private static async enrichRoadConditions(route: ProviderRouteResult): Promise<{
     route: BestEvacuationRouteResponse['route'];
+    roadConditionSummary: BestEvacuationRouteResponse['roadConditionSummary'];
+    roadConditionSegments: BestEvacuationRouteResponse['roadConditionSegments'];
+    warning?: string;
+  }> {
+    const {
+      roadConditionSummary,
+      roadConditionSegments,
+      ...responseRoute
+    } = route;
+
+    if (roadConditionSummary && roadConditionSegments) {
+      return {
+        route: responseRoute,
+        roadConditionSummary,
+        roadConditionSegments,
+      };
+    }
+
+    const tilequeryConditions = await MapboxTrafficTilequeryService.enrichRoute(route.geometry);
+    return {
+      route: responseRoute,
+      roadConditionSummary: tilequeryConditions.summary,
+      roadConditionSegments: tilequeryConditions.segments,
+      warning: tilequeryConditions.summary.available ? undefined : ROAD_CONDITION_UNAVAILABLE_WARNING,
+    };
+  }
+
+  private static async buildResponse(params: {
+    selectedCenter: EvacuationCenterRouteCandidate;
+    route: ProviderRouteResult;
+    travelMode: EvacuationTravelMode;
     verifiedActiveCount: number;
     avoidanceApplied: boolean;
     avoidanceMethod: BestEvacuationRouteResponse['dangerZoneSummary']['avoidanceMethod'];
     providerFallback: boolean;
-  }): BestEvacuationRouteResponse {
-    const { selectedCenter, route, verifiedActiveCount, avoidanceApplied, avoidanceMethod, providerFallback } = params;
-    return {
+    extraWarnings?: string[];
+  }): Promise<BestEvacuationRouteResponse> {
+    const {
       selectedCenter,
       route,
+      travelMode,
+      verifiedActiveCount,
+      avoidanceApplied,
+      avoidanceMethod,
+      providerFallback,
+      extraWarnings = [],
+    } = params;
+    const roadConditions = await this.enrichRoadConditions(route);
+    return {
+      selectedCenter,
+      travelMode,
+      route: roadConditions.route,
       dangerZoneSummary: {
         verifiedActiveCount,
         avoidanceApplied,
         avoidanceMethod,
         providerFallback,
       },
-      warnings: EvacuationRouteSelectionService.buildWarnings({
-        avoidanceMethod,
-        providerFallback,
-      }),
+      roadConditionSummary: roadConditions.roadConditionSummary ?? EMPTY_ROAD_CONDITION_SUMMARY,
+      roadConditionSegments: roadConditions.roadConditionSegments ?? [],
+      warnings: [
+        ...EvacuationRouteSelectionService.buildWarnings({
+          avoidanceMethod,
+          providerFallback,
+        }),
+        ...(roadConditions.warning ? [roadConditions.warning] : []),
+        ...extraWarnings,
+      ],
     };
   }
 
@@ -146,12 +198,14 @@ export class EvacuationRoutingService {
         origin: payload.origin,
         centers,
         targetCenterId: payload.targetCenterId,
-        routeProvider: candidate => MapboxDirectionsService.getDrivingRoute(payload.origin, candidate.coordinates),
+        routeProvider: candidate =>
+          MapboxDirectionsService.getRoute(payload.origin, candidate.coordinates, { travelMode: payload.travelMode }),
       });
 
-      return this.buildResponse({
+      return await this.buildResponse({
         selectedCenter: center,
         route,
+        travelMode: payload.travelMode,
         verifiedActiveCount,
         avoidanceApplied: false,
         avoidanceMethod: 'none',
@@ -170,12 +224,13 @@ export class EvacuationRoutingService {
           centers,
           targetCenterId: payload.targetCenterId,
           routeProvider: candidate =>
-            OpenRouteService.getDrivingRoute(payload.origin, candidate.coordinates, avoidPolygons),
+            OpenRouteService.getRoute(payload.origin, candidate.coordinates, avoidPolygons, payload.travelMode),
         });
 
-        return this.buildResponse({
+        return await this.buildResponse({
           selectedCenter: center,
           route,
+          travelMode: payload.travelMode,
           verifiedActiveCount,
           avoidanceApplied: true,
           avoidanceMethod: 'ors_avoid_polygons',
@@ -191,19 +246,23 @@ export class EvacuationRoutingService {
       };
     }
 
-    if (excludePoints.length > 0) {
+    if (payload.travelMode === 'driving' && excludePoints.length > 0) {
       try {
         const { center, route } = await EvacuationRouteSelectionService.chooseRoute({
           origin: payload.origin,
           centers,
           targetCenterId: payload.targetCenterId,
           routeProvider: candidate =>
-            MapboxDirectionsService.getDrivingRoute(payload.origin, candidate.coordinates, { excludePoints }),
+            MapboxDirectionsService.getRoute(payload.origin, candidate.coordinates, {
+              travelMode: payload.travelMode,
+              excludePoints,
+            }),
         });
 
-        return this.buildResponse({
+        return await this.buildResponse({
           selectedCenter: center,
           route,
+          travelMode: payload.travelMode,
           verifiedActiveCount,
           avoidanceApplied: true,
           avoidanceMethod: 'mapbox_exclude_points',
@@ -213,9 +272,13 @@ export class EvacuationRoutingService {
         if (!this.isProviderAllCandidatesFailure(error)) throw error;
         providerFailures.mapboxExcludePoints = error.details;
       }
-    } else {
+    } else if (payload.travelMode === 'driving') {
       providerFailures.mapboxExcludePoints = {
         message: 'No valid Mapbox exclude points could be generated from verified danger zones',
+      };
+    } else {
+      providerFailures.mapboxExcludePoints = {
+        message: 'Mapbox point exclusions are not supported for walking routes',
       };
     }
 
@@ -224,12 +287,14 @@ export class EvacuationRoutingService {
         origin: payload.origin,
         centers,
         targetCenterId: payload.targetCenterId,
-        routeProvider: candidate => MapboxDirectionsService.getDrivingRoute(payload.origin, candidate.coordinates),
+        routeProvider: candidate =>
+          MapboxDirectionsService.getRoute(payload.origin, candidate.coordinates, { travelMode: payload.travelMode }),
       });
 
-      return this.buildResponse({
+      return await this.buildResponse({
         selectedCenter: center,
         route,
+        travelMode: payload.travelMode,
         verifiedActiveCount,
         avoidanceApplied: false,
         avoidanceMethod: 'none',
