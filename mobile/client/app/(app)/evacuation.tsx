@@ -4,6 +4,7 @@ import { API_ROUTES } from '@/config/endpoints';
 import { EvacuationCenter } from '@/types/components';
 import { DangerZoneRecord } from '@/types/dangerZone';
 import axios, { isAxiosError } from 'axios';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -67,10 +68,42 @@ const getRoadConditionLabel = (routeResult: BestEvacuationRouteResponse): string
   }
 };
 
+const getDangerZoneFocusCoordinate = (zone: DangerZoneRecord): [number, number] | null => {
+  if (zone.center && typeof zone.center.lng === 'number' && typeof zone.center.lat === 'number') {
+    return [zone.center.lng, zone.center.lat];
+  }
+
+  if (zone.geojson?.type === 'LineString' && zone.geojson.coordinates.length > 0) {
+    const totals = zone.geojson.coordinates.reduce(
+      (acc, coordinate) => ({ lng: acc.lng + coordinate[0], lat: acc.lat + coordinate[1] }),
+      { lng: 0, lat: 0 }
+    );
+    return [totals.lng / zone.geojson.coordinates.length, totals.lat / zone.geojson.coordinates.length];
+  }
+
+  if (zone.geojson?.type === 'Polygon' && zone.geojson.coordinates[0]?.length) {
+    const ring = zone.geojson.coordinates[0];
+    const totals = ring.reduce(
+      (acc, coordinate) => ({ lng: acc.lng + coordinate[0], lat: acc.lat + coordinate[1] }),
+      { lng: 0, lat: 0 }
+    );
+    return [totals.lng / ring.length, totals.lat / ring.length];
+  }
+
+  return null;
+};
+
 export const Evacuation = () => {
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ dangerZoneId?: string | string[] }>();
+  const requestedDangerZoneId = Array.isArray(params.dangerZoneId) ? params.dangerZoneId[0] : params.dangerZoneId;
   const [evacuationCenters, setEvacuationCenters] = useState<EvacuationCenter[] | null>(null);
   const [dangerZones, setDangerZones] = useState<DangerZoneRecord[]>([]);
+  const [hasLoadedDangerZones, setHasLoadedDangerZones] = useState(false);
+  const [focusedDangerZoneId, setFocusedDangerZoneId] = useState<string | null>(null);
+  const [dangerZoneNotice, setDangerZoneNotice] = useState<string | null>(null);
+  const [mapFocusCoordinate, setMapFocusCoordinate] = useState<[number, number] | undefined>(undefined);
+  const [mapFocusKey, setMapFocusKey] = useState<string | number | undefined>(undefined);
   const [routeResult, setRouteResult] = useState<BestEvacuationRouteResponse | null>(null);
   const [routeError, setRouteError] = useState<string | null>(null);
   const [routeWarnings, setRouteWarnings] = useState<string[]>([]);
@@ -108,17 +141,39 @@ export const Evacuation = () => {
 
       try {
         if (clientId) {
+          setHasLoadedDangerZones(false);
           setDangerZones(await fetchPublicDangerZones(clientId));
         } else {
           setDangerZones([]);
         }
       } catch (error) {
         console.error('Error fetching danger zones:', error);
+      } finally {
+        setHasLoadedDangerZones(true);
       }
     };
 
     loadData();
   }, [clientId]);
+
+  useEffect(() => {
+    if (!requestedDangerZoneId || !hasLoadedDangerZones) return;
+
+    const zone = dangerZones.find(item => item.id === requestedDangerZoneId);
+    if (!zone) {
+      setFocusedDangerZoneId(null);
+      setDangerZoneNotice('This danger zone is no longer active.');
+      return;
+    }
+
+    setDangerZoneNotice(null);
+    setFocusedDangerZoneId(zone.id);
+    const coordinate = getDangerZoneFocusCoordinate(zone);
+    if (coordinate) {
+      setMapFocusCoordinate(coordinate);
+      setMapFocusKey(`danger-zone-${zone.id}-${Date.now()}`);
+    }
+  }, [dangerZones, hasLoadedDangerZones, requestedDangerZoneId]);
 
   const clearRoute = useCallback(() => {
     setRouteResult(null);
@@ -195,6 +250,7 @@ export const Evacuation = () => {
         dangerZones={dangerZones}
         routeGeoJson={routeResult?.route.geometry ?? null}
         routeConditionSegments={routeResult?.roadConditionSegments ?? []}
+        focusedDangerZoneId={focusedDangerZoneId}
         selectedRouteCenterId={selectedRouteCenterId}
         travelMode={travelMode}
         onTravelModeChange={handleTravelModeChange}
@@ -203,6 +259,8 @@ export const Evacuation = () => {
         isRouteLoading={isRouteLoading}
         routeWarnings={routeWarnings}
         routeError={routeError}
+        mapNotice={dangerZoneNotice}
+        onDismissMapNotice={() => setDangerZoneNotice(null)}
         routeSummary={
           routeResult
             ? {
@@ -219,6 +277,8 @@ export const Evacuation = () => {
             : null
         }
         onClearRoute={clearRoute}
+        centerCoordinate={mapFocusCoordinate}
+        cameraTriggerKey={mapFocusKey}
         savedLocations={savedLocations}
       />
     </Body>

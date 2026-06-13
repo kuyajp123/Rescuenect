@@ -60,7 +60,7 @@ export class DangerZoneController {
     if (!adminUser) return;
 
     try {
-      const zone = await DangerZoneModel.verifyReport(adminUser, req.body?.id);
+      const zone = await DangerZoneModel.verifyReport(adminUser, req.body?.id, req.body);
       res.status(200).json({ message: 'Danger-zone report verified', data: zone });
     } catch (error) {
       sendDangerZoneError(res, error, 'Failed to verify danger-zone report');

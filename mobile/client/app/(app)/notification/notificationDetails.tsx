@@ -9,7 +9,12 @@ import { Text } from '@/components/ui/text';
 import { API_ROUTES } from '@/config/endpoints';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
-import type { BaseNotification, EarthquakeNotificationData, WeatherNotificationData } from '@/types/notification';
+import type {
+  BaseNotification,
+  DangerZoneNotificationData,
+  EarthquakeNotificationData,
+  WeatherNotificationData,
+} from '@/types/notification';
 import { getNotificationDisplayTimestamp } from '@/helper/notificationTime';
 import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -22,6 +27,7 @@ import {
   Cloud,
   MapPin,
   Thermometer,
+  TriangleAlert,
   Wind,
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
@@ -31,7 +37,7 @@ const EARTHQUAKE_NOTIFICATION_MAP_ZOOM = 6.4;
 const EARTHQUAKE_NOTIFICATION_MIN_ZOOM = 5.5;
 const EARTHQUAKE_NOTIFICATION_MAX_ZOOM = 8;
 
-const notificationDetails = () => {
+const NotificationDetails = () => {
   const { isDark } = useTheme();
   const router = useRouter();
   const { notificationId } = useLocalSearchParams<{ notificationId: string }>();
@@ -133,6 +139,8 @@ const notificationDetails = () => {
         return <Cloud color={iconColor} size={size} />;
       case 'emergency':
         return <AlertCircle color={iconColor} size={size} />;
+      case 'danger_zone':
+        return <TriangleAlert color={iconColor} size={size} />;
       case 'status_resolved':
         return <MapPin color={iconColor} size={size} />;
       default:
@@ -151,6 +159,45 @@ const notificationDetails = () => {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const formatOptionalDate = (value?: string | null) => {
+    if (!value) return 'No expiry';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'No expiry';
+    return date.toLocaleString('en-PH', {
+      timeZone: 'Asia/Manila',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const formatDangerLabel = (value?: string) =>
+    value
+      ? value
+          .split('_')
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(' ')
+      : 'Danger zone';
+
+  const formatDangerEvent = (value?: string) => {
+    switch (value) {
+      case 'report_verified':
+        return 'Resident report verified';
+      case 'official_created':
+        return 'Official danger zone';
+      case 'road_segment_blocked':
+        return 'Road segment affected';
+      case 'resolved':
+        return 'Danger zone resolved';
+      case 'expired':
+        return 'Danger zone expired';
+      default:
+        return 'Danger-zone update';
+    }
   };
 
   if (loading) {
@@ -187,8 +234,10 @@ const notificationDetails = () => {
 
   const isEarthquake = notification.type === 'earthquake';
   const isWeather = notification.type === 'weather';
+  const isDangerZone = notification.type === 'danger_zone';
   const earthquakeData = isEarthquake ? (notification.data as EarthquakeNotificationData) : null;
   const weatherData = isWeather ? (notification.data as WeatherNotificationData) : null;
+  const dangerZoneData = isDangerZone ? (notification.data as DangerZoneNotificationData) : null;
   const displayTimestamp = getNotificationDisplayTimestamp(notification);
 
   return (
@@ -212,6 +261,8 @@ const notificationDetails = () => {
                   ? Colors.semantic.error
                   : notification.type === 'weather'
                   ? Colors.semantic.info
+                  : notification.type === 'danger_zone'
+                  ? Colors.semantic.warning
                   : Colors.brand.dark,
             },
           ]}
@@ -247,6 +298,8 @@ const notificationDetails = () => {
                 <Text size="sm">
                   {notification.type === 'weather'
                     ? formatToCapitalized(userData.barangay)
+                    : notification.type === 'danger_zone'
+                    ? formatDangerLabel(dangerZoneData?.dangerType)
                     : notification.location?.replace('_', ' ').toUpperCase()}
                 </Text>
               </>
@@ -483,12 +536,89 @@ const notificationDetails = () => {
             )}
           </View>
         )}
+
+        {isDangerZone && dangerZoneData && (
+          <View style={styles.dataCard}>
+            <Text size="lg" bold style={styles.sectionTitle}>
+              Danger Zone Details
+            </Text>
+
+            <View style={styles.dataRow}>
+              <Text size="sm" emphasis="light">
+                Update:
+              </Text>
+              <Text size="sm" style={{ flex: 1, textAlign: 'right' }}>
+                {formatDangerEvent(dangerZoneData.eventType)}
+              </Text>
+            </View>
+
+            <View style={styles.dataRow}>
+              <Text size="sm" emphasis="light">
+                Type:
+              </Text>
+              <Text size="sm">{formatDangerLabel(dangerZoneData.dangerType)}</Text>
+            </View>
+
+            <View style={styles.dataRow}>
+              <Text size="sm" emphasis="light">
+                Severity:
+              </Text>
+              <Text size="sm" style={{ textTransform: 'capitalize' }}>
+                {dangerZoneData.severity}
+              </Text>
+            </View>
+
+            <View style={styles.dataRow}>
+              <Text size="sm" emphasis="light">
+                Status:
+              </Text>
+              <Text size="sm" style={{ textTransform: 'capitalize' }}>
+                {dangerZoneData.status}
+              </Text>
+            </View>
+
+            <View style={styles.dataRow}>
+              <Text size="sm" emphasis="light">
+                Expiry:
+              </Text>
+              <Text size="sm" style={{ flex: 1, textAlign: 'right' }}>
+                {formatOptionalDate(dangerZoneData.expiresAt)}
+              </Text>
+            </View>
+
+            {dangerZoneData.description ? (
+              <View style={[styles.dataRow, { alignItems: 'flex-start' }]}>
+                <Text size="sm" emphasis="light">
+                  Description:
+                </Text>
+                <Text size="sm" style={{ flex: 1, textAlign: 'right' }}>
+                  {dangerZoneData.description}
+                </Text>
+              </View>
+            ) : null}
+
+            <HoveredButton
+              style={[styles.viewMapButton, { backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light }]}
+              onPress={() =>
+                router.push({
+                  pathname: '/evacuation' as any,
+                  params: { dangerZoneId: dangerZoneData.dangerZoneId },
+                })
+              }
+            >
+              <MapPin size={18} color="#fff" />
+              <Text size="sm" bold style={{ color: '#fff' }}>
+                View on map
+              </Text>
+            </HoveredButton>
+          </View>
+        )}
       </ScrollView>
     </Body>
   );
 };
 
-export default notificationDetails;
+export default NotificationDetails;
 
 const styles = StyleSheet.create({
   container: {
@@ -605,5 +735,15 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 2,
     borderColor: '#888',
+  },
+  viewMapButton: {
+    marginTop: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
 });

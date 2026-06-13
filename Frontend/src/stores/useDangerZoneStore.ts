@@ -13,7 +13,7 @@ interface DangerZoneStore {
   fetchReports: (status?: DangerZoneStatus | 'all') => Promise<void>;
   fetchZones: (status?: DangerZoneStatus | 'all') => Promise<void>;
   createOfficialZone: (payload: DangerZoneCreateOfficialPayload) => Promise<DangerZoneRecord>;
-  verifyReport: (id: string) => Promise<DangerZoneRecord>;
+  verifyReport: (id: string, expiresAt?: string | null) => Promise<DangerZoneRecord>;
   rejectReport: (id: string, rejectionReason: string) => Promise<DangerZoneRecord>;
   updateZone: (id: string, payload: DangerZoneCreateOfficialPayload) => Promise<DangerZoneRecord>;
   resolveZone: (id: string) => Promise<DangerZoneRecord>;
@@ -88,13 +88,13 @@ export const useDangerZoneStore = create<DangerZoneStore>((set, get) => ({
     }
   },
 
-  verifyReport: async id => {
+  verifyReport: async (id, expiresAt) => {
     set({ isMutating: true, error: null });
     try {
       const headers = await getAuthHeaders();
       const response = await axios.patch<{ data: DangerZoneRecord }>(
         API_ENDPOINTS.DANGER_ZONES.VERIFY_REPORT,
-        { id },
+        { id, expiresAt: expiresAt ?? null },
         { headers }
       );
       await Promise.all([get().fetchReports(), get().fetchZones()]);

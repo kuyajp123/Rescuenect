@@ -44,5 +44,7 @@ export interface DangerZoneRecord {
   geojson?: DangerZoneGeoJson | null;
   affectedWidthMeters?: number | null;
   photoUrls: string[];
+  expiresAt?: unknown;
+  expiredAt?: unknown;
   createdAt?: unknown;
 }

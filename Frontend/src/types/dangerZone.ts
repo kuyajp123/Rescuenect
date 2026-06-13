@@ -2,6 +2,7 @@ export type DangerZoneSource = 'resident_report' | 'lgu_official';
 export type DangerZoneStatus = 'pending' | 'verified' | 'rejected' | 'resolved' | 'expired';
 export type DangerZoneSeverity = 'low' | 'medium' | 'high' | 'critical';
 export type DangerZoneGeometryType = 'point' | 'circle' | 'line' | 'polygon';
+export type DangerZoneAuditAction = 'created' | 'verified' | 'rejected' | 'updated' | 'resolved' | 'expired';
 
 export interface DangerZoneCoordinates {
   lat: number;
@@ -19,6 +20,15 @@ export type DangerZonePolygon = {
 };
 
 export type DangerZoneGeoJson = DangerZoneLineString | DangerZonePolygon;
+
+export interface DangerZoneAuditEntry {
+  action: DangerZoneAuditAction;
+  actorId: string;
+  actorRole: 'resident' | 'lgu_admin' | 'super_admin' | 'system';
+  at: unknown;
+  note?: string | null;
+  changes?: Record<string, unknown>;
+}
 
 export interface DangerZoneRecord {
   id: string;
@@ -52,6 +62,14 @@ export interface DangerZoneRecord {
   rejectionReason?: string | null;
   resolvedBy?: string | null;
   resolvedAt?: unknown;
+  expiresAt?: unknown;
+  expiredBy?: string | null;
+  expiredAt?: unknown;
+  expiryNotifiedAt?: unknown;
+  lastEditedBy?: string | null;
+  lastEditedAt?: unknown;
+  notificationAudit?: Record<string, unknown>;
+  auditTrail?: DangerZoneAuditEntry[];
   createdAt?: unknown;
   updatedAt?: unknown;
 }
@@ -67,4 +85,5 @@ export interface DangerZoneCreateOfficialPayload {
   affectedWidthMeters?: number | null;
   avoidGeojson?: null;
   clientId?: string;
+  expiresAt?: string | null;
 }

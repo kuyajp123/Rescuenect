@@ -193,6 +193,7 @@ interface MapViewProps {
   coords?: { lat: number; lng: number };
   data?: EvacuationCenter[];
   dangerZones?: DangerZoneRecord[];
+  focusedDangerZoneId?: string | null;
   routeGeoJson?: RouteLineString | null;
   routeConditionSegments?: RoadConditionSegment[];
   selectedRouteCenterId?: string | null;
@@ -203,6 +204,8 @@ interface MapViewProps {
   isRouteLoading?: boolean;
   routeWarnings?: string[];
   routeError?: string | null;
+  mapNotice?: string | null;
+  onDismissMapNotice?: () => void;
   routeSummary?: {
     selectedCenterName: string;
     distanceMeters: number;
@@ -353,6 +356,7 @@ export const MapView: React.FC<MapViewProps> = ({
   coords,
   data,
   dangerZones,
+  focusedDangerZoneId,
   routeGeoJson,
   routeConditionSegments = [],
   selectedRouteCenterId,
@@ -363,6 +367,8 @@ export const MapView: React.FC<MapViewProps> = ({
   isRouteLoading = false,
   routeWarnings = [],
   routeError,
+  mapNotice,
+  onDismissMapNotice,
   routeSummary,
   onClearRoute,
   earthquakeData,
@@ -461,6 +467,17 @@ export const MapView: React.FC<MapViewProps> = ({
       setShowSavedLocations(false);
     }
   }, [savedLocationsList.length]);
+
+  useEffect(() => {
+    if (!focusedDangerZoneId || !dangerZones?.length) return;
+    const dangerZone = dangerZones.find(zone => zone.id === focusedDangerZoneId);
+    if (!dangerZone) return;
+
+    setSelectedMarker(null);
+    setSelectedRoadCondition(null);
+    setSelectedDangerZone(dangerZone);
+    setIsLegendOpen(false);
+  }, [dangerZones, focusedDangerZoneId]);
 
   // Handle hardware back press
   useEffect(() => {
@@ -1129,7 +1146,7 @@ export const MapView: React.FC<MapViewProps> = ({
         </View>
       )}
 
-      {(routeSummary || routeError) && !selectedMarker && !selectedDangerZone && !selectedRoadCondition && (
+      {(routeSummary || routeError || mapNotice) && !selectedMarker && !selectedDangerZone && !selectedRoadCondition && (
         <View
           style={[
             styles.routeStatusCard,
@@ -1161,7 +1178,7 @@ export const MapView: React.FC<MapViewProps> = ({
             </>
           ) : (
             <Text size="sm" bold style={styles.routeErrorText}>
-              {routeError}
+              {routeError ?? mapNotice}
             </Text>
           )}
           {routeWarnings.map(warning => (
@@ -1169,7 +1186,16 @@ export const MapView: React.FC<MapViewProps> = ({
               {warning}
             </Text>
           ))}
-          {onClearRoute && (
+          {!routeSummary && !routeError && mapNotice && onDismissMapNotice ? (
+            <HoveredButton
+              onPress={onDismissMapNotice}
+              style={[styles.clearRouteButton, { backgroundColor: isDark ? Colors.border.dark : Colors.border.light }]}
+            >
+              <Text size="xs" bold>
+                Close
+              </Text>
+            </HoveredButton>
+          ) : onClearRoute ? (
             <HoveredButton
               onPress={onClearRoute}
               style={[styles.clearRouteButton, { backgroundColor: isDark ? Colors.border.dark : Colors.border.light }]}
@@ -1178,7 +1204,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 Clear route
               </Text>
             </HoveredButton>
-          )}
+          ) : null}
         </View>
       )}
 

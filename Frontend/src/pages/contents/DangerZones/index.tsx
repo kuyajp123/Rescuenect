@@ -29,7 +29,7 @@ import {
   Spinner,
   Textarea,
 } from '@heroui/react';
-import { Check, CircleAlert, Eye, MapPin, Pencil, Plus, X } from 'lucide-react';
+import { CalendarClock, Check, CircleAlert, Eye, History, MapPin, Pencil, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 const STATUS_OPTIONS: Array<{ key: DangerZoneStatus | 'all'; label: string }> = [
@@ -113,6 +113,53 @@ const formatDate = (value: unknown) => {
   return date && !Number.isNaN(date.getTime()) ? date.toLocaleString() : 'No date';
 };
 
+const toDate = (value: unknown): Date | null => {
+  if (!value) return null;
+  const timestamp = value as { _seconds?: number; seconds?: number; toDate?: () => Date };
+  const date =
+    typeof timestamp.toDate === 'function'
+      ? timestamp.toDate()
+      : typeof timestamp._seconds === 'number'
+        ? new Date(timestamp._seconds * 1000)
+        : typeof timestamp.seconds === 'number'
+          ? new Date(timestamp.seconds * 1000)
+          : typeof value === 'string' || typeof value === 'number'
+            ? new Date(value)
+            : null;
+
+  return date && !Number.isNaN(date.getTime()) ? date : null;
+};
+
+const toLocalDateTimeInputValue = (date: Date): string => {
+  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+};
+
+const expiryToInputValue = (value: unknown): string | null => {
+  const date = toDate(value);
+  return date ? toLocalDateTimeInputValue(date) : null;
+};
+
+const addExpiryHours = (hours: number): string => toLocalDateTimeInputValue(new Date(Date.now() + hours * 60 * 60 * 1000));
+
+const formatExpiry = (zone: Pick<DangerZoneRecord, 'expiresAt' | 'expiredAt' | 'status'>): string => {
+  if (zone.status === 'expired') {
+    return `Expired ${formatDate(zone.expiredAt ?? zone.expiresAt)}`;
+  }
+  return zone.expiresAt ? `Until ${formatDate(zone.expiresAt)}` : 'No expiry';
+};
+
+const formatAuditAction = (action: string): string =>
+  action
+    .split('_')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
+const formatAuditChanges = (changes?: Record<string, unknown>): string | null => {
+  const fields = Array.isArray(changes?.fields) ? changes.fields.filter(field => typeof field === 'string') : [];
+  return fields.length ? `Changed: ${fields.join(', ')}` : null;
+};
+
 type CreateFormState = {
   type: string;
   severity: DangerZoneSeverity;
@@ -122,6 +169,7 @@ type CreateFormState = {
   radiusMeters: number;
   geojson: DangerZoneGeoJson | null;
   affectedWidthMeters: number;
+  expiresAt: string | null;
 };
 
 const defaultCreateForm: CreateFormState = {
@@ -133,6 +181,7 @@ const defaultCreateForm: CreateFormState = {
   radiusMeters: 100,
   geojson: null,
   affectedWidthMeters: 30,
+  expiresAt: null,
 };
 
 const getGeometrySummary = (zone: Pick<DangerZoneRecord, 'geometryType' | 'radiusMeters' | 'affectedWidthMeters' | 'geojson'>) => {
@@ -157,7 +206,54 @@ const zoneToCreateForm = (zone: DangerZoneRecord): CreateFormState => ({
   radiusMeters: zone.radiusMeters ?? 100,
   geojson: normalizeDangerZoneGeoJson(zone.geojson),
   affectedWidthMeters: zone.affectedWidthMeters ?? 30,
+  expiresAt: expiryToInputValue(zone.expiresAt),
 });
+
+const EXPIRY_PRESETS = [
+  { label: '6 hours', hours: 6 },
+  { label: '12 hours', hours: 12 },
+  { label: '24 hours', hours: 24 },
+  { label: '3 days', hours: 72 },
+  { label: '7 days', hours: 168 },
+];
+
+const ExpiryControls = ({
+  value,
+  onChange,
+  label = 'Expiry',
+}: {
+  value: string | null;
+  onChange: (value: string | null) => void;
+  label?: string;
+}) => (
+  <div className="space-y-2 rounded-md border border-default-200 p-3">
+    <div className="flex items-center gap-2 text-sm font-medium text-default-700">
+      <CalendarClock size={16} />
+      {label}
+    </div>
+    <div className="flex flex-wrap gap-2">
+      <Button size="sm" variant={!value ? 'solid' : 'flat'} color={!value ? 'primary' : 'default'} onPress={() => onChange(null)}>
+        No expiry
+      </Button>
+      {EXPIRY_PRESETS.map(preset => (
+        <Button key={preset.label} size="sm" variant="flat" onPress={() => onChange(addExpiryHours(preset.hours))}>
+          {preset.label}
+        </Button>
+      ))}
+    </div>
+    <Input
+      label="Custom date and time"
+      labelPlacement="outside"
+      type="datetime-local"
+      value={value ?? ''}
+      min={toLocalDateTimeInputValue(new Date(Date.now() + 60 * 1000))}
+      onValueChange={nextValue => onChange(nextValue || null)}
+    />
+    <p className="text-xs text-default-500">
+      Zones with no expiry stay active until an LGU admin marks them resolved.
+    </p>
+  </div>
+);
 
 const DangerZonesPage = () => {
   const userData = useAuth(state => state.userData);
@@ -175,12 +271,19 @@ const DangerZonesPage = () => {
   const [editingZone, setEditingZone] = useState<DangerZoneRecord | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [verifyExpiresAt, setVerifyExpiresAt] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchReports();
     fetchZones();
   }, [fetchReports, fetchZones]);
+
+  useEffect(() => {
+    if (!selectedZone || selectedZone.status !== 'pending') {
+      setVerifyExpiresAt(null);
+    }
+  }, [selectedZone]);
 
   const filteredZones = useMemo(
     () => zones.filter(zone => statusFilter === 'all' || zone.status === statusFilter),
@@ -248,6 +351,7 @@ const DangerZonesPage = () => {
       radiusMeters: createForm.geometryType === 'circle' ? createForm.radiusMeters : undefined,
       geojson: createForm.geometryType === 'line' || createForm.geometryType === 'polygon' ? createForm.geojson : null,
       affectedWidthMeters: createForm.geometryType === 'line' ? createForm.affectedWidthMeters : null,
+      expiresAt: createForm.expiresAt,
     };
 
     if (editingZone) {
@@ -267,6 +371,7 @@ const DangerZonesPage = () => {
     setActionMessage(message);
     setSelectedZone(null);
     setRejectionReason('');
+    setVerifyExpiresAt(null);
   };
 
   const openEditModal = (zone: DangerZoneRecord) => {
@@ -342,12 +447,13 @@ const DangerZonesPage = () => {
       </div>
 
       <div className="min-h-[360px] overflow-hidden rounded-md border border-default-200 bg-content1">
-        <div className="grid grid-cols-[1.2fr_1fr_0.8fr_0.8fr_0.9fr_0.5fr] gap-3 border-b border-default-200 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-default-500">
+        <div className="grid grid-cols-[1.1fr_0.9fr_0.7fr_0.7fr_0.9fr_0.9fr_0.5fr] gap-3 border-b border-default-200 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-default-500">
           <span>Type</span>
           <span>Source</span>
           <span>Status</span>
           <span>Severity</span>
           <span>Created</span>
+          <span>Expiry</span>
           <span className="text-right">Action</span>
         </div>
 
@@ -365,7 +471,7 @@ const DangerZonesPage = () => {
             {filteredZones.map(zone => (
               <div
                 key={zone.id}
-                className="grid grid-cols-[1.2fr_1fr_0.8fr_0.8fr_0.9fr_0.5fr] items-center gap-3 px-4 py-3 text-sm"
+                className="grid grid-cols-[1.1fr_0.9fr_0.7fr_0.7fr_0.9fr_0.9fr_0.5fr] items-center gap-3 px-4 py-3 text-sm"
               >
                 <div className="min-w-0">
                   <div className="font-medium text-foreground">{formatLabel(zone.type)}</div>
@@ -381,6 +487,7 @@ const DangerZonesPage = () => {
                   {zone.severity}
                 </Chip>
                 <span className="text-default-500">{formatDate(zone.createdAt)}</span>
+                <span className="text-default-500">{formatExpiry(zone)}</span>
                 <div className="flex justify-end">
                   <Button isIconOnly size="sm" variant="light" onPress={() => setSelectedZone(zone)}>
                     <Eye size={17} />
@@ -427,6 +534,10 @@ const DangerZonesPage = () => {
                           <div className="text-default-500">Created</div>
                           <div>{formatDate(selectedZone.createdAt)}</div>
                         </div>
+                        <div>
+                          <div className="text-default-500">Expiry</div>
+                          <div>{formatExpiry(selectedZone)}</div>
+                        </div>
                       </div>
 
                       <div>
@@ -452,13 +563,46 @@ const DangerZonesPage = () => {
                       )}
 
                       {selectedZone.source === 'resident_report' && selectedZone.status === 'pending' && (
-                        <Textarea
-                          label="Rejection reason"
-                          labelPlacement="outside"
-                          placeholder="Required only when rejecting this report"
-                          value={rejectionReason}
-                          onValueChange={setRejectionReason}
-                        />
+                        <>
+                          <ExpiryControls
+                            label="Expiry after verification"
+                            value={verifyExpiresAt}
+                            onChange={setVerifyExpiresAt}
+                          />
+                          <Textarea
+                            label="Rejection reason"
+                            labelPlacement="outside"
+                            placeholder="Required only when rejecting this report"
+                            value={rejectionReason}
+                            onValueChange={setRejectionReason}
+                          />
+                        </>
+                      )}
+
+                      {selectedZone.auditTrail && selectedZone.auditTrail.length > 0 && (
+                        <div className="rounded-md border border-default-200 p-3">
+                          <div className="mb-3 flex items-center gap-2 text-sm font-medium text-default-700">
+                            <History size={16} />
+                            Audit trail
+                          </div>
+                          <div className="space-y-3">
+                            {selectedZone.auditTrail
+                              .slice()
+                              .reverse()
+                              .map((entry, index) => (
+                                <div key={`${entry.action}-${index}`} className="border-l-2 border-default-200 pl-3 text-sm">
+                                  <div className="font-medium text-foreground">{formatAuditAction(entry.action)}</div>
+                                  <div className="text-xs text-default-500">
+                                    {formatDate(entry.at)} by {entry.actorRole.replace('_', ' ')}
+                                  </div>
+                                  {entry.note && <div className="mt-1 text-xs text-default-600">{entry.note}</div>}
+                                  {formatAuditChanges(entry.changes) && (
+                                    <div className="mt-1 text-xs text-default-500">{formatAuditChanges(entry.changes)}</div>
+                                  )}
+                                </div>
+                              ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                     <AdminDangerZoneMap
@@ -491,7 +635,7 @@ const DangerZonesPage = () => {
                         color="success"
                         startContent={<Check size={16} />}
                         isLoading={isMutating}
-                        onPress={() => runAction(() => verifyReport(selectedZone.id), 'Report verified.')}
+                        onPress={() => runAction(() => verifyReport(selectedZone.id, verifyExpiresAt), 'Report verified.')}
                       >
                         Verify
                       </Button>
@@ -625,6 +769,11 @@ const DangerZonesPage = () => {
                       placeholder="Describe the affected area"
                       value={createForm.description}
                       onValueChange={value => updateCreateForm('description', value)}
+                    />
+                    <ExpiryControls
+                      label={editingZone ? 'Expiry' : 'Optional expiry'}
+                      value={createForm.expiresAt}
+                      onChange={value => updateCreateForm('expiresAt', value)}
                     />
                   </div>
                   <div className="space-y-2">

@@ -35,7 +35,7 @@ export interface BaseNotification {
   };
 
   // Type-specific data
-  data?: WeatherNotificationData | EarthquakeNotificationData | AnnouncementNotificationData | Record<string, unknown>;
+  data?: WeatherNotificationData | EarthquakeNotificationData | AnnouncementNotificationData | DangerZoneNotificationData | Record<string, unknown>;
 }
 
 /**
@@ -54,6 +54,7 @@ export type NotificationType =
   | 'evacuation'
   | 'flood'
   | 'typhoon'
+  | 'danger_zone'
   | 'status_resolved';
 
 /**
@@ -172,4 +173,24 @@ export interface AnnouncementNotificationData {
 
   // Source
   source: 'admin' | 'system';
+}
+
+export type DangerZoneNotificationEvent =
+  | 'report_verified'
+  | 'official_created'
+  | 'road_segment_blocked'
+  | 'resolved'
+  | 'expired';
+
+export interface DangerZoneNotificationData {
+  notificationCategory: 'danger_zone';
+  eventType: DangerZoneNotificationEvent;
+  dangerZoneId: string;
+  status: 'pending' | 'verified' | 'rejected' | 'resolved' | 'expired';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  geometryType: 'point' | 'circle' | 'line' | 'polygon';
+  dangerType: string;
+  description?: string;
+  expiresAt?: string | null;
+  actionPath: '/evacuation';
 }

@@ -2,6 +2,8 @@ export type DangerZoneSource = 'resident_report' | 'lgu_official';
 export type DangerZoneStatus = 'pending' | 'verified' | 'rejected' | 'resolved' | 'expired';
 export type DangerZoneSeverity = 'low' | 'medium' | 'high' | 'critical';
 export type DangerZoneGeometryType = 'point' | 'circle' | 'line' | 'polygon';
+export type DangerZoneAuditAction = 'created' | 'verified' | 'rejected' | 'updated' | 'resolved' | 'expired';
+export type DangerZoneAuditActorRole = 'resident' | 'lgu_admin' | 'super_admin' | 'system';
 
 export interface DangerZoneCoordinates {
   lat: number;
@@ -19,6 +21,15 @@ export type DangerZonePolygon = {
 };
 
 export type DangerZoneGeoJson = DangerZoneLineString | DangerZonePolygon;
+
+export interface DangerZoneAuditEntry {
+  action: DangerZoneAuditAction;
+  actorId: string;
+  actorRole: DangerZoneAuditActorRole;
+  at: FirebaseFirestore.Timestamp;
+  note?: string | null;
+  changes?: Record<string, unknown>;
+}
 
 export interface DangerZoneRecord {
   id: string;
@@ -52,6 +63,14 @@ export interface DangerZoneRecord {
   rejectionReason?: string | null;
   resolvedBy?: string | null;
   resolvedAt?: FirebaseFirestore.Timestamp | null;
+  expiresAt?: FirebaseFirestore.Timestamp | null;
+  expiredBy?: string | null;
+  expiredAt?: FirebaseFirestore.Timestamp | null;
+  expiryNotifiedAt?: FirebaseFirestore.Timestamp | null;
+  lastEditedBy?: string | null;
+  lastEditedAt?: FirebaseFirestore.Timestamp | null;
+  notificationAudit?: Record<string, FirebaseFirestore.Timestamp | null>;
+  auditTrail?: DangerZoneAuditEntry[];
   createdAt: FirebaseFirestore.Timestamp;
   updatedAt: FirebaseFirestore.Timestamp;
 }

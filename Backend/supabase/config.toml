@@ -425,6 +425,17 @@ entrypoint = "./functions/client-deletions-process/index.ts"
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/client-deletions-process/*.html" ]
 
+[functions.danger-zone-expire]
+enabled = true
+verify_jwt = true
+import_map = "./functions/danger-zone-expire/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/danger-zone-expire/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/danger-zone-expire/*.html" ]
+
 [functions.earthquake-test]
 enabled = true
 verify_jwt = true

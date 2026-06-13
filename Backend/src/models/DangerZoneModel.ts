@@ -2,11 +2,16 @@ import { ClientModel } from '@/models/admin/ClientModel';
 import { DangerZoneEvidenceUploadService } from '@/services/DangerZoneEvidenceUploadService';
 import { DangerZoneFirestoreGeometryService } from '@/services/DangerZoneFirestoreGeometryService';
 import { DangerZoneGeometryService } from '@/services/DangerZoneGeometryService';
+import {
+  DangerZoneNotificationEvent,
+  DangerZoneNotificationService,
+  getDangerZoneNotificationEventForOfficialZone,
+} from '@/services/DangerZoneNotificationService';
 import { AdminUser } from '@/types/admin';
-import { DangerZoneRecord, DangerZoneStatus } from '@/types/dangerZone';
+import { DangerZoneAuditAction, DangerZoneAuditActorRole, DangerZoneRecord, DangerZoneStatus } from '@/types/dangerZone';
 import { canonicalizeClientId } from '@/config/locationConfig';
 import { db } from '@/db/firestoreConfig';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 
 export class DangerZoneModelError extends Error {
   constructor(
@@ -22,6 +27,11 @@ export class DangerZoneModelError extends Error {
 type ListFilters = {
   clientId?: string;
   status?: string;
+};
+
+type ParsedExpiry = {
+  provided: boolean;
+  value: Timestamp | null;
 };
 
 const asTrimmedString = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
@@ -61,6 +71,116 @@ export class DangerZoneModel {
 
   private static sortNewestFirst(records: DangerZoneRecord[]): DangerZoneRecord[] {
     return records.sort((a, b) => timestampMillis(b.createdAt) - timestampMillis(a.createdAt));
+  }
+
+  private static parseExpiresAt(rawPayload: unknown): ParsedExpiry {
+    if (!rawPayload || typeof rawPayload !== 'object' || !Object.prototype.hasOwnProperty.call(rawPayload, 'expiresAt')) {
+      return { provided: false, value: null };
+    }
+
+    const rawValue = (rawPayload as { expiresAt?: unknown }).expiresAt;
+    if (rawValue === null || rawValue === undefined || rawValue === '') {
+      return { provided: true, value: null };
+    }
+
+    const date =
+      rawValue instanceof Date
+        ? rawValue
+        : typeof rawValue === 'string' || typeof rawValue === 'number'
+        ? new Date(rawValue)
+        : null;
+
+    if (!date || Number.isNaN(date.getTime())) {
+      throw new DangerZoneModelError(400, 'expiresAt must be a valid future date', {
+        expiresAt: 'Enter a valid expiry date and time',
+      });
+    }
+
+    if (date.getTime() <= Date.now()) {
+      throw new DangerZoneModelError(400, 'expiresAt must be in the future', {
+        expiresAt: 'Expiry must be later than the current time',
+      });
+    }
+
+    return { provided: true, value: Timestamp.fromDate(date) };
+  }
+
+  private static createAuditEntry(
+    action: DangerZoneAuditAction,
+    actorId: string,
+    actorRole: DangerZoneAuditActorRole,
+    note?: string | null,
+    changes?: Record<string, unknown>
+  ) {
+    return {
+      action,
+      actorId,
+      actorRole,
+      at: Timestamp.now(),
+      note: note ?? null,
+      ...(changes ? { changes } : {}),
+    };
+  }
+
+  private static getAdminActorName(adminUser: AdminUser): string {
+    return `${adminUser.firstName ?? ''} ${adminUser.lastName ?? ''}`.trim() || adminUser.email || adminUser.uid;
+  }
+
+  private static getExpiryUpdate(rawPayload: unknown): { provided: boolean; update: { expiresAt?: Timestamp | null } } {
+    const expiry = this.parseExpiresAt(rawPayload);
+    if (!expiry.provided) return { provided: false, update: {} };
+    return { provided: true, update: { expiresAt: expiry.value } };
+  }
+
+  private static getUpdateChangedFields(
+    record: DangerZoneRecord,
+    storageInput: Record<string, unknown>,
+    expiryUpdate: { provided: boolean; update: { expiresAt?: Timestamp | null } }
+  ): string[] {
+    const changed = new Set<string>();
+    const comparableFields = [
+      'type',
+      'severity',
+      'description',
+      'geometryType',
+      'center',
+      'radiusMeters',
+      'geojson',
+      'affectedWidthMeters',
+    ];
+
+    comparableFields.forEach(field => {
+      const beforeValue = (record as unknown as Record<string, unknown>)[field] ?? null;
+      const afterValue = storageInput[field] ?? null;
+      if (JSON.stringify(beforeValue) !== JSON.stringify(afterValue)) changed.add(field);
+    });
+
+    if (expiryUpdate.provided) {
+      const beforeExpiry = timestampMillis(record.expiresAt);
+      const afterExpiry = timestampMillis(expiryUpdate.update.expiresAt);
+      if (beforeExpiry !== afterExpiry) changed.add('expiresAt');
+    }
+
+    return [...changed];
+  }
+
+  private static async notifyLifecycleEvent(
+    zone: DangerZoneRecord,
+    eventType: DangerZoneNotificationEvent
+  ): Promise<void> {
+    try {
+      await DangerZoneNotificationService.sendLifecycleNotification(eventType, zone);
+      await this.pathRef().doc(zone.id).update({
+        [`notificationAudit.${eventType}`]: Timestamp.now(),
+        ...(eventType === 'expired' ? { expiryNotifiedAt: Timestamp.now() } : {}),
+      });
+    } catch (error) {
+      console.error('Failed to send danger-zone lifecycle notification:', {
+        dangerZoneId: zone.id,
+        eventType,
+        error: error instanceof Error ? error.message : error,
+      });
+    }
   }
 
   private static async getResidentClientMetadata(uid: string): Promise<Record<string, unknown> & { clientId: string }> {
@@ -165,6 +285,14 @@ export class DangerZoneModel {
       rejectionReason: null,
       resolvedBy: null,
       resolvedAt: null,
+      expiresAt: null,
+      expiredBy: null,
+      expiredAt: null,
+      expiryNotifiedAt: null,
+      lastEditedBy: null,
+      lastEditedAt: null,
+      notificationAudit: {},
+      auditTrail: [this.createAuditEntry('created', uid, 'resident')],
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
@@ -184,6 +312,7 @@ export class DangerZoneModel {
   static async createOfficialZone(adminUser: AdminUser, rawPayload: unknown): Promise<DangerZoneRecord> {
     const clientId = this.getAdminClientId(adminUser, (rawPayload as { clientId?: unknown } | null)?.clientId, true) as string;
     const input = DangerZoneGeometryService.validateAdminPayload(rawPayload);
+    const expiry = this.parseExpiresAt(rawPayload);
     const docRef = this.pathRef().doc();
 
     await docRef.set({
@@ -204,12 +333,24 @@ export class DangerZoneModel {
       rejectionReason: null,
       resolvedBy: null,
       resolvedAt: null,
+      expiresAt: expiry.provided ? expiry.value : null,
+      expiredBy: null,
+      expiredAt: null,
+      expiryNotifiedAt: null,
+      lastEditedBy: null,
+      lastEditedAt: null,
+      notificationAudit: {},
+      auditTrail: [this.createAuditEntry('created', adminUser.uid, adminUser.role, `Created by ${this.getAdminActorName(adminUser)}`)],
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
 
     const snap = await docRef.get();
-    return this.toRecord(snap);
+    const zone = this.toRecord(snap);
+    await this.notifyLifecycleEvent(zone, getDangerZoneNotificationEventForOfficialZone(zone));
+
+    const updatedSnap = await docRef.get();
+    return this.toRecord(updatedSnap);
   }
 
   static async updateZone(adminUser: AdminUser, id: unknown, rawPayload: unknown): Promise<DangerZoneRecord> {
@@ -220,6 +361,8 @@ export class DangerZoneModel {
 
     const input = DangerZoneGeometryService.validateAdminPayload(rawPayload);
     const storageInput = DangerZoneFirestoreGeometryService.toFirestoreInput(input);
+    const expiryUpdate = this.getExpiryUpdate(rawPayload);
+    const changedFields = this.getUpdateChangedFields(record, input as unknown as Record<string, unknown>, expiryUpdate);
     await this.pathRef().doc(record.id).update({
       type: storageInput.type,
       severity: storageInput.severity,
@@ -230,11 +373,25 @@ export class DangerZoneModel {
       geojson: storageInput.geojson,
       affectedWidthMeters: storageInput.affectedWidthMeters ?? null,
       avoidGeojson: null,
+      ...expiryUpdate.update,
+      lastEditedBy: adminUser.uid,
+      lastEditedAt: FieldValue.serverTimestamp(),
+      auditTrail: FieldValue.arrayUnion(
+        this.createAuditEntry('updated', adminUser.uid, adminUser.role, `Updated by ${this.getAdminActorName(adminUser)}`, {
+          fields: changedFields,
+        })
+      ),
       updatedAt: FieldValue.serverTimestamp(),
     });
 
     const snap = await this.pathRef().doc(record.id).get();
-    return this.toRecord(snap);
+    const zone = this.toRecord(snap);
+    if (zone.geometryType === 'line' && (zone.severity === 'high' || zone.severity === 'critical')) {
+      await this.notifyLifecycleEvent(zone, 'road_segment_blocked');
+    }
+
+    const updatedSnap = await this.pathRef().doc(record.id).get();
+    return this.toRecord(updatedSnap);
   }
 
   static async listResidentReports(adminUser: AdminUser, filters: ListFilters = {}): Promise<DangerZoneRecord[]> {
@@ -262,12 +419,13 @@ export class DangerZoneModel {
     );
   }
 
-  static async verifyReport(adminUser: AdminUser, id: unknown): Promise<DangerZoneRecord> {
+  static async verifyReport(adminUser: AdminUser, id: unknown, rawPayload?: unknown): Promise<DangerZoneRecord> {
     const record = await this.getRecordForAdmin(adminUser, id);
     if (record.source !== 'resident_report' || record.status !== 'pending') {
       throw new DangerZoneModelError(400, 'Only pending resident reports can be verified');
     }
 
+    const expiry = this.parseExpiresAt(rawPayload);
     await this.pathRef().doc(record.id).update({
       status: 'verified',
       isActive: true,
@@ -276,11 +434,19 @@ export class DangerZoneModel {
       rejectedBy: null,
       rejectedAt: null,
       rejectionReason: null,
+      expiresAt: expiry.provided ? expiry.value : null,
+      auditTrail: FieldValue.arrayUnion(
+        this.createAuditEntry('verified', adminUser.uid, adminUser.role, `Verified by ${this.getAdminActorName(adminUser)}`)
+      ),
       updatedAt: FieldValue.serverTimestamp(),
     });
 
     const snap = await this.pathRef().doc(record.id).get();
-    return this.toRecord(snap);
+    const zone = this.toRecord(snap);
+    await this.notifyLifecycleEvent(zone, 'report_verified');
+
+    const updatedSnap = await this.pathRef().doc(record.id).get();
+    return this.toRecord(updatedSnap);
   }
 
   static async rejectReport(adminUser: AdminUser, id: unknown, rejectionReason: unknown): Promise<DangerZoneRecord> {
@@ -300,6 +466,9 @@ export class DangerZoneModel {
       rejectedBy: adminUser.uid,
       rejectedAt: FieldValue.serverTimestamp(),
       rejectionReason: reason,
+      auditTrail: FieldValue.arrayUnion(
+        this.createAuditEntry('rejected', adminUser.uid, adminUser.role, reason)
+      ),
       updatedAt: FieldValue.serverTimestamp(),
     });
 
@@ -318,11 +487,18 @@ export class DangerZoneModel {
       isActive: false,
       resolvedBy: adminUser.uid,
       resolvedAt: FieldValue.serverTimestamp(),
+      auditTrail: FieldValue.arrayUnion(
+        this.createAuditEntry('resolved', adminUser.uid, adminUser.role, `Resolved by ${this.getAdminActorName(adminUser)}`)
+      ),
       updatedAt: FieldValue.serverTimestamp(),
     });
 
     const snap = await this.pathRef().doc(record.id).get();
-    return this.toRecord(snap);
+    const zone = this.toRecord(snap);
+    await this.notifyLifecycleEvent(zone, 'resolved');
+
+    const updatedSnap = await this.pathRef().doc(record.id).get();
+    return this.toRecord(updatedSnap);
   }
 
   static async listPublicVerifiedActive(clientIdValue: unknown): Promise<DangerZoneRecord[]> {
@@ -336,6 +512,7 @@ export class DangerZoneModel {
       snapshot.docs
         .map(doc => this.toRecord(doc))
         .filter(record => record.status === 'verified' && record.isActive === true)
+        .filter(record => !record.expiresAt || timestampMillis(record.expiresAt) > Date.now())
     );
   }
 }
