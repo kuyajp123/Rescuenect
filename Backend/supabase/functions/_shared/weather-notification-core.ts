@@ -46,6 +46,25 @@ export interface WeatherNotification {
   data?: Record<string, unknown>;
 }
 
+const PRECIPITATION_WEATHER_CODES = new Set([
+  4000,
+  4001,
+  4200,
+  4201,
+  5000,
+  5001,
+  5100,
+  5101,
+  6000,
+  6001,
+  6200,
+  6201,
+  7000,
+  7101,
+  7102,
+  8000,
+]);
+
 // ============================================
 // WEATHER THRESHOLDS CONFIGURATION
 // ============================================
@@ -161,6 +180,8 @@ export class WeatherNotificationSystem {
   private checkHeatConditions(data: WeatherData): void {
     const { temperature, temperatureApparent, humidity, uvIndex } = data;
     const thresholds = WEATHER_THRESHOLDS.HEAT;
+    const isWetWeather = this.isWetWeather(data);
+    const weatherContext = this.getWeatherContext(data);
 
     // EXTREME HEAT WARNING (Life-threatening)
     if (temperatureApparent >= thresholds.CRITICAL.temperatureApparent) {
@@ -172,11 +193,12 @@ export class WeatherNotificationSystem {
           1
         )}°C. Stay indoors immediately. Risk of heatstroke is EXTREME. Seek air conditioning or cooling centers.`,
         priority: 1,
-        data: { temperature, temperatureApparent, humidity, riskLevel: 'extreme' },
+        data: { ...weatherContext, riskLevel: 'extreme' },
       });
     }
     // COMBINED HIGH TEMPERATURE + HUMIDITY (Dangerous heat index)
     else if (
+      !isWetWeather &&
       temperature >= thresholds.CRITICAL.combinedRisk.temperature &&
       humidity >= thresholds.CRITICAL.combinedRisk.humidity
     ) {
@@ -188,13 +210,14 @@ export class WeatherNotificationSystem {
           1
         )}°C with ${humidity}% humidity creates dangerous conditions. Heat exhaustion and heatstroke likely. Avoid outdoor activities.`,
         priority: 1,
-        data: { temperature, temperatureApparent, humidity, heatIndex: this.calculateHeatIndex(temperature, humidity) },
+        data: { ...weatherContext, heatIndex: this.calculateHeatIndex(temperature, humidity) },
       });
     }
     // SEVERE HEAT WARNING
     else if (
-      temperatureApparent >= thresholds.WARNING.temperatureApparent ||
-      temperature >= thresholds.WARNING.temperature
+      !isWetWeather &&
+      (temperatureApparent >= thresholds.WARNING.temperatureApparent ||
+        temperature >= thresholds.WARNING.temperature)
     ) {
       this.addNotification({
         level: 'WARNING',
@@ -204,13 +227,14 @@ export class WeatherNotificationSystem {
           1
         )}°C). High risk of heat-related illness. Limit outdoor exposure and stay hydrated.`,
         priority: 2,
-        data: { temperature, temperatureApparent, humidity },
+        data: weatherContext,
       });
     }
     // HIGH HEAT ADVISORY
     else if (
-      temperature >= thresholds.ADVISORY.temperature ||
-      temperatureApparent >= thresholds.ADVISORY.temperatureApparent
+      !isWetWeather &&
+      (temperature >= thresholds.ADVISORY.temperature ||
+        temperatureApparent >= thresholds.ADVISORY.temperatureApparent)
     ) {
       this.addNotification({
         level: 'ADVISORY',
@@ -220,12 +244,16 @@ export class WeatherNotificationSystem {
           1
         )}°C). Take precautions during outdoor activities. Stay hydrated and seek shade.`,
         priority: 3,
-        data: { temperature, temperatureApparent },
+        data: weatherContext,
       });
     }
 
     // COMBINED HEAT + UV WARNING
-    if (temperature >= thresholds.WARNING.combinedUV.temperature && uvIndex >= thresholds.WARNING.combinedUV.uvIndex) {
+    if (
+      !isWetWeather &&
+      temperature >= thresholds.WARNING.combinedUV.temperature &&
+      uvIndex >= thresholds.WARNING.combinedUV.uvIndex
+    ) {
       this.addNotification({
         level: 'WARNING',
         category: 'Combined',
@@ -234,7 +262,7 @@ export class WeatherNotificationSystem {
           1
         )}°C) + Extreme UV (${uvIndex}). Serious skin damage and heat illness risk. Use SPF 50+, wear protective clothing, stay in shade.`,
         priority: 2,
-        data: { temperature, uvIndex, combinedRisk: true },
+        data: { ...weatherContext, combinedRisk: true },
       });
     }
   }
@@ -803,6 +831,25 @@ export class WeatherNotificationSystem {
   // ============================================
   // HELPER METHODS
   // ============================================
+
+  private isWetWeather(data: WeatherData): boolean {
+    return data.rainIntensity > 0.1 || PRECIPITATION_WEATHER_CODES.has(data.weatherCode);
+  }
+
+  private getWeatherContext(data: WeatherData): Record<string, unknown> {
+    return {
+      temperature: data.temperature,
+      temperatureApparent: data.temperatureApparent,
+      humidity: data.humidity,
+      uvIndex: data.uvIndex,
+      weatherCode: data.weatherCode,
+      rainIntensity: data.rainIntensity,
+      rainAccumulation: data.rainAccumulation,
+      precipitationProbability: data.precipitationProbability,
+      visibility: data.visibility,
+      cloudCover: data.cloudCover,
+    };
+  }
 
   private addNotification(notification: Omit<WeatherNotification, 'timestamp'>): void {
     this.notifications.push({
