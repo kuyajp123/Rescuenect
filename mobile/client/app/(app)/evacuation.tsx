@@ -4,19 +4,20 @@ import { API_ROUTES } from '@/config/endpoints';
 import { EvacuationCenter } from '@/types/components';
 import { DangerZoneRecord } from '@/types/dangerZone';
 import axios, { isAxiosError } from 'axios';
+import * as Location from 'expo-location';
 import { useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { STORAGE_KEYS } from '@/config/asyncStorage';
-import { getCurrentPositionOnce } from '@/helper/commonHelpers';
+import { getCurrentPositionOnce, requestLocationPermission } from '@/helper/commonHelpers';
 import { storageHelpers } from '@/helper/storage';
 import { requestBestEvacuationRoute } from '@/services/evacuationRouteService';
 import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import { useUserData } from '@/store/useBackendResponse';
 import { fetchPublicDangerZones } from '@/services/dangerZoneService';
-import { BestEvacuationRouteResponse, EvacuationTravelMode } from '@/types/evacuationRoute';
+import { BestEvacuationRouteResponse, EvacuationTravelMode, RouteLineString } from '@/types/evacuationRoute';
 
 const getRouteErrorMessage = (error: unknown): string => {
   if (isAxiosError(error)) {
@@ -96,6 +97,65 @@ const getDangerZoneFocusCoordinate = (zone: DangerZoneRecord): [number, number] 
 const EARTH_RADIUS_METERS = 6_371_008.8;
 const ROUTE_STALE_MS = 5 * 60 * 1000;
 const ROUTE_REFRESH_DISTANCE_METERS = 100;
+const NAVIGATION_FOLLOW_DELAY_MS = 2500;
+const OFF_ROUTE_REROUTE_DISTANCE_METERS = 45;
+const AUTO_REROUTE_COOLDOWN_MS = 30 * 1000;
+const MAX_REROUTE_ACCURACY_METERS = 75;
+const MIN_LIVE_LOCATION_DELTA_METERS = 0.5;
+
+type LiveRouteLocation = {
+  lat: number;
+  lng: number;
+  heading?: number;
+  course?: number;
+  speed?: number;
+  accuracy?: number;
+};
+
+type RouteProgress = {
+  traveled: RouteLineString | null;
+  remaining: RouteLineString | null;
+  distanceFromRouteMeters: number;
+  progressRatio: number;
+};
+
+type RouteRequestOptions = {
+  targetCenter?: EvacuationCenter;
+  targetCenterId?: string | null;
+  origin?: { lat: number; lng: number } | null;
+  silent?: boolean;
+};
+
+const getRouteCameraBounds = (route: RouteLineString | null | undefined, bottomInset: number) => {
+  const coordinates =
+    route?.coordinates.filter(
+      coordinate =>
+        Array.isArray(coordinate) &&
+        coordinate.length >= 2 &&
+        Number.isFinite(coordinate[0]) &&
+        Number.isFinite(coordinate[1])
+    ) ?? [];
+
+  if (coordinates.length === 0) return undefined;
+
+  const lngValues = coordinates.map(coordinate => coordinate[0]);
+  const latValues = coordinates.map(coordinate => coordinate[1]);
+  const minLng = Math.min(...lngValues);
+  const maxLng = Math.max(...lngValues);
+  const minLat = Math.min(...latValues);
+  const maxLat = Math.max(...latValues);
+  const lngPadding = Math.max((maxLng - minLng) * 0.08, 0.001);
+  const latPadding = Math.max((maxLat - minLat) * 0.08, 0.001);
+
+  return {
+    ne: [maxLng + lngPadding, maxLat + latPadding] as [number, number],
+    sw: [minLng - lngPadding, minLat - latPadding] as [number, number],
+    paddingTop: 150,
+    paddingBottom: 320 + bottomInset,
+    paddingLeft: 56,
+    paddingRight: 56,
+  };
+};
 
 const haversineDistanceMeters = (from: { lat: number; lng: number }, to: { lat: number; lng: number }) => {
   const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
@@ -107,6 +167,112 @@ const haversineDistanceMeters = (from: { lat: number; lng: number }, to: { lat: 
     Math.sin(deltaLat / 2) ** 2 +
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2;
   return 2 * EARTH_RADIUS_METERS * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
+
+const getFiniteLocationNumber = (value: number | null | undefined) =>
+  typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+
+const toPlanarPoint = (coordinate: [number, number], referenceLat: number) => {
+  const latScale = 111_320;
+  const lngScale = Math.max(Math.abs(latScale * Math.cos((referenceLat * Math.PI) / 180)), 0.000001);
+  return {
+    x: coordinate[0] * lngScale,
+    y: coordinate[1] * latScale,
+  };
+};
+
+const buildRouteLineString = (coordinates: [number, number][]): RouteLineString | null => {
+  const normalized = coordinates.reduce<[number, number][]>((acc, coordinate) => {
+    const [lng, lat] = coordinate;
+    if (!Number.isFinite(lng) || !Number.isFinite(lat)) return acc;
+    const previous = acc[acc.length - 1];
+    if (previous && Math.abs(previous[0] - lng) < 1e-9 && Math.abs(previous[1] - lat) < 1e-9) {
+      return acc;
+    }
+    acc.push([lng, lat]);
+    return acc;
+  }, []);
+
+  return normalized.length >= 2
+    ? {
+        type: 'LineString',
+        coordinates: normalized,
+      }
+    : null;
+};
+
+const getRouteProgress = (
+  route: RouteLineString | null | undefined,
+  location: LiveRouteLocation | null
+): RouteProgress | null => {
+  const coordinates =
+    route?.coordinates.filter(
+      coordinate =>
+        Array.isArray(coordinate) &&
+        coordinate.length >= 2 &&
+        Number.isFinite(coordinate[0]) &&
+        Number.isFinite(coordinate[1])
+    ) ?? [];
+
+  if (!location || coordinates.length < 2) return null;
+
+  const userCoordinate: [number, number] = [location.lng, location.lat];
+  const userPoint = toPlanarPoint(userCoordinate, location.lat);
+  let totalDistanceMeters = 0;
+  let cumulativeBeforeSegmentMeters = 0;
+  let nearestDistanceMeters = Number.POSITIVE_INFINITY;
+  let nearestSegmentIndex = 0;
+  let nearestSegmentProgress = 0;
+  let nearestCumulativeMeters = 0;
+  let projectedCoordinate: [number, number] | null = null;
+
+  for (let index = 0; index < coordinates.length - 1; index += 1) {
+    const start = coordinates[index];
+    const end = coordinates[index + 1];
+    const segmentDistanceMeters = haversineDistanceMeters(
+      { lat: start[1], lng: start[0] },
+      { lat: end[1], lng: end[0] }
+    );
+    const startPoint = toPlanarPoint(start, location.lat);
+    const endPoint = toPlanarPoint(end, location.lat);
+    const segmentX = endPoint.x - startPoint.x;
+    const segmentY = endPoint.y - startPoint.y;
+    const segmentLengthSquared = segmentX * segmentX + segmentY * segmentY;
+
+    if (segmentLengthSquared > 0) {
+      const progress = clamp01(
+        ((userPoint.x - startPoint.x) * segmentX + (userPoint.y - startPoint.y) * segmentY) /
+          segmentLengthSquared
+      );
+      const projected: [number, number] = [
+        start[0] + (end[0] - start[0]) * progress,
+        start[1] + (end[1] - start[1]) * progress,
+      ];
+      const distanceMeters = haversineDistanceMeters(location, { lat: projected[1], lng: projected[0] });
+
+      if (distanceMeters < nearestDistanceMeters) {
+        nearestDistanceMeters = distanceMeters;
+        nearestSegmentIndex = index;
+        nearestSegmentProgress = progress;
+        nearestCumulativeMeters = cumulativeBeforeSegmentMeters + segmentDistanceMeters * progress;
+        projectedCoordinate = projected;
+      }
+    }
+
+    cumulativeBeforeSegmentMeters += segmentDistanceMeters;
+    totalDistanceMeters += segmentDistanceMeters;
+  }
+
+  if (!projectedCoordinate) return null;
+
+  return {
+    traveled: buildRouteLineString([...coordinates.slice(0, nearestSegmentIndex + 1), projectedCoordinate]),
+    remaining: buildRouteLineString([projectedCoordinate, ...coordinates.slice(nearestSegmentIndex + 1)]),
+    distanceFromRouteMeters: nearestDistanceMeters,
+    progressRatio: totalDistanceMeters > 0 ? clamp01(nearestCumulativeMeters / totalDistanceMeters) : nearestSegmentProgress,
+  };
 };
 
 export const Evacuation = () => {
@@ -129,10 +295,38 @@ export const Evacuation = () => {
   const [routeStartedAt, setRouteStartedAt] = useState<number | null>(null);
   const [routeOrigin, setRouteOrigin] = useState<{ lat: number; lng: number } | null>(null);
   const [shouldRefreshRoute, setShouldRefreshRoute] = useState(false);
+  const [liveUserLocation, setLiveUserLocation] = useState<LiveRouteLocation | null>(null);
+  const [isNavigationFollowing, setIsNavigationFollowing] = useState(false);
+  const [routeFitKey, setRouteFitKey] = useState<string | null>(null);
+  const [routeRecenterKey, setRouteRecenterKey] = useState(0);
   const dangerZoneBboxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastDangerZoneBboxKey = useRef<string>('');
+  const navigationFollowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastAutoRerouteAt = useRef(0);
+  const isAutoRerouting = useRef(false);
   const savedLocations = useSavedLocationsStore(state => state.savedLocations);
   const clientId = useUserData(state => state.userData.clientId);
+  const routeCameraBounds = useMemo(
+    () => getRouteCameraBounds(routeResult?.route.geometry, insets.bottom),
+    [insets.bottom, routeResult?.route.geometry]
+  );
+  const routeProgress = useMemo(
+    () => getRouteProgress(routeResult?.route.geometry, liveUserLocation),
+    [liveUserLocation, routeResult?.route.geometry]
+  );
+  const hasActiveRoute = Boolean(routeResult);
+  const liveUserCoordinate = liveUserLocation
+    ? ([liveUserLocation.lng, liveUserLocation.lat] as [number, number])
+    : undefined;
+  const activeRouteCameraBounds = routeResult && !isNavigationFollowing ? routeCameraBounds : undefined;
+  const activeMapFocusCoordinate = routeResult && isNavigationFollowing ? liveUserCoordinate : mapFocusCoordinate;
+  const activeZoomLevel = routeResult && isNavigationFollowing && liveUserCoordinate ? 16 : undefined;
+  const activeCameraTriggerKey = routeResult
+    ? isNavigationFollowing
+      ? `navigation-follow-${routeResult.requestId}-${routeRecenterKey}`
+      : `route-fit-${routeResult.requestId}`
+    : mapFocusKey;
+  const hasLiveUserLocation = Boolean(liveUserLocation);
 
   const loadDangerZones = useCallback(
     async (bbox?: [number, number, number, number]) => {
@@ -214,7 +408,34 @@ export const Evacuation = () => {
     }
   }, [dangerZones, hasLoadedDangerZones, requestedDangerZoneId]);
 
+  useEffect(() => {
+    if (navigationFollowTimer.current) {
+      clearTimeout(navigationFollowTimer.current);
+      navigationFollowTimer.current = null;
+    }
+
+    if (!routeResult || routeFitKey !== routeResult.requestId) return;
+
+    setIsNavigationFollowing(false);
+    navigationFollowTimer.current = setTimeout(() => {
+      setIsNavigationFollowing(true);
+      navigationFollowTimer.current = null;
+    }, NAVIGATION_FOLLOW_DELAY_MS);
+
+    return () => {
+      if (navigationFollowTimer.current) {
+        clearTimeout(navigationFollowTimer.current);
+        navigationFollowTimer.current = null;
+      }
+    };
+  }, [routeFitKey, routeResult]);
+
   const clearRoute = useCallback(() => {
+    if (navigationFollowTimer.current) {
+      clearTimeout(navigationFollowTimer.current);
+      navigationFollowTimer.current = null;
+    }
+
     setRouteResult(null);
     setRouteError(null);
     setRouteWarnings([]);
@@ -222,34 +443,53 @@ export const Evacuation = () => {
     setRouteStartedAt(null);
     setRouteOrigin(null);
     setShouldRefreshRoute(false);
+    setLiveUserLocation(null);
+    setIsNavigationFollowing(false);
+    setRouteFitKey(null);
+    setRouteRecenterKey(0);
+    lastAutoRerouteAt.current = 0;
+    isAutoRerouting.current = false;
   }, []);
 
   const requestRoute = useCallback(
-    async (targetCenter?: EvacuationCenter) => {
+    async (options: RouteRequestOptions = {}) => {
+      const isSilent = Boolean(options.silent);
+      const targetCenterId = options.targetCenter?.id ?? options.targetCenterId ?? undefined;
+
       if (!clientId) {
         setRouteError('Your profile is missing an LGU client assignment.');
-        setRouteResult(null);
-        setRouteWarnings([]);
+        if (!isSilent) {
+          setRouteResult(null);
+          setRouteWarnings([]);
+        }
         return;
       }
 
-      setIsRouteLoading(true);
+      if (!isSilent) {
+        setIsRouteLoading(true);
+        setRouteWarnings([]);
+        setSelectedRouteCenterId(targetCenterId ?? null);
+      }
       setRouteError(null);
-      setRouteWarnings([]);
-      setSelectedRouteCenterId(targetCenter?.id ?? null);
 
       try {
-        const currentPosition = await getCurrentPositionOnce();
-        if (!currentPosition) {
-          throw new Error('Unable to get your current location.');
+        let origin = options.origin;
+
+        if (!origin || !Number.isFinite(origin.lat) || !Number.isFinite(origin.lng)) {
+          const currentPosition = await getCurrentPositionOnce();
+          if (!currentPosition) {
+            throw new Error('Unable to get your current location.');
+          }
+
+          const [lng, lat] = currentPosition;
+          origin = { lat, lng };
         }
 
-        const [lng, lat] = currentPosition;
-        const origin = { lat, lng };
+        const routeOrigin = { lat: origin.lat, lng: origin.lng };
         const result = await requestBestEvacuationRoute({
           clientId,
-          origin,
-          targetCenterId: targetCenter?.id,
+          origin: routeOrigin,
+          targetCenterId,
           travelMode,
         });
 
@@ -257,18 +497,146 @@ export const Evacuation = () => {
         setRouteWarnings(result.warnings ?? []);
         setSelectedRouteCenterId(result.selectedCenter.id);
         setRouteStartedAt(Date.now());
-        setRouteOrigin(origin);
+        setRouteOrigin(routeOrigin);
+        setLiveUserLocation(routeOrigin);
         setShouldRefreshRoute(false);
+
+        if (isSilent) {
+          setIsNavigationFollowing(true);
+        } else {
+          setIsNavigationFollowing(false);
+          setRouteFitKey(result.requestId);
+        }
       } catch (error) {
-        setRouteResult(null);
         setRouteError(getRouteErrorMessage(error));
         setRouteWarnings([]);
+        if (isSilent) {
+          setShouldRefreshRoute(true);
+        } else {
+          setRouteResult(null);
+          setRouteFitKey(null);
+          setIsNavigationFollowing(false);
+        }
       } finally {
-        setIsRouteLoading(false);
+        if (!isSilent) {
+          setIsRouteLoading(false);
+        }
       }
     },
     [clientId, travelMode]
   );
+
+  const handleUserLocationUpdate = useCallback((location: LiveRouteLocation) => {
+    setLiveUserLocation(previous => {
+      if (previous && haversineDistanceMeters(previous, location) < MIN_LIVE_LOCATION_DELTA_METERS) {
+        return previous;
+      }
+
+      return location;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!hasActiveRoute) return;
+
+    let subscription: Location.LocationSubscription | null = null;
+    let isMounted = true;
+
+    const startRouteLocationTracking = async () => {
+      const hasPermission = await requestLocationPermission();
+      if (!hasPermission || !isMounted) return;
+
+      try {
+        const nextSubscription = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.High,
+            timeInterval: 1000,
+            distanceInterval: 1,
+            mayShowUserSettingsDialog: true,
+          },
+          position => {
+            handleUserLocationUpdate({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              heading: getFiniteLocationNumber(position.coords.heading),
+              speed: getFiniteLocationNumber(position.coords.speed),
+              accuracy: getFiniteLocationNumber(position.coords.accuracy),
+            });
+          }
+        );
+
+        if (!isMounted) {
+          nextSubscription.remove();
+          return;
+        }
+
+        subscription = nextSubscription;
+      } catch (error) {
+        console.warn('Error watching evacuation route location:', error);
+      }
+    };
+
+    void startRouteLocationTracking();
+
+    return () => {
+      isMounted = false;
+      subscription?.remove();
+    };
+  }, [handleUserLocationUpdate, hasActiveRoute]);
+
+  const handleRecenterRoute = useCallback(() => {
+    if (navigationFollowTimer.current) {
+      clearTimeout(navigationFollowTimer.current);
+      navigationFollowTimer.current = null;
+    }
+
+    setIsNavigationFollowing(true);
+    setRouteRecenterKey(previous => previous + 1);
+
+    if (liveUserLocation) return;
+
+    void getCurrentPositionOnce()
+      .then(currentPosition => {
+        if (!currentPosition) return;
+        const [lng, lat] = currentPosition;
+        setLiveUserLocation({ lat, lng });
+        setRouteRecenterKey(previous => previous + 1);
+      })
+      .catch(() => {
+        // The native location puck will continue trying to provide a follow target.
+      });
+  }, [liveUserLocation]);
+
+  useEffect(() => {
+    if (!routeResult || !routeProgress || !liveUserLocation) return;
+
+    if (routeProgress.distanceFromRouteMeters < OFF_ROUTE_REROUTE_DISTANCE_METERS) return;
+
+    setShouldRefreshRoute(true);
+
+    if (liveUserLocation.accuracy && liveUserLocation.accuracy > MAX_REROUTE_ACCURACY_METERS) return;
+    if (isRouteLoading || isAutoRerouting.current) return;
+
+    const now = Date.now();
+    if (now - lastAutoRerouteAt.current < AUTO_REROUTE_COOLDOWN_MS) return;
+
+    isAutoRerouting.current = true;
+    lastAutoRerouteAt.current = now;
+    void requestRoute({
+      targetCenterId: selectedRouteCenterId ?? routeResult.selectedCenter.id,
+      origin: liveUserLocation,
+      silent: true,
+    }).finally(() => {
+      isAutoRerouting.current = false;
+    });
+  }, [
+    isRouteLoading,
+    liveUserLocation,
+    requestRoute,
+    routeProgress,
+    routeResult,
+    selectedRouteCenterId,
+  ]);
 
   useEffect(() => {
     if (!routeResult || !routeOrigin) return;
@@ -276,6 +644,8 @@ export const Evacuation = () => {
       if (routeStartedAt && Date.now() - routeStartedAt > ROUTE_STALE_MS) {
         setShouldRefreshRoute(true);
       }
+
+      if (hasLiveUserLocation) return;
 
       try {
         const currentPosition = await getCurrentPositionOnce();
@@ -289,7 +659,7 @@ export const Evacuation = () => {
       }
     }, 60000);
     return () => clearInterval(interval);
-  }, [routeOrigin, routeResult, routeStartedAt]);
+  }, [hasLiveUserLocation, routeOrigin, routeResult, routeStartedAt]);
 
   const handleVisibleBoundsChange = useCallback(
     (bbox: [number, number, number, number]) => {
@@ -326,21 +696,29 @@ export const Evacuation = () => {
         showButtons={true}
         showStyleSelector={true}
         showEvacuationLegend={true}
+        showMapOnlyToggle={true}
         data={evacuationCenters ?? undefined}
         dangerZones={dangerZones}
         routeGeoJson={routeResult?.route.geometry ?? null}
+        routeRemainingGeoJson={routeProgress?.remaining ?? null}
+        routeTraveledGeoJson={routeProgress?.traveled ?? null}
         routeConditionSegments={routeResult?.roadConditionSegments ?? []}
         focusedDangerZoneId={focusedDangerZoneId}
         selectedRouteCenterId={selectedRouteCenterId}
         travelMode={travelMode}
         onTravelModeChange={handleTravelModeChange}
         onRequestBestRoute={() => void requestRoute()}
-        onRequestRouteToCenter={center => void requestRoute(center)}
+        onRequestRouteToCenter={center => void requestRoute({ targetCenter: center })}
         isRouteLoading={isRouteLoading}
         routeWarnings={routeWarnings}
         routeError={routeError}
         showRouteRefresh={shouldRefreshRoute}
-        onRefreshRoute={() => void requestRoute()}
+        onRefreshRoute={() =>
+          void requestRoute({
+            targetCenterId: selectedRouteCenterId ?? routeResult?.selectedCenter.id,
+            origin: liveUserLocation,
+          })
+        }
         mapNotice={dangerZoneNotice}
         onDismissMapNotice={() => setDangerZoneNotice(null)}
         onVisibleBoundsChange={handleVisibleBoundsChange}
@@ -360,8 +738,15 @@ export const Evacuation = () => {
             : null
         }
         onClearRoute={clearRoute}
-        centerCoordinate={mapFocusCoordinate}
-        cameraTriggerKey={mapFocusKey}
+        onRecenterRoute={routeResult ? handleRecenterRoute : undefined}
+        cameraBounds={activeRouteCameraBounds}
+        centerCoordinate={activeMapFocusCoordinate}
+        cameraTriggerKey={activeCameraTriggerKey}
+        recenterCoordinate={routeResult ? liveUserCoordinate : undefined}
+        recenterTriggerKey={routeResult && routeRecenterKey > 0 ? routeRecenterKey : undefined}
+        recenterZoomLevel={16}
+        zoomLevel={activeZoomLevel}
+        showUserLocation={Boolean(routeResult)}
         savedLocations={savedLocations}
       />
     </Body>

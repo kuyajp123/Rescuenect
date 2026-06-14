@@ -11,22 +11,32 @@ import {
   getClientMapZoomSettings,
 } from '@/helper/clientMapScope';
 import { storageHelpers } from '@/helper/storage';
-import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import { useUserData } from '@/store/useBackendResponse';
 import { isUserMapStyle, useMapSettingsStore } from '@/store/useMapSettings';
+import { useSavedLocationsStore } from '@/store/useSavedLocationsStore';
 import { CenterType, EvacuationCenter } from '@/types/components';
 import { DangerZoneRecord } from '@/types/dangerZone';
-import {
-  EvacuationTravelMode,
-  RoadCondition,
-  RoadConditionSegment,
-  RouteLineString,
-} from '@/types/evacuationRoute';
+import { EvacuationTravelMode, RoadCondition, RoadConditionSegment, RouteLineString } from '@/types/evacuationRoute';
 import MapboxGL, { CircleLayer, FillLayer, Images, LineLayer, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
 import type { FeatureCollection } from 'geojson';
-import { Bookmark, Car, ChevronLeft, Footprints, List, MapIcon, Navigation } from 'lucide-react-native';
-import React, { useCallback, useEffect, useState } from 'react';
+import {
+  Bookmark,
+  Car,
+  ChevronLeft,
+  Footprints,
+  Info,
+  List,
+  MapIcon,
+  Maximize2,
+  Minimize2,
+  Navigation,
+  RefreshCw,
+  ShieldCheck,
+  TriangleAlert,
+  X,
+} from 'lucide-react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BackHandler, Image, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '../text';
 
@@ -86,11 +96,7 @@ const getPositiveFiniteNumber = (value: unknown): number | null => {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
 };
 
-const createRadiusPolygon = (
-  longitude: number,
-  latitude: number,
-  radiusKm: number
-): FeatureCollection => {
+const createRadiusPolygon = (longitude: number, latitude: number, radiusKm: number): FeatureCollection => {
   const centerLatitude = (latitude * Math.PI) / 180;
   const centerLongitude = (longitude * Math.PI) / 180;
   const angularDistance = radiusKm / EARTH_RADIUS_KM;
@@ -195,6 +201,8 @@ interface MapViewProps {
   dangerZones?: DangerZoneRecord[];
   focusedDangerZoneId?: string | null;
   routeGeoJson?: RouteLineString | null;
+  routeRemainingGeoJson?: RouteLineString | null;
+  routeTraveledGeoJson?: RouteLineString | null;
   routeConditionSegments?: RoadConditionSegment[];
   selectedRouteCenterId?: string | null;
   travelMode?: EvacuationTravelMode;
@@ -219,6 +227,7 @@ interface MapViewProps {
     roadConditionLabel?: string;
   } | null;
   onClearRoute?: () => void;
+  onRecenterRoute?: () => void;
   earthquakeData?: EarthquakeData;
   earthquakeDataList?: EarthquakeData[];
   handleMapPress?: (event: any) => void;
@@ -226,6 +235,7 @@ interface MapViewProps {
   showButtons?: boolean;
   showStyleSelector?: boolean;
   showEvacuationLegend?: boolean;
+  showMapOnlyToggle?: boolean;
   mapStyleButtonTop?: number;
   mapStyleSelectorTop?: number;
   interactive?: boolean;
@@ -237,12 +247,16 @@ interface MapViewProps {
   centerCoordinate?: [number, number];
   cameraBounds?: CameraBoundsWithPadding;
   cameraTriggerKey?: string | number;
+  recenterCoordinate?: [number, number];
+  recenterTriggerKey?: string | number;
+  recenterZoomLevel?: number;
   compassViewMargins?: { x: number; y: number };
   maxBounds?: [[number, number], [number, number]] | null;
   zoomLevel?: number;
   minZoomLevel?: number;
   maxZoomLevel?: number;
   followUserLocation?: boolean;
+  showUserLocation?: boolean;
   hasAnimation?: boolean;
   show3DBuildings?: boolean;
   onMarkerPress?: (markerId: string) => void;
@@ -299,6 +313,42 @@ const formatDangerZoneLabel = (value: string) =>
     .split('_')
     .map(part => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
+
+const formatLabelValue = (value: string) =>
+  value
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
+const getDangerZoneSeverityColor = (severity: DangerZoneRecord['severity']) => {
+  switch (severity) {
+    case 'critical':
+      return '#991B1B';
+    case 'high':
+      return Colors.semantic.error;
+    case 'medium':
+      return Colors.semantic.warning;
+    default:
+      return Colors.semantic.info;
+  }
+};
+
+const getDangerZoneStatusColor = (status: DangerZoneRecord['status']) => {
+  switch (status) {
+    case 'verified':
+      return Colors.semantic.success;
+    case 'pending':
+      return Colors.semantic.warning;
+    case 'resolved':
+      return Colors.semantic.info;
+    case 'rejected':
+    case 'expired':
+      return '#64748B';
+    default:
+      return Colors.semantic.info;
+  }
+};
 
 const formatRouteDistance = (meters: number) => {
   if (!Number.isFinite(meters)) return 'Unknown distance';
@@ -361,6 +411,8 @@ export const MapView: React.FC<MapViewProps> = ({
   dangerZones,
   focusedDangerZoneId,
   routeGeoJson,
+  routeRemainingGeoJson,
+  routeTraveledGeoJson,
   routeConditionSegments = [],
   selectedRouteCenterId,
   travelMode = 'driving',
@@ -377,6 +429,7 @@ export const MapView: React.FC<MapViewProps> = ({
   onVisibleBoundsChange,
   routeSummary,
   onClearRoute,
+  onRecenterRoute,
   earthquakeData,
   earthquakeDataList,
   handleMapPress,
@@ -388,18 +441,23 @@ export const MapView: React.FC<MapViewProps> = ({
   showButtons = true,
   showStyleSelector = true,
   showEvacuationLegend = false,
+  showMapOnlyToggle = false,
   mapStyleButtonTop = 80,
   mapStyleSelectorTop = 130,
   interactive = true,
   centerCoordinate,
   cameraBounds,
   cameraTriggerKey,
+  recenterCoordinate,
+  recenterTriggerKey,
+  recenterZoomLevel = 16,
   compassViewMargins = { x: 20, y: 20 },
   maxBounds,
   zoomLevel,
   minZoomLevel,
   maxZoomLevel,
   followUserLocation = false,
+  showUserLocation = false,
   hasAnimation = true,
   show3DBuildings = true,
   onMarkerPress,
@@ -407,6 +465,8 @@ export const MapView: React.FC<MapViewProps> = ({
   savedLocations,
 }) => {
   const router = useRouter();
+  const cameraRef = useRef<any>(null);
+  const lastRecenterTrigger = useRef<string | number | undefined>(undefined);
   const { isDark } = useTheme();
   const { setMapStyle } = useMap();
   const mapStyleFromSettings = useMapSettingsStore(state => state.mapStyle);
@@ -432,6 +492,8 @@ export const MapView: React.FC<MapViewProps> = ({
   const [isMapReady, setIsMapReady] = useState(false);
   const [showSavedLocations, setShowSavedLocations] = useState(false);
   const [isLegendOpen, setIsLegendOpen] = useState(false);
+  const [isMapOnlyView, setIsMapOnlyView] = useState(false);
+  const [isRouteCardCompact, setIsRouteCardCompact] = useState(false);
 
   useEffect(() => {
     const loadMapStyle = async () => {
@@ -473,6 +535,40 @@ export const MapView: React.FC<MapViewProps> = ({
       setShowSavedLocations(false);
     }
   }, [savedLocationsList.length]);
+
+  useEffect(() => {
+    if (!showMapOnlyToggle && isMapOnlyView) {
+      setIsMapOnlyView(false);
+    }
+  }, [isMapOnlyView, showMapOnlyToggle]);
+
+  useEffect(() => {
+    if (isMapOnlyView) {
+      setShowMapStyles(false);
+      setShowSavedLocations(false);
+      setIsLegendOpen(false);
+    }
+  }, [isMapOnlyView]);
+
+  useEffect(() => {
+    if (!routeSummary) {
+      setIsRouteCardCompact(false);
+    }
+  }, [routeSummary]);
+
+  useEffect(() => {
+    if (!recenterTriggerKey || !recenterCoordinate) return;
+    if (lastRecenterTrigger.current === recenterTriggerKey) return;
+
+    lastRecenterTrigger.current = recenterTriggerKey;
+
+    cameraRef.current?.setCamera?.({
+      centerCoordinate: recenterCoordinate,
+      zoomLevel: recenterZoomLevel,
+      animationDuration: 500,
+      animationMode: 'flyTo',
+    });
+  }, [recenterCoordinate, recenterTriggerKey, recenterZoomLevel]);
 
   useEffect(() => {
     if (!focusedDangerZoneId || !dangerZones?.length) return;
@@ -635,6 +731,36 @@ export const MapView: React.FC<MapViewProps> = ({
       }
     : undefined;
 
+  const routeRemainingFeatureCollection: FeatureCollection | undefined = routeRemainingGeoJson
+    ? {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature' as const,
+            geometry: routeRemainingGeoJson,
+            properties: { id: 'remaining-evacuation-route' },
+          },
+        ],
+      }
+    : undefined;
+
+  const routeTraveledFeatureCollection: FeatureCollection | undefined = routeTraveledGeoJson
+    ? {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature' as const,
+            geometry: routeTraveledGeoJson,
+            properties: { id: 'traveled-evacuation-route' },
+          },
+        ],
+      }
+    : undefined;
+
+  const visibleRouteFeatureCollection = routeTraveledGeoJson
+    ? routeRemainingFeatureCollection
+    : (routeRemainingFeatureCollection ?? routeFeatureCollection);
+
   const routeConditionFeatureCollection: FeatureCollection | undefined = routeConditionSegments.length
     ? {
         type: 'FeatureCollection',
@@ -683,10 +809,23 @@ export const MapView: React.FC<MapViewProps> = ({
       const swLng = Array.isArray(sw) ? Number(sw[0]) : Number(sw?.lng);
       const swLat = Array.isArray(sw) ? Number(sw[1]) : Number(sw?.lat);
       if ([neLng, neLat, swLng, swLat].some(value => !Number.isFinite(value))) return;
-      onVisibleBoundsChange([Math.min(swLng, neLng), Math.min(swLat, neLat), Math.max(swLng, neLng), Math.max(swLat, neLat)]);
+      onVisibleBoundsChange([
+        Math.min(swLng, neLng),
+        Math.min(swLat, neLat),
+        Math.max(swLng, neLng),
+        Math.max(swLat, neLat),
+      ]);
     },
     [onVisibleBoundsChange]
   );
+
+  const isEvacuationMap = showEvacuationLegend || Boolean(onRequestBestRoute || routeSummary);
+  const surfaceColor = isDark ? 'rgba(23, 23, 23, 0.96)' : 'rgba(255, 255, 255, 0.96)';
+  const elevatedSurfaceColor = isDark ? 'rgba(31, 41, 55, 0.96)' : 'rgba(248, 250, 252, 0.96)';
+  const subtleSurfaceColor = isDark ? 'rgba(55, 65, 81, 0.7)' : 'rgba(241, 245, 249, 0.95)';
+  const subtleBorderColor = isDark ? 'rgba(148, 163, 184, 0.24)' : 'rgba(203, 213, 225, 0.9)';
+  const mutedTextColor = isDark ? Colors.muted.dark.text : Colors.muted.light.text;
+  const effectiveCompassViewMargins = isEvacuationMap || isMapOnlyView ? { x: 20, y: 90 } : compassViewMargins;
 
   return (
     <View style={styles.mapStyle}>
@@ -699,8 +838,8 @@ export const MapView: React.FC<MapViewProps> = ({
         rotateEnabled={interactive ? rotateEnabled : false}
         scrollEnabled={interactive ? scrollEnabled : false}
         zoomEnabled={interactive ? zoomEnabled : false}
-        compassViewPosition={1}
-        compassViewMargins={compassViewMargins}
+        compassViewPosition={0}
+        compassViewMargins={effectiveCompassViewMargins}
         onPress={handleMapPress}
         onWillStartLoadingMap={() => {
           setIsMapReady(false);
@@ -715,6 +854,7 @@ export const MapView: React.FC<MapViewProps> = ({
         onCameraChanged={handleCameraChanged}
       >
         <MapboxGL.Camera
+          ref={cameraRef}
           bounds={cameraBounds}
           zoomLevel={cameraBounds ? undefined : scopedZoom.zoomLevel}
           centerCoordinate={cameraBounds ? undefined : scopedCenterCoordinate}
@@ -734,6 +874,10 @@ export const MapView: React.FC<MapViewProps> = ({
           followZoomLevel={16}
           triggerKey={cameraTriggerKey}
         />
+
+        {showUserLocation && (
+          <MapboxGL.LocationPuck visible puckBearing="heading" puckBearingEnabled pulsing="default" />
+        )}
 
         {isStyleLoaded && isMapReady && (
           <>
@@ -817,8 +961,8 @@ export const MapView: React.FC<MapViewProps> = ({
               </ShapeSource>
             )}
 
-            {routeFeatureCollection && (
-              <ShapeSource id="evacuation-route-source" shape={routeFeatureCollection}>
+            {visibleRouteFeatureCollection && (
+              <ShapeSource id="evacuation-route-source" shape={visibleRouteFeatureCollection}>
                 <LineLayer
                   id="evacuation-route-layer"
                   style={{
@@ -860,6 +1004,21 @@ export const MapView: React.FC<MapViewProps> = ({
                     ],
                     lineWidth: 8,
                     lineOpacity: 0.94,
+                    lineCap: 'round',
+                    lineJoin: 'round',
+                  }}
+                />
+              </ShapeSource>
+            )}
+
+            {routeTraveledFeatureCollection && (
+              <ShapeSource id="evacuation-route-traveled-source" shape={routeTraveledFeatureCollection}>
+                <LineLayer
+                  id="evacuation-route-traveled-layer"
+                  style={{
+                    lineColor: isDark ? '#94A3B8' : '#64748B',
+                    lineWidth: 10,
+                    lineOpacity: 0.62,
                     lineCap: 'round',
                     lineJoin: 'round',
                   }}
@@ -1021,7 +1180,29 @@ export const MapView: React.FC<MapViewProps> = ({
       </MapboxGL.MapView>
 
       {/* Simple detail view */}
-      {selectedMarker && (
+      {showMapOnlyToggle && isEvacuationMap && (
+        <Pressable
+          onPress={() => setIsMapOnlyView(prev => !prev)}
+          accessibilityRole="button"
+          accessibilityLabel={isMapOnlyView ? 'Exit map-only view' : 'Enter map-only view'}
+          style={({ pressed }) => [
+            styles.mapOnlyToggle,
+            {
+              backgroundColor: surfaceColor,
+              borderColor: subtleBorderColor,
+              opacity: pressed ? 0.82 : 1,
+            },
+          ]}
+        >
+          {isMapOnlyView ? (
+            <Minimize2 size={21} color={isDark ? Colors.icons.dark : Colors.icons.light} />
+          ) : (
+            <Maximize2 size={21} color={isDark ? Colors.icons.dark : Colors.icons.light} />
+          )}
+        </Pressable>
+      )}
+
+      {!isMapOnlyView && selectedMarker && (
         <View style={styles.detailsOverlay} pointerEvents="box-none">
           <Pressable style={styles.detailsBackdrop} onPress={() => setSelectedMarker(null)} />
           <DetailsCard
@@ -1041,38 +1222,103 @@ export const MapView: React.FC<MapViewProps> = ({
         </View>
       )}
 
-      {selectedDangerZone && (
+      {!isMapOnlyView && selectedDangerZone && (
         <View style={styles.detailsOverlay} pointerEvents="box-none">
           <Pressable style={styles.detailsBackdrop} onPress={() => setSelectedDangerZone(null)} />
-          <View
-            style={[
-              styles.dangerZoneCard,
-              { backgroundColor: isDark ? Colors.background.dark : Colors.background.light },
-            ]}
-          >
-            <Text size="lg" bold>
-              {formatDangerZoneLabel(selectedDangerZone.type)}
-            </Text>
-            <Text size="xs" emphasis="light">
-              {selectedDangerZone.geometryType.toUpperCase()} - {selectedDangerZone.severity.toUpperCase()} - {selectedDangerZone.status}
-            </Text>
-            <Text size="sm" style={styles.dangerZoneDescription}>
-              {selectedDangerZone.description}
-            </Text>
-            <HoveredButton
-              onPress={() => setSelectedDangerZone(null)}
-              style={[styles.dangerZoneCloseButton, { backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light }]}
-            >
-              <Text size="sm" style={{ color: '#fff' }}>
-                Close
-              </Text>
-            </HoveredButton>
+          <View style={[styles.dangerZoneCard, { backgroundColor: surfaceColor, borderColor: subtleBorderColor }]}>
+            <View style={styles.dangerZoneHandle} />
+            <View style={styles.dangerZoneHeader}>
+              <View
+                style={[
+                  styles.dangerZoneIcon,
+                  { backgroundColor: `${getDangerZoneSeverityColor(selectedDangerZone.severity)}22` },
+                ]}
+              >
+                <TriangleAlert size={22} color={getDangerZoneSeverityColor(selectedDangerZone.severity)} />
+              </View>
+              <View style={styles.dangerZoneTitleGroup}>
+                <Text size="2xs" style={[styles.routeEyebrow, { color: mutedTextColor }]}>
+                  {selectedDangerZone.status === 'verified' ? 'Verified map hazard' : 'Map hazard details'}
+                </Text>
+                <Text size="xl" bold numberOfLines={2}>
+                  {formatDangerZoneLabel(selectedDangerZone.type)}
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setSelectedDangerZone(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Close danger zone details"
+                style={({ pressed }) => [
+                  styles.dangerZoneIconButton,
+                  {
+                    backgroundColor: subtleSurfaceColor,
+                    borderColor: subtleBorderColor,
+                    opacity: pressed ? 0.74 : 1,
+                  },
+                ]}
+              >
+                <X size={16} color={isDark ? Colors.icons.dark : Colors.icons.light} />
+              </Pressable>
+            </View>
+
+            <View style={styles.dangerZoneChipRow}>
+              <View
+                style={[
+                  styles.dangerZoneChip,
+                  { backgroundColor: `${getDangerZoneSeverityColor(selectedDangerZone.severity)}1F` },
+                ]}
+              >
+                <Text size="2xs" bold style={{ color: getDangerZoneSeverityColor(selectedDangerZone.severity) }}>
+                  {formatLabelValue(selectedDangerZone.severity)} severity
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.dangerZoneChip,
+                  { backgroundColor: `${getDangerZoneStatusColor(selectedDangerZone.status)}1F` },
+                ]}
+              >
+                <Text size="2xs" bold style={{ color: getDangerZoneStatusColor(selectedDangerZone.status) }}>
+                  {formatLabelValue(selectedDangerZone.status)}
+                </Text>
+              </View>
+              <View style={[styles.dangerZoneChip, { backgroundColor: subtleSurfaceColor }]}>
+                <Text size="2xs" bold>
+                  {formatLabelValue(selectedDangerZone.geometryType)}
+                  {selectedDangerZone.geometryType === 'circle' && selectedDangerZone.radiusMeters
+                    ? ` - ${Math.round(selectedDangerZone.radiusMeters)}m`
+                    : ''}
+                </Text>
+              </View>
+            </View>
+
+            {!!selectedDangerZone.description?.trim() && (
+              <View
+                style={[
+                  styles.dangerZoneDescriptionBox,
+                  { backgroundColor: elevatedSurfaceColor, borderColor: subtleBorderColor },
+                ]}
+              >
+                <Text size="2xs" style={[styles.dangerZoneSectionLabel, { color: mutedTextColor }]}>
+                  Details
+                </Text>
+                <Text size="sm" style={styles.dangerZoneDescription}>
+                  {selectedDangerZone.description.trim()}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       )}
 
-      {showEvacuationLegend && (
-        <View pointerEvents="box-none" style={styles.legendWrapper}>
+      {!isMapOnlyView && showEvacuationLegend && (
+        <View
+          pointerEvents="box-none"
+          style={[
+            styles.legendWrapper,
+            routeSummary && (isRouteCardCompact ? styles.legendWrapperWithCompactRoute : styles.legendWrapperWithRoute),
+          ]}
+        >
           <HoveredButton
             onPress={toggleLegend}
             style={[styles.legendToggle, { backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light }]}
@@ -1116,7 +1362,7 @@ export const MapView: React.FC<MapViewProps> = ({
         </View>
       )}
 
-      {selectedRoadCondition && (
+      {!isMapOnlyView && selectedRoadCondition && (
         <View style={styles.detailsOverlay} pointerEvents="box-none">
           <Pressable style={styles.detailsBackdrop} onPress={() => setSelectedRoadCondition(null)} />
           <View
@@ -1159,7 +1405,10 @@ export const MapView: React.FC<MapViewProps> = ({
             ) : null}
             <HoveredButton
               onPress={() => setSelectedRoadCondition(null)}
-              style={[styles.dangerZoneCloseButton, { backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light }]}
+              style={[
+                styles.dangerZoneCloseButton,
+                { backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light },
+              ]}
             >
               <Text size="sm" style={{ color: '#fff' }}>
                 Close
@@ -1169,87 +1418,275 @@ export const MapView: React.FC<MapViewProps> = ({
         </View>
       )}
 
-      {(routeSummary || routeError || mapNotice) && !selectedMarker && !selectedDangerZone && !selectedRoadCondition && (
-        <View
-          style={[
-            styles.routeStatusCard,
-            { backgroundColor: isDark ? Colors.background.dark : Colors.background.light },
-          ]}
-        >
-          {routeSummary ? (
-            <>
-              <Text size="sm" bold>
-                Route to {routeSummary.selectedCenterName}
-              </Text>
-              <Text size="xs" emphasis="light">
-                {formatTravelMode(routeSummary.travelMode)} - {formatRouteDistance(routeSummary.distanceMeters)} -{' '}
-                {formatRouteDuration(routeSummary.durationSeconds)} - {routeSummary.provider}
-              </Text>
-              {routeSummary.durationTypicalSeconds ? (
-                <Text size="xs" emphasis="light">
-                  Typical time: {formatRouteDuration(routeSummary.durationTypicalSeconds)}
-                </Text>
-              ) : null}
-              {routeSummary.roadConditionLabel ? (
-                <Text size="xs" emphasis="light">
-                  Road condition: {routeSummary.roadConditionLabel}
-                </Text>
-              ) : null}
-              <Text size="xs" emphasis="light" style={styles.routeLegendText}>
-                Blue is the route. Colored parts show road conditions.
-              </Text>
-            </>
-          ) : (
-            <Text size="sm" bold style={styles.routeErrorText}>
-              {routeError ?? mapNotice}
-            </Text>
-          )}
-          {routeWarnings.map(warning => (
-            <Text key={warning} size="xs" emphasis="light" style={styles.routeWarningText}>
-              {warning}
-            </Text>
-          ))}
-          {routeSummary && showRouteRefresh && onRefreshRoute ? (
-            <HoveredButton
-              onPress={onRefreshRoute}
-              style={[styles.refreshRouteButton, { backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light }]}
-            >
-              <Text size="xs" bold style={{ color: '#fff' }}>
-                Refresh route
-              </Text>
-            </HoveredButton>
-          ) : null}
-          {!routeSummary && !routeError && mapNotice && onDismissMapNotice ? (
-            <HoveredButton
-              onPress={onDismissMapNotice}
-              style={[styles.clearRouteButton, { backgroundColor: isDark ? Colors.border.dark : Colors.border.light }]}
-            >
-              <Text size="xs" bold>
-                Close
-              </Text>
-            </HoveredButton>
-          ) : onClearRoute ? (
-            <HoveredButton
-              onPress={onClearRoute}
-              style={[styles.clearRouteButton, { backgroundColor: isDark ? Colors.border.dark : Colors.border.light }]}
-            >
-              <Text size="xs" bold>
-                Clear route
-              </Text>
-            </HoveredButton>
-          ) : null}
-        </View>
-      )}
+      {!isMapOnlyView &&
+        (routeSummary || routeError || mapNotice) &&
+        !selectedMarker &&
+        !selectedDangerZone &&
+        !selectedRoadCondition && (
+          <View
+            style={[
+              styles.routeStatusCard,
+              isEvacuationMap && styles.evacuationRouteStatusCard,
+              routeSummary && isRouteCardCompact && styles.evacuationRouteStatusCardCompact,
+              { backgroundColor: surfaceColor, borderColor: subtleBorderColor },
+            ]}
+          >
+            {routeSummary ? (
+              <>
+                <View style={styles.routeActionRow}>
+                  <View style={styles.routeActionButtonGroup}>
+                    <HoveredButton
+                      onPress={() => setIsRouteCardCompact(prev => !prev)}
+                      style={[
+                        styles.routeCardControlButton,
+                        { backgroundColor: subtleSurfaceColor, borderColor: subtleBorderColor },
+                      ]}
+                    >
+                      {isRouteCardCompact ? (
+                        <Maximize2 size={14} color={isDark ? Colors.icons.dark : Colors.icons.light} />
+                      ) : (
+                        <Minimize2 size={14} color={isDark ? Colors.icons.dark : Colors.icons.light} />
+                      )}
+                      <Text size="xs" bold>
+                        {isRouteCardCompact ? 'Details' : 'Compact'}
+                      </Text>
+                    </HoveredButton>
 
-      {(showButtons || showStyleSelector) && (
+                    {onRecenterRoute ? (
+                      <HoveredButton
+                        onPress={onRecenterRoute}
+                        style={[
+                          styles.routeCardControlButton,
+                          { backgroundColor: subtleSurfaceColor, borderColor: subtleBorderColor },
+                        ]}
+                      >
+                        <Navigation size={14} color={Colors.brand.light} />
+                        <Text size="xs" bold>
+                          Center
+                        </Text>
+                      </HoveredButton>
+                    ) : null}
+
+                    {routeSummary && showRouteRefresh && onRefreshRoute ? (
+                      <HoveredButton
+                        onPress={onRefreshRoute}
+                        style={[
+                          styles.refreshRouteButton,
+                          { backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light },
+                        ]}
+                      >
+                        <RefreshCw size={14} color="#FFFFFF" />
+                        <Text size="xs" bold style={{ color: '#FFFFFF' }}>
+                          Refresh
+                        </Text>
+                      </HoveredButton>
+                    ) : null}
+                  </View>
+
+                  {!routeSummary && !routeError && mapNotice && onDismissMapNotice ? (
+                    <HoveredButton
+                      onPress={onDismissMapNotice}
+                      style={[
+                        styles.clearRouteButton,
+                        { backgroundColor: subtleSurfaceColor, borderColor: subtleBorderColor },
+                      ]}
+                    >
+                      <X size={14} color={isDark ? Colors.text.dark : Colors.text.light} />
+                      <Text size="xs" bold>
+                        Close
+                      </Text>
+                    </HoveredButton>
+                  ) : onClearRoute ? (
+                    <HoveredButton
+                      onPress={onClearRoute}
+                      style={[
+                        styles.clearRouteButton,
+                        { backgroundColor: subtleSurfaceColor, borderColor: subtleBorderColor },
+                      ]}
+                    >
+                      <X size={14} color={isDark ? Colors.text.dark : Colors.text.light} />
+                      <Text size="xs" bold>
+                        Clear route
+                      </Text>
+                    </HoveredButton>
+                  ) : null}
+                </View>
+                <View style={[styles.routeSummaryHeader, isRouteCardCompact && styles.routeSummaryHeaderCompact]}>
+                  <View
+                    style={[
+                      styles.routeSummaryIcon,
+                      isRouteCardCompact && styles.routeSummaryIconCompact,
+                      { backgroundColor: Colors.brand.light },
+                    ]}
+                  >
+                    <Navigation size={22} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.routeSummaryTitleGroup}>
+                    <Text size="2xs" style={[styles.routeEyebrow, { color: mutedTextColor }]}>
+                      Best available route
+                    </Text>
+                    <Text size="lg" bold numberOfLines={2}>
+                      Route to {routeSummary.selectedCenterName}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.routeMetricRow}>
+                  <View
+                    style={[
+                      styles.routeMetricPill,
+                      { backgroundColor: subtleSurfaceColor, borderColor: subtleBorderColor },
+                    ]}
+                  >
+                    {routeSummary.travelMode === 'driving' ? (
+                      <Car size={16} color={Colors.brand.light} />
+                    ) : (
+                      <Footprints size={16} color={Colors.brand.light} />
+                    )}
+                    <Text size="xs" bold>
+                      {formatTravelMode(routeSummary.travelMode)}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.routeMetricPill,
+                      { backgroundColor: subtleSurfaceColor, borderColor: subtleBorderColor },
+                    ]}
+                  >
+                    <Text size="xs" bold>
+                      {formatRouteDistance(routeSummary.distanceMeters)}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.routeMetricPill,
+                      { backgroundColor: subtleSurfaceColor, borderColor: subtleBorderColor },
+                    ]}
+                  >
+                    <Text size="xs" bold>
+                      {formatRouteDuration(routeSummary.durationSeconds)}
+                    </Text>
+                  </View>
+                  {isRouteCardCompact && routeWarnings.length > 0 ? (
+                    <View
+                      style={[
+                        styles.routeMetricPill,
+                        { backgroundColor: subtleSurfaceColor, borderColor: subtleBorderColor },
+                      ]}
+                    >
+                      <Info size={14} color={Colors.semantic.warning} />
+                      <Text size="xs" bold>
+                        {routeWarnings.length} warning{routeWarnings.length === 1 ? '' : 's'}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+
+                <View
+                  style={[
+                    styles.routeInfoRow,
+                    { backgroundColor: elevatedSurfaceColor, borderColor: subtleBorderColor },
+                  ]}
+                >
+                  <ShieldCheck size={16} color={Colors.semantic.success} />
+                  <Text size="xs" style={styles.routeInfoText}>
+                    {routeSummary.roadConditionLabel
+                      ? `Road condition: ${routeSummary.roadConditionLabel}`
+                      : 'Road condition data unavailable'}
+                  </Text>
+                </View>
+
+                {!isRouteCardCompact ? (
+                  <>
+                    {routeSummary.roadConditionLabel ? (
+                      <View
+                        style={[
+                          styles.routeInfoRow,
+                          { backgroundColor: elevatedSurfaceColor, borderColor: subtleBorderColor },
+                        ]}
+                      >
+                        <Info size={16} color={Colors.semantic.info} />
+                        <Text size="xs" style={styles.routeInfoText} numberOfLines={2}>
+                          Suggested by {routeSummary.provider}
+                        </Text>
+                      </View>
+                    ) : null}
+
+                    {routeSummary.durationTypicalSeconds ? (
+                      <Text size="2xs" style={[styles.routeTypicalText, { color: mutedTextColor }]}>
+                        Typical time: {formatRouteDuration(routeSummary.durationTypicalSeconds)}
+                      </Text>
+                    ) : null}
+
+                    <View style={styles.routeConditionLegendBlock}>
+                      <Text size="2xs" style={[styles.routeLegendText, { color: mutedTextColor }]}>
+                        Route colors show road conditions.
+                      </Text>
+                      <View style={styles.routeConditionLegendRow}>
+                        {[
+                          { label: 'Good', condition: 'low' as const },
+                          { label: 'Moderate', condition: 'moderate' as const },
+                          { label: 'Slow', condition: 'heavy' as const },
+                          { label: 'Heavy', condition: 'severe' as const },
+                        ].map(item => (
+                          <View key={item.condition} style={styles.routeConditionLegendItem}>
+                            <View
+                              style={[
+                                styles.routeConditionLegendSwatch,
+                                { backgroundColor: getRoadConditionColor(item.condition) },
+                              ]}
+                            />
+                            <Text size="2xs">{item.label}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  </>
+                ) : null}
+              </>
+            ) : (
+              <View style={styles.routeNoticeHeader}>
+                <Info size={18} color={routeError ? Colors.semantic.error : Colors.semantic.info} />
+                <Text size="sm" bold style={routeError ? styles.routeErrorText : styles.routeNoticeText}>
+                  {routeError ?? mapNotice}
+                </Text>
+              </View>
+            )}
+
+            {!isRouteCardCompact
+              ? routeWarnings.map(warning => (
+                  <View key={warning} style={[styles.routeWarningRow, { backgroundColor: subtleSurfaceColor }]}>
+                    <Info size={14} color={Colors.semantic.warning} />
+                    <Text size="2xs" style={styles.routeWarningText}>
+                      {warning}
+                    </Text>
+                  </View>
+                ))
+              : null}
+          </View>
+        )}
+
+      {!isMapOnlyView && (showButtons || showStyleSelector) && (
         <>
           {showButtons && (
             <HoveredButton
               onPress={() => router.back()}
-              style={[styles.toggleButton, { backgroundColor: isDark ? Colors.border.dark : Colors.border.light }]}
+              style={[
+                styles.toggleButton,
+                isEvacuationMap && styles.evacuationBackButton,
+                { backgroundColor: isDark ? Colors.border.dark : Colors.border.light },
+              ]}
             >
               <ChevronLeft size={24} color={isDark ? Colors.border.light : Colors.border.dark} />
             </HoveredButton>
+          )}
+
+          {showButtons && isEvacuationMap && (
+            <View style={[styles.evacuationHeader, { backgroundColor: surfaceColor, borderColor: subtleBorderColor }]}>
+              <Text size="lg" bold numberOfLines={1}>
+                Evacuation Route
+              </Text>
+            </View>
           )}
 
           {showStyleSelector && (
@@ -1258,8 +1695,8 @@ export const MapView: React.FC<MapViewProps> = ({
               style={[
                 styles.mapStyleButton,
                 {
-                  top: mapStyleButtonTop,
-                  backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light,
+                  top: isEvacuationMap ? 92 : mapStyleButtonTop,
+                  backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
                 },
               ]}
             >
@@ -1280,26 +1717,28 @@ export const MapView: React.FC<MapViewProps> = ({
               }
               style={[
                 styles.bestRouteButton,
+                isEvacuationMap && styles.evacuationBestRouteButton,
                 {
                   backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light,
                   opacity: isRouteLoading ? 0.65 : 1,
                 },
               ]}
             >
-              <Navigation size={18} color="#fff" />
-              <Text size="sm" bold style={styles.bestRouteButtonText}>
+              <Navigation size={isEvacuationMap ? 24 : 18} color="#fff" />
+              <Text size={isEvacuationMap ? '2xs' : 'sm'} bold style={styles.bestRouteButtonText}>
                 {isRouteLoading ? 'Routing...' : 'Best Route'}
               </Text>
             </HoveredButton>
           )}
 
-          {showButtons && onTravelModeChange && (
+          {/* {showButtons && onTravelModeChange && (
             <View
               style={[
                 styles.travelModeSelector,
+                isEvacuationMap && styles.evacuationTravelModeSelector,
                 {
-                  backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
-                  borderColor: isDark ? Colors.border.dark : Colors.border.light,
+                  backgroundColor: surfaceColor,
+                  borderColor: subtleBorderColor,
                 },
               ]}
             >
@@ -1320,6 +1759,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     }}
                     style={[
                       styles.travelModeOption,
+                      isEvacuationMap && styles.evacuationTravelModeOption,
                       { backgroundColor: isActive ? Colors.brand.light : 'transparent' },
                     ]}
                   >
@@ -1335,13 +1775,14 @@ export const MapView: React.FC<MapViewProps> = ({
                 );
               })}
             </View>
-          )}
+          )} */}
 
           {showButtons && savedLocationsList.length > 0 && (
             <HoveredButton
               onPress={toggleSavedLocations}
               style={[
                 styles.savedLocationsButton,
+                isEvacuationMap && styles.evacuationSavedLocationsButton,
                 {
                   backgroundColor: showSavedLocations
                     ? Colors.brand.light
@@ -1360,7 +1801,7 @@ export const MapView: React.FC<MapViewProps> = ({
               style={[
                 styles.mapStyleSelector,
                 {
-                  top: mapStyleSelectorTop,
+                  top: isEvacuationMap ? 146 : mapStyleSelectorTop,
                   backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
                   borderColor: isDark ? Colors.border.dark : Colors.border.light,
                 },
@@ -1459,6 +1900,49 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 4,
   },
+  evacuationBackButton: {
+    top: 22,
+    left: 16,
+    width: 54,
+    height: 54,
+    padding: 0,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  evacuationHeader: {
+    position: 'absolute',
+    top: 22,
+    left: 82,
+    right: 82,
+    minHeight: 54,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.14,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+  },
+  mapOnlyToggle: {
+    position: 'absolute',
+    top: 22,
+    right: 16,
+    width: 54,
+    height: 54,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 70,
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.16,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+  },
   mapStyleButton: {
     position: 'absolute',
     top: 80,
@@ -1485,6 +1969,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 4,
   },
+  evacuationSavedLocationsButton: {
+    top: 270,
+    right: 26,
+  },
   bestRouteButton: {
     position: 'absolute',
     top: 135,
@@ -1502,8 +1990,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 7,
   },
+  evacuationBestRouteButton: {
+    top: 162,
+    right: 16,
+    width: 92,
+    minHeight: 92,
+    borderRadius: 46,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
   bestRouteButtonText: {
     color: '#fff',
+    textAlign: 'center',
   },
   travelModeSelector: {
     position: 'absolute',
@@ -1520,6 +2022,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
   },
+  evacuationTravelModeSelector: {
+    top: 92,
+    left: 78,
+    right: 78,
+    borderRadius: 22,
+    padding: 5,
+  },
   travelModeOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1527,6 +2036,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 9,
     paddingVertical: 7,
+  },
+  evacuationTravelModeOption: {
+    flex: 1,
+    justifyContent: 'center',
+    borderRadius: 17,
+    paddingVertical: 9,
   },
   mapStyleSelector: {
     position: 'absolute',
@@ -1571,15 +2086,70 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-    bottom: 24,
-    borderRadius: 16,
+    bottom: 18,
+    borderRadius: 22,
+    borderWidth: 1,
     padding: 16,
-    gap: 8,
+    gap: 12,
     elevation: 8,
     shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 5 },
+    shadowRadius: 12,
+  },
+  dangerZoneHandle: {
+    width: 42,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(148, 163, 184, 0.45)',
+    marginBottom: 2,
+  },
+  dangerZoneHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dangerZoneIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dangerZoneTitleGroup: {
+    flex: 1,
+    minWidth: 0,
+  },
+  dangerZoneIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dangerZoneChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  dangerZoneChip: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  dangerZoneDescriptionBox: {
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 4,
+  },
+  dangerZoneSectionLabel: {
+    textTransform: 'uppercase',
+    fontWeight: '800',
+    letterSpacing: 0,
   },
   dangerZoneDescription: {
     lineHeight: 20,
@@ -1624,6 +2194,7 @@ const styles = StyleSheet.create({
     right: 16,
     bottom: 78,
     borderRadius: 14,
+    borderWidth: 1,
     padding: 14,
     gap: 7,
     elevation: 7,
@@ -1632,7 +2203,114 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 7,
   },
+  evacuationRouteStatusCard: {
+    bottom: 18,
+    borderRadius: 22,
+    padding: 16,
+    gap: 12,
+  },
+  evacuationRouteStatusCardCompact: {
+    padding: 14,
+    gap: 9,
+  },
+  routeSummaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  routeSummaryHeaderCompact: {
+    gap: 10,
+  },
+  routeSummaryIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  routeSummaryIconCompact: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  routeSummaryTitleGroup: {
+    flex: 1,
+    minWidth: 0,
+  },
+  routeEyebrow: {
+    textTransform: 'uppercase',
+    fontWeight: '800',
+    letterSpacing: 0,
+  },
+  routeMetricRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  routeMetricPill: {
+    minHeight: 34,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  routeInfoRow: {
+    minHeight: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  routeInfoText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  routeTypicalText: {
+    marginTop: -4,
+  },
+  routeConditionLegendBlock: {
+    gap: 7,
+  },
+  routeConditionLegendRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: 12,
+    rowGap: 6,
+  },
+  routeConditionLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  routeConditionLegendSwatch: {
+    width: 20,
+    height: 6,
+    borderRadius: 999,
+  },
+  routeNoticeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  routeNoticeText: {
+    flex: 1,
+  },
+  routeWarningRow: {
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 7,
+  },
   routeWarningText: {
+    flex: 1,
     lineHeight: 17,
   },
   routeLegendText: {
@@ -1640,24 +2318,62 @@ const styles = StyleSheet.create({
   },
   routeErrorText: {
     color: Colors.semantic.error,
+    flex: 1,
+  },
+  routeActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  routeActionButtonGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+    flexWrap: 'wrap',
+  },
+  routeCardControlButton: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   clearRouteButton: {
     alignSelf: 'flex-start',
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    borderWidth: 1,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   refreshRouteButton: {
     alignSelf: 'flex-start',
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   legendWrapper: {
     position: 'absolute',
     left: 16,
     bottom: 16,
     alignItems: 'flex-start',
+  },
+  legendWrapperWithRoute: {
+    bottom: 380,
+  },
+  legendWrapperWithCompactRoute: {
+    bottom: 210,
   },
   legendToggle: {
     flexDirection: 'row',
