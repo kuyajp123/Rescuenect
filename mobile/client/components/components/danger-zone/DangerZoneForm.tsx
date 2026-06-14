@@ -155,7 +155,7 @@ export const DangerZoneForm = ({ form, onChange, onSubmit, isSubmitting, error }
               {formatRadius(currentRadius)}
             </Text>
           </View>
-          <View
+          {/* <View
             style={styles.radiusRail}
             onLayout={handleRadiusRailLayout}
             onStartShouldSetResponder={() => true}
@@ -165,7 +165,7 @@ export const DangerZoneForm = ({ form, onChange, onSubmit, isSubmitting, error }
           >
             <View style={[styles.radiusRailFill, { width: `${radiusProgress * 100}%` }]} />
             <View style={[styles.radiusThumb, { left: radiusThumbLeft }]} />
-          </View>
+          </View> */}
           <View style={styles.radiusActions}>
             <Pressable style={styles.radiusButton} onPress={() => adjustRadius(-RADIUS_STEP)}>
               <Text size="sm" emphasis="bold">
