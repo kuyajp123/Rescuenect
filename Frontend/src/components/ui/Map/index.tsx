@@ -7,7 +7,7 @@ import { MapMarkerData, MapProps, StatusData } from '@/types/types';
 import L from 'leaflet';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import 'leaflet/dist/leaflet.css';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Circle, MapContainer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import { getEarthquakeSeverityColor } from '../../../config/constant.tsx';
@@ -197,8 +197,8 @@ export const Map = ({
     });
     return null;
   }
-  const [mapTileUrl, setMapTileUrl] = useState('https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'); // Default to light
   const styleUrl = useMapStyleStore(state => state.styleUrl);
+  const mapStyleAttribution = useMapStyleStore(state => state.attribution);
   // lat lng popup render
   const latLngPopupRenderer = (item: MapMarkerData) => (
     <div>
@@ -409,11 +409,6 @@ export const Map = ({
     }
   };
 
-  // Handle map style changes
-  const handleMapStyleChange = useCallback((styleUrl: string) => {
-    setMapTileUrl(styleUrl);
-  }, []);
-
   let displayMapStyleSelector = null;
   if (hasMapStyleSelector) {
     displayMapStyleSelector = 'block';
@@ -454,7 +449,7 @@ export const Map = ({
       <MapResizeHandler />
       {onMapClick && <MapClickHandler />}
       {/* Use DynamicTileLayer for style switching */}
-      <DynamicTileLayer url={mapTileUrl} attribution={attribution} />
+      <DynamicTileLayer url={styleUrl} attribution={mapStyleAttribution || attribution} />
 
       {/* Map Controller for dynamic centering */}
       {hasMapControl && (
@@ -466,7 +461,7 @@ export const Map = ({
       )}
 
       <CustomControl position="topright" className={`map-style-selector-control ${displayMapStyleSelector}`}>
-        <MapStyleSelector onStyleChange={handleMapStyleChange} />
+        <MapStyleSelector />
       </CustomControl>
 
       {CustomSettingControl && (

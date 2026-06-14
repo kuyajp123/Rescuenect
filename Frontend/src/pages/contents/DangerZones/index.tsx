@@ -1,5 +1,5 @@
 import { CompactSummaryCards } from '@/components/DangerZones/CompactSummaryCards';
-import { DetailsPanel, type CreateFormState, type DetailsPanelMode } from '@/components/DangerZones/DetailsPanel';
+import { DetailsPanel, type CreateFormErrors, type CreateFormState, type DetailsPanelMode } from '@/components/DangerZones/DetailsPanel';
 import { FiltersPanel, type ZoneFilterState } from '@/components/DangerZones/FiltersPanel';
 import { MapErrorFallback } from '@/components/DangerZones/MapErrorFallback';
 import { ThreeColumnLayout } from '@/components/DangerZones/ThreeColumnLayout';
@@ -41,9 +41,10 @@ import {
   SelectItem,
   Spinner,
   Textarea,
+  addToast,
 } from '@heroui/react';
 import { CalendarClock, Check, CircleAlert, Eye, Filter, History, List, Map as MapIcon, MapPin, Pencil, Plus, X } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const DANGER_TYPES = [
   { key: 'flooded_road', label: 'Flooded Road' },
@@ -217,6 +218,8 @@ const defaultCreateForm: CreateFormState = {
   affectedBarangaysText: '',
 };
 
+const createEmptyCreateFormErrors = (): CreateFormErrors => ({});
+
 const getGeometrySummary = (zone: Pick<DangerZoneRecord, 'geometryType' | 'radiusMeters' | 'affectedWidthMeters' | 'geojson'>) => {
   switch (zone.geometryType) {
     case 'circle':
@@ -348,13 +351,14 @@ const DangerZonesPage = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<CreateFormState>(defaultCreateForm);
   const [editingZone, setEditingZone] = useState<DangerZoneRecord | null>(null);
-  const [createError, setCreateError] = useState<string | null>(null);
+  const [createErrors, setCreateErrors] = useState<CreateFormErrors>(createEmptyCreateFormErrors);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectionReasonError, setRejectionReasonError] = useState<string | null>(null);
   const [verifyExpiresAt, setVerifyExpiresAt] = useState<string | null>(null);
   const [verifyConfidence, setVerifyConfidence] = useState<DangerZoneConfidence>('medium');
   const [verifyNotes, setVerifyNotes] = useState('');
   const [verifyBarangays, setVerifyBarangays] = useState('');
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const lastToastedErrorRef = useRef<string | null>(null);
   const hasFilterChanges = !areZoneFiltersEqual(draftFilters, appliedFilters);
   const hasCustomFilters =
     !areZoneFiltersEqual(draftFilters, DEFAULT_ZONE_FILTERS) ||
@@ -389,8 +393,16 @@ const DangerZonesPage = () => {
   }, [fetchAppliedZones]);
 
   useEffect(() => {
-    if (mapSelectedZone && !zones.some(zone => zone.id === mapSelectedZone.id)) {
+    if (!mapSelectedZone) return;
+
+    const latestSelectedZone = zones.find(zone => zone.id === mapSelectedZone.id);
+    if (!latestSelectedZone) {
       setMapSelectedZone(null);
+      return;
+    }
+
+    if (latestSelectedZone !== mapSelectedZone) {
+      setMapSelectedZone(latestSelectedZone);
     }
   }, [mapSelectedZone, zones]);
 
@@ -447,19 +459,82 @@ const DangerZonesPage = () => {
       setVerifyConfidence('medium');
       setVerifyNotes('');
       setVerifyBarangays('');
+      setRejectionReason('');
+      setRejectionReasonError(null);
     } else {
+      setRejectionReasonError(null);
       setVerifyConfidence(selectedZone.confidence ?? 'medium');
       setVerifyNotes(selectedZone.verificationNotes ?? '');
       setVerifyBarangays(selectedZone.affectedBarangays?.join(', ') ?? '');
     }
   }, [selectedZone]);
 
+  useEffect(() => {
+    if (!error) {
+      lastToastedErrorRef.current = null;
+      return;
+    }
+
+    if (lastToastedErrorRef.current === error) return;
+    lastToastedErrorRef.current = error;
+    addToast({
+      title: 'Danger zones error',
+      description: error,
+      color: 'danger',
+    });
+  }, [error]);
+
   const pendingCount = analytics?.pending ?? reports.filter(report => report.status === 'pending').length;
+
+  const validateCreateForm = (form: CreateFormState): CreateFormErrors => {
+    const nextErrors: CreateFormErrors = {};
+
+    if (!form.type) {
+      nextErrors.type = 'Danger type is required.';
+    }
+
+    if (!form.geometryType) {
+      nextErrors.geometryType = 'Geometry type is required.';
+    }
+
+    if (!form.description.trim()) {
+      nextErrors.description = 'Description is required.';
+    }
+
+    if (form.geometryType === 'circle' && (!form.radiusMeters || form.radiusMeters <= 0)) {
+      nextErrors.radiusMeters = 'Circle radius must be greater than 0.';
+    }
+
+    if (form.geometryType === 'line' && (!form.affectedWidthMeters || form.affectedWidthMeters <= 0)) {
+      nextErrors.affectedWidthMeters = 'Affected width must be greater than 0.';
+    }
+
+    if ((form.geometryType === 'point' || form.geometryType === 'circle')) {
+      if (!form.center) {
+        nextErrors.center = 'Draw the location on the map or enter coordinates.';
+      } else if (
+        !Number.isFinite(form.center.lat) ||
+        !Number.isFinite(form.center.lng) ||
+        form.center.lat < -90 ||
+        form.center.lat > 90 ||
+        form.center.lng < -180 ||
+        form.center.lng > 180
+      ) {
+        nextErrors.center = 'Enter valid latitude and longitude.';
+      }
+    }
+
+    if ((form.geometryType === 'line' || form.geometryType === 'polygon') && !form.geojson) {
+      nextErrors.geojson = `Draw a ${form.geometryType === 'line' ? 'road segment' : 'polygon'} on the map.`;
+    }
+
+    return nextErrors;
+  };
 
   const resetCreateForm = () => {
     setCreateForm(defaultCreateForm);
     setEditingZone(null);
-    setCreateError(null);
+    setCreateErrors(createEmptyCreateFormErrors());
   };
 
   const handleCreateModalOpenChange = (open: boolean) => {
@@ -467,8 +542,47 @@ const DangerZonesPage = () => {
     if (!open) resetCreateForm();
   };
 
+  const clearCreateErrors = (...keys: Array<keyof CreateFormErrors>) => {
+    setCreateErrors(prev => {
+      if (!keys.some(key => Boolean(prev[key]))) return prev;
+      const nextErrors = { ...prev };
+      keys.forEach(key => {
+        delete nextErrors[key];
+      });
+      return nextErrors;
+    });
+  };
+
   const updateCreateForm = <K extends keyof CreateFormState>(key: K, value: CreateFormState[K]) => {
     setCreateForm(prev => ({ ...prev, [key]: value }));
+
+    if (key === 'geometryType') {
+      clearCreateErrors('geometryType', 'center', 'geojson', 'radiusMeters', 'affectedWidthMeters');
+      return;
+    }
+
+    if (key === 'center') {
+      clearCreateErrors('center');
+      return;
+    }
+
+    if (key === 'geojson') {
+      clearCreateErrors('geojson');
+      return;
+    }
+
+    if (key === 'type' || key === 'description' || key === 'radiusMeters' || key === 'affectedWidthMeters') {
+      clearCreateErrors(key);
+    }
+  };
+
+  const resetDrawnGeometry = () => {
+    clearCreateErrors('center', 'geojson');
+    setCreateForm(prev => ({
+      ...prev,
+      center: null,
+      geojson: null,
+    }));
   };
 
   const updateDraftFilter = <K extends keyof ZoneFilterState>(key: K, value: ZoneFilterState[K]) => {
@@ -502,6 +616,7 @@ const DangerZonesPage = () => {
   };
 
   const handleGeometryTypeChange = (geometryType: DangerZoneGeometryType) => {
+    clearCreateErrors('geometryType', 'center', 'geojson', 'radiusMeters', 'affectedWidthMeters');
     setCreateForm(prev => ({
       ...prev,
       geometryType,
@@ -516,24 +631,11 @@ const DangerZonesPage = () => {
     }));
   };
 
-  const handleSaveOfficial = async () => {
-    setCreateError(null);
-
-    if ((createForm.geometryType === 'point' || createForm.geometryType === 'circle') && !createForm.center) {
-      setCreateError('Draw a marker/circle on the map or enter coordinates.');
-      return;
-    }
-    if (!createForm.description.trim()) {
-      setCreateError('Description is required.');
-      return;
-    }
-    if (createForm.geometryType === 'circle' && (!createForm.radiusMeters || createForm.radiusMeters <= 0)) {
-      setCreateError('Circle radius must be greater than 0.');
-      return;
-    }
-    if ((createForm.geometryType === 'line' || createForm.geometryType === 'polygon') && !createForm.geojson) {
-      setCreateError(`Draw a ${createForm.geometryType === 'line' ? 'road segment' : 'polygon'} on the map.`);
-      return;
+  const handleSaveOfficial = async (): Promise<boolean> => {
+    const validationErrors = validateCreateForm(createForm);
+    setCreateErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) {
+      return false;
     }
 
     const payload: DangerZoneCreateOfficialPayload = {
@@ -554,35 +656,61 @@ const DangerZonesPage = () => {
     const isEditing = Boolean(editingZone);
     let savedZone: DangerZoneRecord | null = null;
 
-    if (editingZone) {
-      savedZone = await updateZone(editingZone.id, payload);
-      setActionMessage('Danger zone updated.');
-    } else {
-      savedZone = await createOfficialZone(payload);
-      setActionMessage('Official danger zone created.');
-    }
+    try {
+      if (editingZone) {
+        savedZone = await updateZone(editingZone.id, payload);
+      } else {
+        savedZone = await createOfficialZone(payload);
+      }
 
-    await refreshPageData();
-    if (!isEditing) {
-      setIsMapCreateMode(false);
-      setHideMapZonesForCreate(false);
-      setMapSelectedZone(savedZone);
+      await refreshPageData();
+      if (!isEditing && savedZone) {
+        setIsMapCreateMode(false);
+        setHideMapZonesForCreate(false);
+        setMapSelectedZone(savedZone);
+      } else if (savedZone) {
+        const updatedZone = savedZone;
+        setMapSelectedZone(prev => (prev?.id === updatedZone.id ? updatedZone : prev));
+        setSelectedZone(prev => (prev?.id === updatedZone.id ? updatedZone : prev));
+      }
+      addToast({
+        title: isEditing ? 'Danger zone updated' : 'Official danger zone created',
+        color: 'success',
+      });
+      setIsCreateOpen(false);
+      resetCreateForm();
+      return true;
+    } catch {
+      // Backend/store failures are surfaced by the DangerZoneStore error toast.
+      return false;
     }
-    setIsCreateOpen(false);
-    resetCreateForm();
   };
 
   const runAction = async (action: () => Promise<DangerZoneRecord>, message: string) => {
-    await action();
-    await refreshPageData(true);
-    setActionMessage(message);
-    setSelectedZone(null);
-    setRejectionReason('');
-    setVerifyExpiresAt(null);
+    try {
+      await action();
+      await refreshPageData(true);
+      addToast({ title: message, color: 'success' });
+      setSelectedZone(null);
+      setRejectionReason('');
+      setRejectionReasonError(null);
+      setVerifyExpiresAt(null);
+    } catch {
+      // Backend/store failures are surfaced by the DangerZoneStore error toast.
+    }
+  };
+
+  const handleRejectReport = async (zone: DangerZoneRecord) => {
+    if (!rejectionReason.trim()) {
+      setRejectionReasonError('Rejection reason is required.');
+      return;
+    }
+
+    await runAction(() => rejectReport(zone.id, rejectionReason), 'Report rejected.');
   };
 
   const openEditModal = (zone: DangerZoneRecord) => {
-    setCreateError(null);
+    setCreateErrors(createEmptyCreateFormErrors());
     setEditingZone(zone);
     setCreateForm(zoneToCreateForm(zone));
     setSelectedZone(null);
@@ -597,9 +725,7 @@ const DangerZonesPage = () => {
       : 'default';
 
   // DetailsPanel handlers
-  const handleDetailsPanelSave = async () => {
-    await handleSaveOfficial();
-  };
+  const handleDetailsPanelSave = async () => handleSaveOfficial();
 
   const handleDetailsPanelEdit = () => {
     if (mapSelectedZone) {
@@ -662,18 +788,6 @@ const DangerZonesPage = () => {
         </div>
       </div>
 
-      {(error || actionMessage) && (
-        <div
-          className={`rounded-md border px-4 py-3 text-sm ${
-            error
-              ? 'border-danger-200 bg-danger-50 text-danger-700'
-              : 'border-success-200 bg-success-50 text-success-700'
-          }`}
-        >
-          {error || actionMessage}
-        </div>
-      )}
-
       <CompactSummaryCards
         pendingCount={pendingCount}
         verifiedActiveCount={analytics?.verifiedActive ?? zones.filter(zone => zone.status === 'verified' && zone.isActive).length}
@@ -699,11 +813,9 @@ const DangerZonesPage = () => {
                 createForm={createForm}
                 editingZone={editingZone}
                 isMutating={isMutating}
-                createError={createError}
-                hideMapZones={hideMapZonesForCreate}
+                createErrors={createErrors}
                 totalZonesLoaded={zones.length}
                 hasMoreZones={zonePagination?.hasMore}
-                onToggleMapZones={() => setHideMapZonesForCreate(value => !value)}
                 onUpdateCreateForm={updateCreateForm}
                 onSave={handleDetailsPanelSave}
                 onCancel={handleCancelMapCreate}
@@ -739,11 +851,14 @@ const DangerZonesPage = () => {
                     pickedGeojson={isMapCreateMode ? createForm.geojson : null}
                     affectedWidthMeters={createForm.affectedWidthMeters}
                     enableDrawing={isMapCreateMode}
+                    focusOnGeometryChange={false}
                     resizeTrigger={mapResizeTrigger}
+                    onToggleMapZones={() => setHideMapZonesForCreate(value => !value)}
                     onZoneSelect={zone => {
                       if (!isMapCreateMode) setMapSelectedZone(zone);
                     }}
-                    onDrawGeometry={geometry =>
+                    onDrawGeometry={geometry => {
+                      clearCreateErrors('center', 'geojson', 'radiusMeters', 'affectedWidthMeters');
                       setCreateForm(prev => ({
                         ...prev,
                         ...geometry,
@@ -751,8 +866,9 @@ const DangerZonesPage = () => {
                         geojson: geometry.geojson ?? null,
                         radiusMeters: geometry.radiusMeters ?? prev.radiusMeters,
                         affectedWidthMeters: geometry.affectedWidthMeters ?? prev.affectedWidthMeters,
-                      }))
-                    }
+                      }));
+                    }}
+                    onResetGeometry={resetDrawnGeometry}
                     height="640px"
                   />
                 </ErrorBoundary>
@@ -871,15 +987,13 @@ const DangerZonesPage = () => {
                     createForm={createForm}
                     editingZone={editingZone}
                     isMutating={isMutating}
-                    createError={createError}
-                    hideMapZones={hideMapZonesForCreate}
+                    createErrors={createErrors}
                     totalZonesLoaded={zones.length}
                     hasMoreZones={zonePagination?.hasMore}
-                    onToggleMapZones={() => setHideMapZonesForCreate(value => !value)}
                     onUpdateCreateForm={updateCreateForm}
                     onSave={async () => {
-                      await handleDetailsPanelSave();
-                      onClose();
+                      const didSave = await handleDetailsPanelSave();
+                      if (didSave) onClose();
                     }}
                     onCancel={() => {
                       handleCancelMapCreate();
@@ -1093,7 +1207,12 @@ const DangerZonesPage = () => {
                             labelPlacement="outside"
                             placeholder="Required only when rejecting this report"
                             value={rejectionReason}
-                            onValueChange={setRejectionReason}
+                            onValueChange={value => {
+                              setRejectionReason(value);
+                              if (rejectionReasonError) setRejectionReasonError(null);
+                            }}
+                            isInvalid={Boolean(rejectionReasonError)}
+                            errorMessage={rejectionReasonError}
                           />
                         </>
                       )}
@@ -1146,7 +1265,7 @@ const DangerZonesPage = () => {
                         variant="flat"
                         startContent={<X size={16} />}
                         isLoading={isMutating}
-                        onPress={() => runAction(() => rejectReport(selectedZone.id, rejectionReason), 'Report rejected.')}
+                        onPress={() => handleRejectReport(selectedZone)}
                       >
                         Reject
                       </Button>
@@ -1205,11 +1324,6 @@ const DangerZonesPage = () => {
                 {editingZone ? 'Edit Danger Zone' : 'Create Official Danger Zone'}
               </ModalHeader>
               <ModalBody>
-                {createError && (
-                  <div className="rounded-md border border-danger-200 bg-danger-50 px-3 py-2 text-sm text-danger-700">
-                    {createError}
-                  </div>
-                )}
                 <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
                   <div className="space-y-4">
                     <Select
@@ -1217,6 +1331,8 @@ const DangerZonesPage = () => {
                       labelPlacement="outside"
                       selectedKeys={[createForm.type]}
                       onChange={event => updateCreateForm('type', event.target.value)}
+                      isInvalid={Boolean(createErrors.type)}
+                      errorMessage={createErrors.type}
                     >
                       {DANGER_TYPES.map(type => (
                         <SelectItem key={type.key}>{type.label}</SelectItem>
@@ -1237,6 +1353,8 @@ const DangerZonesPage = () => {
                       labelPlacement="outside"
                       selectedKeys={[createForm.geometryType]}
                       onChange={event => handleGeometryTypeChange(event.target.value as DangerZoneGeometryType)}
+                      isInvalid={Boolean(createErrors.geometryType || createErrors.geojson)}
+                      errorMessage={createErrors.geometryType || createErrors.geojson}
                     >
                       <SelectItem key="point">Point</SelectItem>
                       <SelectItem key="circle">Circle</SelectItem>
@@ -1261,6 +1379,8 @@ const DangerZonesPage = () => {
                         min={1}
                         value={String(createForm.radiusMeters)}
                         onValueChange={value => updateCreateForm('radiusMeters', Number(value) || 0)}
+                        isInvalid={Boolean(createErrors.radiusMeters)}
+                        errorMessage={createErrors.radiusMeters}
                       />
                     )}
                     {createForm.geometryType === 'line' && (
@@ -1272,6 +1392,8 @@ const DangerZonesPage = () => {
                         max={100}
                         value={String(createForm.affectedWidthMeters)}
                         onValueChange={value => updateCreateForm('affectedWidthMeters', Number(value) || 30)}
+                        isInvalid={Boolean(createErrors.affectedWidthMeters)}
+                        errorMessage={createErrors.affectedWidthMeters}
                       />
                     )}
                     {(createForm.geometryType === 'point' || createForm.geometryType === 'circle') && (
@@ -1287,6 +1409,8 @@ const DangerZonesPage = () => {
                               lng: createForm.center?.lng ?? mapCenter[1],
                             })
                           }
+                          isInvalid={Boolean(createErrors.center)}
+                          errorMessage={createErrors.center}
                         />
                         <Input
                           label="Longitude"
@@ -1299,6 +1423,8 @@ const DangerZonesPage = () => {
                               lng: Number(value),
                             })
                           }
+                          isInvalid={Boolean(createErrors.center)}
+                          errorMessage={createErrors.center}
                         />
                       </div>
                     )}
@@ -1308,6 +1434,8 @@ const DangerZonesPage = () => {
                       placeholder="Describe the affected area"
                       value={createForm.description}
                       onValueChange={value => updateCreateForm('description', value)}
+                      isInvalid={Boolean(createErrors.description)}
+                      errorMessage={createErrors.description}
                     />
                     <Input
                       label="Affected barangays"
@@ -1346,7 +1474,9 @@ const DangerZonesPage = () => {
                       pickedGeojson={createForm.geojson}
                       affectedWidthMeters={createForm.affectedWidthMeters}
                       enableDrawing
-                      onDrawGeometry={geometry =>
+                      focusOnGeometryChange={!editingZone}
+                      onDrawGeometry={geometry => {
+                        clearCreateErrors('center', 'geojson', 'radiusMeters', 'affectedWidthMeters');
                         setCreateForm(prev => ({
                           ...prev,
                           ...geometry,
@@ -1354,8 +1484,9 @@ const DangerZonesPage = () => {
                           geojson: geometry.geojson ?? null,
                           radiusMeters: geometry.radiusMeters ?? prev.radiusMeters,
                           affectedWidthMeters: geometry.affectedWidthMeters ?? prev.affectedWidthMeters,
-                        }))
-                      }
+                        }));
+                      }}
+                      onResetGeometry={resetDrawnGeometry}
                       height="430px"
                     />
                   </div>
