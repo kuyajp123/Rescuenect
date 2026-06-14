@@ -227,7 +227,10 @@ interface MapViewProps {
     roadConditionLabel?: string;
   } | null;
   onClearRoute?: () => void;
-  onRecenterRoute?: () => void;
+  isFollowingUser?: boolean;
+  onToggleFollow?: () => void;
+  onUserInteraction?: () => void;
+  isFreePanMode?: boolean;
   earthquakeData?: EarthquakeData;
   earthquakeDataList?: EarthquakeData[];
   handleMapPress?: (event: any) => void;
@@ -429,7 +432,10 @@ export const MapView: React.FC<MapViewProps> = ({
   onVisibleBoundsChange,
   routeSummary,
   onClearRoute,
-  onRecenterRoute,
+  isFollowingUser,
+  onToggleFollow,
+  onUserInteraction,
+  isFreePanMode,
   earthquakeData,
   earthquakeDataList,
   handleMapPress,
@@ -494,6 +500,14 @@ export const MapView: React.FC<MapViewProps> = ({
   const [isLegendOpen, setIsLegendOpen] = useState(false);
   const [isMapOnlyView, setIsMapOnlyView] = useState(false);
   const [isRouteCardCompact, setIsRouteCardCompact] = useState(false);
+  const [hasSetInitialCamera, setHasSetInitialCamera] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setHasSetInitialCamera(true);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const loadMapStyle = async () => {
@@ -670,7 +684,9 @@ export const MapView: React.FC<MapViewProps> = ({
         features: dangerZones.flatMap(zone => {
           if (zone.geometryType === 'circle' && zone.center && zone.radiusMeters) {
             const circle = createRadiusPolygon(zone.center.lng, zone.center.lat, zone.radiusMeters / 1000).features[0];
-            return [{ ...circle, id: zone.id, properties: { ...circle.properties, id: zone.id } }];
+            return [
+              { ...circle, id: zone.id, properties: { ...circle.properties, id: zone.id, severity: zone.severity } },
+            ];
           }
           if (zone.geometryType === 'polygon' && zone.geojson?.type === 'Polygon') {
             return [
@@ -678,7 +694,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 type: 'Feature' as const,
                 id: zone.id,
                 geometry: zone.geojson,
-                properties: { id: zone.id },
+                properties: { id: zone.id, severity: zone.severity },
               },
             ];
           }
@@ -696,7 +712,7 @@ export const MapView: React.FC<MapViewProps> = ({
             type: 'Feature' as const,
             id: zone.id,
             geometry: zone.geojson!,
-            properties: { id: zone.id },
+            properties: { id: zone.id, severity: zone.severity },
           })),
       }
     : undefined;
@@ -713,7 +729,7 @@ export const MapView: React.FC<MapViewProps> = ({
               type: 'Point' as const,
               coordinates: [zone.center!.lng, zone.center!.lat],
             },
-            properties: { id: zone.id },
+            properties: { id: zone.id, severity: zone.severity },
           })),
       }
     : undefined;
@@ -800,6 +816,10 @@ export const MapView: React.FC<MapViewProps> = ({
 
   const handleCameraChanged = useCallback(
     (event: any) => {
+      if (event?.gestures?.isGesture || event?.properties?.isUserInteraction) {
+        onUserInteraction?.();
+      }
+
       if (!onVisibleBoundsChange) return;
       const bounds = event?.properties?.bounds ?? event?.bounds;
       const ne = bounds?.ne ?? bounds?.northEast;
@@ -816,7 +836,7 @@ export const MapView: React.FC<MapViewProps> = ({
         Math.max(swLat, neLat),
       ]);
     },
-    [onVisibleBoundsChange]
+    [onVisibleBoundsChange, onUserInteraction]
   );
 
   const isEvacuationMap = showEvacuationLegend || Boolean(onRequestBestRoute || routeSummary);
@@ -836,7 +856,7 @@ export const MapView: React.FC<MapViewProps> = ({
         compassEnabled={interactive ? compassEnabled : false}
         pitchEnabled={interactive ? pitchEnabled : false}
         rotateEnabled={interactive ? rotateEnabled : false}
-        scrollEnabled={interactive ? scrollEnabled : false}
+        scrollEnabled={interactive ? (isFollowingUser ? false : scrollEnabled) : false}
         zoomEnabled={interactive ? zoomEnabled : false}
         compassViewPosition={0}
         compassViewMargins={effectiveCompassViewMargins}
@@ -856,8 +876,18 @@ export const MapView: React.FC<MapViewProps> = ({
         <MapboxGL.Camera
           ref={cameraRef}
           bounds={cameraBounds}
-          zoomLevel={cameraBounds ? undefined : scopedZoom.zoomLevel}
-          centerCoordinate={cameraBounds ? undefined : scopedCenterCoordinate}
+          zoomLevel={
+            cameraBounds || isFollowingUser || isFreePanMode || hasSetInitialCamera ? undefined : scopedZoom.zoomLevel
+          }
+          centerCoordinate={
+            cameraBounds
+              ? undefined
+              : centerCoordinate !== undefined
+                ? centerCoordinate
+                : isFreePanMode || hasSetInitialCamera
+                  ? undefined
+                  : scopedCenterCoordinate
+          }
           maxBounds={
             scopedMaxBounds
               ? {
@@ -918,113 +948,159 @@ export const MapView: React.FC<MapViewProps> = ({
               </MapboxGL.VectorSource>
             )}
 
-            {dangerZoneAreaGeoJson && dangerZoneAreaGeoJson.features.length > 0 && (
-              <ShapeSource id="danger-zone-area-source" shape={dangerZoneAreaGeoJson} onPress={handleDangerZonePress}>
-                <FillLayer
-                  id="danger-zone-area-layer"
-                  style={{
-                    fillColor: '#DC2626',
-                    fillOpacity: 0.22,
-                    fillOutlineColor: '#B91C1C',
-                  }}
-                />
-              </ShapeSource>
-            )}
+            <ShapeSource
+              id="danger-zone-area-source"
+              shape={dangerZoneAreaGeoJson || { type: 'FeatureCollection', features: [] }}
+              onPress={handleDangerZonePress}
+            >
+              <FillLayer
+                id="danger-zone-area-layer"
+                style={{
+                  fillColor: [
+                    'match',
+                    ['get', 'severity'],
+                    'critical',
+                    '#991B1B',
+                    'high',
+                    Colors.semantic.error,
+                    'medium',
+                    Colors.semantic.warning,
+                    Colors.semantic.info,
+                  ],
+                  fillOpacity: 0.22,
+                  fillOutlineColor: [
+                    'match',
+                    ['get', 'severity'],
+                    'critical',
+                    '#7F1D1D',
+                    'high',
+                    '#B91C1C',
+                    'medium',
+                    '#D97706',
+                    '#2563EB',
+                  ],
+                }}
+              />
+            </ShapeSource>
 
-            {dangerZoneLineGeoJson && dangerZoneLineGeoJson.features.length > 0 && (
-              <ShapeSource id="danger-zone-line-source" shape={dangerZoneLineGeoJson} onPress={handleDangerZonePress}>
-                <LineLayer
-                  id="danger-zone-line-layer"
-                  style={{
-                    lineColor: '#DC2626',
-                    lineWidth: 5,
-                    lineOpacity: 0.9,
-                    lineCap: 'round',
-                    lineJoin: 'round',
-                  }}
-                />
-              </ShapeSource>
-            )}
+            <ShapeSource
+              id="danger-zone-line-source"
+              shape={dangerZoneLineGeoJson || { type: 'FeatureCollection', features: [] }}
+              onPress={handleDangerZonePress}
+            >
+              <LineLayer
+                id="danger-zone-line-layer"
+                style={{
+                  lineColor: [
+                    'match',
+                    ['get', 'severity'],
+                    'critical',
+                    '#991B1B',
+                    'high',
+                    Colors.semantic.error,
+                    'medium',
+                    Colors.semantic.warning,
+                    Colors.semantic.info,
+                  ],
+                  lineWidth: 5,
+                  lineOpacity: 0.9,
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                }}
+              />
+            </ShapeSource>
 
-            {dangerZonePointGeoJson && dangerZonePointGeoJson.features.length > 0 && (
-              <ShapeSource id="danger-zone-point-source" shape={dangerZonePointGeoJson} onPress={handleDangerZonePress}>
-                <CircleLayer
-                  id="danger-zone-point-layer"
-                  style={{
-                    circleRadius: 8,
-                    circleColor: '#DC2626',
-                    circleOpacity: 0.95,
-                    circleStrokeColor: '#FFFFFF',
-                    circleStrokeWidth: 2,
-                  }}
-                />
-              </ShapeSource>
-            )}
+            <ShapeSource
+              id="danger-zone-point-source"
+              shape={dangerZonePointGeoJson || { type: 'FeatureCollection', features: [] }}
+              onPress={handleDangerZonePress}
+            >
+              <CircleLayer
+                id="danger-zone-point-layer"
+                style={{
+                  circleRadius: 8,
+                  circleColor: [
+                    'match',
+                    ['get', 'severity'],
+                    'critical',
+                    '#991B1B',
+                    'high',
+                    Colors.semantic.error,
+                    'medium',
+                    Colors.semantic.warning,
+                    Colors.semantic.info,
+                  ],
+                  circleOpacity: 0.95,
+                  circleStrokeColor: '#FFFFFF',
+                  circleStrokeWidth: 2,
+                }}
+              />
+            </ShapeSource>
 
-            {visibleRouteFeatureCollection && (
-              <ShapeSource id="evacuation-route-source" shape={visibleRouteFeatureCollection}>
-                <LineLayer
-                  id="evacuation-route-layer"
-                  style={{
-                    lineColor: '#2563EB',
-                    lineWidth: 6,
-                    lineOpacity: 0.95,
-                    lineCap: 'round',
-                    lineJoin: 'round',
-                  }}
-                />
-              </ShapeSource>
-            )}
+            <ShapeSource
+              id="evacuation-route-source"
+              shape={visibleRouteFeatureCollection || { type: 'FeatureCollection', features: [] }}
+            >
+              <LineLayer
+                id="evacuation-route-layer"
+                style={{
+                  lineColor: '#2563EB',
+                  lineWidth: 6,
+                  lineOpacity: 0.95,
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                }}
+              />
+            </ShapeSource>
 
-            {routeConditionFeatureCollection && (
-              <ShapeSource
-                id="evacuation-route-condition-source"
-                shape={routeConditionFeatureCollection}
-                onPress={handleRoadConditionPress}
-              >
-                <LineLayer
-                  id="evacuation-route-condition-layer"
-                  style={{
-                    lineColor: [
-                      'match',
-                      ['get', 'condition'],
-                      'closed',
-                      getRoadConditionColor('closed'),
-                      'incident',
-                      getRoadConditionColor('incident'),
-                      'severe',
-                      getRoadConditionColor('severe'),
-                      'heavy',
-                      getRoadConditionColor('heavy'),
-                      'moderate',
-                      getRoadConditionColor('moderate'),
-                      'low',
-                      getRoadConditionColor('low'),
-                      getRoadConditionColor('unknown'),
-                    ],
-                    lineWidth: 8,
-                    lineOpacity: 0.94,
-                    lineCap: 'round',
-                    lineJoin: 'round',
-                  }}
-                />
-              </ShapeSource>
-            )}
+            <ShapeSource
+              id="evacuation-route-condition-source"
+              shape={routeConditionFeatureCollection || { type: 'FeatureCollection', features: [] }}
+              onPress={handleRoadConditionPress}
+            >
+              <LineLayer
+                id="evacuation-route-condition-layer"
+                style={{
+                  lineColor: [
+                    'match',
+                    ['get', 'condition'],
+                    'closed',
+                    getRoadConditionColor('closed'),
+                    'incident',
+                    getRoadConditionColor('incident'),
+                    'severe',
+                    getRoadConditionColor('severe'),
+                    'heavy',
+                    getRoadConditionColor('heavy'),
+                    'moderate',
+                    getRoadConditionColor('moderate'),
+                    'low',
+                    getRoadConditionColor('low'),
+                    getRoadConditionColor('unknown'),
+                  ],
+                  lineWidth: 8,
+                  lineOpacity: 0.94,
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                }}
+              />
+            </ShapeSource>
 
-            {routeTraveledFeatureCollection && (
-              <ShapeSource id="evacuation-route-traveled-source" shape={routeTraveledFeatureCollection}>
-                <LineLayer
-                  id="evacuation-route-traveled-layer"
-                  style={{
-                    lineColor: isDark ? '#94A3B8' : '#64748B',
-                    lineWidth: 10,
-                    lineOpacity: 0.62,
-                    lineCap: 'round',
-                    lineJoin: 'round',
-                  }}
-                />
-              </ShapeSource>
-            )}
+            <ShapeSource
+              id="evacuation-route-traveled-source"
+              shape={routeTraveledFeatureCollection || { type: 'FeatureCollection', features: [] }}
+            >
+              <LineLayer
+                id="evacuation-route-traveled-layer"
+                style={{
+                  lineColor: isDark ? '#94A3B8' : '#64748B',
+                  lineWidth: 10,
+                  lineOpacity: 0.62,
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                }}
+              />
+            </ShapeSource>
 
             {/* Marker source - Only render when images are ready to prevent race condition */}
             {evacuationCentersGeoJson && areMarkersReady && (
@@ -1434,55 +1510,6 @@ export const MapView: React.FC<MapViewProps> = ({
             {routeSummary ? (
               <>
                 <View style={styles.routeActionRow}>
-                  <View style={styles.routeActionButtonGroup}>
-                    <HoveredButton
-                      onPress={() => setIsRouteCardCompact(prev => !prev)}
-                      style={[
-                        styles.routeCardControlButton,
-                        { backgroundColor: subtleSurfaceColor, borderColor: subtleBorderColor },
-                      ]}
-                    >
-                      {isRouteCardCompact ? (
-                        <Maximize2 size={14} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-                      ) : (
-                        <Minimize2 size={14} color={isDark ? Colors.icons.dark : Colors.icons.light} />
-                      )}
-                      <Text size="xs" bold>
-                        {isRouteCardCompact ? 'Details' : 'Compact'}
-                      </Text>
-                    </HoveredButton>
-
-                    {onRecenterRoute ? (
-                      <HoveredButton
-                        onPress={onRecenterRoute}
-                        style={[
-                          styles.routeCardControlButton,
-                          { backgroundColor: subtleSurfaceColor, borderColor: subtleBorderColor },
-                        ]}
-                      >
-                        <Navigation size={14} color={Colors.brand.light} />
-                        <Text size="xs" bold>
-                          Center
-                        </Text>
-                      </HoveredButton>
-                    ) : null}
-
-                    {routeSummary && showRouteRefresh && onRefreshRoute ? (
-                      <HoveredButton
-                        onPress={onRefreshRoute}
-                        style={[
-                          styles.refreshRouteButton,
-                          { backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light },
-                        ]}
-                      >
-                        <RefreshCw size={14} color="#FFFFFF" />
-                        <Text size="xs" bold style={{ color: '#FFFFFF' }}>
-                          Refresh
-                        </Text>
-                      </HoveredButton>
-                    ) : null}
-                  </View>
-
                   {!routeSummary && !routeError && mapNotice && onDismissMapNotice ? (
                     <HoveredButton
                       onPress={onDismissMapNotice}
@@ -1510,6 +1537,60 @@ export const MapView: React.FC<MapViewProps> = ({
                       </Text>
                     </HoveredButton>
                   ) : null}
+                  <View style={styles.routeActionButtonGroup}>
+                    {onToggleFollow ? (
+                      <HoveredButton
+                        onPress={onToggleFollow}
+                        style={[
+                          styles.routeCardControlButton,
+                          {
+                            backgroundColor: isFollowingUser
+                              ? isDark
+                                ? Colors.brand.dark
+                                : Colors.brand.light
+                              : subtleSurfaceColor,
+                            borderColor: subtleBorderColor,
+                          },
+                        ]}
+                      >
+                        <Navigation
+                          size={14}
+                          color={isFollowingUser ? '#FFFFFF' : isDark ? Colors.brand.dark : Colors.brand.light}
+                        />
+                        <Text size="xs" bold style={isFollowingUser ? { color: '#FFFFFF' } : {}}>
+                          {isFollowingUser ? 'Following' : 'Follow'}
+                        </Text>
+                      </HoveredButton>
+                    ) : null}
+
+                    {routeSummary && showRouteRefresh && onRefreshRoute ? (
+                      <HoveredButton
+                        onPress={onRefreshRoute}
+                        style={[
+                          styles.refreshRouteButton,
+                          { backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light },
+                        ]}
+                      >
+                        <RefreshCw size={14} color="#FFFFFF" />
+                        <Text size="xs" bold style={{ color: '#FFFFFF' }}>
+                          Refresh
+                        </Text>
+                      </HoveredButton>
+                    ) : null}
+                    <HoveredButton
+                      onPress={() => setIsRouteCardCompact(prev => !prev)}
+                      style={[
+                        styles.routeCardControlButton,
+                        { backgroundColor: subtleSurfaceColor, borderColor: subtleBorderColor },
+                      ]}
+                    >
+                      {isRouteCardCompact ? (
+                        <Maximize2 size={14} color={isDark ? Colors.icons.dark : Colors.icons.light} />
+                      ) : (
+                        <Minimize2 size={14} color={isDark ? Colors.icons.dark : Colors.icons.light} />
+                      )}
+                    </HoveredButton>
+                  </View>
                 </View>
                 <View style={[styles.routeSummaryHeader, isRouteCardCompact && styles.routeSummaryHeaderCompact]}>
                   <View
@@ -1681,14 +1762,6 @@ export const MapView: React.FC<MapViewProps> = ({
             </HoveredButton>
           )}
 
-          {showButtons && isEvacuationMap && (
-            <View style={[styles.evacuationHeader, { backgroundColor: surfaceColor, borderColor: subtleBorderColor }]}>
-              <Text size="lg" bold numberOfLines={1}>
-                Evacuation Route
-              </Text>
-            </View>
-          )}
-
           {showStyleSelector && (
             <HoveredButton
               onPress={toggleMapStyles}
@@ -1731,7 +1804,7 @@ export const MapView: React.FC<MapViewProps> = ({
             </HoveredButton>
           )}
 
-          {/* {showButtons && onTravelModeChange && (
+          {showButtons && onTravelModeChange && (
             <View
               style={[
                 styles.travelModeSelector,
@@ -1742,10 +1815,10 @@ export const MapView: React.FC<MapViewProps> = ({
                 },
               ]}
             >
-              {([
+              {[
                 { mode: 'driving' as const, label: 'Driving', icon: Car },
                 { mode: 'walking' as const, label: 'Walking', icon: Footprints },
-              ]).map(option => {
+              ].map(option => {
                 const Icon = option.icon;
                 const isActive = travelMode === option.mode;
                 return (
@@ -1775,7 +1848,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 );
               })}
             </View>
-          )} */}
+          )}
 
           {showButtons && savedLocationsList.length > 0 && (
             <HoveredButton
@@ -2009,7 +2082,7 @@ const styles = StyleSheet.create({
   },
   travelModeSelector: {
     position: 'absolute',
-    top: 80,
+    top: 10,
     left: 20,
     flexDirection: 'row',
     borderRadius: 18,
@@ -2023,9 +2096,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   evacuationTravelModeSelector: {
-    top: 92,
-    left: 78,
-    right: 78,
+    top: 30,
+    left: 82,
+    right: 82,
     borderRadius: 22,
     padding: 5,
   },

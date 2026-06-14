@@ -296,7 +296,7 @@ export const Evacuation = () => {
   const [routeOrigin, setRouteOrigin] = useState<{ lat: number; lng: number } | null>(null);
   const [shouldRefreshRoute, setShouldRefreshRoute] = useState(false);
   const [liveUserLocation, setLiveUserLocation] = useState<LiveRouteLocation | null>(null);
-  const [isNavigationFollowing, setIsNavigationFollowing] = useState(false);
+  const [cameraMode, setCameraMode] = useState<'route-fit' | 'following' | 'free'>('free');
   const [routeFitKey, setRouteFitKey] = useState<string | null>(null);
   const [routeRecenterKey, setRouteRecenterKey] = useState(0);
   const dangerZoneBboxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -318,13 +318,16 @@ export const Evacuation = () => {
   const liveUserCoordinate = liveUserLocation
     ? ([liveUserLocation.lng, liveUserLocation.lat] as [number, number])
     : undefined;
-  const activeRouteCameraBounds = routeResult && !isNavigationFollowing ? routeCameraBounds : undefined;
-  const activeMapFocusCoordinate = routeResult && isNavigationFollowing ? liveUserCoordinate : mapFocusCoordinate;
-  const activeZoomLevel = routeResult && isNavigationFollowing && liveUserCoordinate ? 16 : undefined;
+  const activeRouteCameraBounds = routeResult && cameraMode === 'route-fit' ? routeCameraBounds : undefined;
+  const activeMapFocusCoordinate = routeResult 
+    ? (cameraMode === 'following' ? liveUserCoordinate : undefined) 
+    : mapFocusCoordinate;
   const activeCameraTriggerKey = routeResult
-    ? isNavigationFollowing
+    ? cameraMode === 'following'
       ? `navigation-follow-${routeResult.requestId}-${routeRecenterKey}`
-      : `route-fit-${routeResult.requestId}`
+      : cameraMode === 'route-fit'
+      ? `route-fit-${routeResult.requestId}`
+      : undefined
     : mapFocusKey;
   const hasLiveUserLocation = Boolean(liveUserLocation);
 
@@ -416,9 +419,9 @@ export const Evacuation = () => {
 
     if (!routeResult || routeFitKey !== routeResult.requestId) return;
 
-    setIsNavigationFollowing(false);
+    setCameraMode('route-fit');
     navigationFollowTimer.current = setTimeout(() => {
-      setIsNavigationFollowing(true);
+      setCameraMode('free');
       navigationFollowTimer.current = null;
     }, NAVIGATION_FOLLOW_DELAY_MS);
 
@@ -444,7 +447,7 @@ export const Evacuation = () => {
     setRouteOrigin(null);
     setShouldRefreshRoute(false);
     setLiveUserLocation(null);
-    setIsNavigationFollowing(false);
+    setCameraMode('free');
     setRouteFitKey(null);
     setRouteRecenterKey(0);
     lastAutoRerouteAt.current = 0;
@@ -502,9 +505,9 @@ export const Evacuation = () => {
         setShouldRefreshRoute(false);
 
         if (isSilent) {
-          setIsNavigationFollowing(true);
+          setCameraMode('following');
         } else {
-          setIsNavigationFollowing(false);
+          setCameraMode('route-fit');
           setRouteFitKey(result.requestId);
         }
       } catch (error) {
@@ -515,7 +518,7 @@ export const Evacuation = () => {
         } else {
           setRouteResult(null);
           setRouteFitKey(null);
-          setIsNavigationFollowing(false);
+          setCameraMode('free');
         }
       } finally {
         if (!isSilent) {
@@ -584,28 +587,38 @@ export const Evacuation = () => {
     };
   }, [handleUserLocationUpdate, hasActiveRoute]);
 
-  const handleRecenterRoute = useCallback(() => {
+  const handleToggleFollow = useCallback(() => {
     if (navigationFollowTimer.current) {
       clearTimeout(navigationFollowTimer.current);
       navigationFollowTimer.current = null;
     }
 
-    setIsNavigationFollowing(true);
-    setRouteRecenterKey(previous => previous + 1);
+    setCameraMode(prev => {
+      if (prev === 'following') {
+        return 'free';
+      }
+      setRouteRecenterKey(k => k + 1);
+      return 'following';
+    });
 
-    if (liveUserLocation) return;
+    if (cameraMode !== 'following' && !liveUserLocation) {
+      void getCurrentPositionOnce()
+        .then(currentPosition => {
+          if (!currentPosition) return;
+          const [lng, lat] = currentPosition;
+          setLiveUserLocation({ lat, lng });
+          setRouteRecenterKey(previous => previous + 1);
+        })
+        .catch(() => {
+          // The native location puck will continue trying to provide a follow target.
+        });
+    }
+  }, [cameraMode, liveUserLocation]);
 
-    void getCurrentPositionOnce()
-      .then(currentPosition => {
-        if (!currentPosition) return;
-        const [lng, lat] = currentPosition;
-        setLiveUserLocation({ lat, lng });
-        setRouteRecenterKey(previous => previous + 1);
-      })
-      .catch(() => {
-        // The native location puck will continue trying to provide a follow target.
-      });
-  }, [liveUserLocation]);
+  const handleMapInteraction = useCallback(() => {
+    // If they are locked in follow mode, we don't break out of it automatically.
+    // They must toggle it off to pan.
+  }, []);
 
   useEffect(() => {
     if (!routeResult || !routeProgress || !liveUserLocation) return;
@@ -738,14 +751,16 @@ export const Evacuation = () => {
             : null
         }
         onClearRoute={clearRoute}
-        onRecenterRoute={routeResult ? handleRecenterRoute : undefined}
+        isFollowingUser={cameraMode === 'following'}
+        isFreePanMode={hasActiveRoute && cameraMode === 'free'}
+        onToggleFollow={routeResult ? handleToggleFollow : undefined}
+        onUserInteraction={handleMapInteraction}
         cameraBounds={activeRouteCameraBounds}
         centerCoordinate={activeMapFocusCoordinate}
         cameraTriggerKey={activeCameraTriggerKey}
         recenterCoordinate={routeResult ? liveUserCoordinate : undefined}
         recenterTriggerKey={routeResult && routeRecenterKey > 0 ? routeRecenterKey : undefined}
         recenterZoomLevel={16}
-        zoomLevel={activeZoomLevel}
         showUserLocation={Boolean(routeResult)}
         savedLocations={savedLocations}
       />
