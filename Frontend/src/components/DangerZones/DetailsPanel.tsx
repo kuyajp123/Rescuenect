@@ -1,6 +1,6 @@
 import { DangerZoneConfidence, DangerZoneGeoJson, DangerZoneGeometryType, DangerZoneRecord, DangerZoneSeverity } from '@/types/dangerZone';
 import { Button, Chip, Input, Select, SelectItem, Textarea } from '@heroui/react';
-import { CalendarClock, ChevronLeft, ChevronRight, Eye, EyeOff, MapPin, Pencil, X } from 'lucide-react';
+import { CalendarClock, ChevronLeft, ChevronRight, MapPin, Pencil, X } from 'lucide-react';
 
 // Panel modes
 export type DetailsPanelMode = 'default' | 'details' | 'create';
@@ -21,6 +21,11 @@ export type CreateFormState = {
   affectedBarangaysText: string;
 };
 
+export type CreateFormErrors = Partial<Record<
+  'type' | 'geometryType' | 'center' | 'radiusMeters' | 'geojson' | 'affectedWidthMeters' | 'description',
+  string
+>>;
+
 interface DetailsPanelProps {
   isCollapsed: boolean;
   onToggle: () => void;
@@ -29,13 +34,11 @@ interface DetailsPanelProps {
   createForm?: CreateFormState;
   editingZone?: DangerZoneRecord | null;
   isMutating: boolean;
-  createError?: string | null;
-  hideMapZones: boolean;
+  createErrors?: CreateFormErrors;
   totalZonesLoaded?: number;
   hasMoreZones?: boolean;
-  onToggleMapZones: () => void;
   onUpdateCreateForm: <K extends keyof CreateFormState>(key: K, value: CreateFormState[K]) => void;
-  onSave: () => Promise<void>;
+  onSave: () => Promise<boolean | void>;
   onCancel: () => void;
   onClearSelection: () => void;
   onOpenFullReport: () => void;
@@ -179,11 +182,9 @@ export const DetailsPanel = ({
   createForm,
   editingZone,
   isMutating,
-  createError,
-  hideMapZones,
+  createErrors = {},
   totalZonesLoaded = 0,
   hasMoreZones = false,
-  onToggleMapZones,
   onUpdateCreateForm,
   onSave,
   onCancel,
@@ -397,17 +398,6 @@ export const DetailsPanel = ({
         {/* CREATE MODE - Create/edit form */}
         {mode === 'create' && createForm && (
           <>
-            {/* Error message */}
-            {createError && (
-              <div 
-                id="create-form-error" 
-                className="rounded-md border border-danger-200 bg-danger-50 px-3 py-2 text-sm text-danger-700"
-                role="alert"
-              >
-                {createError}
-              </div>
-            )}
-
             {/* Form fields */}
             <Select
               label="Danger type"
@@ -416,8 +406,8 @@ export const DetailsPanel = ({
               onChange={(e) => onUpdateCreateForm('type', e.target.value)}
               isRequired
               size="sm"
-              aria-invalid={createError && !createForm.type ? 'true' : 'false'}
-              aria-describedby={createError ? 'create-form-error' : undefined}
+              isInvalid={Boolean(createErrors.type)}
+              errorMessage={createErrors.type}
             >
               {DANGER_TYPES.map(type => (
                 <SelectItem key={type.key}>
@@ -448,6 +438,8 @@ export const DetailsPanel = ({
               onChange={(e) => onUpdateCreateForm('geometryType', e.target.value as DangerZoneGeometryType)}
               isRequired
               size="sm"
+              isInvalid={Boolean(createErrors.geometryType || createErrors.geojson)}
+              errorMessage={createErrors.geometryType || createErrors.geojson}
             >
               {GEOMETRY_OPTIONS.map(geom => (
                 <SelectItem key={geom.key}>
@@ -481,6 +473,8 @@ export const DetailsPanel = ({
                 min="1"
                 isRequired
                 size="sm"
+                isInvalid={Boolean(createErrors.radiusMeters)}
+                errorMessage={createErrors.radiusMeters}
               />
             )}
 
@@ -493,6 +487,8 @@ export const DetailsPanel = ({
                 onValueChange={(value) => onUpdateCreateForm('affectedWidthMeters', Number(value))}
                 min="1"
                 size="sm"
+                isInvalid={Boolean(createErrors.affectedWidthMeters)}
+                errorMessage={createErrors.affectedWidthMeters}
               />
             )}
 
@@ -512,6 +508,8 @@ export const DetailsPanel = ({
                   step="0.000001"
                   isRequired
                   size="sm"
+                  isInvalid={Boolean(createErrors.center)}
+                  errorMessage={createErrors.center}
                 />
                 <Input
                   type="number"
@@ -527,6 +525,8 @@ export const DetailsPanel = ({
                   step="0.000001"
                   isRequired
                   size="sm"
+                  isInvalid={Boolean(createErrors.center)}
+                  errorMessage={createErrors.center}
                 />
               </>
             )}
@@ -539,8 +539,8 @@ export const DetailsPanel = ({
               minRows={3}
               isRequired
               size="sm"
-              aria-invalid={createError && !createForm.description.trim() ? 'true' : 'false'}
-              aria-describedby={createError ? 'create-form-error' : undefined}
+              isInvalid={Boolean(createErrors.description)}
+              errorMessage={createErrors.description}
             />
 
             <Textarea
@@ -588,17 +588,6 @@ export const DetailsPanel = ({
                 size="sm"
               />
             </div>
-
-            {/* Clear map toggle */}
-            <Button
-              variant="flat"
-              onPress={onToggleMapZones}
-              startContent={hideMapZones ? <Eye size={18} aria-hidden="true" /> : <EyeOff size={18} aria-hidden="true" />}
-              fullWidth
-              aria-label={hideMapZones ? 'Show map zones' : 'Hide map zones'}
-            >
-              {hideMapZones ? 'Show map zones' : 'Hide map zones'}
-            </Button>
 
             {/* Action buttons */}
             <div className="flex gap-2 pt-2">

@@ -6,15 +6,18 @@ import {
   DangerZoneGeometryType,
   DangerZoneRecord,
 } from '@/types/dangerZone';
+import { useMapStyleStore } from '@/stores/useMapStyleStore';
 import { normalizeDangerZoneGeoJson } from '@/utils/dangerZoneGeometry';
 import L from 'leaflet';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import 'leaflet-draw';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import 'leaflet/dist/leaflet.css';
+import { Eye, EyeOff, RotateCcw } from 'lucide-react';
 import { Fragment, useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 import { Circle, CircleMarker, FeatureGroup, MapContainer, Marker, Polygon, Polyline, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { MapStyleSelector } from './MapStyleSelector';
 
 const dangerIcon = new L.Icon({
   iconUrl: redIcon,
@@ -24,6 +27,130 @@ const dangerIcon = new L.Icon({
   popupAnchor: [1, -34],
   shadowSize: [41, 41],
 });
+
+const patchLeafletDrawPolylineFlat = () => {
+  const leafletWithDraw = L as typeof L & {
+    LineUtil?: {
+      isFlat?: (latlngs: unknown[]) => boolean;
+    };
+    Polyline: typeof L.Polyline & {
+      _flat?: (latlngs: unknown[]) => boolean;
+      __rescuenectPolylineFlatPatched?: boolean;
+    };
+  };
+
+  if (!leafletWithDraw.LineUtil?.isFlat || leafletWithDraw.Polyline.__rescuenectPolylineFlatPatched) return;
+
+  leafletWithDraw.Polyline._flat = leafletWithDraw.LineUtil.isFlat;
+  leafletWithDraw.Polyline.__rescuenectPolylineFlatPatched = true;
+};
+
+const patchLeafletDrawPolylineEditLatLngs = () => {
+  const leafletWithDraw = L as typeof L & {
+    Edit?: {
+      Poly?: {
+        prototype?: {
+          _initHandlers?: (this: any) => void;
+          __rescuenectPolyLatLngRefreshPatched?: boolean;
+        };
+      };
+    };
+  };
+
+  const polyEditorPrototype = leafletWithDraw.Edit?.Poly?.prototype;
+  if (!polyEditorPrototype?._initHandlers || polyEditorPrototype.__rescuenectPolyLatLngRefreshPatched) return;
+
+  const initHandlers = polyEditorPrototype._initHandlers;
+  polyEditorPrototype._initHandlers = function initHandlersWithFreshLatLngs(this: any) {
+    this.latlngs = [this._poly._latlngs];
+    if (this._poly._holes) {
+      this.latlngs = this.latlngs.concat(this._poly._holes);
+    }
+
+    initHandlers.call(this);
+  };
+
+  polyEditorPrototype.__rescuenectPolyLatLngRefreshPatched = true;
+};
+
+const patchLeafletDrawCircleResize = () => {
+  const leafletWithDraw = L as typeof L & {
+    Edit?: {
+      Circle?: {
+        prototype?: {
+          _resize?: (this: any, latlng: L.LatLng) => void;
+          __rescuenectCircleResizePatched?: boolean;
+        };
+      };
+    };
+    GeometryUtil?: {
+      isVersion07x?: () => boolean;
+      readableDistance?: (distance: number, isMetric: boolean, useFeet?: boolean, isNauticalMile?: boolean) => string;
+    };
+    Draw?: {
+      Event?: {
+        EDITRESIZE?: string;
+      };
+    };
+    drawLocal?: {
+      edit?: {
+        handlers?: {
+          edit?: {
+            tooltip?: {
+              subtext?: string;
+              text?: string;
+            };
+          };
+        };
+      };
+      draw?: {
+        handlers?: {
+          circle?: {
+            radius?: string;
+          };
+        };
+      };
+    };
+  };
+
+  const circleEditorPrototype = leafletWithDraw.Edit?.Circle?.prototype;
+  if (!circleEditorPrototype || circleEditorPrototype.__rescuenectCircleResizePatched) return;
+
+  circleEditorPrototype._resize = function resizeCircle(this: any, latlng: L.LatLng) {
+    const moveLatLng = this._moveMarker.getLatLng();
+    const radius = leafletWithDraw.GeometryUtil?.isVersion07x?.()
+      ? moveLatLng.distanceTo(latlng)
+      : this._map.distance(moveLatLng, latlng);
+
+    this._shape.setRadius(radius);
+
+    if (this._map.editTooltip && this._map._editTooltip) {
+      const tooltip = leafletWithDraw.drawLocal?.edit?.handlers?.edit?.tooltip;
+      const circleRadiusLabel = leafletWithDraw.drawLocal?.draw?.handlers?.circle?.radius ?? 'Radius';
+      const readableRadius = leafletWithDraw.GeometryUtil?.readableDistance?.(
+        radius,
+        true,
+        this.options.feet,
+        this.options.nautic
+      ) ?? `${Math.round(radius)} m`;
+
+      this._map._editTooltip.updateContent({
+        text: `${tooltip?.subtext ?? ''}<br />${tooltip?.text ?? ''}`,
+        subtext: `${circleRadiusLabel}: ${readableRadius}`,
+      });
+    }
+
+    if (leafletWithDraw.Draw?.Event?.EDITRESIZE) {
+      this._map.fire(leafletWithDraw.Draw.Event.EDITRESIZE, { layer: this._shape });
+    }
+  };
+
+  circleEditorPrototype.__rescuenectCircleResizePatched = true;
+};
+
+patchLeafletDrawPolylineFlat();
+patchLeafletDrawPolylineEditLatLngs();
+patchLeafletDrawCircleResize();
 
 interface AdminDangerZoneMapProps {
   zones?: DangerZoneRecord[];
@@ -43,9 +170,12 @@ interface AdminDangerZoneMapProps {
   maxBounds?: [[number, number], [number, number]];
   height?: string;
   resizeTrigger?: number;
+  focusOnGeometryChange?: boolean;
   onPickCenter?: (center: DangerZoneCoordinates) => void;
   onZoneSelect?: (zone: DangerZoneRecord) => void;
   onDrawGeometry?: (geometry: Pick<DangerZoneCreateOfficialPayload, 'geometryType' | 'center' | 'radiusMeters' | 'geojson' | 'affectedWidthMeters'>) => void;
+  onResetGeometry?: () => void;
+  onToggleMapZones?: () => void;
 }
 
 const MapClickHandler = ({ onPickCenter }: { onPickCenter?: (center: DangerZoneCoordinates) => void }) => {
@@ -79,11 +209,18 @@ const MapResizeHandler = ({ resizeTrigger }: { resizeTrigger?: number }) => {
 
 const MapFocusHandler = ({ center, zoom }: { center?: [number, number]; zoom: number }) => {
   const map = useMap();
+  const lastFocusedViewRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (center) {
-      map.setView(center, zoom, { animate: true, duration: 0.35 });
-    }
+    if (!center) return;
+
+    const nextFocusedView = `${center[0]}:${center[1]}:${zoom}`;
+    if (lastFocusedViewRef.current === nextFocusedView) return;
+
+    lastFocusedViewRef.current = nextFocusedView;
+    map.setView(center, zoom, { animate: true, duration: 0.35 });
   }, [center, map, zoom]);
+
   return null;
 };
 
@@ -219,8 +356,6 @@ const DrawControls = ({
       const layer = (event as L.LeafletEvent & { layer?: L.Layer }).layer;
       if (!layer) return;
 
-      featureGroup.clearLayers();
-      featureGroup.addLayer(layer);
       const geometry = getLayerGeometry(layer, affectedWidthMeters);
       if (geometry) onDrawGeometry?.(geometry);
     };
@@ -323,11 +458,16 @@ export const AdminDangerZoneMap = ({
   maxBounds,
   height = '360px',
   resizeTrigger,
+  focusOnGeometryChange = true,
   onPickCenter,
   onZoneSelect,
   onDrawGeometry,
+  onResetGeometry,
+  onToggleMapZones,
 }: AdminDangerZoneMapProps) => {
   const drawFeatureGroupRef = useRef<L.FeatureGroup | null>(null);
+  const styleUrl = useMapStyleStore(state => state.styleUrl);
+  const attribution = useMapStyleStore(state => state.attribution);
   const visibleZones = hideZones ? [] : selectedZone && showOnlySelectedZone ? [selectedZone] : zones;
   const focusCenter: [number, number] | undefined = pickedCenter
     ? [pickedCenter.lat, pickedCenter.lng]
@@ -336,11 +476,22 @@ export const AdminDangerZoneMap = ({
       : selectedZone?.centroid
         ? [selectedZone.centroid.lat, selectedZone.centroid.lng]
       : undefined;
+  const hasDrawnGeometry = Boolean(
+    pickedGeometryType === 'point' || pickedGeometryType === 'circle'
+      ? pickedCenter
+      : pickedGeojson
+  );
+  const initialCenter = focusOnGeometryChange ? focusCenter ?? center : center;
+
+  const handleResetGeometry = () => {
+    drawFeatureGroupRef.current?.clearLayers();
+    onResetGeometry?.();
+  };
 
   return (
-    <div className="overflow-hidden rounded-lg border border-default-200">
+    <div className="relative overflow-hidden rounded-lg border border-default-200">
       <MapContainer
-        center={focusCenter ?? center}
+        center={initialCenter}
         zoom={zoom}
         minZoom={minZoom}
         maxZoom={maxZoom}
@@ -350,11 +501,11 @@ export const AdminDangerZoneMap = ({
         style={{ height, width: '100%', zIndex: 0 }}
       >
         <MapResizeHandler resizeTrigger={resizeTrigger} />
-        <MapFocusHandler center={focusCenter} zoom={zoom} />
+        <MapFocusHandler center={focusOnGeometryChange ? focusCenter : undefined} zoom={zoom} />
         {onPickCenter && !enableDrawing && <MapClickHandler onPickCenter={onPickCenter} />}
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={attribution}
+          url={styleUrl}
         />
 
         {visibleZones.map(zone => (
@@ -366,7 +517,7 @@ export const AdminDangerZoneMap = ({
         {enableDrawing ? (
           <FeatureGroup
             ref={drawFeatureGroupRef}
-            key={`${pickedGeometryType}-${JSON.stringify(pickedGeojson)}-${pickedCenter?.lat ?? 'x'}-${pickedCenter?.lng ?? 'x'}-${pickedRadiusMeters}`}
+            key={pickedGeometryType}
           >
             <DrawControls
               geometryType={pickedGeometryType}
@@ -411,6 +562,38 @@ export const AdminDangerZoneMap = ({
           )
         )}
       </MapContainer>
+      <MapStyleSelector
+        className="absolute top-20 left-2 z-[500]"
+      />
+      {enableDrawing && (onToggleMapZones || onResetGeometry) && (
+        <div className="absolute bottom-4 left-4 z-[500] flex flex-col gap-2">
+          {onToggleMapZones && (
+            <button
+              type="button"
+              aria-label={hideZones ? 'Show map zones' : 'Hide map zones'}
+              className="inline-flex items-center gap-2 rounded-md border border-default-200 bg-content1/95 px-3 py-2 text-sm font-medium text-foreground shadow-lg backdrop-blur transition hover:bg-content2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              onClick={onToggleMapZones}
+            >
+              {hideZones ? <Eye size={16} aria-hidden="true" /> : <EyeOff size={16} aria-hidden="true" />}
+              {hideZones ? 'Show map zones' : 'Hide map zones'}
+            </button>
+          )}
+          {onResetGeometry && (
+            <button
+              type="button"
+              aria-label="Reset drawn geometry"
+              className={`inline-flex items-center gap-2 rounded-md border border-default-200 bg-content1/95 px-3 py-2 text-sm font-medium text-foreground shadow-lg backdrop-blur transition focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                hasDrawnGeometry ? 'hover:bg-content2' : 'cursor-not-allowed opacity-60'
+              }`}
+              disabled={!hasDrawnGeometry}
+              onClick={handleResetGeometry}
+            >
+              <RotateCcw size={16} aria-hidden="true" />
+              Reset drawing
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };

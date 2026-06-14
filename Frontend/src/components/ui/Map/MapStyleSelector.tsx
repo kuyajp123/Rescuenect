@@ -1,110 +1,74 @@
-import { useMapStyleStore } from '@/stores/useMapStyleStore';
+import {
+  getMapStyleOption,
+  MAP_STYLE_OPTIONS,
+  MapStyleKey,
+  useMapStyleStore,
+} from '@/stores/useMapStyleStore';
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from '@heroui/react';
 import { Map, Moon, Sun } from 'lucide-react';
-import { useEffect, useState } from 'react';
-
-interface MapStyle {
-  key: string;
-  label: string;
-  url: string;
-  attribution: string;
-  description: string;
-  icon: React.ReactNode;
-}
+import { useEffect } from 'react';
+import type { ReactNode } from 'react';
 
 interface MapStyleSelectorProps {
-  onStyleChange: (styleUrl: string, attribution: string) => void;
+  onStyleChange?: (styleUrl: string, attribution: string) => void;
   className?: string;
 }
 
-const MAP_STYLES: MapStyle[] = [
-  {
-    key: 'light',
-    label: 'Light',
-    url: 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    description: 'Standard OpenStreetMap style with light colors',
-    icon: <Sun size={20} />,
-  },
-  {
-    key: 'dark',
-    label: 'Dark',
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    description: 'Dark theme with smooth styling',
-    icon: <Moon size={20} />,
-  },
-];
+const MAP_STYLE_ICONS: Record<MapStyleKey, ReactNode> = {
+  light: <Sun size={20} />,
+  dark: <Moon size={20} />,
+};
 
-const STORAGE_KEY = 'rescuenect_map_style';
+export const MapStyleSelector = ({ onStyleChange, className }: MapStyleSelectorProps) => {
+  const selectedStyle = useMapStyleStore(state => state.styleKey);
+  const styleUrl = useMapStyleStore(state => state.styleUrl);
+  const attribution = useMapStyleStore(state => state.attribution);
+  const setMapStyleByKey = useMapStyleStore(state => state.setMapStyleByKey);
 
-export const MapStyleSelector = ({ onStyleChange }: MapStyleSelectorProps) => {
-  const [selectedStyle, setSelectedStyle] = useState<string>('light');
-  const setMapStyle = useMapStyleStore(state => state.setMapStyle);
-
-  // Load saved style from localStorage on component mount
   useEffect(() => {
-    const savedStyle = localStorage.getItem(STORAGE_KEY);
-    if (savedStyle) {
-      const style = MAP_STYLES.find(s => s.key === savedStyle);
-      if (style) {
-        setSelectedStyle(savedStyle);
-        setMapStyle(style.url, style.attribution);
-        onStyleChange(style.url, style.attribution);
-      }
-    } else {
-      // Default to light style if nothing is saved
-      const defaultStyle = MAP_STYLES.find(s => s.key === 'light');
-      if (defaultStyle) {
-        onStyleChange(defaultStyle.url, defaultStyle.attribution);
-      }
-    }
-  }, [onStyleChange]); // Added onStyleChange to dependency array
+    onStyleChange?.(styleUrl, attribution);
+  }, [attribution, onStyleChange, styleUrl]);
 
   const handleStyleChange = (styleKey: string) => {
-    const style = MAP_STYLES.find(s => s.key === styleKey);
+    const style = getMapStyleOption(styleKey);
 
-    if (style) {
-      setSelectedStyle(styleKey);
-      setMapStyle(style.url, style.attribution);
-      onStyleChange(style.url, style.attribution);
+    if (style.key === selectedStyle) return;
 
-      // Save to localStorage
-      localStorage.setItem(STORAGE_KEY, styleKey);
-    }
+    setMapStyleByKey(style.key);
   };
 
   return (
-    <Dropdown>
-      <DropdownTrigger>
-        <Button
-          isIconOnly
-          variant="solid"
-          className="bg-bg dark:bg-bg-dark backdrop-blur-sm shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-bg-hover dark:hover:bg-bg-hover-dark"
-        >
-          <Map size={24} className="text-gray-600 dark:text-gray-300" />
-        </Button>
-      </DropdownTrigger>
-      <DropdownMenu aria-label="Dropdown menu with icons" variant="faded" items={MAP_STYLES}>
-        {style => (
-          <DropdownItem
-            key={style.key}
-            onPress={() => handleStyleChange(style.key)}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer ${
-              selectedStyle === style.key
-                ? 'bg-blue-50 dark:bg-blue-400/10 text-primary dark:text-primary'
-                : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300'
-            }`}
-            startContent={style.icon}
+    <div className={className}>
+      <Dropdown>
+        <DropdownTrigger>
+          <Button
+            isIconOnly
+            variant="solid"
+            className="border border-gray-200 bg-bg shadow-lg backdrop-blur-sm hover:bg-bg-hover dark:border-gray-700 dark:bg-bg-dark dark:hover:bg-bg-hover-dark"
           >
-            <div>
-              <div className="font-medium text-sm">{style.label}</div>
-            </div>
-            {selectedStyle === style.key && <div className="w-2 h-2 text-primary dark:text-primary rounded-full" />}
-          </DropdownItem>
-        )}
-      </DropdownMenu>
-    </Dropdown>
+            <Map size={24} className="text-gray-600 dark:text-gray-300" />
+          </Button>
+        </DropdownTrigger>
+        <DropdownMenu aria-label="Map style options" variant="faded" items={MAP_STYLE_OPTIONS}>
+          {style => (
+            <DropdownItem
+              key={style.key}
+              onPress={() => handleStyleChange(style.key)}
+              className={`flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 transition-colors ${
+                selectedStyle === style.key
+                  ? 'bg-blue-50 text-primary dark:bg-blue-400/10 dark:text-primary'
+                  : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50'
+              }`}
+              startContent={MAP_STYLE_ICONS[style.key]}
+            >
+              <div>
+                <div className="text-sm font-medium">{style.label}</div>
+              </div>
+              {selectedStyle === style.key && <div className="h-2 w-2 rounded-full bg-primary" />}
+            </DropdownItem>
+          )}
+        </DropdownMenu>
+      </Dropdown>
+    </div>
   );
 };
