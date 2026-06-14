@@ -1,3 +1,9 @@
+## [3.1.0](https://github.com/kuyajp123/Rescuenect/compare/v3.0.0...v3.1.0) (2026-06-14)
+
+### Features
+
+* enhance admin danger zone map UX ([dad58e9](https://github.com/kuyajp123/Rescuenect/commit/dad58e9b7a218beda75c699f8b0d656b50f24cce))
+
 ## [3.0.0](https://github.com/kuyajp123/Rescuenect/compare/v2.4.1...v3.0.0) (2026-06-14)
 
 ### ⚠ BREAKING CHANGES
