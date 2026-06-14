@@ -12,10 +12,10 @@ import { useAuth } from '@/store/useAuth';
 import { useUserData } from '@/store/useBackendResponse';
 import { useNotificationStore } from '@/store/useNotificationStore';
 import { NOTIFICATION_INDICATOR_GUEST_ID } from '@/store/useNotificationStore';
-import type { BaseNotification } from '@/types/notification';
+import type { BaseNotification, DangerZoneNotificationData } from '@/types/notification';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
-import { Activity, AlertCircle, Bell, Cloud, MapPin, Megaphone } from 'lucide-react-native';
+import { Activity, AlertCircle, Bell, Cloud, MapPin, Megaphone, TriangleAlert } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
@@ -54,6 +54,23 @@ const NotificationScreen = () => {
   const showFeedback = (title: string, message: string) =>
     setFeedbackDialog({ open: true, title, message });
 
+  const formatDangerType = (value?: unknown) =>
+    typeof value === 'string' && value.trim()
+      ? value
+          .split('_')
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(' ')
+      : 'Danger zone';
+
+  const getNotificationMeta = (notification: BaseNotification): string | undefined => {
+    if (notification.type === 'weather') return formatToCapitalized(userData?.barangay);
+    if (notification.type === 'earthquake') return (notification.data as { place?: string })?.place;
+    if (notification.type === 'danger_zone') {
+      return formatDangerType((notification.data as DangerZoneNotificationData | undefined)?.dangerType);
+    }
+    return notification.location?.replace('_', ' ').toUpperCase();
+  };
+
   useEffect(() => {
     const latestVisibleNotificationAt = notifications.reduce(
       (latest, notification) => Math.max(latest, getNotificationDisplayTimestamp(notification)),
@@ -74,6 +91,8 @@ const NotificationScreen = () => {
         return <Cloud color={iconColor} size={24} />;
       case 'emergency':
         return <AlertCircle color={iconColor} size={24} />;
+      case 'danger_zone':
+        return <TriangleAlert color={iconColor} size={24} />;
       case 'status_resolved':
         return <MapPin color={iconColor} size={24} />;
       case 'announcement':
@@ -113,6 +132,8 @@ const NotificationScreen = () => {
         return isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)';
       case 'emergency':
         return isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.08)';
+      case 'danger_zone':
+        return isDark ? 'rgba(245, 158, 11, 0.14)' : 'rgba(245, 158, 11, 0.08)';
       case 'announcement':
         return isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)';
       default:
@@ -202,7 +223,7 @@ const NotificationScreen = () => {
             No notifications yet
           </Text>
           <Text size="sm" style={{ marginTop: 8, opacity: 0.5, textAlign: 'center' }}>
-            You will be notified about earthquakes and weather alerts
+            You will be notified about earthquakes, weather, and danger-zone alerts
           </Text>
         </View>
       </Body>
@@ -287,6 +308,8 @@ const NotificationScreen = () => {
                       ? Colors.semantic.error
                       : notification.type === 'weather'
                         ? Colors.semantic.info
+                        : notification.type === 'danger_zone'
+                          ? Colors.semantic.warning
                         : notification.type === 'announcement'
                           ? Colors.semantic.success
                           : Colors.brand.dark,
@@ -325,11 +348,7 @@ const NotificationScreen = () => {
                 {/* Location & Time */}
                 <View style={styles.metaRow}>
                   <Text size="xs" emphasis="light">
-                    {notification.type === 'weather'
-                      ? formatToCapitalized(userData?.barangay)
-                      : notification.type === 'earthquake'
-                        ? (notification.data as { place?: string })?.place
-                        : notification.location?.replace('_', ' ').toUpperCase()}
+                    {getNotificationMeta(notification)}
                   </Text>
                   <Text size="xs" emphasis="light">
                     {formatTime(getNotificationDisplayTimestamp(notification))}

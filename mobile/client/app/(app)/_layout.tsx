@@ -171,6 +171,19 @@ export default function AppLayout() {
           }}
         />
         <Stack.Screen
+          name="danger-zone"
+          options={{
+            headerShown: false,
+            title: '',
+            headerStyle: {
+              backgroundColor: isDark ? Colors.background.dark : Colors.background.light,
+            },
+            headerShadowVisible: false,
+            headerLeft: () => <HeaderBackButton router={handleBack} />,
+            animation: 'none',
+          }}
+        />
+        <Stack.Screen
           name="Weather"
           options={{
             headerShown: false,

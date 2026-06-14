@@ -107,6 +107,13 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
     if (!data.capacity || typeof data.capacity !== 'string' || parseInt(data.capacity) <= 0) {
       validationErrors.capacity = 'Capacity must be a positive number';
     }
+    if (
+      data.currentOccupancy &&
+      typeof data.currentOccupancy === 'string' &&
+      (parseInt(data.currentOccupancy) < 0 || parseInt(data.currentOccupancy) > parseInt(data.capacity as string))
+    ) {
+      validationErrors.currentOccupancy = 'Current occupancy must be between 0 and capacity';
+    }
     if (!data.type || typeof data.type !== 'string' || !data.type.trim()) {
       validationErrors.type = 'Type is required';
     }
@@ -152,6 +159,8 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
       location: data.location as string,
       coordinates: coordinates,
       capacity: data.capacity as string,
+      currentOccupancy: data.currentOccupancy ? Number(data.currentOccupancy) : null,
+      isSafe: data.isSafe !== 'false',
       type: data.type as EvacuationCenterFormData['type'],
       status: data.status as EvacuationCenterFormData['status'],
       contact: data.contact ? (data.contact as string) : undefined,
@@ -262,6 +271,29 @@ const EvacuationCenterForm = ({ coordinates }: { coordinates: Coordinates | null
                 pattern="[0-9]*"
                 classNames={{ inputWrapper: 'h-10' }}
               />
+              <Input
+                label="Current occupancy"
+                labelPlacement="outside"
+                variant="bordered"
+                name="currentOccupancy"
+                placeholder="Optional current occupants"
+                type="number"
+                min={0}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                classNames={{ inputWrapper: 'h-10' }}
+              />
+              <Select
+                label="Safety status"
+                labelPlacement="outside"
+                variant="bordered"
+                name="isSafe"
+                defaultSelectedKeys={['true']}
+                classNames={{ trigger: 'h-10 min-h-10' }}
+              >
+                <SelectItem key="true">Safe for routing</SelectItem>
+                <SelectItem key="false">Do not route residents here</SelectItem>
+              </Select>
               <div className=" w-full flex flex-col">
                 <Select
                   isRequired

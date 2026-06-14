@@ -1,5 +1,7 @@
 import { UnifiedModel } from '@/models/unified/index';
 import { db } from '@/db/firestoreConfig';
+import { EvacuationRoutingError } from '@/services/EvacuationRouteSelectionService';
+import { EvacuationRoutingService } from '@/services/EvacuationRoutingService';
 import { Request, Response } from 'express';
 
 const getAuthenticatedUid = (req: Request, res: Response): string | null => {
@@ -27,6 +29,26 @@ export class UnifiedController {
       res.status(500).json({
         message: 'Failed to add evacuation center',
         error: typeof error === 'string' ? error : (error as Error).message,
+      });
+    }
+  }
+
+  static async getBestEvacuationRoute(req: Request, res: Response): Promise<void> {
+    try {
+      const uid = getAuthenticatedUid(req, res);
+      if (!uid) return;
+
+      const route = await EvacuationRoutingService.getBestRoute(uid, req.body);
+      res.status(200).json(route);
+    } catch (error) {
+      const statusCode = error instanceof EvacuationRoutingError ? error.statusCode : 500;
+      console.error('Failed to compute best evacuation route:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      res.status(statusCode).json({
+        message: error instanceof Error ? error.message : 'Failed to compute best evacuation route',
+        details: error instanceof EvacuationRoutingError ? error.details : undefined,
       });
     }
   }

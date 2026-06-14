@@ -1,5 +1,6 @@
 import { EvacuationModel } from '@/models/admin/EvacuationModel';
 import { getClientScopeFromRequest } from '@/utils/adminScope';
+import { FieldValue } from 'firebase-admin/firestore';
 import { Request, Response } from 'express';
 
 const MAX_NAME_LENGTH = 100;
@@ -31,6 +32,8 @@ type EvacuationCenterFieldErrors = Partial<{
   capacity: string;
   type: string;
   status: string;
+  currentOccupancy: string;
+  isSafe: string;
   contact: string;
   description: string;
   images: string;
@@ -145,6 +148,21 @@ const validateEvacuationCenterPayload = (
     fieldErrors.status = 'Invalid status';
   }
 
+  const currentOccupancyRaw = asTrimmedString((rawPayload as { currentOccupancy?: unknown }).currentOccupancy);
+  const currentOccupancyNum = currentOccupancyRaw ? Number.parseInt(currentOccupancyRaw, 10) : null;
+  if (currentOccupancyRaw && (!Number.isFinite(currentOccupancyNum) || (currentOccupancyNum as number) < 0)) {
+    fieldErrors.currentOccupancy = 'Current occupancy must be zero or greater';
+  } else if (currentOccupancyNum !== null && currentOccupancyNum > capacityNum) {
+    fieldErrors.currentOccupancy = 'Current occupancy must not exceed capacity';
+  }
+
+  const rawIsSafe = (rawPayload as { isSafe?: unknown }).isSafe;
+  const isSafe = typeof rawIsSafe === 'boolean'
+    ? rawIsSafe
+    : typeof rawIsSafe === 'string'
+      ? rawIsSafe.toLowerCase() !== 'false'
+      : true;
+
   const contact = asTrimmedString((rawPayload as { contact?: unknown }).contact);
   if (contact) {
     validateMaxLength(fieldErrors, 'contact', contact, MAX_CONTACT_LENGTH, 'Contact');
@@ -179,6 +197,9 @@ const validateEvacuationCenterPayload = (
     payload.capacity = String(capacityNum);
     payload.type = typeKey;
     payload.status = statusKey;
+    payload.currentOccupancy = currentOccupancyNum ?? null;
+    payload.isSafe = isSafe;
+    payload.lastCapacityUpdatedAt = FieldValue.serverTimestamp();
     if (contact) payload.contact = contact;
     if (description) payload.description = description;
   }

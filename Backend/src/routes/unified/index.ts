@@ -1,6 +1,8 @@
 import { UnifiedController } from '@/controllers/unified/Unified.Controller';
 import { AuthMiddleware } from '@/middlewares/AuthMiddleware';
+import { routeRateLimiters } from '@/middlewares/RateLimitMiddleware';
 import { Router } from 'express';
+import dangerZoneRoutes from './dangerZoneRoutes';
 
 const unifiedRoutes = Router();
 
@@ -14,9 +16,13 @@ unifiedRoutes.get('/announcementDetails', UnifiedController.getAnnouncementDetai
 
 unifiedRoutes.get('/carouselSlides', UnifiedController.getCarouselSlides);
 
+unifiedRoutes.use('/danger-zones', dangerZoneRoutes);
+
 // protected routes in the following
 
 unifiedRoutes.use(AuthMiddleware.verifyToken, AuthMiddleware.requireOwnUid);
+
+unifiedRoutes.post('/getBestEvacuationRoute', routeRateLimiters.routeComputation, UnifiedController.getBestEvacuationRoute);
 
 unifiedRoutes.post('/markNotificationAsRead', UnifiedController.markNotificationAsRead);
 

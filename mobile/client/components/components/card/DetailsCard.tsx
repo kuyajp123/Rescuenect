@@ -1,11 +1,11 @@
-import { IconButton } from '@/components/components/button/Button';
+import { HoveredButton, IconButton } from '@/components/components/button/Button';
 import { Card } from '@/components/components/card/Card';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { EvacuationCenter } from '@/types/components';
 import { Image } from 'expo-image';
 import { Chip } from 'heroui-native';
-import { House, ImageOff, MapPin, Phone, UsersRound, X } from 'lucide-react-native';
+import { House, ImageOff, MapPin, Navigation, Phone, UsersRound, X } from 'lucide-react-native';
 import React from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
@@ -16,6 +16,8 @@ interface DetailsCardProps {
   selectedMarker: EvacuationCenter;
   isDark: boolean;
   onClose: () => void;
+  onRequestRoute?: (center: EvacuationCenter) => void;
+  isRouteLoading?: boolean;
 }
 
 interface Images {
@@ -117,7 +119,13 @@ const clampIndex = (index: number, length: number) => {
   return Math.max(0, Math.min(length - 1, index));
 };
 
-const DetailsCard: React.FC<DetailsCardProps> = ({ selectedMarker, isDark, onClose }) => {
+const DetailsCard: React.FC<DetailsCardProps> = ({
+  selectedMarker,
+  isDark,
+  onClose,
+  onRequestRoute,
+  isRouteLoading = false,
+}) => {
   const [activeIndex, setActiveIndex] = React.useState(0);
 
   React.useEffect(() => {
@@ -134,6 +142,7 @@ const DetailsCard: React.FC<DetailsCardProps> = ({ selectedMarker, isDark, onClo
 
   const safeActiveIndex = clampIndex(activeIndex, data.length);
   const carouselKey = `${selectedMarker.id ?? selectedMarker.name}-${data.length}`;
+  const canRouteToCenter = selectedMarker.status === 'available' && selectedMarker.isSafe !== false;
 
   const renderItem = ({ item, index }: { item: Images; index: number }) => (
     <View style={styles.carouselItemContainer}>
@@ -274,7 +283,7 @@ const DetailsCard: React.FC<DetailsCardProps> = ({ selectedMarker, isDark, onClo
                 Capacity
               </Text>
               <Text size="sm" bold>
-                {selectedMarker.capacity} people
+                {selectedMarker.currentOccupancy ?? 0} / {selectedMarker.capacity} people
               </Text>
             </View>
           </View>
@@ -319,6 +328,30 @@ const DetailsCard: React.FC<DetailsCardProps> = ({ selectedMarker, isDark, onClo
             </View>
           </View>
         </View>
+
+        {!canRouteToCenter && selectedMarker.status === 'available' ? (
+          <Text size="xs" emphasis="light">
+            This center is not being used for route guidance right now.
+          </Text>
+        ) : null}
+
+        {canRouteToCenter && onRequestRoute && (
+          <HoveredButton
+            onPress={isRouteLoading ? undefined : () => onRequestRoute(selectedMarker)}
+            style={[
+              styles.routeButton,
+              {
+                backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light,
+                opacity: isRouteLoading ? 0.65 : 1,
+              },
+            ]}
+          >
+            <Navigation size={17} color="#fff" />
+            <Text size="sm" bold style={styles.routeButtonText}>
+              {isRouteLoading ? 'Routing...' : 'Get Route'}
+            </Text>
+          </HoveredButton>
+        )}
       </View>
     </Card>
   );
@@ -425,6 +458,19 @@ const styles = StyleSheet.create({
   detailTextContainer: {
     flex: 1,
     gap: 2,
+  },
+  routeButton: {
+    marginTop: 18,
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  routeButtonText: {
+    color: '#fff',
   },
   detailLabel: {
     textTransform: 'uppercase',

@@ -14,7 +14,8 @@
     "dev-backend:production": "node scripts/start-backend-env.js production",
     "publish-mobile-apk": "ts-node -r tsconfig-paths/register scripts/publish-mobile-apk.ts",
     "test": "npm run build && node --test tests/*.test.js",
-    "test:firestore-rules": "cd .. && npx --prefix Backend firebase emulators:exec --project rescuenect-rules-test --only firestore \"node --test Backend/tests/firestore-rules/*.test.js\""
+    "test:firestore-rules": "cd .. && npx --prefix Backend firebase emulators:exec --project rescuenect-rules-test --only firestore \"node --test Backend/tests/firestore-rules/*.test.js\"",
+    "backfill:danger-zone-spatial": "ts-node -r tsconfig-paths/register scripts/backfill-danger-zone-spatial-metadata.ts"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +23,8 @@
   "description": "",
   "dependencies": {
     "@supabase/supabase-js": "^2.76.1",
+    "@turf/buffer": "^7.3.5",
+    "@turf/helpers": "^7.3.5",
     "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",

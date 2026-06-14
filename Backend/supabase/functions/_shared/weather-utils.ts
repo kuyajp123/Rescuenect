@@ -14,6 +14,39 @@ const isFiniteNumber = (value: unknown): value is number => typeof value === 'nu
 
 const toCoordinates = (latitude: number, longitude: number): string => `${latitude}, ${longitude}`;
 
+const RETRYABLE_WEATHER_API_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
+
+type WeatherApiErrorParams = {
+  status?: number;
+  statusText?: string;
+  responseBody?: string;
+  retryable?: boolean;
+};
+
+export class WeatherApiError extends Error {
+  status?: number;
+  statusText?: string;
+  responseBody?: string;
+  retryable: boolean;
+
+  constructor(message: string, params: WeatherApiErrorParams = {}) {
+    super(message);
+    this.name = 'WeatherApiError';
+    this.status = params.status;
+    this.statusText = params.statusText;
+    this.responseBody = params.responseBody;
+    this.retryable = params.retryable ?? false;
+  }
+}
+
+export const getWeatherErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+const getResponseBodySnippet = (body?: string): string => {
+  if (!body) return '';
+  return body.replace(/\s+/g, ' ').trim().slice(0, 300);
+};
+
 const getWeatherLocationKey = (clientId: string, data: Record<string, unknown>): string =>
   canonicalizeClientId(clientId, data.municipalityCode) === NAIC_CLIENT_ID
     ? NAIC_WEATHER_LOCATION_KEY
@@ -70,16 +103,73 @@ export const getWeatherLocations = async (): Promise<WeatherLocation[]> => {
 
 export const getWeatherAPIUrl = (coordinates: string, type: 'forecast' | 'realtime'): string => {
   // Access Deno environment variable (works in Supabase Edge Functions)
-  const API_KEY = Deno.env.get('WEATHER_API_KEY');
+  const API_KEY = Deno.env.get('WEATHER_API_KEY') ?? Deno.env.get('TOMORROW_IO_API_KEY');
 
   if (!API_KEY) {
-    throw new Error('WEATHER_API_KEY environment variable is not set');
+    throw new Error('WEATHER_API_KEY or TOMORROW_IO_API_KEY environment variable is not set');
   }
   if (type === 'forecast') {
-    return `https://api.tomorrow.io/v4/weather/forecast?location=${coordinates}&timesteps=1h&timesteps=1d&apikey=${API_KEY}`;
+    return `https://api.tomorrow.io/v4/weather/forecast?location=${encodeURIComponent(coordinates)}&timesteps=1h&timesteps=1d&apikey=${API_KEY}`;
   }
 
-  return `https://api.tomorrow.io/v4/weather/realtime?location=${coordinates}&apikey=${API_KEY}`;
+  return `https://api.tomorrow.io/v4/weather/realtime?location=${encodeURIComponent(coordinates)}&apikey=${API_KEY}`;
+};
+
+export const fetchWeatherAPI = async (
+  url: string,
+  options: {
+    attempts?: number;
+    baseDelayMs?: number;
+    context?: string;
+  } = {}
+): Promise<Response> => {
+  const attempts = options.attempts ?? 4;
+  const baseDelayMs = options.baseDelayMs ?? 1500;
+  const context = options.context ? ` (${options.context})` : '';
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const response = await fetch(url);
+
+      if (response.ok) return response;
+
+      const responseBody = await response.text().catch(() => '');
+      const retryable = RETRYABLE_WEATHER_API_STATUSES.has(response.status);
+      const bodySnippet = getResponseBodySnippet(responseBody);
+      const error = new WeatherApiError(`Weather API HTTP ${response.status}: ${response.statusText}`, {
+        status: response.status,
+        statusText: response.statusText,
+        responseBody: bodySnippet,
+        retryable,
+      });
+
+      console.warn(
+        `Weather API request failed${context}, attempt ${attempt}/${attempts}: ${error.message}${
+          bodySnippet ? ` - ${bodySnippet}` : ''
+        }`
+      );
+
+      if (!retryable || attempt === attempts) {
+        throw error;
+      }
+    } catch (error) {
+      const retryable = error instanceof WeatherApiError ? error.retryable : true;
+
+      if (!retryable || attempt === attempts) {
+        throw error;
+      }
+
+      console.warn(
+        `Retrying Weather API request${context}, attempt ${attempt + 1}/${attempts} after: ${getWeatherErrorMessage(
+          error
+        )}`
+      );
+    }
+
+    await delay(baseDelayMs * attempt);
+  }
+
+  throw new Error('Unexpected Weather API retry loop exit');
 };
 
 export const convertToManilaTime = (utcTime: string): string => {

@@ -253,6 +253,15 @@ service cloud.firestore {
     }
 
     // ================================================================
+    // DANGER ZONES
+    // Phase 1 danger-zone records are managed through backend APIs only.
+    // The Admin SDK bypasses these client rules; direct client access is denied.
+    // ================================================================
+    match /dangerZones/{dangerZoneId} {
+      allow read, write: if false;
+    }
+
+    // ================================================================
     // CONTACTS
     // Structure: contacts/{clientId} — one document per client.
     // Publicly readable — emergency hotlines and contacts must be

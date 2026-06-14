@@ -482,6 +482,9 @@ export interface EvacuationCenterFormData {
   location: string;
   coordinates: Coordinates | null;
   capacity: string;
+  currentOccupancy?: number | null;
+  isSafe?: boolean;
+  lastCapacityUpdatedAt?: unknown | null;
   type: CenterTypes['type'];
   status: 'available' | 'full' | 'closed';
   contact?: string;

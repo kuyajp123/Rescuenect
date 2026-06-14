@@ -3,6 +3,7 @@ import { MyActionSheet } from './index';
 
 registerSheet('image-picker-actionSheet', MyActionSheet);
 registerSheet('map-image-picker-actionSheet', MyActionSheet);
+registerSheet('danger-zone-image-picker', MyActionSheet);
 registerSheet('FAB', MyActionSheet);
 registerSheet('status-more-action', MyActionSheet);
 registerSheet('status-ellipsis-action', MyActionSheet);

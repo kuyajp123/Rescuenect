@@ -31,6 +31,7 @@ const AnnouncementDetails = lazy(() => import('@/pages/contents/announcement/ann
 const EditAnnouncement = lazy(() => import('@/pages/contents/announcement/edit-announcement'));
 const Contacts = lazy(() => import('@/pages/contents/Contacts'));
 const Carousel = lazy(() => import('@/pages/contents/Carousel'));
+const DangerZones = lazy(() => import('@/pages/contents/DangerZones'));
 const LguRequest = lazy(() => import('@/pages/public/LguRequest'));
 const SuperAdminOverview = lazy(() =>
   import('@/pages/contents/SuperAdmin/pages/Overview').then(module => ({ default: module.SuperAdminOverview }))
@@ -146,6 +147,7 @@ const Router = () => {
           <Route path="/earthquake" element={<Earthquake />} />
           <Route path="/evacuation" element={<Evacuation />} />
           <Route path="/evacuation/add_new_center" element={<AddNewCenter />} />
+          <Route path="/danger-zones" element={<DangerZones />} />
           <Route path="/residents" element={<Residents />} />
           <Route path="/residents/profile" element={<ResidentsProfile />} />
           <Route path="/profile" element={<AdminProfile />} />

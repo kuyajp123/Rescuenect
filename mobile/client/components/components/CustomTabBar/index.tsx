@@ -2,7 +2,7 @@ import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { AlignRight, House, Phone, Plus, UsersRound } from 'lucide-react-native';
+import { AlignRight, House, MapPinPlus, Phone, Plus, TriangleAlert, UsersRound } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,13 +13,12 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
   const router = useRouter();
 
   const handleFABPress = () => {
-    // const sheet = require('react-native-actions-sheet').SheetManager;
-    // sheet.show('FAB', {
-    //   payload: {
-    //     items: actionSheetItems,
-    //   },
-    // });
-    router.push('status/createStatus' as any);
+    const sheet = require('react-native-actions-sheet').SheetManager;
+    sheet.show('FAB', {
+      payload: {
+        items: actionSheetItems,
+      },
+    });
   };
 
   const handleCreateStatusPress = () => {
@@ -28,28 +27,26 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
     sheet.hide('FAB');
   };
 
-  // const handleCityReportsPress = () => {
-  //   // Add navigation to city needs page here if needed
-  //   router.push('status/cityReports' as any);
-  //   const sheet = require('react-native-actions-sheet').SheetManager;
-  //   sheet.hide('FAB');
-  // };
+  const handleReportDangerZonePress = () => {
+    router.push('danger-zone/create' as any);
+    const sheet = require('react-native-actions-sheet').SheetManager;
+    sheet.hide('FAB');
+  };
 
-  // // Action sheet items
-  // const actionSheetItems = [
-  //   {
-  //     id: 'createStatus',
-  //     name: 'Create Status',
-  //     icon: <MapPinPlus size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-  //     onPress: handleCreateStatusPress,
-  //   },
-  //   {
-  //     id: 'cityReports',
-  //     name: 'City Reports',
-  //     icon: <MapPlus size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
-  //     onPress: handleCityReportsPress,
-  //   },
-  // ];
+  const actionSheetItems = [
+    {
+      id: 'createStatus',
+      name: 'Create Status',
+      icon: <MapPinPlus size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+      onPress: handleCreateStatusPress,
+    },
+    {
+      id: 'reportDangerZone',
+      name: 'Report Danger Zone',
+      icon: <TriangleAlert size={20} color={isDark ? Colors.icons.dark : Colors.icons.light} />,
+      onPress: handleReportDangerZonePress,
+    },
+  ];
 
   return (
     <View
@@ -240,8 +237,8 @@ export const CustomTabBar = ({ state, descriptors, navigation }: any) => {
         onPress={handleFABPress}
         style={styles.fab}
         accessibilityRole="button"
-        accessibilityLabel="Add status update"
-        accessibilityHint="Opens status update screen to post your safety status"
+        accessibilityLabel="Create report or status"
+        accessibilityHint="Opens actions for creating a status or reporting a danger zone"
       >
         <LinearGradient
           pointerEvents="none"

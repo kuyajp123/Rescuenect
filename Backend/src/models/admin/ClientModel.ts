@@ -684,10 +684,6 @@ export class ClientModel {
       throw new Error('Client must have at least one active barangay before activation');
     }
 
-    if (status === 'active' && !client.logoUrl) {
-      throw new Error('Client must have an LGU logo before activation');
-    }
-
     if (status === 'active' && !hasUsableWeatherCoordinates(client.weatherLatitude, client.weatherLongitude)) {
       throw new Error('Client must have valid weather coordinates before activation');
     }
