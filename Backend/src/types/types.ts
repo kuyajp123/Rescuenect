@@ -106,6 +106,9 @@ export interface EvacuationCenterFormData {
   location: string;
   coordinates: coordinates | null;
   capacity: string;
+  currentOccupancy?: number | null;
+  isSafe?: boolean;
+  lastCapacityUpdatedAt?: unknown | null;
   type: string;
   status: string;
   contact?: string;

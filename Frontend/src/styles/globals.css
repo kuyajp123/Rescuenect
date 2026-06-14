@@ -95,3 +95,37 @@
   height: 0;
   pointer-events: none;
 }
+
+/* Accessibility: Enhanced focus indicators for WCAG compliance */
+@layer base {
+  /* Ensure all interactive elements have visible focus indicators */
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [role="button"]:focus-visible,
+  [tabindex]:not([tabindex="-1"]):focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  .dark button:focus-visible,
+  .dark a:focus-visible,
+  .dark input:focus-visible,
+  .dark textarea:focus-visible,
+  .dark select:focus-visible,
+  .dark [role="button"]:focus-visible,
+  .dark [tabindex]:not([tabindex="-1"]):focus-visible {
+    outline-color: var(--color-primary-dark);
+  }
+
+  /* Ensure HeroUI components maintain focus indicators */
+  .heroui-button:focus-visible,
+  .heroui-input:focus-visible,
+  .heroui-select:focus-visible,
+  .heroui-textarea:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}

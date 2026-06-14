@@ -50,9 +50,18 @@ export const createDangerZoneReport = async (
   return response.data.data;
 };
 
-export const fetchPublicDangerZones = async (clientId?: string | null): Promise<DangerZoneRecord[]> => {
+export const fetchPublicDangerZones = async (
+  clientId?: string | null,
+  options: { bbox?: [number, number, number, number]; limit?: number } = {}
+): Promise<DangerZoneRecord[]> => {
   const response = await axios.get<{ zones: DangerZoneRecord[] }>(API_ROUTES.DANGER_ZONES.PUBLIC, {
-    params: clientId ? { clientId } : undefined,
+    params: clientId
+      ? {
+          clientId,
+          ...(options.bbox ? { bbox: options.bbox.join(',') } : {}),
+          ...(options.limit ? { limit: options.limit } : {}),
+        }
+      : undefined,
   });
   return response.data.zones;
 };

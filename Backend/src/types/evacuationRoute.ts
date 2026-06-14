@@ -44,6 +44,9 @@ export interface EvacuationCenterRouteCandidate {
   clientId: string;
   name?: string;
   status?: string;
+  capacity?: string | number | null;
+  currentOccupancy?: number | null;
+  isSafe?: boolean | null;
   coordinates: RouteCoordinates;
   [key: string]: unknown;
 }
@@ -60,6 +63,7 @@ export interface ProviderRouteResult {
 }
 
 export interface BestEvacuationRouteResponse {
+  requestId: string;
   selectedCenter: EvacuationCenterRouteCandidate;
   travelMode: EvacuationTravelMode;
   route: ProviderRouteResult;
@@ -71,5 +75,13 @@ export interface BestEvacuationRouteResponse {
   };
   roadConditionSummary: RoadConditionSummary;
   roadConditionSegments: RoadConditionSegment[];
+  routeDecision?: {
+    strategy: 'duration_risk_capacity';
+    evaluatedCandidateCount: number;
+    scoreSeconds: number;
+    riskPenaltySeconds: number;
+    roadConditionPenaltySeconds: number;
+    centerPenaltySeconds: number;
+  };
   warnings: string[];
 }

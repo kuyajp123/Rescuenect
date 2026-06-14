@@ -22,7 +22,7 @@ unifiedRoutes.use('/danger-zones', dangerZoneRoutes);
 
 unifiedRoutes.use(AuthMiddleware.verifyToken, AuthMiddleware.requireOwnUid);
 
-unifiedRoutes.post('/getBestEvacuationRoute', routeRateLimiters.expensive, UnifiedController.getBestEvacuationRoute);
+unifiedRoutes.post('/getBestEvacuationRoute', routeRateLimiters.routeComputation, UnifiedController.getBestEvacuationRoute);
 
 unifiedRoutes.post('/markNotificationAsRead', UnifiedController.markNotificationAsRead);
 

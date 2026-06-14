@@ -2,13 +2,27 @@ import { ClientModel } from '@/models/admin/ClientModel';
 import { DangerZoneEvidenceUploadService } from '@/services/DangerZoneEvidenceUploadService';
 import { DangerZoneFirestoreGeometryService } from '@/services/DangerZoneFirestoreGeometryService';
 import { DangerZoneGeometryService } from '@/services/DangerZoneGeometryService';
+import { DangerZoneSpatialService } from '@/services/DangerZoneSpatialService';
 import {
   DangerZoneNotificationEvent,
   DangerZoneNotificationService,
   getDangerZoneNotificationEventForOfficialZone,
 } from '@/services/DangerZoneNotificationService';
 import { AdminUser } from '@/types/admin';
-import { DangerZoneAuditAction, DangerZoneAuditActorRole, DangerZoneRecord, DangerZoneStatus } from '@/types/dangerZone';
+import {
+  DangerZoneAuditAction,
+  DangerZoneAuditActorRole,
+  DangerZoneConfidence,
+  DangerZoneCreateInput,
+  DangerZoneGeometryType,
+  DangerZoneRecord,
+  DangerZoneSeverity,
+  DangerZoneSource,
+  DangerZoneStatus,
+  DangerZoneAdminListFilters as ListFilters,
+  DangerZonePublicFilters,
+  PaginatedDangerZoneResult,
+} from '@/types/dangerZone';
 import { canonicalizeClientId } from '@/config/locationConfig';
 import { db } from '@/db/firestoreConfig';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
@@ -24,17 +38,21 @@ export class DangerZoneModelError extends Error {
   }
 }
 
-type ListFilters = {
-  clientId?: string;
-  status?: string;
-};
-
 type ParsedExpiry = {
   provided: boolean;
   value: Timestamp | null;
 };
 
 const asTrimmedString = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+const ALLOWED_STATUSES = new Set<DangerZoneStatus>(['pending', 'verified', 'rejected', 'resolved', 'expired']);
+const ALLOWED_SEVERITIES = new Set<DangerZoneSeverity>(['low', 'medium', 'high', 'critical']);
+const ALLOWED_GEOMETRIES = new Set<DangerZoneGeometryType>(['point', 'circle', 'line', 'polygon']);
+const ALLOWED_SOURCES = new Set<DangerZoneSource>(['resident_report', 'lgu_official']);
+const ALLOWED_CONFIDENCE = new Set<DangerZoneConfidence>(['low', 'medium', 'high']);
+const DEFAULT_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 500;
+const MAX_VERIFICATION_NOTES_LENGTH = 1000;
+const MAX_BARANGAYS = 30;
 
 const timestampMillis = (value: unknown): number => {
   if (!value) return 0;
@@ -51,6 +69,36 @@ const timestampMillis = (value: unknown): number => {
     return value.getTime();
   }
   return 0;
+};
+
+const parseListPageSize = (value: unknown): number => {
+  const pageSize = Number(value);
+  if (!Number.isFinite(pageSize)) return DEFAULT_PAGE_SIZE;
+  return Math.min(Math.max(Math.floor(pageSize), 1), MAX_PAGE_SIZE);
+};
+
+const normalizedLower = (value: unknown): string => asTrimmedString(value).toLowerCase();
+
+const includesSearch = (record: DangerZoneRecord, search: string): boolean => {
+  if (!search) return true;
+  const haystack = [
+    record.type,
+    record.description,
+    record.status,
+    record.severity,
+    record.geometryType,
+    record.source,
+    record.reporterName,
+    record.reporterEmail,
+    record.barangay,
+    record.barangayLabel,
+    record.verificationNotes,
+    ...(record.affectedBarangays ?? []),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return haystack.includes(search);
 };
 
 export class DangerZoneModel {
@@ -132,6 +180,69 @@ export class DangerZoneModel {
     return { provided: true, update: { expiresAt: expiry.value } };
   }
 
+  private static parseOperationalMetadata(
+    rawPayload: unknown,
+    defaults: {
+      confidence?: DangerZoneConfidence;
+      verificationNotes?: string | null;
+      affectedBarangays?: string[];
+    } = {}
+  ): Pick<DangerZoneCreateInput, 'confidence' | 'verificationNotes' | 'affectedBarangays'> {
+    const payload = rawPayload && typeof rawPayload === 'object' ? rawPayload as Record<string, unknown> : {};
+    const confidenceRaw = normalizedLower(payload.confidence);
+    const confidence = ALLOWED_CONFIDENCE.has(confidenceRaw as DangerZoneConfidence)
+      ? confidenceRaw as DangerZoneConfidence
+      : defaults.confidence ?? 'medium';
+
+    const verificationNotes = asTrimmedString(payload.verificationNotes);
+    if (verificationNotes.length > MAX_VERIFICATION_NOTES_LENGTH) {
+      throw new DangerZoneModelError(400, 'verificationNotes is too long', {
+        verificationNotes: `Verification notes must be ${MAX_VERIFICATION_NOTES_LENGTH} characters or fewer`,
+      });
+    }
+
+    const rawBarangays = payload.affectedBarangays;
+    const affectedBarangays = Array.isArray(rawBarangays)
+      ? rawBarangays
+          .map(item => asTrimmedString(item))
+          .filter(Boolean)
+          .slice(0, MAX_BARANGAYS)
+      : typeof rawBarangays === 'string'
+      ? rawBarangays
+          .split(',')
+          .map(item => item.trim())
+          .filter(Boolean)
+          .slice(0, MAX_BARANGAYS)
+      : defaults.affectedBarangays ?? [];
+
+    return {
+      confidence,
+      verificationNotes: verificationNotes || defaults.verificationNotes || null,
+      affectedBarangays,
+    };
+  }
+
+  private static enrichSpatialInput(input: DangerZoneCreateInput): DangerZoneCreateInput {
+    return {
+      ...input,
+      ...DangerZoneSpatialService.buildSpatialMetadata(input),
+    };
+  }
+
+  private static parseCursorDate(cursor?: string): Date | null {
+    if (!cursor) return null;
+    const timestamp = Number(cursor);
+    if (!Number.isFinite(timestamp) || timestamp <= 0) return null;
+    return new Date(timestamp);
+  }
+
+  private static getNextCursor(records: DangerZoneRecord[], hasMore: boolean): string | null {
+    if (!hasMore || records.length === 0) return null;
+    const lastRecord = records[records.length - 1];
+    const millis = timestampMillis(lastRecord.createdAt);
+    return millis > 0 ? String(millis) : null;
+  }
+
   private static getUpdateChangedFields(
     record: DangerZoneRecord,
     storageInput: Record<string, unknown>,
@@ -147,6 +258,9 @@ export class DangerZoneModel {
       'radiusMeters',
       'geojson',
       'affectedWidthMeters',
+      'confidence',
+      'verificationNotes',
+      'affectedBarangays',
     ];
 
     comparableFields.forEach(field => {
@@ -258,7 +372,7 @@ export class DangerZoneModel {
 
   static async createResidentReport(uid: string, rawPayload: unknown, file?: Express.Multer.File): Promise<DangerZoneRecord> {
     const metadata = await this.getResidentClientMetadata(uid);
-    const input = DangerZoneGeometryService.validatePointCirclePayload(rawPayload);
+    const input = this.enrichSpatialInput(DangerZoneGeometryService.validatePointCirclePayload(rawPayload));
     const docRef = this.pathRef().doc();
     const photoUrls = file
       ? [
@@ -276,6 +390,9 @@ export class DangerZoneModel {
       status: 'pending',
       isActive: true,
       photoUrls,
+      confidence: 'low',
+      verificationNotes: null,
+      affectedBarangays: metadata.barangayLabel ? [metadata.barangayLabel as string] : [],
       reportedBy: uid,
       reportedByRole: 'resident',
       verifiedBy: null,
@@ -311,7 +428,10 @@ export class DangerZoneModel {
 
   static async createOfficialZone(adminUser: AdminUser, rawPayload: unknown): Promise<DangerZoneRecord> {
     const clientId = this.getAdminClientId(adminUser, (rawPayload as { clientId?: unknown } | null)?.clientId, true) as string;
-    const input = DangerZoneGeometryService.validateAdminPayload(rawPayload);
+    const input = this.enrichSpatialInput({
+      ...DangerZoneGeometryService.validateAdminPayload(rawPayload),
+      ...this.parseOperationalMetadata(rawPayload, { confidence: 'high' }),
+    });
     const expiry = this.parseExpiresAt(rawPayload);
     const docRef = this.pathRef().doc();
 
@@ -359,7 +479,14 @@ export class DangerZoneModel {
       throw new DangerZoneModelError(400, 'Only active verified danger zones can be edited');
     }
 
-    const input = DangerZoneGeometryService.validateAdminPayload(rawPayload);
+    const input = this.enrichSpatialInput({
+      ...DangerZoneGeometryService.validateAdminPayload(rawPayload),
+      ...this.parseOperationalMetadata(rawPayload, {
+        confidence: record.confidence ?? 'medium',
+        verificationNotes: record.verificationNotes ?? null,
+        affectedBarangays: record.affectedBarangays ?? [],
+      }),
+    });
     const storageInput = DangerZoneFirestoreGeometryService.toFirestoreInput(input);
     const expiryUpdate = this.getExpiryUpdate(rawPayload);
     const changedFields = this.getUpdateChangedFields(record, input as unknown as Record<string, unknown>, expiryUpdate);
@@ -373,6 +500,11 @@ export class DangerZoneModel {
       geojson: storageInput.geojson,
       affectedWidthMeters: storageInput.affectedWidthMeters ?? null,
       avoidGeojson: null,
+      bbox: storageInput.bbox ?? null,
+      centroid: storageInput.centroid ?? null,
+      confidence: storageInput.confidence ?? 'medium',
+      verificationNotes: storageInput.verificationNotes ?? null,
+      affectedBarangays: storageInput.affectedBarangays ?? [],
       ...expiryUpdate.update,
       lastEditedBy: adminUser.uid,
       lastEditedAt: FieldValue.serverTimestamp(),
@@ -394,29 +526,53 @@ export class DangerZoneModel {
     return this.toRecord(updatedSnap);
   }
 
-  static async listResidentReports(adminUser: AdminUser, filters: ListFilters = {}): Promise<DangerZoneRecord[]> {
+  private static async listForAdmin(
+    adminUser: AdminUser,
+    filters: ListFilters = {},
+    requiredSource?: DangerZoneSource
+  ): Promise<PaginatedDangerZoneResult> {
     const clientId = this.getAdminClientId(adminUser, filters.clientId, false);
-    const status = asTrimmedString(filters.status) as DangerZoneStatus | '';
-    const snapshot = clientId ? await this.pathRef().where('clientId', '==', clientId).get() : await this.pathRef().get();
+    const status = normalizedLower(filters.status);
+    const severity = normalizedLower(filters.severity);
+    const geometryType = normalizedLower(filters.geometryType);
+    const requestedSource = normalizedLower(filters.source);
+    const source = requiredSource ?? (ALLOWED_SOURCES.has(requestedSource as DangerZoneSource) ? requestedSource as DangerZoneSource : undefined);
+    const search = normalizedLower(filters.search);
+    const pageSize = parseListPageSize(filters.pageSize);
+    const cursorDate = this.parseCursorDate(filters.cursor);
 
-    return this.sortNewestFirst(
-      snapshot.docs
-        .map(doc => this.toRecord(doc))
-        .filter(record => record.source === 'resident_report')
-        .filter(record => !status || record.status === status)
-    );
+    let query: FirebaseFirestore.Query = this.pathRef();
+    if (clientId) query = query.where('clientId', '==', clientId);
+    if (ALLOWED_STATUSES.has(status as DangerZoneStatus)) query = query.where('status', '==', status);
+    query = query.orderBy('createdAt', 'desc');
+    if (cursorDate) query = query.startAfter(Timestamp.fromDate(cursorDate));
+    query = query.limit(pageSize * 3 + 1);
+
+    const snapshot = await query.get();
+    const records = snapshot.docs
+      .map(doc => this.toRecord(doc))
+      .filter(record => !source || record.source === source)
+      .filter(record => !ALLOWED_SEVERITIES.has(severity as DangerZoneSeverity) || record.severity === severity)
+      .filter(record => !ALLOWED_GEOMETRIES.has(geometryType as DangerZoneGeometryType) || record.geometryType === geometryType)
+      .filter(record => includesSearch(record, search));
+
+    const items = this.sortNewestFirst(records).slice(0, pageSize);
+    return {
+      items,
+      pagination: {
+        pageSize,
+        nextCursor: this.getNextCursor(items, snapshot.docs.length > pageSize),
+        hasMore: snapshot.docs.length > pageSize,
+      },
+    };
   }
 
-  static async listZones(adminUser: AdminUser, filters: ListFilters = {}): Promise<DangerZoneRecord[]> {
-    const clientId = this.getAdminClientId(adminUser, filters.clientId, false);
-    const status = asTrimmedString(filters.status) as DangerZoneStatus | '';
-    const snapshot = clientId ? await this.pathRef().where('clientId', '==', clientId).get() : await this.pathRef().get();
+  static async listResidentReports(adminUser: AdminUser, filters: ListFilters = {}): Promise<PaginatedDangerZoneResult> {
+    return this.listForAdmin(adminUser, filters, 'resident_report');
+  }
 
-    return this.sortNewestFirst(
-      snapshot.docs
-        .map(doc => this.toRecord(doc))
-        .filter(record => !status || record.status === status)
-    );
+  static async listZones(adminUser: AdminUser, filters: ListFilters = {}): Promise<PaginatedDangerZoneResult> {
+    return this.listForAdmin(adminUser, filters);
   }
 
   static async verifyReport(adminUser: AdminUser, id: unknown, rawPayload?: unknown): Promise<DangerZoneRecord> {
@@ -426,6 +582,14 @@ export class DangerZoneModel {
     }
 
     const expiry = this.parseExpiresAt(rawPayload);
+    const metadata = this.parseOperationalMetadata(rawPayload, {
+      confidence: 'medium',
+      affectedBarangays: record.affectedBarangays?.length
+        ? record.affectedBarangays
+        : record.barangayLabel
+        ? [record.barangayLabel]
+        : [],
+    });
     await this.pathRef().doc(record.id).update({
       status: 'verified',
       isActive: true,
@@ -435,8 +599,13 @@ export class DangerZoneModel {
       rejectedAt: null,
       rejectionReason: null,
       expiresAt: expiry.provided ? expiry.value : null,
+      confidence: metadata.confidence,
+      verificationNotes: metadata.verificationNotes ?? null,
+      affectedBarangays: metadata.affectedBarangays ?? [],
       auditTrail: FieldValue.arrayUnion(
-        this.createAuditEntry('verified', adminUser.uid, adminUser.role, `Verified by ${this.getAdminActorName(adminUser)}`)
+        this.createAuditEntry('verified', adminUser.uid, adminUser.role, `Verified by ${this.getAdminActorName(adminUser)}`, {
+          fields: ['status', 'confidence', 'verificationNotes', 'affectedBarangays'],
+        })
       ),
       updatedAt: FieldValue.serverTimestamp(),
     });
@@ -501,18 +670,83 @@ export class DangerZoneModel {
     return this.toRecord(updatedSnap);
   }
 
-  static async listPublicVerifiedActive(clientIdValue: unknown): Promise<DangerZoneRecord[]> {
+  static async getAnalytics(adminUser: AdminUser, filters: Pick<ListFilters, 'clientId'> = {}): Promise<{
+    total: number;
+    pending: number;
+    verifiedActive: number;
+    rejected: number;
+    resolved: number;
+    expired: number;
+    highOrCritical: number;
+    expiringSoon: number;
+    averageVerificationHours: number | null;
+    byGeometryType: Record<string, number>;
+    bySeverity: Record<string, number>;
+  }> {
+    const clientId = this.getAdminClientId(adminUser, filters.clientId, false);
+    let query: FirebaseFirestore.Query = this.pathRef().orderBy('createdAt', 'desc').limit(1000);
+    if (clientId) query = this.pathRef().where('clientId', '==', clientId).orderBy('createdAt', 'desc').limit(1000);
+
+    const snapshot = await query.get();
+    const records = snapshot.docs.map(doc => this.toRecord(doc));
+    const now = Date.now();
+    const expiringSoonCutoff = now + 24 * 60 * 60 * 1000;
+    const verificationHours = records
+      .filter(record => record.source === 'resident_report' && record.verifiedAt)
+      .map(record => {
+        const createdAt = timestampMillis(record.createdAt);
+        const verifiedAt = timestampMillis(record.verifiedAt);
+        return createdAt > 0 && verifiedAt > createdAt ? (verifiedAt - createdAt) / (60 * 60 * 1000) : null;
+      })
+      .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+
+    const byGeometryType: Record<string, number> = {};
+    const bySeverity: Record<string, number> = {};
+    records.forEach(record => {
+      byGeometryType[record.geometryType] = (byGeometryType[record.geometryType] ?? 0) + 1;
+      bySeverity[record.severity] = (bySeverity[record.severity] ?? 0) + 1;
+    });
+
+    return {
+      total: records.length,
+      pending: records.filter(record => record.status === 'pending').length,
+      verifiedActive: records.filter(record => record.status === 'verified' && record.isActive).length,
+      rejected: records.filter(record => record.status === 'rejected').length,
+      resolved: records.filter(record => record.status === 'resolved').length,
+      expired: records.filter(record => record.status === 'expired').length,
+      highOrCritical: records.filter(record => record.severity === 'high' || record.severity === 'critical').length,
+      expiringSoon: records.filter(record => {
+        const expiresAt = timestampMillis(record.expiresAt);
+        return record.status === 'verified' && record.isActive && expiresAt > now && expiresAt <= expiringSoonCutoff;
+      }).length,
+      averageVerificationHours: verificationHours.length
+        ? Number((verificationHours.reduce((sum, value) => sum + value, 0) / verificationHours.length).toFixed(1))
+        : null,
+      byGeometryType,
+      bySeverity,
+    };
+  }
+
+  static async listPublicVerifiedActive(clientIdValue: unknown, filters: DangerZonePublicFilters = {}): Promise<DangerZoneRecord[]> {
     const clientId = canonicalizeClientId(asTrimmedString(clientIdValue));
     if (!clientId) {
       throw new DangerZoneModelError(400, 'clientId is required');
     }
 
-    const snapshot = await this.pathRef().where('clientId', '==', clientId).get();
+    const bbox = DangerZoneSpatialService.parseBbox(filters.bbox);
+    const limit = Math.min(Math.max(Number(filters.limit) || 500, 1), 1000);
+    const snapshot = await this.pathRef()
+      .where('clientId', '==', clientId)
+      .where('status', '==', 'verified')
+      .orderBy('createdAt', 'desc')
+      .limit(limit * 3)
+      .get();
     return this.sortNewestFirst(
       snapshot.docs
         .map(doc => this.toRecord(doc))
         .filter(record => record.status === 'verified' && record.isActive === true)
         .filter(record => !record.expiresAt || timestampMillis(record.expiresAt) > Date.now())
-    );
+        .filter(record => DangerZoneSpatialService.intersectsBbox(record, bbox))
+    ).slice(0, limit);
   }
 }

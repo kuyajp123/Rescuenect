@@ -4,6 +4,9 @@ export type DangerZoneSeverity = 'low' | 'medium' | 'high' | 'critical';
 export type DangerZoneGeometryType = 'point' | 'circle' | 'line' | 'polygon';
 export type DangerZoneAuditAction = 'created' | 'verified' | 'rejected' | 'updated' | 'resolved' | 'expired';
 export type DangerZoneAuditActorRole = 'resident' | 'lgu_admin' | 'super_admin' | 'system';
+export type DangerZoneConfidence = 'low' | 'medium' | 'high';
+
+export type DangerZoneBoundingBox = [number, number, number, number];
 
 export interface DangerZoneCoordinates {
   lat: number;
@@ -46,6 +49,11 @@ export interface DangerZoneRecord {
   geojson?: DangerZoneGeoJson | null;
   affectedWidthMeters?: number | null;
   avoidGeojson?: null;
+  bbox?: DangerZoneBoundingBox | null;
+  centroid?: DangerZoneCoordinates | null;
+  confidence?: DangerZoneConfidence;
+  verificationNotes?: string | null;
+  affectedBarangays?: string[];
   photoUrls: string[];
   reportedBy: string;
   reportedByRole: 'resident' | 'lgu_admin' | 'super_admin';
@@ -85,4 +93,34 @@ export interface DangerZoneCreateInput {
   geojson?: DangerZoneGeoJson | null;
   affectedWidthMeters?: number | null;
   avoidGeojson?: null;
+  bbox?: DangerZoneBoundingBox | null;
+  centroid?: DangerZoneCoordinates | null;
+  confidence?: DangerZoneConfidence;
+  verificationNotes?: string | null;
+  affectedBarangays?: string[];
 }
+
+export type DangerZoneAdminListFilters = {
+  clientId?: string;
+  status?: string;
+  severity?: string;
+  geometryType?: string;
+  source?: string;
+  search?: string;
+  pageSize?: string | number;
+  cursor?: string;
+};
+
+export type DangerZonePublicFilters = {
+  bbox?: string;
+  limit?: string | number;
+};
+
+export type PaginatedDangerZoneResult = {
+  items: DangerZoneRecord[];
+  pagination: {
+    pageSize: number;
+    nextCursor: string | null;
+    hasMore: boolean;
+  };
+};

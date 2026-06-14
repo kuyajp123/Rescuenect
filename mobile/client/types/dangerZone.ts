@@ -1,6 +1,8 @@
 export type DangerZoneSeverity = 'low' | 'medium' | 'high' | 'critical';
 export type DangerZoneGeometryType = 'point' | 'circle' | 'line' | 'polygon';
 export type DangerZoneReportGeometryType = 'point' | 'circle';
+export type DangerZoneConfidence = 'low' | 'medium' | 'high';
+export type DangerZoneBoundingBox = [number, number, number, number];
 
 export interface DangerZoneCoordinates {
   lat: number;
@@ -43,6 +45,11 @@ export interface DangerZoneRecord {
   radiusMeters?: number | null;
   geojson?: DangerZoneGeoJson | null;
   affectedWidthMeters?: number | null;
+  bbox?: DangerZoneBoundingBox | null;
+  centroid?: DangerZoneCoordinates | null;
+  confidence?: DangerZoneConfidence;
+  verificationNotes?: string | null;
+  affectedBarangays?: string[];
   photoUrls: string[];
   expiresAt?: unknown;
   expiredAt?: unknown;

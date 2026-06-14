@@ -27,6 +27,8 @@ export const API_ENDPOINTS = {
   DANGER_ZONES: {
     GET_REPORTS: `${BACKEND_URL}/admin/danger-zones/getReports`,
     GET_ZONES: `${BACKEND_URL}/admin/danger-zones/getZones`,
+    ANALYTICS: `${BACKEND_URL}/admin/danger-zones/analytics`,
+    ROUTING_OPERATIONS: `${BACKEND_URL}/admin/danger-zones/routing-operations`,
     CREATE_OFFICIAL: `${BACKEND_URL}/admin/danger-zones/createOfficial`,
     VERIFY_REPORT: `${BACKEND_URL}/admin/danger-zones/verifyReport`,
     REJECT_REPORT: `${BACKEND_URL}/admin/danger-zones/rejectReport`,

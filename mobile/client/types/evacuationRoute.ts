@@ -37,6 +37,7 @@ export type RoadConditionSegment = {
 };
 
 export type BestEvacuationRouteResponse = {
+  requestId: string;
   selectedCenter: EvacuationCenter;
   travelMode: EvacuationTravelMode;
   route: {
@@ -55,5 +56,13 @@ export type BestEvacuationRouteResponse = {
   };
   roadConditionSummary: RoadConditionSummary;
   roadConditionSegments: RoadConditionSegment[];
+  routeDecision?: {
+    strategy: 'duration_risk_capacity';
+    evaluatedCandidateCount: number;
+    scoreSeconds: number;
+    riskPenaltySeconds: number;
+    roadConditionPenaltySeconds: number;
+    centerPenaltySeconds: number;
+  };
   warnings: string[];
 };

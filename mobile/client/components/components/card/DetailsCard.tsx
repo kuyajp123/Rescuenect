@@ -142,6 +142,7 @@ const DetailsCard: React.FC<DetailsCardProps> = ({
 
   const safeActiveIndex = clampIndex(activeIndex, data.length);
   const carouselKey = `${selectedMarker.id ?? selectedMarker.name}-${data.length}`;
+  const canRouteToCenter = selectedMarker.status === 'available' && selectedMarker.isSafe !== false;
 
   const renderItem = ({ item, index }: { item: Images; index: number }) => (
     <View style={styles.carouselItemContainer}>
@@ -282,7 +283,7 @@ const DetailsCard: React.FC<DetailsCardProps> = ({
                 Capacity
               </Text>
               <Text size="sm" bold>
-                {selectedMarker.capacity} people
+                {selectedMarker.currentOccupancy ?? 0} / {selectedMarker.capacity} people
               </Text>
             </View>
           </View>
@@ -328,7 +329,13 @@ const DetailsCard: React.FC<DetailsCardProps> = ({
           </View>
         </View>
 
-        {selectedMarker.status === 'available' && onRequestRoute && (
+        {!canRouteToCenter && selectedMarker.status === 'available' ? (
+          <Text size="xs" emphasis="light">
+            This center is not being used for route guidance right now.
+          </Text>
+        ) : null}
+
+        {canRouteToCenter && onRequestRoute && (
           <HoveredButton
             onPress={isRouteLoading ? undefined : () => onRequestRoute(selectedMarker)}
             style={[

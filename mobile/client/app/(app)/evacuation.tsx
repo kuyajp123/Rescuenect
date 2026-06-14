@@ -5,7 +5,7 @@ import { EvacuationCenter } from '@/types/components';
 import { DangerZoneRecord } from '@/types/dangerZone';
 import axios, { isAxiosError } from 'axios';
 import { useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -93,6 +93,22 @@ const getDangerZoneFocusCoordinate = (zone: DangerZoneRecord): [number, number] 
   return null;
 };
 
+const EARTH_RADIUS_METERS = 6_371_008.8;
+const ROUTE_STALE_MS = 5 * 60 * 1000;
+const ROUTE_REFRESH_DISTANCE_METERS = 100;
+
+const haversineDistanceMeters = (from: { lat: number; lng: number }, to: { lat: number; lng: number }) => {
+  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+  const lat1 = toRadians(from.lat);
+  const lat2 = toRadians(to.lat);
+  const deltaLat = toRadians(to.lat - from.lat);
+  const deltaLng = toRadians(to.lng - from.lng);
+  const a =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2;
+  return 2 * EARTH_RADIUS_METERS * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
 export const Evacuation = () => {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ dangerZoneId?: string | string[] }>();
@@ -110,8 +126,42 @@ export const Evacuation = () => {
   const [selectedRouteCenterId, setSelectedRouteCenterId] = useState<string | null>(null);
   const [isRouteLoading, setIsRouteLoading] = useState(false);
   const [travelMode, setTravelMode] = useState<EvacuationTravelMode>('driving');
+  const [routeStartedAt, setRouteStartedAt] = useState<number | null>(null);
+  const [routeOrigin, setRouteOrigin] = useState<{ lat: number; lng: number } | null>(null);
+  const [shouldRefreshRoute, setShouldRefreshRoute] = useState(false);
+  const dangerZoneBboxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastDangerZoneBboxKey = useRef<string>('');
   const savedLocations = useSavedLocationsStore(state => state.savedLocations);
   const clientId = useUserData(state => state.userData.clientId);
+
+  const loadDangerZones = useCallback(
+    async (bbox?: [number, number, number, number]) => {
+      if (!clientId) {
+        setDangerZones([]);
+        return;
+      }
+
+      try {
+        setHasLoadedDangerZones(false);
+        setDangerZones(await fetchPublicDangerZones(clientId, { bbox, limit: bbox ? 500 : undefined }));
+      } catch (error) {
+        console.error('Error fetching danger zones:', error);
+        if (bbox) {
+          try {
+            setDangerZones(await fetchPublicDangerZones(clientId));
+            return;
+          } catch (fallbackError) {
+            console.error('Error fetching danger-zone fallback:', fallbackError);
+          }
+        }
+        setDangerZones([]);
+        setDangerZoneNotice('Danger-zone data is unavailable right now.');
+      } finally {
+        setHasLoadedDangerZones(true);
+      }
+    },
+    [clientId]
+  );
 
   useEffect(() => {
     const loadData = async () => {
@@ -139,22 +189,11 @@ export const Evacuation = () => {
         console.error('Error fetching evacuation centers:', error);
       }
 
-      try {
-        if (clientId) {
-          setHasLoadedDangerZones(false);
-          setDangerZones(await fetchPublicDangerZones(clientId));
-        } else {
-          setDangerZones([]);
-        }
-      } catch (error) {
-        console.error('Error fetching danger zones:', error);
-      } finally {
-        setHasLoadedDangerZones(true);
-      }
+      await loadDangerZones();
     };
 
     loadData();
-  }, [clientId]);
+  }, [clientId, loadDangerZones]);
 
   useEffect(() => {
     if (!requestedDangerZoneId || !hasLoadedDangerZones) return;
@@ -180,6 +219,9 @@ export const Evacuation = () => {
     setRouteError(null);
     setRouteWarnings([]);
     setSelectedRouteCenterId(null);
+    setRouteStartedAt(null);
+    setRouteOrigin(null);
+    setShouldRefreshRoute(false);
   }, []);
 
   const requestRoute = useCallback(
@@ -203,9 +245,10 @@ export const Evacuation = () => {
         }
 
         const [lng, lat] = currentPosition;
+        const origin = { lat, lng };
         const result = await requestBestEvacuationRoute({
           clientId,
-          origin: { lat, lng },
+          origin,
           targetCenterId: targetCenter?.id,
           travelMode,
         });
@@ -213,6 +256,9 @@ export const Evacuation = () => {
         setRouteResult(result);
         setRouteWarnings(result.warnings ?? []);
         setSelectedRouteCenterId(result.selectedCenter.id);
+        setRouteStartedAt(Date.now());
+        setRouteOrigin(origin);
+        setShouldRefreshRoute(false);
       } catch (error) {
         setRouteResult(null);
         setRouteError(getRouteErrorMessage(error));
@@ -222,6 +268,40 @@ export const Evacuation = () => {
       }
     },
     [clientId, travelMode]
+  );
+
+  useEffect(() => {
+    if (!routeResult || !routeOrigin) return;
+    const interval = setInterval(async () => {
+      if (routeStartedAt && Date.now() - routeStartedAt > ROUTE_STALE_MS) {
+        setShouldRefreshRoute(true);
+      }
+
+      try {
+        const currentPosition = await getCurrentPositionOnce();
+        if (!currentPosition) return;
+        const [lng, lat] = currentPosition;
+        if (haversineDistanceMeters(routeOrigin, { lat, lng }) >= ROUTE_REFRESH_DISTANCE_METERS) {
+          setShouldRefreshRoute(true);
+        }
+      } catch {
+        // Location refresh checks should not interrupt the visible route.
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [routeOrigin, routeResult, routeStartedAt]);
+
+  const handleVisibleBoundsChange = useCallback(
+    (bbox: [number, number, number, number]) => {
+      const key = bbox.map(value => value.toFixed(3)).join(',');
+      if (key === lastDangerZoneBboxKey.current) return;
+      lastDangerZoneBboxKey.current = key;
+      if (dangerZoneBboxTimer.current) clearTimeout(dangerZoneBboxTimer.current);
+      dangerZoneBboxTimer.current = setTimeout(() => {
+        void loadDangerZones(bbox);
+      }, 700);
+    },
+    [loadDangerZones]
   );
 
   const handleTravelModeChange = useCallback(
@@ -259,8 +339,11 @@ export const Evacuation = () => {
         isRouteLoading={isRouteLoading}
         routeWarnings={routeWarnings}
         routeError={routeError}
+        showRouteRefresh={shouldRefreshRoute}
+        onRefreshRoute={() => void requestRoute()}
         mapNotice={dangerZoneNotice}
         onDismissMapNotice={() => setDangerZoneNotice(null)}
+        onVisibleBoundsChange={handleVisibleBoundsChange}
         routeSummary={
           routeResult
             ? {

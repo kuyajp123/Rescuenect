@@ -204,8 +204,11 @@ interface MapViewProps {
   isRouteLoading?: boolean;
   routeWarnings?: string[];
   routeError?: string | null;
+  showRouteRefresh?: boolean;
+  onRefreshRoute?: () => void;
   mapNotice?: string | null;
   onDismissMapNotice?: () => void;
+  onVisibleBoundsChange?: (bbox: [number, number, number, number]) => void;
   routeSummary?: {
     selectedCenterName: string;
     distanceMeters: number;
@@ -367,8 +370,11 @@ export const MapView: React.FC<MapViewProps> = ({
   isRouteLoading = false,
   routeWarnings = [],
   routeError,
+  showRouteRefresh = false,
+  onRefreshRoute,
   mapNotice,
   onDismissMapNotice,
+  onVisibleBoundsChange,
   routeSummary,
   onClearRoute,
   earthquakeData,
@@ -666,6 +672,22 @@ export const MapView: React.FC<MapViewProps> = ({
     setIsLegendOpen(false);
   };
 
+  const handleCameraChanged = useCallback(
+    (event: any) => {
+      if (!onVisibleBoundsChange) return;
+      const bounds = event?.properties?.bounds ?? event?.bounds;
+      const ne = bounds?.ne ?? bounds?.northEast;
+      const sw = bounds?.sw ?? bounds?.southWest;
+      const neLng = Array.isArray(ne) ? Number(ne[0]) : Number(ne?.lng);
+      const neLat = Array.isArray(ne) ? Number(ne[1]) : Number(ne?.lat);
+      const swLng = Array.isArray(sw) ? Number(sw[0]) : Number(sw?.lng);
+      const swLat = Array.isArray(sw) ? Number(sw[1]) : Number(sw?.lat);
+      if ([neLng, neLat, swLng, swLat].some(value => !Number.isFinite(value))) return;
+      onVisibleBoundsChange([Math.min(swLng, neLng), Math.min(swLat, neLat), Math.max(swLng, neLng), Math.max(swLat, neLat)]);
+    },
+    [onVisibleBoundsChange]
+  );
+
   return (
     <View style={styles.mapStyle}>
       <MapboxGL.MapView
@@ -690,6 +712,7 @@ export const MapView: React.FC<MapViewProps> = ({
         }}
         onDidFinishLoadingStyle={() => setIsStyleLoaded(true)}
         onDidFinishRenderingMapFully={() => setIsMapReady(true)}
+        onCameraChanged={handleCameraChanged}
       >
         <MapboxGL.Camera
           bounds={cameraBounds}
@@ -1186,6 +1209,16 @@ export const MapView: React.FC<MapViewProps> = ({
               {warning}
             </Text>
           ))}
+          {routeSummary && showRouteRefresh && onRefreshRoute ? (
+            <HoveredButton
+              onPress={onRefreshRoute}
+              style={[styles.refreshRouteButton, { backgroundColor: isDark ? Colors.brand.dark : Colors.brand.light }]}
+            >
+              <Text size="xs" bold style={{ color: '#fff' }}>
+                Refresh route
+              </Text>
+            </HoveredButton>
+          ) : null}
           {!routeSummary && !routeError && mapNotice && onDismissMapNotice ? (
             <HoveredButton
               onPress={onDismissMapNotice}
@@ -1609,6 +1642,12 @@ const styles = StyleSheet.create({
     color: Colors.semantic.error,
   },
   clearRouteButton: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  refreshRouteButton: {
     alignSelf: 'flex-start',
     borderRadius: 999,
     paddingHorizontal: 12,

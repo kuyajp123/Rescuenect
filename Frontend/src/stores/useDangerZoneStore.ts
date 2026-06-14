@@ -1,19 +1,37 @@
 import { API_ENDPOINTS } from '@/config/endPoints';
 import { auth } from '@/lib/firebaseConfig';
-import { DangerZoneCreateOfficialPayload, DangerZoneRecord, DangerZoneStatus } from '@/types/dangerZone';
+import {
+  DangerZoneAnalytics,
+  DangerZoneCreateOfficialPayload,
+  DangerZoneListFilters,
+  DangerZonePagination,
+  DangerZoneRecord,
+  DangerZoneStatus,
+  RoutingOperations,
+} from '@/types/dangerZone';
 import axios from 'axios';
 import { create } from 'zustand';
 
 interface DangerZoneStore {
   reports: DangerZoneRecord[];
   zones: DangerZoneRecord[];
+  reportPagination: DangerZonePagination | null;
+  zonePagination: DangerZonePagination | null;
+  analytics: DangerZoneAnalytics | null;
+  routingOperations: RoutingOperations | null;
   isLoading: boolean;
   isMutating: boolean;
   error: string | null;
-  fetchReports: (status?: DangerZoneStatus | 'all') => Promise<void>;
-  fetchZones: (status?: DangerZoneStatus | 'all') => Promise<void>;
+  fetchReports: (filters?: DangerZoneListFilters | DangerZoneStatus | 'all') => Promise<void>;
+  fetchZones: (filters?: DangerZoneListFilters | DangerZoneStatus | 'all') => Promise<void>;
+  fetchAnalytics: () => Promise<void>;
+  fetchRoutingOperations: () => Promise<void>;
   createOfficialZone: (payload: DangerZoneCreateOfficialPayload) => Promise<DangerZoneRecord>;
-  verifyReport: (id: string, expiresAt?: string | null) => Promise<DangerZoneRecord>;
+  verifyReport: (
+    id: string,
+    expiresAt?: string | null,
+    metadata?: Pick<DangerZoneCreateOfficialPayload, 'confidence' | 'verificationNotes' | 'affectedBarangays'>
+  ) => Promise<DangerZoneRecord>;
   rejectReport: (id: string, rejectionReason: string) => Promise<DangerZoneRecord>;
   updateZone: (id: string, payload: DangerZoneCreateOfficialPayload) => Promise<DangerZoneRecord>;
   resolveZone: (id: string) => Promise<DangerZoneRecord>;
@@ -36,38 +54,83 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return error instanceof Error ? error.message : fallback;
 };
 
+const buildParams = (filters?: DangerZoneListFilters | DangerZoneStatus | 'all') => {
+  if (!filters) return undefined;
+  const normalized = typeof filters === 'string' ? { status: filters } : filters;
+  const params: Record<string, string | number> = {};
+  Object.entries(normalized).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '' || value === 'all') return;
+    params[key] = value as string | number;
+  });
+  return Object.keys(params).length ? params : undefined;
+};
+
 export const useDangerZoneStore = create<DangerZoneStore>((set, get) => ({
   reports: [],
   zones: [],
+  reportPagination: null,
+  zonePagination: null,
+  analytics: null,
+  routingOperations: null,
   isLoading: false,
   isMutating: false,
   error: null,
 
-  fetchReports: async status => {
+  fetchReports: async filters => {
     set({ isLoading: true, error: null });
     try {
       const headers = await getAuthHeaders();
-      const response = await axios.get<{ reports: DangerZoneRecord[] }>(API_ENDPOINTS.DANGER_ZONES.GET_REPORTS, {
+      const response = await axios.get<{ reports: DangerZoneRecord[]; pagination?: DangerZonePagination }>(API_ENDPOINTS.DANGER_ZONES.GET_REPORTS, {
         headers,
-        params: status && status !== 'all' ? { status } : undefined,
+        params: buildParams(filters),
       });
-      set({ reports: response.data.reports, isLoading: false });
+      const append = typeof filters === 'object' && Boolean(filters?.cursor);
+      set({
+        reports: append ? [...get().reports, ...response.data.reports] : response.data.reports,
+        reportPagination: response.data.pagination ?? null,
+        isLoading: false,
+      });
     } catch (error) {
       set({ isLoading: false, error: getErrorMessage(error, 'Failed to fetch danger-zone reports') });
     }
   },
 
-  fetchZones: async status => {
+  fetchZones: async filters => {
     set({ isLoading: true, error: null });
     try {
       const headers = await getAuthHeaders();
-      const response = await axios.get<{ zones: DangerZoneRecord[] }>(API_ENDPOINTS.DANGER_ZONES.GET_ZONES, {
+      const response = await axios.get<{ zones: DangerZoneRecord[]; pagination?: DangerZonePagination }>(API_ENDPOINTS.DANGER_ZONES.GET_ZONES, {
         headers,
-        params: status && status !== 'all' ? { status } : undefined,
+        params: buildParams(filters),
       });
-      set({ zones: response.data.zones, isLoading: false });
+      const append = typeof filters === 'object' && Boolean(filters?.cursor);
+      set({
+        zones: append ? [...get().zones, ...response.data.zones] : response.data.zones,
+        zonePagination: response.data.pagination ?? null,
+        isLoading: false,
+      });
     } catch (error) {
       set({ isLoading: false, error: getErrorMessage(error, 'Failed to fetch danger zones') });
+    }
+  },
+
+  fetchAnalytics: async () => {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await axios.get<{ analytics: DangerZoneAnalytics }>(API_ENDPOINTS.DANGER_ZONES.ANALYTICS, { headers });
+      set({ analytics: response.data.analytics });
+    } catch (error) {
+      set({ error: getErrorMessage(error, 'Failed to fetch danger-zone analytics') });
+    }
+  },
+
+  fetchRoutingOperations: async () => {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await axios.get<{ operations: RoutingOperations }>(API_ENDPOINTS.DANGER_ZONES.ROUTING_OPERATIONS, { headers });
+      set({ routingOperations: response.data.operations });
+    } catch (error) {
+      set({ error: getErrorMessage(error, 'Failed to fetch routing operations') });
     }
   },
 
@@ -78,7 +141,6 @@ export const useDangerZoneStore = create<DangerZoneStore>((set, get) => ({
       const response = await axios.post<{ data: DangerZoneRecord }>(API_ENDPOINTS.DANGER_ZONES.CREATE_OFFICIAL, payload, {
         headers,
       });
-      await get().fetchZones();
       set({ isMutating: false });
       return response.data.data;
     } catch (error) {
@@ -88,16 +150,15 @@ export const useDangerZoneStore = create<DangerZoneStore>((set, get) => ({
     }
   },
 
-  verifyReport: async (id, expiresAt) => {
+  verifyReport: async (id, expiresAt, metadata) => {
     set({ isMutating: true, error: null });
     try {
       const headers = await getAuthHeaders();
       const response = await axios.patch<{ data: DangerZoneRecord }>(
         API_ENDPOINTS.DANGER_ZONES.VERIFY_REPORT,
-        { id, expiresAt: expiresAt ?? null },
+        { id, expiresAt: expiresAt ?? null, ...(metadata ?? {}) },
         { headers }
       );
-      await Promise.all([get().fetchReports(), get().fetchZones()]);
       set({ isMutating: false });
       return response.data.data;
     } catch (error) {
@@ -116,7 +177,6 @@ export const useDangerZoneStore = create<DangerZoneStore>((set, get) => ({
         { id, rejectionReason },
         { headers }
       );
-      await Promise.all([get().fetchReports(), get().fetchZones()]);
       set({ isMutating: false });
       return response.data.data;
     } catch (error) {
@@ -135,7 +195,6 @@ export const useDangerZoneStore = create<DangerZoneStore>((set, get) => ({
         { id, ...payload },
         { headers }
       );
-      await get().fetchZones();
       set({ isMutating: false });
       return response.data.data;
     } catch (error) {
@@ -154,7 +213,6 @@ export const useDangerZoneStore = create<DangerZoneStore>((set, get) => ({
         { id },
         { headers }
       );
-      await Promise.all([get().fetchReports(), get().fetchZones()]);
       set({ isMutating: false });
       return response.data.data;
     } catch (error) {

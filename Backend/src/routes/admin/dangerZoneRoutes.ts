@@ -9,6 +9,8 @@ dangerZoneRoutes.use(AuthMiddleware.verifyToken, AdminMiddleware.requireAdmin, A
 
 dangerZoneRoutes.get('/getReports', DangerZoneController.getReports);
 dangerZoneRoutes.get('/getZones', DangerZoneController.getZones);
+dangerZoneRoutes.get('/analytics', DangerZoneController.getAnalytics);
+dangerZoneRoutes.get('/routing-operations', DangerZoneController.getRoutingOperations);
 
 dangerZoneRoutes.post(
   '/createOfficial',

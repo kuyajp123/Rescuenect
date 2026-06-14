@@ -3,6 +3,8 @@ export type DangerZoneStatus = 'pending' | 'verified' | 'rejected' | 'resolved' 
 export type DangerZoneSeverity = 'low' | 'medium' | 'high' | 'critical';
 export type DangerZoneGeometryType = 'point' | 'circle' | 'line' | 'polygon';
 export type DangerZoneAuditAction = 'created' | 'verified' | 'rejected' | 'updated' | 'resolved' | 'expired';
+export type DangerZoneConfidence = 'low' | 'medium' | 'high';
+export type DangerZoneBoundingBox = [number, number, number, number];
 
 export interface DangerZoneCoordinates {
   lat: number;
@@ -45,6 +47,11 @@ export interface DangerZoneRecord {
   geojson?: DangerZoneGeoJson | null;
   affectedWidthMeters?: number | null;
   avoidGeojson?: null;
+  bbox?: DangerZoneBoundingBox | null;
+  centroid?: DangerZoneCoordinates | null;
+  confidence?: DangerZoneConfidence;
+  verificationNotes?: string | null;
+  affectedBarangays?: string[];
   photoUrls: string[];
   reportedBy: string;
   reportedByRole: 'resident' | 'lgu_admin' | 'super_admin';
@@ -86,4 +93,54 @@ export interface DangerZoneCreateOfficialPayload {
   avoidGeojson?: null;
   clientId?: string;
   expiresAt?: string | null;
+  confidence?: DangerZoneConfidence;
+  verificationNotes?: string | null;
+  affectedBarangays?: string[];
+}
+
+export interface DangerZonePagination {
+  pageSize: number;
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
+export type DangerZoneListFilters = {
+  status?: DangerZoneStatus | 'all';
+  severity?: DangerZoneSeverity | 'all';
+  geometryType?: DangerZoneGeometryType | 'all';
+  source?: DangerZoneSource | 'all';
+  search?: string;
+  pageSize?: number;
+  cursor?: string | null;
+};
+
+export interface DangerZoneAnalytics {
+  total: number;
+  pending: number;
+  verifiedActive: number;
+  rejected: number;
+  resolved: number;
+  expired: number;
+  highOrCritical: number;
+  expiringSoon: number;
+  averageVerificationHours: number | null;
+  byGeometryType: Record<string, number>;
+  bySeverity: Record<string, number>;
+}
+
+export interface RoutingOperations {
+  routeCount: number;
+  failureCount: number;
+  fallbackCount: number;
+  averageLatencyMs: number;
+  providerCounts: Record<string, number>;
+  avoidanceCounts: Record<string, number>;
+  worstRoadConditionCounts: Record<string, number>;
+  recentProviderWarnings: Array<{
+    provider: string;
+    profile?: string | null;
+    errorMessage?: string | null;
+    latencyMs: number;
+    createdAt?: unknown;
+  }>;
 }

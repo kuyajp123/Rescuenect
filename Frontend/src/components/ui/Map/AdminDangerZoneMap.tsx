@@ -14,7 +14,7 @@ import 'leaflet-draw/dist/leaflet.draw.css';
 import 'leaflet/dist/leaflet.css';
 import { Fragment, useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
-import { Circle, FeatureGroup, MapContainer, Marker, Polygon, Polyline, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { Circle, CircleMarker, FeatureGroup, MapContainer, Marker, Polygon, Polyline, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 
 const dangerIcon = new L.Icon({
   iconUrl: redIcon,
@@ -34,13 +34,17 @@ interface AdminDangerZoneMapProps {
   pickedGeojson?: DangerZoneGeoJson | null;
   affectedWidthMeters?: number | null;
   enableDrawing?: boolean;
+  hideZones?: boolean;
+  showOnlySelectedZone?: boolean;
   center?: [number, number];
   zoom?: number;
   minZoom?: number;
   maxZoom?: number;
   maxBounds?: [[number, number], [number, number]];
   height?: string;
+  resizeTrigger?: number;
   onPickCenter?: (center: DangerZoneCoordinates) => void;
+  onZoneSelect?: (zone: DangerZoneRecord) => void;
   onDrawGeometry?: (geometry: Pick<DangerZoneCreateOfficialPayload, 'geometryType' | 'center' | 'radiusMeters' | 'geojson' | 'affectedWidthMeters'>) => void;
 }
 
@@ -53,12 +57,23 @@ const MapClickHandler = ({ onPickCenter }: { onPickCenter?: (center: DangerZoneC
   return null;
 };
 
-const MapResizeHandler = () => {
+const MapResizeHandler = ({ resizeTrigger }: { resizeTrigger?: number }) => {
   const map = useMap();
+  
+  // Initial mount resize
   useEffect(() => {
     const timer = window.setTimeout(() => map.invalidateSize(), 250);
     return () => window.clearTimeout(timer);
   }, [map]);
+
+  // Resize on trigger changes (panel collapse/expand)
+  useEffect(() => {
+    if (resizeTrigger === undefined) return;
+    
+    const timer = window.setTimeout(() => map.invalidateSize(), 350);
+    return () => window.clearTimeout(timer);
+  }, [map, resizeTrigger]);
+  
   return null;
 };
 
@@ -86,6 +101,22 @@ const linePositions = (geojson?: DangerZoneGeoJson | null): [number, number][] =
 const polygonPositions = (geojson?: DangerZoneGeoJson | null): [number, number][] => {
   const normalized = normalizeDangerZoneGeoJson(geojson);
   return normalized?.type === 'Polygon' ? (normalized.coordinates[0] ?? []).map(([lng, lat]) => [lat, lng]) : [];
+};
+
+const severityStyle = (severity: DangerZoneRecord['severity'], isSelected = false) => {
+  const styles = {
+    low: { color: '#16a34a', fillColor: '#22c55e' },
+    medium: { color: '#d97706', fillColor: '#f59e0b' },
+    high: { color: '#dc2626', fillColor: '#ef4444' },
+    critical: { color: '#7f1d1d', fillColor: '#991b1b' },
+  }[severity];
+
+  return {
+    ...styles,
+    fillOpacity: isSelected ? 0.34 : 0.22,
+    opacity: 0.9,
+    weight: isSelected ? 5 : 3,
+  };
 };
 
 const closeRing = (coordinates: [number, number][]): [number, number][] => {
@@ -218,37 +249,61 @@ const DrawControls = ({
   return null;
 };
 
-const DangerZoneLayers = ({ zone }: { zone: DangerZoneRecord }) => (
-  <>
-    {zone.geometryType === 'circle' && zone.center && (
-      <Circle
-        center={[zone.center.lat, zone.center.lng]}
-        radius={zone.radiusMeters ?? 100}
-        pathOptions={{ color: '#dc2626', fillColor: '#ef4444', fillOpacity: 0.2, weight: 2 }}
-      />
-    )}
-    {zone.geometryType === 'line' && zone.geojson?.type === 'LineString' && (
-      <Polyline positions={linePositions(zone.geojson)} pathOptions={{ color: '#dc2626', weight: 5, opacity: 0.85 }} />
-    )}
-    {zone.geometryType === 'polygon' && zone.geojson?.type === 'Polygon' && (
-      <Polygon
-        positions={polygonPositions(zone.geojson)}
-        pathOptions={{ color: '#dc2626', fillColor: '#ef4444', fillOpacity: 0.22, weight: 2 }}
-      />
-    )}
-    {(zone.geometryType === 'point' || zone.geometryType === 'circle') && zone.center && (
-      <Marker position={[zone.center.lat, zone.center.lng]} icon={dangerIcon}>
-        <Popup>
-          <div className="space-y-1">
-            <strong>{formatLabel(zone.type)}</strong>
-            <div>Status: {zone.status}</div>
-            <div>Severity: {zone.severity}</div>
-          </div>
-        </Popup>
-      </Marker>
-    )}
-  </>
-);
+const DangerZoneLayers = ({
+  zone,
+  isSelected,
+  onZoneSelect,
+}: {
+  zone: DangerZoneRecord;
+  isSelected?: boolean;
+  onZoneSelect?: (zone: DangerZoneRecord) => void;
+}) => {
+  const pathOptions = severityStyle(zone.severity, isSelected);
+  const eventHandlers = onZoneSelect ? { click: () => onZoneSelect(zone) } : undefined;
+
+  return (
+    <>
+      {zone.geometryType === 'circle' && zone.center && (
+        <Circle
+          center={[zone.center.lat, zone.center.lng]}
+          radius={zone.radiusMeters ?? 100}
+          pathOptions={pathOptions}
+          eventHandlers={eventHandlers}
+        />
+      )}
+      {zone.geometryType === 'line' && zone.geojson?.type === 'LineString' && (
+        <Polyline
+          positions={linePositions(zone.geojson)}
+          pathOptions={{ ...pathOptions, fillOpacity: undefined, weight: isSelected ? 7 : 5 }}
+          eventHandlers={eventHandlers}
+        />
+      )}
+      {zone.geometryType === 'polygon' && zone.geojson?.type === 'Polygon' && (
+        <Polygon
+          positions={polygonPositions(zone.geojson)}
+          pathOptions={pathOptions}
+          eventHandlers={eventHandlers}
+        />
+      )}
+      {(zone.geometryType === 'point' || zone.geometryType === 'circle') && zone.center && (
+        <CircleMarker
+          center={[zone.center.lat, zone.center.lng]}
+          radius={isSelected ? 9 : 7}
+          pathOptions={{ ...pathOptions, fillOpacity: 0.9, weight: isSelected ? 4 : 2 }}
+          eventHandlers={eventHandlers}
+        >
+          <Popup>
+            <div className="space-y-1">
+              <strong>{formatLabel(zone.type)}</strong>
+              <div>Status: {zone.status}</div>
+              <div>Severity: {zone.severity}</div>
+            </div>
+          </Popup>
+        </CircleMarker>
+      )}
+    </>
+  );
+};
 
 export const AdminDangerZoneMap = ({
   zones = [],
@@ -259,21 +314,27 @@ export const AdminDangerZoneMap = ({
   pickedGeojson,
   affectedWidthMeters,
   enableDrawing = false,
+  hideZones = false,
+  showOnlySelectedZone = true,
   center = [14.31808, 120.750674],
   zoom = 15,
   minZoom = 12,
   maxZoom = 18,
   maxBounds,
   height = '360px',
+  resizeTrigger,
   onPickCenter,
+  onZoneSelect,
   onDrawGeometry,
 }: AdminDangerZoneMapProps) => {
   const drawFeatureGroupRef = useRef<L.FeatureGroup | null>(null);
-  const visibleZones = selectedZone ? [selectedZone] : zones;
+  const visibleZones = hideZones ? [] : selectedZone && showOnlySelectedZone ? [selectedZone] : zones;
   const focusCenter: [number, number] | undefined = pickedCenter
     ? [pickedCenter.lat, pickedCenter.lng]
     : selectedZone?.center
       ? [selectedZone.center.lat, selectedZone.center.lng]
+      : selectedZone?.centroid
+        ? [selectedZone.centroid.lat, selectedZone.centroid.lng]
       : undefined;
 
   return (
@@ -288,7 +349,7 @@ export const AdminDangerZoneMap = ({
         scrollWheelZoom
         style={{ height, width: '100%', zIndex: 0 }}
       >
-        <MapResizeHandler />
+        <MapResizeHandler resizeTrigger={resizeTrigger} />
         <MapFocusHandler center={focusCenter} zoom={zoom} />
         {onPickCenter && !enableDrawing && <MapClickHandler onPickCenter={onPickCenter} />}
         <TileLayer
@@ -298,7 +359,7 @@ export const AdminDangerZoneMap = ({
 
         {visibleZones.map(zone => (
           <Fragment key={zone.id}>
-            <DangerZoneLayers zone={zone} />
+            <DangerZoneLayers zone={zone} isSelected={zone.id === selectedZone?.id} onZoneSelect={onZoneSelect} />
           </Fragment>
         ))}
 

@@ -51,6 +51,8 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
         status: data.data.status,
         type: data.data.type,
         capacity: data.data.capacity,
+        currentOccupancy: data.data.currentOccupancy ?? '',
+        isSafe: data.data.isSafe === false ? 'false' : 'true',
         contact: data.data.contact,
         location: data.data.location,
         description: data.data.description,
@@ -111,6 +113,12 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
       if (!formData?.capacity || Number(formData.capacity) <= 0) {
         validationErrors.capacity = 'Capacity must be a positive number';
       }
+      if (
+        formData?.currentOccupancy !== '' &&
+        (Number(formData.currentOccupancy) < 0 || Number(formData.currentOccupancy) > Number(formData.capacity))
+      ) {
+        validationErrors.currentOccupancy = 'Current occupancy must be between 0 and capacity';
+      }
 
       if (!formData?.type?.trim()) validationErrors.type = 'Type is required';
       if (!formData?.status?.trim()) validationErrors.status = 'Status is required';
@@ -140,6 +148,8 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
         status: formData.status,
         type: formData.type,
         capacity: formData.capacity,
+        currentOccupancy: formData.currentOccupancy === '' ? null : Number(formData.currentOccupancy),
+        isSafe: formData.isSafe !== 'false',
         contact: formData.contact,
         location: formData.location,
         description: formData.description,
@@ -364,6 +374,27 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
                 }}
               />
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Input
+                label="Current occupancy"
+                type="number"
+                min={0}
+                value={String(formData.currentOccupancy ?? '')}
+                isInvalid={Boolean(errors.currentOccupancy)}
+                errorMessage={errors.currentOccupancy}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setFormData({ ...formData, currentOccupancy: e.target.value })
+                }
+              />
+              <Select
+                label="Safety status"
+                selectedKeys={[formData.isSafe ?? 'true']}
+                onChange={e => setFormData({ ...formData, isSafe: e.target.value })}
+              >
+                <SelectItem key="true">Safe for routing</SelectItem>
+                <SelectItem key="false">Do not route residents here</SelectItem>
+              </Select>
+            </div>
 
             <Input
               label="Location Name"
@@ -485,7 +516,13 @@ export const EvacuationPanel = ({ data }: { data: any }) => {
               </div>
               <div>
                 <p className="text-gray-500 text-xs">Capacity</p>
-                <p className="font-medium">{data.data.capacity}</p>
+                <p className="font-medium">
+                  {data.data.currentOccupancy ?? 0} / {data.data.capacity}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-xs">Routing safety</p>
+                <p className="font-medium">{data.data.isSafe === false ? 'Not used for routing' : 'Safe for routing'}</p>
               </div>
               <div>
                 <p className="text-gray-500 text-xs">Contact</p>

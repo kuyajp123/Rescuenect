@@ -45,6 +45,16 @@ export const routeRateLimiters = {
     max: 60,
     message: { message: 'Too many requests to this endpoint, please try again later.' },
   }),
+  routeComputation: createRateLimiter({
+    windowMs: oneHour,
+    max: 40,
+    message: { message: 'Too many route requests. Please wait before trying again.' },
+  }),
+  dangerZoneReport: createRateLimiter({
+    windowMs: oneHour,
+    max: 12,
+    message: { message: 'Too many danger-zone reports. Please wait before submitting another report.' },
+  }),
   sensitive: createRateLimiter({
     windowMs: oneHour,
     max: 30,
