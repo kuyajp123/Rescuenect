@@ -1,3 +1,21 @@
+## [3.0.0](https://github.com/kuyajp123/Rescuenect/compare/v2.4.1...v3.0.0) (2026-06-14)
+
+### ⚠ BREAKING CHANGES
+
+* Danger zone and roting enhancement
+
+### Features
+
+* Danger zone and roting enhancement ([ccd1b2e](https://github.com/kuyajp123/Rescuenect/commit/ccd1b2ead3ab21bfd497675ccfbf7dcb838edc13))
+* enhance danger zone mobile app UX ([3d6aa54](https://github.com/kuyajp123/Rescuenect/commit/3d6aa5490982263cc8a036a4811b3928d012e1fb))
+* improve evacuation map view ([3c69366](https://github.com/kuyajp123/Rescuenect/commit/3c693667e743b446cc565606975e6f35f8a80d1b))
+
+### Bug Fixes
+
+* client logo optional for client activation ([66bf8c7](https://github.com/kuyajp123/Rescuenect/commit/66bf8c78b68feaf4f245e96d2b58ec4e640c5deb))
+* update weather utils and functions ([4a992bf](https://github.com/kuyajp123/Rescuenect/commit/4a992bf38aca78bd7263564a3ef41ca285fe7d47))
+* weather notification mismatch from raltime ([291a46a](https://github.com/kuyajp123/Rescuenect/commit/291a46a349f456c6a3c09ab778795e2aeb07bd3c))
+
 ## [2.4.1](https://github.com/kuyajp123/Rescuenect/compare/v2.4.0...v2.4.1) (2026-06-12)
 
 ### Bug Fixes
