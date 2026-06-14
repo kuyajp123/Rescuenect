@@ -1,3 +1,9 @@
+## [3.1.1](https://github.com/kuyajp123/Rescuenect/compare/v3.1.0...v3.1.1) (2026-06-14)
+
+### Bug Fixes
+
+* auto center map on evacuation point ([b3d80f9](https://github.com/kuyajp123/Rescuenect/commit/b3d80f9b50fc17567cf925d0aaad8dec8436cac6))
+
 ## [3.1.0](https://github.com/kuyajp123/Rescuenect/compare/v3.0.0...v3.1.0) (2026-06-14)
 
 ### Features
