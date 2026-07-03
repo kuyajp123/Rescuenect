@@ -1,4 +1,4 @@
-import Logo from '@/assets/images/logo/logoVerti.svg';
+import { Image } from 'react-native';
 import GoogleButton from '@/components/components/button/GoogleButton';
 import { Body } from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
@@ -62,7 +62,18 @@ const SignIn = () => {
       <LinearGradient colors={gradientColors} locations={[0.1, 0.3, 0.5, 0.7, 0.9]} style={styles.gradient}>
         <Body style={styles.body}>
           <View style={styles.welcomeContainer}>
-            <Logo width={200} height={100} />
+            <View style={styles.logoRow}>
+              <Image
+                source={require('@/assets/images/logo/no-bg-icon.png')}
+                style={styles.logoIcon}
+                resizeMode="contain"
+              />
+              <Image
+                source={require('@/assets/images/logo/rescuenect.png')}
+                style={styles.logoText}
+                resizeMode="contain"
+              />
+            </View>
           </View>
           <View style={styles.welcomeTextContainer}>
             <Text size="2xl">Welcome</Text>
@@ -198,7 +209,20 @@ const styles = StyleSheet.create({
   welcomeContainer: {
     position: 'absolute',
     top: '10%',
-    textAlign: 'center',
+    alignItems: 'center',
+  },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  logoIcon: {
+    width: 60,
+    height: 60,
+  },
+  logoText: {
+    width: 180,
+    height: 48,
   },
   checkboxContainer: {
     flexDirection: 'row',

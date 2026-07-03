@@ -589,3 +589,5 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 > Replace all placeholder values (`your_...`) with your actual credentials before running any sub-project.
+
+2025 Rescuenect all rights reserved.

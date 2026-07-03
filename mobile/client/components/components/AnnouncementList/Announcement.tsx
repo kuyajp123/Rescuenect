@@ -313,6 +313,7 @@ const styles = StyleSheet.create({
   emptyEmoji: {
     fontSize: 48,
     marginBottom: 16,
+    paddingTop: 10,
   },
   emptyTitle: {
     fontSize: 18,

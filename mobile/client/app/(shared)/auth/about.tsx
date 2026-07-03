@@ -1,11 +1,13 @@
-import Logo from '@/assets/images/logo/logoVerti.svg';
 import { HeaderBackButton } from '@/components/components/button/Button';
 import Body from '@/components/ui/layout/Body';
 import { Text } from '@/components/ui/text';
 import { useTheme } from '@/contexts/ThemeContext';
+import Constants from 'expo-constants';
 import { Stack, useRouter } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+
+const releaseVersion = String(Constants.expoConfig?.extra?.releaseVersion ?? Constants.expoConfig?.version ?? '2.0.0');
 
 const capabilityItems = [
   'View the current status of residents during a disaster.',
@@ -52,7 +54,6 @@ const AboutScreen = () => {
       />
 
       <View style={styles.headerSection}>
-        <Logo width={140} height={80} />
         <Text size="2xl" bold style={styles.titleText}>
           Welcome to Rescuenect
         </Text>
@@ -116,7 +117,7 @@ const AboutScreen = () => {
         ))}
       </View>
 
-      <View style={styles.section}>
+      {/* <View style={styles.section}>
         <Text size="lg" bold>
           Developed By
         </Text>
@@ -125,7 +126,10 @@ const AboutScreen = () => {
             - {member}
           </Text>
         ))}
-      </View>
+      </View> */}
+      <Text emphasis="light" size="xs" style={styles.versionText}>
+        Rescuenect {releaseVersion}
+      </Text>
     </Body>
   );
 };
@@ -134,6 +138,11 @@ const styles = StyleSheet.create({
   headerSection: {
     alignItems: 'center',
     marginBottom: 20,
+  },
+  versionText: {
+    marginTop: 18,
+    marginBottom: 24,
+    textAlign: 'center',
   },
   section: {
     marginBottom: 20,

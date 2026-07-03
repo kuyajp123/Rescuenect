@@ -6,9 +6,9 @@ export const Loading = () => {
       <div className="flex flex-col items-center gap-4 animate-fade-in">
         <div className="relative w-24 h-24 flex items-center justify-center">
           <img
-            src="/images/logo/logo.svg"
+            src="/images/logo/adaptive-icon.png"
             alt="Rescuenect Logo"
-            className="w-full h-full object-contain animate-pulse"
+            className="w-full h-full object-contain animate-pulse rounded"
           />
         </div>
 

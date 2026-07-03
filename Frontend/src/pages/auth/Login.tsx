@@ -275,9 +275,7 @@ const Login = () => {
         <div className="relative z-10 mx-auto flex min-h-[76svh] max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
           <header className="flex items-center justify-between gap-4 py-3">
             <a className="flex items-center gap-3" href="#top" aria-label="Rescuenect home">
-              <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-white/95 p-2 shadow-lg shadow-black/20">
-                <img src="/images/logo/logo.svg" alt="Rescuenect logo" className="h-8 w-8" />
-              </span>
+              <img src="/images/logo/adaptive-icon.png" alt="Rescuenect logo" className="h-10 w-10 rounded" />
               <span className="text-lg font-semibold sm:text-xl">Rescuenect</span>
             </a>
 
@@ -811,9 +809,7 @@ const Login = () => {
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-10 sm:px-6 md:grid-cols-2 lg:grid-cols-[1.2fr_0.8fr_0.8fr] lg:px-8">
           <div>
             <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-white/95 p-2 shadow-lg shadow-black/20">
-                <img src="/images/logo/logo.svg" alt="Rescuenect logo" className="h-8 w-8" />
-              </span>
+              <img src="/images/logo/adaptive-icon.png" alt="Rescuenect logo" className="h-10 w-10 rounded" />
               <span className="text-lg font-semibold">Rescuenect</span>
             </div>
             <p className="mt-4 max-w-md text-sm leading-6 text-white/60">
