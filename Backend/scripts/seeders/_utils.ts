@@ -78,6 +78,107 @@ export async function verifyClientExists(clientId: string): Promise<void> {
   }
 }
 
+export interface ClientGeoBounds {
+  latMin: number;
+  latMax: number;
+  lngMin: number;
+  lngMax: number;
+  centerLat: number;
+  centerLng: number;
+  barangays: string[];
+  municipalityName: string;
+  provinceName: string;
+}
+
+// Default padding in degrees when deriving bounds from a single center point
+const DEFAULT_BOUNDS_PADDING = 0.05; // ~5.5 km
+
+/**
+ * Fetches geo bounds for a client dynamically from Firestore.
+ * Uses maxBounds if configured, otherwise derives bounds from the center
+ * point (weatherLatitude/weatherLongitude) with a padding.
+ * Falls back to hardcoded Naic values for the legacy static client.
+ */
+export async function getClientGeoBounds(clientId: string): Promise<ClientGeoBounds> {
+  // ── Legacy static client (Naic) ──────────────────────────────────────────────
+  if (clientId === 'naic') {
+    return {
+      latMin: 14.26,
+      latMax: 14.36,
+      lngMin: 120.74,
+      lngMax: 120.83,
+      centerLat: 14.2919325,
+      centerLng: 120.7752839,
+      municipalityName: 'Naic',
+      provinceName: 'Cavite',
+      barangays: [
+        'Labac', 'Mabolo', 'Bancaan', 'Balsahan', 'Bagong Karsada',
+        'Sapa', 'Bucana Sasahan', 'Gomez-Zamora', 'Kanluran', 'Humbac',
+        'Bucana Malaki', 'Ibayo Estacion', 'Ibayo Silangan', 'Latoria',
+        'Munting Mapino', 'Muzon', 'Santulan', 'Calubcob', 'Makina',
+        'San Roque', 'Sabang', 'Molino', 'Halang', 'Palangue 1',
+      ],
+    };
+  }
+
+  // ── Dynamic Firestore client ──────────────────────────────────────────────────
+  const snap = await db.collection('clients').doc(clientId).get();
+  if (!snap.exists) {
+    throw new Error(`Client "${clientId}" not found in Firestore.`);
+  }
+
+  const data = snap.data() ?? {};
+
+  // Pull weather center point
+  const centerLat: number = typeof data.weatherLatitude === 'number' && Number.isFinite(data.weatherLatitude)
+    ? data.weatherLatitude
+    : 0;
+  const centerLng: number = typeof data.weatherLongitude === 'number' && Number.isFinite(data.weatherLongitude)
+    ? data.weatherLongitude
+    : 0;
+
+  // Pull maxBounds if available (set by admin in map settings)
+  const maxBounds = data.mapSettings?.maxBounds;
+  const hasBounds =
+    maxBounds &&
+    typeof maxBounds.north === 'number' &&
+    typeof maxBounds.south === 'number' &&
+    typeof maxBounds.east === 'number' &&
+    typeof maxBounds.west === 'number';
+
+  const latMin = hasBounds ? maxBounds.south : centerLat - DEFAULT_BOUNDS_PADDING;
+  const latMax = hasBounds ? maxBounds.north : centerLat + DEFAULT_BOUNDS_PADDING;
+  const lngMin = hasBounds ? maxBounds.west  : centerLng - DEFAULT_BOUNDS_PADDING;
+  const lngMax = hasBounds ? maxBounds.east  : centerLng + DEFAULT_BOUNDS_PADDING;
+
+  // Pull barangay labels from the barangays array
+  const rawBarangays: unknown[] = Array.isArray(data.barangays) ? data.barangays : [];
+  const barangays = rawBarangays
+    .map((b: unknown) => {
+      if (typeof b === 'object' && b !== null) {
+        const obj = b as Record<string, unknown>;
+        return typeof obj.barangayLabel === 'string' ? obj.barangayLabel
+          : typeof obj.label === 'string' ? obj.label
+          : null;
+      }
+      return null;
+    })
+    .filter((label): label is string => label !== null && label.trim() !== '');
+
+  const municipalityName: string = typeof data.municipalityName === 'string' ? data.municipalityName
+    : typeof data.name === 'string' ? data.name
+    : clientId;
+  const provinceName: string = typeof data.provinceName === 'string' ? data.provinceName : '';
+
+  if (!hasBounds || !centerLat || !centerLng) {
+    console.warn(`   ⚠️  Client "${clientId}" is missing mapSettings.maxBounds or weather coordinates.`);
+    console.warn(`       Seeding with derived bounds (center ± ${DEFAULT_BOUNDS_PADDING}°). Set maxBounds in the admin panel for precise seeding.`);
+  }
+
+  return { latMin, latMax, lngMin, lngMax, centerLat, centerLng, barangays, municipalityName, provinceName };
+}
+
+
 // ─── Image generation ──────────────────────────────────────────────────────────
 
 /**

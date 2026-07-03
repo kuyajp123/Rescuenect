@@ -8,6 +8,7 @@ import { unseedCarousel } from './seeders/unseedCarousel';
 import { unseedContacts } from './seeders/unseedContacts';
 import { unseedDangerZones } from './seeders/unseedDangerZones';
 import { unseedEvacuations } from './seeders/unseedEvacuations';
+import { verifyFirebaseConnection } from '../src/db/firestoreConfig';
 
 async function promptConfirmation(message: string): Promise<boolean> {
   const rl = readline.createInterface({
@@ -40,6 +41,14 @@ async function run() {
   console.log(`   Client  : ${clientId}`);
   console.log(`   Module  : ${targetModule}`);
   console.log(`   Target  : ${target === 'all' ? 'ALL DATA (Destructive!)' : 'Seeded Data Only'}\n`);
+
+  // ── Pre-flight checks ──────────────────────────────────────────────────────
+  console.log('🔍 Verifying Firebase connection before unseeding...');
+  const isConnected = await verifyFirebaseConnection();
+  if (!isConnected) {
+    console.error('❌ Firebase connection check failed. Aborting unseed to prevent partial deletions.');
+    process.exit(1);
+  }
 
   if (target === 'all') {
     console.log('   ╔══════════════════════════════════════════════════════╗');

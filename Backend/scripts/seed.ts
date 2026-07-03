@@ -25,6 +25,7 @@ import { seedCarousel } from './seeders/seedCarousel';
 import { seedContacts } from './seeders/seedContacts';
 import { seedDangerZones } from './seeders/seedDangerZones';
 import { seedEvacuations } from './seeders/seedEvacuations';
+import { verifyFirebaseConnection } from '../src/db/firestoreConfig';
 
 const VALID_MODULES = ['evacuations', 'danger-zones', 'announcements', 'contacts', 'carousel', 'all'] as const;
 type SeederModule = (typeof VALID_MODULES)[number];
@@ -53,6 +54,14 @@ const main = async () => {
   console.log(`   Client  : ${clientId}`);
   console.log(`   Module  : ${rawModule}`);
   console.log(`   Count   : ${count}\n`);
+
+  // ── Pre-flight checks ──────────────────────────────────────────────────────
+  console.log('🔍 Verifying Firebase connection before seeding...');
+  const isConnected = await verifyFirebaseConnection();
+  if (!isConnected) {
+    console.error('❌ Firebase connection check failed. Aborting seed to prevent partial writes.');
+    process.exit(1);
+  }
 
   const runners: Record<Exclude<SeederModule, 'all'>, () => Promise<void>> = {
     evacuations: () => seedEvacuations(clientId, count),
