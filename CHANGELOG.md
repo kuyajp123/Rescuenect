@@ -1,3 +1,9 @@
+## [3.2.0](https://github.com/kuyajp123/Rescuenect/compare/v3.1.1...v3.2.0) (2026-07-03)
+
+### Features
+
+* change icon logo and splash screen ([93ebf91](https://github.com/kuyajp123/Rescuenect/commit/93ebf91bc7e080910375a1f5097b5d5ced1c8e8a))
+
 ## [3.1.1](https://github.com/kuyajp123/Rescuenect/compare/v3.1.0...v3.1.1) (2026-06-14)
 
 ### Bug Fixes
