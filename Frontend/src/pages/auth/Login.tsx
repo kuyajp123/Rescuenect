@@ -695,8 +695,6 @@ const Login = () => {
                   <Button
                     as="a"
                     href={mobileAppDownloadUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="h-11 rounded-lg bg-white px-5 text-sm font-semibold text-slate-950"
                     startContent={<Download size={18} />}
                   >
