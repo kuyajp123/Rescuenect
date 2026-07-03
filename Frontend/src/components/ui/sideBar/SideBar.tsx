@@ -93,7 +93,7 @@ const SideBar = ({ isOpen }: SideBarProps) => {
             style={{ minHeight: '40px' }}
             onClick={() => navigate('/')}
           >
-            <img src="/images/logo/logo.svg" alt="Rescuenect Logo" className="w-6 h-6" />
+            <img src="/images/logo/adaptive-icon.png" alt="Rescuenect Logo" className="w-8 h-8 rounded" />
             <span
               className={`ml-2 transition-opacity duration-300 ${
                 isExpanded ? 'opacity-100' : 'opacity-0 lg:opacity-0'

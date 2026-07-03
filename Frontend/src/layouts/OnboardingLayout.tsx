@@ -8,7 +8,7 @@ const Onboarding = () => {
         {/* Optional Header */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-2">
-            <img src="/images/logo/logo.svg" alt="Rescuenect" className="w-8 h-8" />
+            <img src="/images/logo/adaptive-icon.png" alt="Rescuenect" className="w-8 h-8 rounded" />
             <span className="font-bold text-xl text-gray-800 dark:text-white">Rescuenect Admin</span>
           </div>
           <ThemeSwitcher />

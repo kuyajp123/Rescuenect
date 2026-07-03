@@ -584,7 +584,7 @@ export const LguClientRequests = () => {
                   isDisabled={isWriteLocked || !hasWeatherChanges}
                   onPress={submitWeatherCoordinates}
                 >
-                  Submit Center Proposal
+                  Submit to review
                 </Button>
               </CardBody>
             </Card>
@@ -615,7 +615,7 @@ export const LguClientRequests = () => {
                   isDisabled={isWriteLocked || !hasClientInfoChanges}
                   onPress={submitClientInfo}
                 >
-                  Submit Info Proposal
+                  Submit to review
                 </Button>
               </CardBody>
             </Card>
@@ -757,7 +757,7 @@ export const LguClientRequests = () => {
                   isDisabled={isWriteLocked || !hasMapChanges}
                   onPress={submitMapSettings}
                 >
-                  Submit Map Proposal
+                  Submit to review
                 </Button>
               </CardBody>
             </Card>
@@ -784,7 +784,7 @@ export const LguClientRequests = () => {
                   isDisabled={isWriteLocked || !hasCoverageChanges}
                   onPress={submitCoverage}
                 >
-                  Submit Coverage Proposal
+                  Submit to review
                 </Button>
               </CardBody>
             </Card>
@@ -816,7 +816,7 @@ export const LguClientRequests = () => {
                   isDisabled={isWriteLocked || !hasInviteChanges}
                   onPress={submitInvite}
                 >
-                  Submit Invite Proposal
+                  Submit to review
                 </Button>
               </CardBody>
             </Card>

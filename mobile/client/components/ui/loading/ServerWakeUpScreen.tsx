@@ -18,7 +18,7 @@ export const ServerWakeUpScreen: React.FC<ServerWakeUpScreenProps> = ({ onServer
 
   useEffect(() => {
     let isMounted = true;
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     const checkServerHealth = async () => {
       try {
@@ -101,6 +101,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 200,
     height: 200,
+    borderRadius: 10,
   },
   statusContainer: {
     alignItems: 'center',

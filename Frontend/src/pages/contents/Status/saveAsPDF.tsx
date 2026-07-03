@@ -176,9 +176,9 @@ export const SaveAsPDF = () => {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <img
-              src="/images/logo/logoHori.svg"
+              src="/images/logo/adaptive-icon.png"
               alt="Rescuenect Logo"
-              style={{ height: '60px', width: 'auto' }}
+              style={{ height: '50px', width: 'auto', borderRadius: '8px' }}
               onError={e => {
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
@@ -187,7 +187,7 @@ export const SaveAsPDF = () => {
               <h1
                 style={{
                   margin: '0',
-                  fontSize: '32px',
+                  fontSize: '24px',
                   fontWeight: 'bold',
                   color: '#1f2937',
                 }}

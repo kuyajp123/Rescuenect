@@ -1,4 +1,4 @@
-import Logo from '@/assets/images/logo/logoVerti.svg';
+import { Image } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -29,7 +29,13 @@ export const SetupStepper = ({ currentStep, title, description }: SetupStepperPr
 
   return (
     <View style={styles.header}>
-      <Logo width={170} height={92} />
+      <View style={styles.logoRow}>
+        <Image
+          source={require('@/assets/images/logo/rescuenect.png')}
+          style={styles.logoText}
+          resizeMode="contain"
+        />
+      </View>
       <View style={[styles.stepperSurface, { backgroundColor: surfaceColor, borderColor }]}>
         <View style={styles.progressRow}>
           {steps.map((step, index) => {
@@ -91,6 +97,20 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     gap: 12,
+  },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginVertical: 20,
+  },
+  logoIcon: {
+    width: 55,
+    height: 55,
+  },
+  logoText: {
+    width: 165,
+    height: 44,
   },
   stepperSurface: {
     width: '100%',
