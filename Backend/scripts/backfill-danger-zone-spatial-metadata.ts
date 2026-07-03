@@ -1,22 +1,11 @@
-import { db } from '@/db/firestoreConfig';
-import { DangerZoneFirestoreGeometryService } from '@/services/DangerZoneFirestoreGeometryService';
-import { DangerZoneSpatialService } from '@/services/DangerZoneSpatialService';
-import { DangerZoneCreateInput } from '@/types/dangerZone';
+import { db } from '../src/db/firestoreConfig';
+import { DangerZoneFirestoreGeometryService } from '../src/services/DangerZoneFirestoreGeometryService';
+import { DangerZoneSpatialService } from '../src/services/DangerZoneSpatialService';
+import { DangerZoneCreateInput } from '../src/types/dangerZone';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const BATCH_SIZE = 400;
 
-const buildInput = (data: FirebaseFirestore.DocumentData): DangerZoneCreateInput => ({
-  type: String(data.type || ''),
-  severity: data.severity || 'medium',
-  description: String(data.description || ''),
-  geometryType: data.geometryType,
-  center: data.center ?? null,
-  radiusMeters: data.radiusMeters ?? null,
-  geojson: DangerZoneFirestoreGeometryService.fromFirestoreGeoJson(data.geojson),
-  affectedWidthMeters: data.affectedWidthMeters ?? null,
-  avoidGeojson: null,
-});
 
 const main = async () => {
   const snapshot = await db.collection('dangerZones').get();
@@ -26,7 +15,12 @@ const main = async () => {
 
   for (const doc of snapshot.docs) {
     const data = doc.data();
-    const spatial = DangerZoneSpatialService.buildSpatialMetadata(buildInput(data));
+    const spatial = DangerZoneSpatialService.buildSpatialMetadata({
+      geometryType: data.geometryType,
+      center: data.center ?? null,
+      radiusMeters: data.radiusMeters ?? null,
+      geojson: DangerZoneFirestoreGeometryService.fromFirestoreGeoJson(data.geojson),
+    } as Pick<DangerZoneCreateInput, 'geometryType' | 'center' | 'radiusMeters' | 'geojson'>);
     batch.update(doc.ref, {
       bbox: spatial.bbox ?? null,
       centroid: spatial.centroid ?? null,
