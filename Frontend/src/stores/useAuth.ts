@@ -96,7 +96,7 @@ export const getAccessIssueFromError = (error: any): AuthAccessIssue => {
     return { status, code: 'unauthorized', message: 'Your admin session expired. Please sign in again.' };
   }
 
-  return null;
+  return { status, code: 'admin_denied', message };
 };
 
 export const useAuth = create<AuthStore>()(
@@ -169,12 +169,6 @@ export const useAuth = create<AuthStore>()(
 
           const errorCode = error?.code || '';
           const status = error?.response?.status;
-          const accessIssue = getAccessIssueFromError(error);
-
-          if (accessIssue && (status === 403 || status === 404)) {
-            set({ userData: null, accessIssue });
-            return;
-          }
 
           // Check for Firebase Auth errors or Backend 401/403 indicating the user is no longer valid
           if (
@@ -187,7 +181,11 @@ export const useAuth = create<AuthStore>()(
             console.warn('Logging out due to invalid auth state/deleted user.');
             await firebaseAuth.signOut();
             set({ auth: null, userData: null, accessIssue: null });
+            return;
           }
+
+          const accessIssue = getAccessIssueFromError(error);
+          set({ userData: null, accessIssue });
         } finally {
           if (!options.silent) {
             set({ isVerifying: false });
