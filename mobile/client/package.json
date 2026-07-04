@@ -1,7 +1,7 @@
 {
   "name": "client",
   "main": "expo-router/entry",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "scripts": {
     "start": "expo start --dev-client --lan",
     "start:lan": "cross-env REACT_NATIVE_PACKAGER_HOSTNAME=192.168.100.121 expo start -c",

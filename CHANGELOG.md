@@ -1,3 +1,9 @@
+## [3.2.2](https://github.com/kuyajp123/Rescuenect/compare/v3.2.1...v3.2.2) (2026-07-04)
+
+### Bug Fixes
+
+* handle token expiration to redicrect to error ([004d2b0](https://github.com/kuyajp123/Rescuenect/commit/004d2b02a14242e0fef6c58b057ecd9ff91d30c3))
+
 ## [3.2.1](https://github.com/kuyajp123/Rescuenect/compare/v3.2.0...v3.2.1) (2026-07-04)
 
 ### Bug Fixes
