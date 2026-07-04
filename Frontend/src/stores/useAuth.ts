@@ -146,7 +146,7 @@ export const useAuth = create<AuthStore>()(
         }
 
         try {
-          const idToken = await currentUser.getIdToken(true); // Force refresh token
+          const idToken = await currentUser.getIdToken(); // Get token without forcing refresh
           const response = await axios.post<{ user: UserData }>(
             API_ENDPOINTS.AUTH.SIGNIN,
             {
