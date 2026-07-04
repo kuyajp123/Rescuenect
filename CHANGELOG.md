@@ -1,3 +1,9 @@
+## [3.2.1](https://github.com/kuyajp123/Rescuenect/compare/v3.2.0...v3.2.1) (2026-07-04)
+
+### Bug Fixes
+
+* authentication loop during onAuthStateChanged ([584335f](https://github.com/kuyajp123/Rescuenect/commit/584335f20e95ad5f9403da0b1577ca9aa1f1b336))
+
 ## [3.2.0](https://github.com/kuyajp123/Rescuenect/compare/v3.1.1...v3.2.0) (2026-07-03)
 
 ### Features
