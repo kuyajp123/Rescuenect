@@ -10,13 +10,13 @@ import { StyleSheet, View } from 'react-native';
 const releaseVersion = String(Constants.expoConfig?.extra?.releaseVersion ?? Constants.expoConfig?.version ?? '2.0.0');
 
 const capabilityItems = [
-  'View the current status of residents during a disaster.',
-  'Access current weather conditions and disaster-related updates.',
-  'See the latest earthquake information for timely awareness.',
-  'Read official barangay announcements and advisories.',
-  'Find official barangay contacts and hotline numbers.',
-  'Report city problems and emergencies with location, images, and descriptions.',
-  'Support faster response through centralized incident monitoring.',
+  'Locate nearby evacuation centers and check their live capacities.',
+  'View verified danger zones with precise mapped areas (points, lines, and polygons).',
+  'Report local emergencies with descriptions, photos, and exact map locations.',
+  'Access official barangay and municipal announcements or advisories.',
+  'Get dynamic weather forecasts tailored to your specific municipality.',
+  'Receive real-time earthquake alerts impacting your region.',
+  'Find categorized emergency contacts and hotline numbers for your local government.',
 ];
 
 const teamMembers = [
@@ -27,11 +27,11 @@ const teamMembers = [
 ];
 
 const goalItems = [
-  'Provide real-time disaster and weather information to help communities stay aware of potential risks.',
-  'Allow users to report city problems and emergencies through map-based reporting with images and descriptions.',
-  'Improve communication between citizens and local authorities during disaster situations.',
-  'Promote community awareness and preparedness for natural disasters such as floods, earthquakes, and storms.',
-  'Create a centralized system for monitoring community incidents to support faster response and better decision-making.',
+  'Provide a centralized, dynamic platform for LGUs and citizens to communicate during crises.',
+  'Improve situational awareness through real-time mapping of hazards and shelters.',
+  'Empower residents to crowdsource emergency data securely and accurately.',
+  'Equip local authorities with the necessary tools to monitor, verify, and resolve ongoing incidents.',
+  'Enhance disaster preparedness by delivering localized weather and earthquake intelligence.',
 ];
 
 const AboutScreen = () => {

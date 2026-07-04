@@ -19,6 +19,7 @@
       }
     },
     "staging": {
+      "autoIncrement": true,
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": {
@@ -29,6 +30,7 @@
       }
     },
     "preview": {
+      "autoIncrement": true,
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": {
