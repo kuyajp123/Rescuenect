@@ -22,7 +22,7 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-firebase/app": "^23.5.0",
     "@react-native-firebase/messaging": "^23.5.0",
-    "@react-native-firebase/remote-config": "^25.1.0",
+    "@react-native-firebase/remote-config": "^23.5.0",
     "@react-native-google-signin/google-signin": "^15.0.0",
     "@rnmapbox/maps": "^10.1.41",
     "@tailwindcss/postcss": "^4.3.0",

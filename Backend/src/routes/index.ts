@@ -1,4 +1,5 @@
 import { HealthController } from '@/controllers/HealthController';
+import { MaintenanceMiddleware } from '@/middlewares/MaintenanceMiddleware';
 import { routeRateLimiters } from '@/middlewares/RateLimitMiddleware';
 import express from 'express';
 import adminRouter from './admin';
@@ -7,6 +8,9 @@ import publicRouter from './public';
 import unifiedRoutes from './unified';
 
 const mainRouter = express.Router();
+
+// Apply maintenance mode middleware to all routes
+mainRouter.use(MaintenanceMiddleware.maintenanceModeMiddleware);
 
 // Health check endpoints (no auth required)
 mainRouter.get('/health', HealthController.healthCheck);
