@@ -1,3 +1,9 @@
+## [3.3.0](https://github.com/kuyajp123/Rescuenect/compare/v3.2.2...v3.3.0) (2026-07-05)
+
+### Features
+
+* add maintenance screen for mobile and web ([5c96b5d](https://github.com/kuyajp123/Rescuenect/commit/5c96b5d3cc699c9000cf3bb14458b0431d9e4803))
+
 ## [3.2.2](https://github.com/kuyajp123/Rescuenect/compare/v3.2.1...v3.2.2) (2026-07-04)
 
 ### Bug Fixes
