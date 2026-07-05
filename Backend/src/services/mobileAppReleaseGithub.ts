@@ -130,9 +130,18 @@ const deleteDuplicateGithubAsset = async (
 
   if (!duplicateAsset) return;
 
-  await axios.delete(`${GITHUB_API_URL}/repos/${repository}/releases/assets/${duplicateAsset.id}`, {
-    headers: getGithubHeaders(token),
-  });
+  try {
+    await axios.delete(`${GITHUB_API_URL}/repos/${repository}/releases/assets/${duplicateAsset.id}`, {
+      headers: getGithubHeaders(token),
+    });
+  } catch (error: any) {
+    // Asset may have already been deleted (e.g. race condition) — safe to ignore
+    if (error?.response?.status === 404) {
+      console.warn(`[mobileAppReleaseGithub] Asset ${duplicateAsset.id} (${fileName}) not found during delete, skipping.`);
+      return;
+    }
+    throw error;
+  }
 };
 
 export const uploadGithubReleaseAsset = async (params: {
