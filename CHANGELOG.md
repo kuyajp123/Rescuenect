@@ -1,3 +1,9 @@
+## [3.3.1](https://github.com/kuyajp123/Rescuenect/compare/v3.3.0...v3.3.1) (2026-07-05)
+
+### Bug Fixes
+
+* version mismatch in firebase config in mobile ([fc488f9](https://github.com/kuyajp123/Rescuenect/commit/fc488f90dff04ab672eb53a7c878aade36a0521b))
+
 ## [3.3.0](https://github.com/kuyajp123/Rescuenect/compare/v3.2.2...v3.3.0) (2026-07-05)
 
 ### Features
