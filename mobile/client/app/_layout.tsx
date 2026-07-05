@@ -1,6 +1,9 @@
 import '@/components/components/ActionSheet/sheets';
 import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary';
+import MaintenanceScreen from '@/components/MaintenanceScreen';
 import { ServerWakeUpScreen } from '@/components/ui/loading/ServerWakeUpScreen';
+import remoteConfig from '@react-native-firebase/remote-config';
+import { ActivityIndicator, View } from 'react-native';
 import { STORAGE_KEYS } from '@/config/asyncStorage';
 import { API_ROUTES } from '@/config/endpoints';
 import { FontSizeProvider, useFontSize } from '@/contexts/FontSizeContext';
@@ -263,6 +266,37 @@ function LayoutContent() {
 }
 
 export default function RootLayout() {
+  const [isMaintenance, setIsMaintenance] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const initConfig = async () => {
+      try {
+        await remoteConfig().setConfigSettings({
+          minimumFetchIntervalMillis: 0,
+        });
+        await remoteConfig().fetchAndActivate();
+        const maintenanceMode = remoteConfig().getBoolean('is_maintenance_mode');
+        setIsMaintenance(maintenanceMode);
+      } catch (error) {
+        console.error('Failed to fetch remote config:', error);
+        setIsMaintenance(false);
+      }
+    };
+    initConfig();
+  }, []);
+
+  if (isMaintenance === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#006FEE" />
+      </View>
+    );
+  }
+
+  if (isMaintenance) {
+    return <MaintenanceScreen />;
+  }
+
   return (
     <GlobalErrorBoundary>
       <LayoutContent />
